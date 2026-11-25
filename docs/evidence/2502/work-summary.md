@@ -95,7 +95,7 @@ R1–R8 全部 PASS；逐行记录见 `docs/evidence/2502/evidence.json`（build
 
 | 方向 | 内容 | 结论 |
 |---|---|---|
-| 计划/契约（Plan/API） | `GET /users/me` 已返回 `tenant_name`（JWT `tid` → `merchants.name`，#2117）与 `site_id`/`site_name`（JWT `oid` → `sites.name`，#2449）；本单只登记文档，不改后端契约 | 一致（后端零改动） |
+| 计划/契约（Plan/API） | `GET /users/me` 已返回 `tenant_name`（JWT tid → merchants.name，#2117）与 site_id/site_name（JWT oid → sites.name，#2449）；本单只登记文档，不改后端契约 | 一致（后端零改动） |
 | 文档（docs） | `docs/spec/api/api.md` 新增「GET 组织上下文字段（#2449 / #2117 / #2502）」；`docs/spec/ui/ui.md` §2.5a 新增徽标口径；`docs/cases/h5-weapp-differences.md` A23 | 已落（R7 artifact 附原文） |
 | 消费方（frontend） | H5 `frontend-mobile/src/pages/Profile.jsx` 与 weapp `frontend-mobile/src/pages-weapp/Profile.jsx` 只读上述字段，经 `frontend-mobile/src/utils/identity.js` 单一 helper 渲染，禁自拼组织查询 | 一致（R1–R5） |
 

@@ -14,10 +14,10 @@
       "artifacts": [
         "docs/evidence/2502/R1-weapp-badge.txt"
       ],
-      "assert": "exit 0；grep `BADGE_TEXT=cadenza · 卡丹萨乐器 · 管理员`",
+      "assert": "exit 0；grep BADGE_TEXT=cadenza · 卡丹萨乐器 · 管理员",
       "actual": "PASS：weapp 页 render 后叶子文本精确含 `cadenza · 卡丹萨乐器 · 管理员`（TEST_EXIT=0、OLD_TEXT_ABSENT=1）",
       "expected": "PASS",
-      "negative": "徽标仍只含网点名（`BADGE_TEXT=卡丹萨乐器 · 管理员`）→ FAIL",
+      "negative": "徽标仍只含网点名（BADGE_TEXT=卡丹萨乐器 · 管理员）→ FAIL",
       "negative_result": "用例以 hasExactLeaf('卡丹萨乐器 · 管理员') === false 断言旧文本不得出现（OLD_TEXT_ABSENT=1）",
       "pass": true
     },
@@ -28,10 +28,10 @@
       "artifacts": [
         "docs/evidence/2502/R2-fallback.txt"
       ],
-      "assert": "exit 0；grep `BADGE_TEXT=卡丹萨乐器 · 管理员`、`NO_UNDEFINED=1`、`NO_LEADING_SEP=1`",
+      "assert": "exit 0；grep BADGE_TEXT=卡丹萨乐器 · 管理员、NO_UNDEFINED=1、NO_LEADING_SEP=1",
       "actual": "PASS：仅 site_name → `卡丹萨乐器 · 管理员`；两者皆缺 → `管理员`；页面文本不含 undefined/null 且无前导分隔符",
       "expected": "PASS",
-      "negative": "文本出现 `undefined` 或以 ` · ` 开头 → FAIL",
+      "negative": "文本出现 undefined 或以  ·  开头 → FAIL",
       "negative_result": "NO_UNDEFINED=1、NO_LEADING_SEP=1（两条断言均在 render 后页面上求值）",
       "pass": true
     },
@@ -42,10 +42,10 @@
       "artifacts": [
         "docs/evidence/2502/R3-h5-badge.txt"
       ],
-      "assert": "exit 0；grep `H5_BADGE_TEXT=cadenza · 卡丹萨乐器 · 管理员`、`PARITY=1`",
+      "assert": "exit 0；grep H5_BADGE_TEXT=cadenza · 卡丹萨乐器 · 管理员、PARITY=1",
       "actual": "PASS：H5 Profile（MemoryRouter + render）徽标文本与 R1 逐字相同，PARITY=1",
       "expected": "PASS",
-      "negative": "`H5_BADGE_TEXT=` 为空（H5 仍无徽标）→ FAIL",
+      "negative": "H5_BADGE_TEXT= 为空（H5 仍无徽标）→ FAIL",
       "negative_result": "修复前 H5 头部无徽标（取不到值）；修复后 H5_BADGE_TEXT 与 weapp 相同",
       "pass": true
     },
@@ -56,7 +56,7 @@
       "artifacts": [
         "docs/evidence/2502/R4-customer.txt"
       ],
-      "assert": "exit 0；grep `CUSTOMER_BADGE_ABSENT=1`、`NO_TENANT_LEAK=1`",
+      "assert": "exit 0；grep CUSTOMER_BADGE_ABSENT=1、NO_TENANT_LEAK=1",
       "actual": "PASS：token role=USER 且 /users/me 故意带 tenant_name/site_name → H5 与 weapp 页面文本均不含 cadenza / 卡丹萨乐器",
       "expected": "PASS",
       "negative": "顾客上下文页面出现商户名或网点名 → FAIL",
@@ -70,10 +70,10 @@
       "artifacts": [
         "docs/evidence/2502/R5-helper-redgreen.txt"
       ],
-      "assert": "exit 0；grep `RED_GREEN=1`、`OLD_TEXT=卡丹萨乐器`、`NEW_TEXT=cadenza · 卡丹萨乐器`、`FORMAT_EMPTY=`",
+      "assert": "exit 0；grep RED_GREEN=1、OLD_TEXT=卡丹萨乐器、NEW_TEXT=cadenza · 卡丹萨乐器、FORMAT_EMPTY=",
       "actual": "PASS：纯函数语义与红绿对照全部满足（FORMAT_EMPTY 为空值，生成器用哨兵区分空值与缺行）",
       "expected": "PASS",
-      "negative": "旧表达式已含商户名（`OLD_TEXT` 含 `cadenza`）→ FAIL",
+      "negative": "旧表达式已含商户名（OLD_TEXT 含 cadenza）→ FAIL",
       "negative_result": "OLD_TEXT=卡丹萨乐器（不含 cadenza）× NEW_TEXT=cadenza · 卡丹萨乐器，RED_GREEN=1",
       "pass": true
     },
@@ -84,10 +84,10 @@
       "artifacts": [
         "docs/evidence/2502/R6-lint.txt"
       ],
-      "assert": "exit 0；grep `ESLINT_EXIT=0`、`NO_UNDEF=0`",
+      "assert": "exit 0；grep ESLINT_EXIT=0、NO_UNDEF=0",
       "actual": "PASS：npx eslint 3 个改动 JS 文件退出 0，no-undef 计数 0",
       "expected": "PASS",
-      "negative": "`ESLINT_EXIT` 非 0 或 `NO_UNDEF` 大于 0 → FAIL",
+      "negative": "ESLINT_EXIT 非 0 或 NO_UNDEF 大于 0 → FAIL",
       "negative_result": "ESLINT_EXIT=0、NO_UNDEF=0",
       "pass": true
     },
@@ -98,7 +98,7 @@
       "artifacts": [
         "docs/evidence/2502/R7-docs.txt"
       ],
-      "assert": "exit 0；grep `UI_DOC=1`、`API_DOC=1`、`DIFF_DOC=1`",
+      "assert": "exit 0；grep UI_DOC=1、API_DOC=1、DIFF_DOC=1",
       "actual": "PASS：ui.md「头部身份徽标（#2502）」、api.md「GET 组织上下文字段」、h5-weapp-differences A23 三处条目齐备（artifact 内附条目原文）",
       "expected": "PASS",
       "negative": "任一文档缺条目（对应键为 0）→ FAIL",
