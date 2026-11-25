@@ -415,3 +415,4 @@
 - 2026-11-25: Batch processing completed, including tasks: Resolved Issues: #2484 #2483 #2478（审计 PASS；Ops #2491 #2492 #2494）。待返工：#2480（R7 证据键与计划断言相反）、#2482（已发 Verification Request 待重跑）；新立项 #2490 #2493 + beaconiam#504
 - 2026-11-25: Batch processing completed, including tasks: Resolved Issues: #2482 (改主角色保留其它角色；#2485 已 REJECT 待返工)
 - 2026-11-25: Batch processing completed, including tasks: Resolved Issues: #2480
+- 2026-11-25: Batch processing completed, including tasks: Resolved Issues: #2490
