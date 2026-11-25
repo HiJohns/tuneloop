@@ -1,4 +1,9 @@
-## Accepted Plan — #2375 Rev.3（补 Files：verify 脚本/evidence.json；R4 走包装器；R7 由 Owner 签）
+## Accepted Plan — #2375 Rev.4（补 Files：plan 快照 + gate 报告；依赖段规范化；补 Workload）
+
+> **Rev.4 变更（采纳 2026-11-24 Plan Gap）**：
+> ① `### Files` 补 `docs/evidence/2375/plan.md`（P6 唯一阻塞项）与 `docs/evidence/2375/pre-ready-2375.json`（持久 gate 报告，`accept --require-gate-artifact` 要求）；
+> ② `## Dependencies` 规范为严格依赖行（`- #2367`，已 closed），其余说明移入 `### 依赖与关联说明`；
+> ③ 补 `### Workload`（accept 强制）。R1–R7 语义、矩阵与合同行**不变**。
 
 ### 背景
 
@@ -106,9 +111,20 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 
 ## Dependencies
 
-- 前置：#2367（同文件归属解析修复；避免与 `user_staff.go` 大改冲突，先合入 #2367 再动 `UpdateUser`）。
-- 外部：pending 账号的角色真正生效依赖 HiJohns/beaconiam#495（E2）；未部署时 `role_errors` 保留提示。
-- 消费方：前端角色展示与告警供 #2372 创建成功流程复用。
+- #2367
+
+### 依赖与关联说明（非硬依赖）
+
+- **#2367（已 closed）**：同文件归属解析修复；避免与 `user_staff.go` 大改冲突。
+- **跨仓**：pending 账号的角色真正生效依赖 beaconiam E2 排队的跨仓单（beaconiam 侧）；未部署时 tuneloop 以 `role_errors` 保留提示，不 500。
+- **消费方**：前端角色展示与告警供 #2372 创建成功流程复用。
+- **父任务**：#2364（本单为子任务，全量 gate 归父/批次；本轮 P5=N/A 属既定口径）。
+
+### Workload
+
+- Size: M
+- Basis: 2 个后端源文件（`user_staff.go` + 新增测试）+ 2 个前端文件 + 1 个 verify 脚本 + 7 条证据行 + 1 个 plan 快照 + 1 个 gate 报告；无 migration、无新 API
+- Confidence: high
 
 ### Files（变更文件清单）
 
@@ -125,8 +141,11 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 - `docs/evidence/2375/R7-role-column.md`
 - `scripts/verify-2375.sh`
 - `docs/evidence/2375/evidence.json`
+- `docs/evidence/2375/plan.md`
+- `docs/evidence/2375/pre-ready-2375.json`
 
 *Model: DeepSeek V4.1 Flash 1017 (deepseek/deepseek-flash)*
+
 
 
 

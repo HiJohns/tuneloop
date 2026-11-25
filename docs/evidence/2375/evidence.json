@@ -104,5 +104,6 @@
       "negative_result": "RESULT: PENDING → exit 1",
       "pass": true
     }
-  ]
+  ],
+  "plan_sha256": "a21ff24b42f2d47eb10775888b9cc00d50bde34199f31ce1c535e89d6df235a8"
 }
