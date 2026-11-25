@@ -1,0 +1,7 @@
+# build=1.0.16a271f5 # commit=16a271f5cef078d7059de4dbbe33f8b8d8050cc1 # dirty=false
+BUILD_CMD=cd frontend-pc && npm run build
+PC_BUILD=0
+LINT_PC=0
+LINT_MOBILE=0
+RESULT: PASS
+
