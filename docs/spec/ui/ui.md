@@ -3148,6 +3148,9 @@ const handleSyncUsersFromIAM = async () => {
   - 权限管理 (`/system/permissions`) — sys_perm bit 26（商户管理员）
   - 客户端管理 (`/system/clients`) — sys_perm bit 0
   - 租户管理 (`/system/tenants`) — sys_perm bit 6
+    - **只读列表**：无新建/编辑/删除入口（后端无 `/system/tenants` 写端点）；租户随「商户管理」创建商户时自动生成（`POST /api/merchants`），提示文案「租户随商户创建自动生成；新建租户请在『商户管理』完成」
+    - 列表字段对齐 `GET /api/system/tenants`：租户名称（`name`）/ 租户ID（`id`）/ 状态（`active`→启用、`inactive`→停用、其它→未知）/ 创建时间（`created_at`）
+    - 列表与失败分支必须判 `code === 20000`（共享终判 `src/utils/apiResult.js`）；失败提示后端 `message`，并清空列表（禁止静默空表或假成功）
   - 内容管理 (`/system/banners`) — cus_perm `banner:manage`：轮播图管理；同页下方「商城页图片管理」Card（cus_perm `mall_image:manage`，平台级全站配置、与租户无关，图片建议 750×400px）
 
 

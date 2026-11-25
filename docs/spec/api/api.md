@@ -6524,20 +6524,30 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 
 **接口**: `GET /api/system/tenants`
 
+**Query**: `page`（默认 1）、`page_size`（默认 20，≤100）
+
 **响应**:
 ```json
 {
   "code": 20000,
   "data": {
-    "tenants": [
+    "list": [
       {
-        "tenant_id": "tenant-001",
-        "tenant_name": "TuneLoop Primary",
-        "org_count": 5
+        "id": "9f1c2a7e-0000-0000-0000-000000000001",
+        "name": "TuneLoop Primary",
+        "status": "active",
+        "description": "",
+        "created_at": "2026-01-01T00:00:00Z"
       }
-    ]
+    ],
+    "total": 1,
+    "page": 1,
+    "page_size": 20
   }
 }
+```
+
+**写端点**: **无** POST/PUT/DELETE /api/system/tenants（也不存在 `/api/system/tenants/:id`）。租户行是 **IAM 组织镜像**（`tenants.id` = IAM 组织 ID），由「商户管理」创建商户（`POST /api/merchants`）时自动 upsert；缺失时由 IAM 组织按名称回填（`backend/handlers/public.go`）。因此平台端「租户管理」仅为**只读列表**，前端不得提供创建/编辑/删除入口（#2516）。
 
 ### 12.3 商户管理
 

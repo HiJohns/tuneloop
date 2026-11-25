@@ -649,18 +649,15 @@ export const bulkImportApi = {
 }
 
 export const iamAdminApi = {
-  // Client Management
+  // Client Management（写 helper 归属 #2517；本单只清理 tenant 侧，见 D6）
   getClients: () => api.get('/system/clients'),
   createClient: (data) => api.post('/system/clients', data),
   updateClient: (id, data) => api.put(`/system/clients/${id}`, data),
   deleteClient: (id) => api.delete(`/system/clients/${id}`),
-  
-  // Tenant Management
+
+  // Tenant Management（#2516：后端只有 GET，租户由 POST /merchants 派生；
+  // tenant 侧写 helper 无对应路由、全仓无引用，已随本单删除，只保留只读列表）
   getTenants: () => api.get('/system/tenants'),
-  createTenant: (data) => api.post('/system/tenants', data),
-  getTenant: (id) => api.get(`/system/tenants/${id}`),
-  updateTenant: (id, data) => api.put(`/system/tenants/${id}`, data),
-  deleteTenant: (id) => api.delete(`/system/tenants/${id}`),
 }
 
 export const categoriesApi = {

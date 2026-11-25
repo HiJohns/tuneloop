@@ -1,10 +1,17 @@
 import { useState, useEffect } from 'react'
-import { Table, Button, Modal, Form, Input, message, Tag, Space, Select } from 'antd'
-import { PlusOutlined } from '@ant-design/icons'
+import { Table, message, Tag, Alert } from 'antd'
 import { api } from '../services/api'
 import { formatBeijingDate } from '../utils/date'
+import { isApiOk, apiFailureMessage } from '../utils/apiResult'
 
-const { Option } = Select
+// #2516：平台端「租户管理」为**只读列表**。
+// 租户行是 IAM 组织镜像（tenants.id = IAM 组织 ID），由「商户管理」创建商户
+// （POST /api/merchants）时自动生成；后端从未注册 /system/tenants 写端点，
+// 本页原有「创建租户」入口只会得到 404 并提示「租户创建成功」（假成功），已移除。
+const STATUS_LABELS = {
+  active: { text: '启用', color: 'green' },
+  inactive: { text: '停用', color: 'red' },
+}
 
 export default function TenantManagement() {
   const [tenants, setTenants] = useState([])
@@ -13,8 +20,6 @@ export default function TenantManagement() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [total, setTotal] = useState(0)
-  const [modalVisible, setModalVisible] = useState(false)
-  const [form] = Form.useForm()
 
   useEffect(() => {
     fetchTenants()
@@ -23,31 +28,24 @@ export default function TenantManagement() {
   const fetchTenants = async () => {
     try {
       setLoading(true)
-      const response = await api.get('/system/tenants', { params: { page, page_size: pageSize } })
-      setTenants(response.data?.list || [])
-      setTotal(response.data?.total || 0)
-      setLoading(false)
+      const res = await api.get('/system/tenants', { params: { page, page_size: pageSize } })
+      // #2516：request() 对 404/409 返回对象而非抛错，必须终判 code；
+      // 失败时清空列表，禁止沿用上一次数据造成「静默空表/假成功」。
+      if (!isApiOk(res)) {
+        message.error(apiFailureMessage(res, '加载租户列表失败'))
+        setTenants([])
+        setTotal(0)
+        return
+      }
+      setTenants(res.data?.list || [])
+      setTotal(res.data?.total || 0)
     } catch (error) {
       console.error('Failed to fetch tenants:', error)
       message.error('加载租户列表失败')
+      setTenants([])
+      setTotal(0)
+    } finally {
       setLoading(false)
-    }
-  }
-
-  const handleCreateTenant = () => {
-    form.resetFields()
-    setModalVisible(true)
-  }
-
-  const handleSubmit = async (values) => {
-    try {
-      await api.post('/system/tenants', values)
-      message.success('租户创建成功')
-      setModalVisible(false)
-      fetchTenants()
-    } catch (error) {
-      console.error('Failed to create tenant:', error)
-      message.error('创建租户失败')
     }
   }
 
@@ -59,15 +57,17 @@ export default function TenantManagement() {
     },
     {
       title: '租户ID',
-      dataIndex: 'tenant_id',
-      key: 'tenant_id',
+      dataIndex: 'id',
+      key: 'id',
     },
     {
       title: '状态',
+      dataIndex: 'status',
       key: 'status',
-      render: (_, record) => (
-        <Tag color="green">启用</Tag>
-      ),
+      render: (status) => {
+        const label = STATUS_LABELS[status] || { text: '未知', color: 'default' }
+        return <Tag color={label.color}>{label.text}</Tag>
+      },
     },
     {
       title: '创建时间',
@@ -81,10 +81,14 @@ export default function TenantManagement() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">租户管理</h1>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateTenant}>
-          创建租户
-        </Button>
       </div>
+
+      <Alert
+        type="info"
+        showIcon
+        className="mb-4"
+        message="租户随商户创建自动生成；新建租户请在『商户管理』完成"
+      />
 
       <Table
         columns={columns}
@@ -97,51 +101,6 @@ export default function TenantManagement() {
           onChange: (p, ps) => { setPage(p); setPageSize(ps) },
         }}
       />
-
-      <Modal
-        title="创建租户"
-        open={modalVisible}
-        onCancel={() => setModalVisible(false)}
-        onOk={() => form.submit()}
-        width={600}
-      >
-        <Form form={form} layout="vertical" onFinish={handleSubmit}>
-          <Form.Item
-            name="name"
-            label="租户名称"
-            rules={[{ required: true, message: '请输入租户名称' }]}
-          >
-            <Input placeholder="请输入租户名称" />
-          </Form.Item>
-
-          <Form.Item
-            name="owner_email"
-            label="Owner邮箱"
-            rules={[
-              { required: true, message: '请输入Owner邮箱' },
-              { type: 'email', message: '请输入有效的邮箱地址' }
-            ]}
-          >
-            <Input placeholder="owner@example.com" />
-          </Form.Item>
-
-          <Form.Item
-            name="owner_name"
-            label="Owner姓名"
-            rules={[{ required: true, message: '请输入Owner姓名' }]}
-          >
-            <Input placeholder="请输入Owner姓名" />
-          </Form.Item>
-
-          <Form.Item
-            name="owner_password"
-            label="Owner密码"
-            rules={[{ required: true, message: '请输入Owner密码' }]}
-          >
-            <Input.Password placeholder="请输入密码" />
-          </Form.Item>
-        </Form>
-      </Modal>
     </div>
   )
 }
