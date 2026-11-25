@@ -10,15 +10,15 @@
 - `frontend-mobile/src/utils/identity.js`（新增，单一 owner）：`formatOrgIdentity(merchantName, siteName)`（` · ` 连接 + `filter(Boolean)`）、`roleBadgeTextFromRoles(roles, isStaff)`（管理员/员工/维修师傅，多角色 ` · ` 连接，无匹配回退「员工」，非员工「顾客」）、`identityBadgeText({tenantName, siteName, roles, isStaff})`；页面不再自拼口径。
 - `frontend-mobile/src/pages-weapp/Profile.jsx`：`roleBadges/roleBadgeText` 改由 helper 产出（行为不变）；徽标文本改为 `identityBadgeText({ tenantName: user?.tenant_name, siteName: user?.site_name, roles: myRoles, isStaff })`，渲染条件与 11px 药丸样式未改。
 - `frontend-mobile/src/pages/Profile.jsx`（H5）：员工上下文在姓名行之后、会员等级行之前新增徽标行，文案与 weapp 完全一致（同一 helper）。
-- `frontend-mobile/scripts/page-smoke/profile-identity-badge-2502.test.jsx`（新增）：R1–R5 用例（RTL `render` + `waitFor` 页级文本断言，`process.stdout.write` 输出机器键值）。
-- `scripts/verify-2502.sh`（新增）：证据生成器（node22；重命令经 host 锁 `heavy-run.sh`；provenance 由最新 fix commit 派生）；`kv()` 区分「空值」与「缺行」，保证 `FORMAT_EMPTY=` 可判定。
+- `frontend-mobile/scripts/page-smoke/profile-identity-badge-2502.test.jsx`（新增）：R1–R5 用例（RTL `render` + `waitFor` 页级文本断言，process.stdout.write 输出机器键值）。
+- `scripts/verify-2502.sh`（新增）：证据生成器（node22；重命令经 host 锁 heavy-run.sh；provenance 由最新 fix commit 派生）；`kv()` 区分「空值」与「缺行」，保证 `FORMAT_EMPTY=` 可判定。
 - 文档（Core Update）：`docs/spec/ui/ui.md` 新增「头部身份徽标（#2502）」；`docs/spec/api/api.md` 登记 `/users/me` 的 `site_id`/`site_name`/`tenant_name` 上下文语义；`docs/cases/h5-weapp-differences.md` 新增 A23。
 
 **v2（Round 1 审计闭环，commit `84343702a` + `405cb8f20`）**
 
 - `frontend-mobile/src/utils/identity.js`：新增 `isStaffBadgeVisible(role)`（`role` 非空且非 `USER`/`GUEST`），与 weapp `isStaff`、后端 `GetBusinessRole` 同口径（D6）。修复审计 Bug 3：H5 徽标此前用 `isStaffRole(token)`（`oid`/`tid` 非空即员工），遗留 `role=USER + oid/tid` token 会渲染组织名，与 weapp/后端相反。
-- `frontend-mobile/src/pages/Profile.jsx`：徽标可见性改用 `isStaffBadgeVisible(parseJWT(token).role)`；`myRoles` 拉取等其他 `isStaff` 用途保持原状（D7 不扩面）。
-- `frontend-mobile/src/pages-weapp/Profile.jsx`：徽标文本同样改用 `isStaffBadgeVisible(claims.role)`，两端可见性判定收口到同一 helper。
+- `frontend-mobile/src/pages/Profile.jsx`：徽标可见性改用 isStaffBadgeVisible(parseJWT(token).role)；`myRoles` 拉取等其他 `isStaff` 用途保持原状（D7 不扩面）。
+- `frontend-mobile/src/pages-weapp/Profile.jsx`：徽标文本同样改用 isStaffBadgeVisible(claims.role)，两端可见性判定收口到同一 helper。
 - `frontend-mobile/scripts/page-smoke/profile-identity-badge-2502.test.jsx`：新增 `TestProfileBadgeLegacyCustomer_2502`（R13，遗留 `USER + oid/tid`）。
 - `scripts/verify-2502.sh`：新增 `r9`（`build:h5` + `npm run build`）、`r10`（`build:weapp`）、`r11`（`npm run smoke`）、`r12`（校验 canonical gate 报告）、`r13`（遗留 token 两端负例）；R9/R10 断言基于 Taro 产物实际形态（minify + CJK `\uXXXX` 转义）。
 - `docs/spec/ui/ui.md` §2.5a：补充「可见性（#2502 D6）」条目（审计 Bug 3 要求：判定口径变更须同步规格）。
@@ -61,7 +61,7 @@ P5   N/A    no go.mod/package.json and no --full-gate-cmd: full gate not applica
 
 | 计划项 | 状态 |
 |---|---|
-| 变更点 1 单一 owner `utils/identity.js`（纯函数、无 IO） | 完成（v2 增 `isStaffBadgeVisible`，仍为单一 owner） |
+| 变更点 1 单一 owner `frontend-mobile/src/utils/identity.js`（纯函数、无 IO） | 完成（v2 增 `isStaffBadgeVisible`，仍为单一 owner） |
 | 变更点 2 weapp Profile 改用 helper（角色标签行为不变） | 完成 |
 | 变更点 3 H5 Profile 新增同口径徽标行 | 完成 |
 | 变更点 4 页烟测试（R1–R5 + v2 的 R13） | 完成（6 用例） |
@@ -85,7 +85,7 @@ P5   N/A    no go.mod/package.json and no --full-gate-cmd: full gate not applica
 | 8 | 维修类页面网点名 | 工单/师傅/中转目标地址 | 不改 |
 
 扫描命令：`grep -rn "site_name" frontend-mobile/src`（30 处）逐条归类，仅 #1/#2 属员工身份徽标。
-同类判定扫描（v2）：`grep -rn "isStaffRole(" frontend-mobile/src` 共 5 处；本单只改徽标可见性（`utils/identity.js` 的 `isStaffBadgeVisible`），金刚区/BottomNav 等既有 `isStaffRole` 判定保持不变（D7，收敛另立 Issue）。
+同类判定扫描（v2）：`grep -rn "isStaffRole(" frontend-mobile/src` 共 5 处；本单只改徽标可见性（`frontend-mobile/src/utils/identity.js` 的 `isStaffBadgeVisible`），金刚区/BottomNav 等既有 `isStaffRole` 判定保持不变（D7，收敛另立 Issue）。
 
 ### 矩阵 17/17
 
