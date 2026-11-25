@@ -1582,6 +1582,12 @@ API 来源：
 - **服务端分页（#2140）**：Table 改服务端 `page`/`pageSize`，`total` 取后端 `data.total`；状态筛选服务端化（`?status=` → 查询 `stock_status`）；移除 `pageSize:200` 硬编码与客户端 `filteredAssets` 过滤
 - **字段可见性**：标准日租金 / 押金 → 管理员/商户管理员可见（代理 `hasCusPerm('instrument:delete')`），员工隐藏
 - **详情/编辑**：统一「资产卡片」组件（两旧详情路径收敛，兼容重定向）
+- **资产详情页（`/site/stock/:id` → `AssetDetail.jsx`，#2529）**：
+  - **取数**：`GET /api/instruments/:id` 单条（`GetInstrumentByID`）。**禁止**拉列表首页再内存查找（旧实现 `inventoryApi.list()` 无参 = 服务端第 1 页 20 条 → 第 2 页之后的乐器一律「资产不存在」）
+  - **三态**（`frontend-pc/src/utils/assetDetail.js` 的 `assetDetailState`）：`code=20000` 且有 data → 正常渲染；`code=40400` 或 data 为空 → 「**资产不存在或已删除**」+ 返回按钮；其它 code / 请求异常 → 「**加载失败：<message>**」+ 重试按钮（不得把三种情况都显示成「资产不存在」）
+  - **页头图片**：`assetHeroImage` = `media.display[0].url` → `poster` → `images[0]` → 内置占位；`onError` 回落同一占位（与列表同源，禁止引用未入库静态资源）
+  - **字段**：资产ID / 类别 / 级别 / 状态 / 所属网点 / **标准日租金**（API `base_daily_rate` 为**分**，必须经 `formatDailyRate` 显示元；未配置显示 `-`）
+  - **其它 PC 占位图**：`InstrumentListUser.jsx`、`IdPhotoDisplay.jsx` 的 `fallback` 统一为 `IMAGE_PLACEHOLDER`（`frontend-pc/src/utils/instrumentDisplay.js` 导出的同一 data-URI 常量），不得引用 `/placeholder-instrument.png` / `/placeholder.png`（均未入库 → 404）
 - **排序语义（#2241 方案 A）**：分类内排序——默认列表按分类分组、组内按 `sort_order`；行内上移/下移在组内换位并重排序号（不再出现记录被甩到列表尾部/跨页）。组内首/末：后端返回 `already first` / `already last`，前端以 **warning** 提示「已在最前 / 已在最后」并禁用该方向按钮；移动成功后自动回到默认组内视图（避免表头 created_at 排序下“看起来没反应”）。
 
 ### 2.24.1 成员角色多选（#2035）

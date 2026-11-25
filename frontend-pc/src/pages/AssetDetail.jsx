@@ -3,7 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Card, Tabs, Timeline, Button, Tag, Space, Spin } from 'antd'
 import { EyeOutlined, EditOutlined } from '@ant-design/icons'
 import { ArrowLeft } from 'lucide-react'
-import { inventoryApi } from '../services/api'
+import { instrumentsApi } from '../services/api'
+import { INSTRUMENT_IMAGE_PLACEHOLDER, formatDailyRate } from '../utils/instrumentDisplay'
+import { ASSET_DETAIL_STATUS, assetDetailState, assetHeroImage } from '../utils/assetDetail'
 
 const { TabPane } = Tabs
 
@@ -11,28 +13,45 @@ export default function AssetDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [asset, setAsset] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [status, setStatus] = useState('loading')
+  const [errorMessage, setErrorMessage] = useState('')
 
   useEffect(() => {
     loadAsset()
+    // #2529: 详情按 :id 单条取数，路由参数变化时重新加载
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
+  // #2529: 单条详情接口（GET /instruments/:id）。
+  // 旧实现无参拉列表首页再内存查找
+  // → 第 2 页之后的乐器一律「资产不存在」。
   const loadAsset = async () => {
-    setLoading(true)
+    setStatus('loading')
+    setErrorMessage('')
     try {
-      const response = await inventoryApi.list()
-      const data = response?.data?.list || []
-      const found = data.find(a => a.id === id)
-      setAsset(found || null)
+      const response = await instrumentsApi.get(id)
+      const next = assetDetailState(response)
+      if (next.status === ASSET_DETAIL_STATUS.OK) {
+        setAsset(next.asset)
+        setStatus(ASSET_DETAIL_STATUS.OK)
+        return
+      }
+      setAsset(null)
+      if (next.status === ASSET_DETAIL_STATUS.MISSING) {
+        setStatus(ASSET_DETAIL_STATUS.MISSING)
+        return
+      }
+      setErrorMessage(next.message || '请求失败，请重试')
+      setStatus(ASSET_DETAIL_STATUS.ERROR)
     } catch (error) {
       console.error('Failed to load asset:', error)
       setAsset(null)
-    } finally {
-      setLoading(false)
+      setErrorMessage(error?.message || '请求失败，请重试')
+      setStatus(ASSET_DETAIL_STATUS.ERROR)
     }
   }
 
-  if (loading) {
+  if (status === 'loading') {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
         <Spin size="large" />
@@ -40,8 +59,25 @@ export default function AssetDetail() {
     )
   }
 
-  if (!asset) {
-    return <div className="p-6">资产不存在</div>
+  if (status === ASSET_DETAIL_STATUS.ERROR) {
+    return (
+      <div className="p-6">
+        <p className="mb-4">加载失败：{errorMessage}</p>
+        <Space>
+          <Button type="primary" onClick={loadAsset}>重试</Button>
+          <Button onClick={() => navigate('/site/stock')}>返回库存监控</Button>
+        </Space>
+      </div>
+    )
+  }
+
+  if (status === ASSET_DETAIL_STATUS.MISSING || !asset) {
+    return (
+      <div className="p-6">
+        <p className="mb-4">资产不存在或已删除</p>
+        <Button type="primary" onClick={() => navigate('/site/stock')}>返回库存监控</Button>
+      </div>
+    )
   }
 
   const statusColors = {
@@ -74,6 +110,15 @@ export default function AssetDetail() {
 
       <Card className="mb-6 shadow-sm">
         <div className="flex gap-6">
+          {/* #2529: 页头补图（{取源与 #2528 列表同源：media.display → poster → images → 内置占位}） */}
+          <div className="shrink-0">
+            <img
+              src={assetHeroImage(asset)}
+              alt={asset.sn || '乐器图片'}
+              style={{ width: 160, height: 160, objectFit: 'cover', borderRadius: 8 }}
+              onError={(e) => { e.currentTarget.src = INSTRUMENT_IMAGE_PLACEHOLDER }}
+            />
+          </div>
           <div className="flex-1">
             <h2 className="text-2xl font-bold mb-4">{asset.sn || asset.id?.slice(0, 8) || '—'}</h2>
             <div className="grid grid-cols-2 gap-4">
@@ -98,8 +143,9 @@ export default function AssetDetail() {
                 <p className="font-medium">{asset.site_name || '—'}</p>
               </div>
               <div>
-                <span className="text-gray-500 text-sm">估值</span>
-                <p className="font-bold text-lg">¥{(asset.base_daily_rate || 0).toLocaleString()}</p>
+                {/* #2529: 「估值」实为标准日租金，API 单位是分 → 必须经 formatCents 换算 */}
+                <span className="text-gray-500 text-sm">标准日租金</span>
+                <p className="font-bold text-lg">{formatDailyRate(asset)}</p>
               </div>
               {asset.leaseEnd && (
                 <div>
