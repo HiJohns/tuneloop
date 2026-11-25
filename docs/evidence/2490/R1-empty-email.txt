@@ -1,0 +1,32 @@
+# build=1.0.c0539fd00 # commit=c0539fd00ba769039194e174dfd49a70ad754303 # dirty=false
+# tree=c0539fd00ba769039194e174dfd49a70ad754303
+FIXTURE=u1||196608
+CMD=bash scripts/migrate.sh --fixture <file>
+============================================
+  Namespace Admin cus_perm Migration
+============================================
+IAM URL:        http://localhost:5561
+Client ID:      tuneloop
+Bits to set:    18 (category:manage) + 19 (attribute:manage)
+Bitmask:        786432
+Mode:           DRY RUN (no changes)
+============================================
+
+[1/4] Reading fixture (offline mode)...
+  Fixture rows: 1
+MIGRATE_INVALID=0
+
+[4/4] Updating cus_perm...
+ACTION=UPDATE uid=u1 email= old_perm=196608 new_perm=983040
+PLAN_UPDATES=1
+SKIPPED=0
+DB_WRITES=0
+
+============================================
+  Migration plan only (dry run)
+  To update: 1  Skipped: 0
+  (DRY RUN — no changes were made)
+============================================
+RESULT: PASS
+EXIT=0
+RESULT: PASS
