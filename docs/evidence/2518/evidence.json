@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "issue": 2518,
+  "build": "1.0.ccb0c8b8",
+  "commit": "ccb0c8b8e6a316ce2879374c9e6110347705e6c6",
+  "dirty": false,
+  "plan_sha256": "2b2a0df76e33f23a02ed08f3f08515c823930a068830d16e3adbc219b1d52aad",
+  "tooling_commit": "f663626b8fe3895a49dffa4c43266664546741db",
+  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2518 (branch issue-2518, based on origin/develop 4cee0c829); static grep + PC npm run build + eslint; node 22.23.5; no browser access",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2518.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2518/R1-clients-removed.txt"
+      ],
+      "assert": "exit 0；含 CLIENT_REFS=0",
+      "actual": "PASS：`frontend-pc/src` 中 ClientManagement 与 /system/clients 命中数 0，ClientManagement.jsx 已不存在（CLIENT_PAGE_FILE=0）",
+      "expected": "PASS",
+      "negative": "仍有引用 → FAIL",
+      "negative_result": "删除前同命令 CLIENT_REFS=13（App.jsx import+route、api.js 4 条封装、页面自身 6 处）；生成器以 count!=0 或文件仍存在判 FAIL",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2518.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2518/R2-tenants-removed.txt"
+      ],
+      "assert": "exit 0；含 TENANT_REFS=0",
+      "actual": "PASS：`frontend-pc/src` 中 TenantManagement 与 /system/tenants 命中数 0，TenantManagement.jsx 已不存在（TENANT_PAGE_FILE=0）",
+      "expected": "PASS",
+      "negative": "仍有引用 → FAIL",
+      "negative_result": "删除前同命令 TENANT_REFS=12（App.jsx import+route、api.js 5 条封装、页面自身 5 处）；生成器以 count!=0 或文件仍存在判 FAIL",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2518.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2518/R3-merchants-kept.txt"
+      ],
+      "assert": "exit 0；含 MERCHANTS_MENU=1 与 PAGE_EXISTS=1",
+      "actual": "PASS：App.jsx menuConfig 第 352 行仍是 `{ key: '/merchants', label: '商户管理', permission: { sysPermBits: [6] } }`；MerchantManagement.jsx 存在且含「创建商户」入口（CREATE_ENTRY=1）",
+      "expected": "PASS",
+      "negative": "菜单缺失 → FAIL",
+      "negative_result": "菜单行缺失（MENU_ENTRY=missing）、页面文件缺失或页面无「创建商户」入口任一成立 → MERCHANTS_MENU 不写出（rc=1）",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2518.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2518/R4-docs.txt"
+      ],
+      "assert": "exit 0；含 DOC_REMOVED=1 与 TENANT_ALIAS=1",
+      "actual": "PASS：`docs/spec/ui/ui.md` §5 子菜单已无「客户端管理」「租户管理」条目（DOC_REMOVED=1），并新增「租户即商户（#2518）」说明（TENANT_ALIAS=1）；artifact 内附 §5 原文",
+      "expected": "PASS",
+      "negative": "文档残留 → FAIL",
+      "negative_result": "任一旧条目仍在（grep -F 命中）或缺少「租户即商户（#2518）」→ rc=1",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2518.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2518/R5-build-lint.txt"
+      ],
+      "assert": "exit 0；含 BUILD_OK 与 ESLINT_OK",
+      "actual": "PASS：`cd frontend-pc && npm run build` exit 0（vite build 成功），`npx eslint src/App.jsx src/services/api.js` exit 0、no-undef 0",
+      "expected": "PASS",
+      "negative": "构建失败 → FAIL",
+      "negative_result": "BUILD_EXIT 或 ESLINT_EXIT 非 0、或 NO_UNDEF>0 → BUILD_OK/ESLINT_OK 不写出（rc=1）；首跑因 worktree 缺 node_modules（vite not found, exit 127）即判 FAIL，复制依赖后复跑 PASS",
+      "pass": true
+    }
+  ]
+}
