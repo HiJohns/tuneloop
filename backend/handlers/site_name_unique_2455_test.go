@@ -111,7 +111,7 @@ func applySiteNameIndex2455(t *testing.T, db *gorm.DB) {
 
 func dropSiteNameIndex2455(t *testing.T, db *gorm.DB) {
 	t.Helper()
-	require.NoError(t, db.Exec("DROP INDEX IF EXISTS " + siteNameIndex2455).Error)
+	require.NoError(t, db.Exec("DROP INDEX IF EXISTS "+siteNameIndex2455).Error)
 }
 
 // seedMerchant2455 creates a merchant whose root org is the sites tenant anchor.
