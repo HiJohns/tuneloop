@@ -90,8 +90,8 @@ P5   N/A    no go.mod/package.json and no --full-gate-cmd: full gate not applica
 
 ### 人工/部署侧
 
-- 浏览器直连旧 URL 的落点（404/首页）与菜单目视，由 ops 在预生产回评（Developer 无浏览器/预生产执行授权）。
-- `#2516` 关闭动作：本单落地后由 Developer 在 Issue 内关闭并说明「页面已删除」。
+- 浏览器直连旧 URL 的落点（404/首页）与菜单目视，由 ops 在预生产回评（Developer 无浏览器/预生产执行授权）；跟踪单 **#2525**（label `waitForConfirm`，无 `status:*`）。
+- `#2516`（租户页 POST 404 假成功）当前已 `CLOSED` + `status:done`，本单删除页面后该缺陷不再可触发（D4 满足，无需再改状态）。
 
 ### Pre-ready gate
 
