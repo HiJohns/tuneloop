@@ -1,0 +1,7 @@
+# build=1.0.405cb8f2 # commit=405cb8f20dfc75300e02981fcfca4ada2f456406 # dirty=false
+TEST_FILE=scripts/page-smoke/profile-identity-badge-2502.test.jsx
+TEST_PATTERN=TestProfileBadgeLegacyCustomer_2502
+TEST_EXIT=0
+ORG_ABSENT_BOTH_ENDS=1
+RESULT: PASS
+

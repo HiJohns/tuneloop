@@ -1,0 +1,7 @@
+# build=1.0.405cb8f2 # commit=405cb8f20dfc75300e02981fcfca4ada2f456406 # dirty=false
+SMOKE_CMD=cd frontend-mobile && npm run smoke
+SMOKE_EXIT=0
+TESTS_PASSED=117
+TESTS_FAIL=0
+RESULT: PASS
+

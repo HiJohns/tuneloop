@@ -1,0 +1,13 @@
+# build=1.0.405cb8f2 # commit=405cb8f20dfc75300e02981fcfca4ada2f456406 # dirty=false
+BUILD_CMD=cd frontend-mobile && npm run build:h5
+BUILD_EXIT=0
+TARO_H5_BUNDLE=present
+TARO_H5_HELPER_FILES=1
+DIST_ASSETS_WITH_ROLE_LABEL=1
+VITE_BUILD_CMD=cd frontend-mobile && npm run build
+VITE_BUILD_EXIT=0
+H5_INDEX_HTML=present
+H5_BUNDLE_HASH=assets/index-Cml1qTK1.js
+BUILD_H5_OK
+RESULT: PASS
+

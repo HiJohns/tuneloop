@@ -1,11 +1,12 @@
 {
   "schema_version": 1,
   "issue": 2502,
-  "build": "1.0.813a0c5e",
-  "commit": "813a0c5e63b1094744977e838eded0730307285b",
+  "build": "1.0.405cb8f2",
+  "commit": "405cb8f20dfc75300e02981fcfca4ada2f456406",
   "dirty": false,
-  "plan_sha256": "e053dfc1bcea62ce9e17e89b83504d1fd40a0e524e8c46546cfd0f92648ccf1b",
-  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2502 (base origin/develop f711f427e, branch issue-2502); vitest + @testing-library/react (jsdom, taro-shim) page smoke; node 22.23.5; no real device / no production access",
+  "plan_sha256": "0bb29afb53e8e0db02220bc7e7fe0a5cce10eb50ead5d5f0a2626be6648e1781",
+  "tooling_commit": "f663626b8fe3895a49dffa4c43266664546741db",
+  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2502 (branch issue-2502, base origin/develop); vitest + @testing-library/react (jsdom, taro-shim) page smoke; node 22.23.5; self-owned build:h5 / build:weapp / npm run smoke; no real device / no production access",
   "rows": [
     {
       "id": "R1",
@@ -99,7 +100,7 @@
         "docs/evidence/2502/R7-docs.txt"
       ],
       "assert": "exit 0；grep UI_DOC=1、API_DOC=1、DIFF_DOC=1",
-      "actual": "PASS：ui.md「头部身份徽标（#2502）」、api.md「GET 组织上下文字段」、h5-weapp-differences A23 三处条目齐备（artifact 内附条目原文）",
+      "actual": "PASS：ui.md「头部身份徽标（#2502）」（含 D6 可见性口径）、api.md「GET 组织上下文字段」、h5-weapp-differences A23 三处条目齐备（artifact 内附条目原文）",
       "expected": "PASS",
       "negative": "任一文档缺条目（对应键为 0）→ FAIL",
       "negative_result": "UI_DOC=1、API_DOC=1、DIFF_DOC=1",
@@ -113,10 +114,80 @@
         "docs/evidence/2502/pre-ready-2502.json"
       ],
       "assert": "exit 0；jq -r '.overall' = PASS；jq -r '.provenance.dirty' = false",
-      "actual": "PASS：pre-ready 18 项检查 overall=PASS，provenance.dirty=false（P12 Evidence Contract / P16 UI render 均 PASS）",
+      "actual": "PASS：pre-ready 报告 overall=PASS、provenance.dirty=false（P12 Evidence Contract 13 行全 PASS、P16 UI render PASS）",
       "expected": "PASS",
       "negative": "P12/P16 任一 FAIL 或 dirty=true → FAIL",
-      "negative_result": "bootstrap 首跑（报告工件尚不存在）P12 FAIL，生成报告后复跑 PASS —— 该行断言对工件存在性与 gate 结论都敏感",
+      "negative_result": "bootstrap 首跑（报告工件尚不存在）P12/P3 FAIL，提交报告后复跑 PASS —— 该行断言对工件存在性与 gate 结论都敏感",
+      "pass": true
+    },
+    {
+      "id": "R9",
+      "command": "bash scripts/verify-2502.sh r9",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2502/R9-build-h5.txt"
+      ],
+      "assert": "exit 0；含 BUILD_H5_OK",
+      "actual": "PASS：`npm run build:h5` exit 0（Taro H5 helper chunk 1 个）、`npm run build` exit 0，`frontend-mobile/dist/index.html` 存在且引用 `assets/index-Cml1qTK1.js`，dist/assets 含职位文案",
+      "expected": "PASS",
+      "negative": "构建失败 → FAIL",
+      "negative_result": "BUILD_EXIT/VITE_BUILD_EXIT 任一非 0、缺 index.html 或缺 hash → BUILD_H5_OK 不写出（生成器 rc=1）",
+      "pass": true
+    },
+    {
+      "id": "R10",
+      "command": "bash scripts/verify-2502.sh r10",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2502/R10-build-weapp.txt"
+      ],
+      "assert": "exit 0；含 BUILD_WEAPP_OK",
+      "actual": "PASS：`npm run build:weapp` exit 0；`dist-weapp/pages-weapp/profile/index.js` 存在（37845 bytes），含 helper 调用点 `tenantName:`、角色标签三元 `\\u7ef4\\u4fee\\u5e08\\u5085` 与 `tenant_name`/`site_name` 字段引用",
+      "expected": "PASS",
+      "negative": "构建失败 → FAIL",
+      "negative_result": "BUILD_EXIT 非 0、缺 profile bundle、或 helper 调用点/角色标签/字段引用任一缺失 → BUILD_WEAPP_OK 不写出（生成器 rc=1）",
+      "pass": true
+    },
+    {
+      "id": "R11",
+      "command": "bash scripts/verify-2502.sh r11",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2502/R11-smoke.txt"
+      ],
+      "assert": "exit 0；含 SMOKE_EXIT=0 与 TESTS_FAIL=0",
+      "actual": "PASS：`cd frontend-mobile && npm run smoke` exit 0，117 个用例通过、0 失败（含 BottomNav/平台层等共享组件回归）",
+      "expected": "PASS",
+      "negative": "任一失败 → FAIL",
+      "negative_result": "SMOKE_EXIT 非 0、TESTS_FAIL>0 或 0 个通过用例 → 不写出 PASS",
+      "pass": true
+    },
+    {
+      "id": "R12",
+      "command": "bash scripts/verify-2502.sh r12",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2502/pre-ready-2502.json"
+      ],
+      "assert": "报告 overall=PASS",
+      "actual": "PASS：canonical gate 报告 overall=PASS、provenance.dirty=false；P5 原文逐字引用见 Work Summary（`no go.mod/package.json and no --full-gate-cmd: full gate not applicable`）",
+      "expected": "PASS",
+      "negative": "缺报告 → FAIL",
+      "negative_result": "报告缺失/overall!=PASS/dirty=true → 生成器 rc=1（只校验、不覆写 canonical 报告）",
+      "pass": true
+    },
+    {
+      "id": "R13",
+      "command": "bash scripts/verify-2502.sh r13",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2502/R13-legacy-customer.txt"
+      ],
+      "assert": "exit 0；含 ORG_ABSENT_BOTH_ENDS=1",
+      "actual": "PASS：遗留 token（role=USER + oid/tid）+ /users/me 带 tenant_name/site_name → H5 与 weapp 页面文本均不含 cadenza / 卡丹萨乐器（ORG_ABSENT_BOTH_ENDS=1）",
+      "expected": "PASS",
+      "negative": "渲染商户/网点名 → FAIL",
+      "negative_result": "两端 render 后均以 not.toContain 断言组织名不得出现；修复前 H5 因 isStaffRole(oid/tid) 会渲染组织名",
       "pass": true
     }
   ]

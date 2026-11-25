@@ -1,4 +1,4 @@
-## Accepted Plan — #2502（移动端「我的」身份徽标补齐商户名；H5 同口径）
+## Accepted Plan — #2502 v2（移动端「我的」身份徽标 + R9/R10/R11/R13/R12 自持证据；H5 同口径）
 
 > **一句话**：`/users/me` **已经**同时返回 `tenant_name` 与 `site_name`（#2117 / #2449），但 weapp 徽标写成 `site_name || tenant_name`（网点名优先 → 商户名被完全丢弃），H5 头部则**没有任何身份徽标**；本单把两端统一为 `商户名 · 网点名 · 职位`，用**单一 helper** 收口，不改后端、不碰 AccountSelect/PC（#2455 所有权）。
 
@@ -85,6 +85,15 @@
 | R6 静态检查 | `frontend-mobile/src/utils/identity.js`、两个 Profile 组件 | `npx eslint` | 修后树 | 双端 | `ESLINT_EXIT=0`、`no-undef` 计数 0 | R6 |
 | R7 规格/接口/差异文档 | `docs/spec/ui/ui.md`、`docs/spec/api/api.md`、`docs/cases/h5-weapp-differences.md` | `grep` | 修后树 | 文档 | 三处条目齐备（`UI_DOC=1`/`API_DOC=1`/`DIFF_DOC=1`） | R7 |
 | R8 pre-ready gate | `docs/evidence/2502/pre-ready-2502.json` | `pre-ready-check.sh 2502` | 修后树（commit + push 之后） | 全量口径 | 报告 `overall=PASS`、`provenance.dirty=false`（P12/P16 全 PASS） | R8 |
+| `docs/evidence/2502/R9-build-h5.txt` | `bash scripts/verify-2502.sh r9` | `# build=1.0.<short> # commit=<sha> # dirty=false` |
+| `docs/evidence/2502/R10-build-weapp.txt` | `bash scripts/verify-2502.sh r10` | 同上 |
+| `docs/evidence/2502/R11-smoke.txt` | `bash scripts/verify-2502.sh r11` | 同上 |
+| `docs/evidence/2502/R13-legacy-customer.txt` | `bash scripts/verify-2502.sh r13` | 同上 |
+| R9 build:h5（自持） | `frontend-mobile/src/pages/Profile.jsx`、`utils/identity.js` | `npm run build:h5`（Node 22） | 修后树 | H5 | exit 0 且 `frontend-mobile/dist/index.html` 含新 hash | R9 |
+| R10 build:weapp（自持） | `frontend-mobile/src/pages-weapp/Profile.jsx`、`utils/identity.js` | `npm run build:weapp`（Node 22） | 修后树 | weapp | exit 0 且 `dist-weapp/pages-weapp/profile/index.js` 含新 helper 文案路径 | R10 |
+| R11 全量页烟 | 两个 Profile + BottomNav 平台层 | `npm run smoke`（Node 22） | 修后树 | 双端 | `SMOKE_EXIT=0`、`TESTS_FAIL=0` | R11 |
+| R13 遗留 USER+org | 两个 Profile | 页烟 fixture：token `role=USER` + `oid`/`tid` + `/users/me` 带 `tenant_name`/`site_name` | 修后树 | H5 + weapp | `ORG_ABSENT_BOTH_ENDS=1` | R13 |
+| R12 gate reset | `docs/evidence/2502/pre-ready-2502.json` | `pre-ready-check.sh 2502 …` | 修后树（commit+push 后） | 全量口径 | `overall=PASS` 且 Summary 的 P5 引文与报告 `detail` 逐字一致 | R12 |
 
 ## G0 Golden Acceptance
 
@@ -114,6 +123,10 @@
 | `docs/evidence/2502/R6-lint.txt` | `bash scripts/verify-2502.sh r6` | 同上 |
 | `docs/evidence/2502/R7-docs.txt` | `bash scripts/verify-2502.sh r7` | 同上 |
 | `docs/evidence/2502/pre-ready-2502.json` | `pre-ready-check.sh --report` | JSON `.provenance.{build,commit,dirty}`（gate 自填，与 `evidence.json` 对齐） |
+| `docs/evidence/2502/R9-build-h5.txt` | `bash scripts/verify-2502.sh r9` | `# build=1.0.<short> # commit=<sha> # dirty=false` |
+| `docs/evidence/2502/R10-build-weapp.txt` | `bash scripts/verify-2502.sh r10` | 同上 |
+| `docs/evidence/2502/R11-smoke.txt` | `bash scripts/verify-2502.sh r11` | 同上 |
+| `docs/evidence/2502/R13-legacy-customer.txt` | `bash scripts/verify-2502.sh r13` | 同上 |
 
 evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 
@@ -123,7 +136,7 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 - **Source of truth（展示口径）**：`docs/spec/ui/ui.md:1522`「员工上下文 → `{商户名} · {网点名}`」，以及 #2455 在 `docs/spec/api/api.md` 定义的 `contexts[].label = 商户名 · 网点名`（`origin/issue-2455`）。本单只是把该口径补到移动端 Profile 徽标。
 - **差异核对**：`grep -rn "site_name" frontend-mobile/src` 共 30 处；除本单两处徽标外均为**实体归属**（乐器/工单/发货仓/中转目标的所属网点），语义不是员工身份上下文 → 不改（逐条见 `## Bug Reflection Matrix`）。
 - **损坏输入拒绝**：`/users/me` 中 `tenant_name`/`site_name` 为 `''`、`null` 或缺键 → 徽标回退单项；两者都缺 → 只显示职位；**禁止**渲染 `undefined`、`null`、` · ` 前导/尾随分隔符（R2/R5 断言）。
-- **工具盲区**：
+- **工具盲区**（v2 更新）：父 #2455 的 gate 只覆盖 `go` + `frontend-pc`（其 `R9-build.txt` 实测），**不覆盖 frontend-mobile**；本单自持 `build:h5`/`build:weapp`/`smoke`（R9/R10/R11）。tiering 为**独立 Issue 口径**（正文父链接仅列表项），Summary 只引用报告原文。原说明：
   - vitest 烟测走 `taro-shim`（`@tarojs/components` → HTML）+ jsdom，**不能**验证微信真机渲染；weapp 侧以「同一 helper 产出同一文案」（R5 纯函数）+ 小程序构建由父/批次 gate 覆盖；真机由 ops 在预生产回评。
   - `textContent` 断言是页级黑盒（不依赖 class/style），因此样式微调不会造成假红/假绿。
   - `npx eslint` 仅静态规则，不覆盖运行时行为。
@@ -131,6 +144,9 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 - **构建前置**：`scripts/verify-2502.sh` 需 node 22（`~/.nvm/versions/node/v22*/bin`），其它 node 版本不保证 Taro/vitest 兼容（AGENTS.md「Node.js 版本要求」）。
 
 ## Decision Lock
+
+| D6 | 徽标可见性判定 | `role` 非空且非 `USER`/`GUEST`（与 weapp/后端一致），不引入新的角色枚举 |
+| D7 | H5 `isStaffRole` 漂移 | 本单只修徽标可见性（R13 范围）；金刚区/BottomNav 等处口径收敛**另立 Issue**，不在本单扩面 |
 
 | ID | 决策项 | 责任人 | 锁定条件 | 未锁定时的处理 |
 |---|---|---|---|---|
@@ -182,6 +198,11 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 | R6 | `bash scripts/verify-2502.sh r6` | `docs/evidence/2502/R6-lint.txt` | exit 0；grep `ESLINT_EXIT=0`、`NO_UNDEF=0` | PASS | `ESLINT_EXIT` 非 0 或 `NO_UNDEF` 大于 0 → FAIL | dev |
 | R7 | `bash scripts/verify-2502.sh r7` | `docs/evidence/2502/R7-docs.txt` | exit 0；grep `UI_DOC=1`、`API_DOC=1`、`DIFF_DOC=1` | PASS | 任一文档缺条目（对应键为 0）→ FAIL | dev |
 | R8 | `~/.config/opencode/scripts/pre-ready-check.sh 2502 --summary-file docs/evidence/2502/work-summary.md --changed-files docs/evidence/2502/changed-files.txt --evidence-file docs/evidence/2502/evidence.json --report docs/evidence/2502/pre-ready-2502.json` | `docs/evidence/2502/pre-ready-2502.json` | exit 0；jq -r '.overall' = PASS；jq -r '.provenance.dirty' = false | PASS | P12/P16 任一 FAIL 或 dirty=true → FAIL | dev |
+| R9 | `bash scripts/verify-2502.sh r9` | docs/evidence/2502/R9-build-h5.txt | exit 0；含 `BUILD_H5_OK` | PASS | 构建失败 → FAIL | dev |
+| R10 | `bash scripts/verify-2502.sh r10` | docs/evidence/2502/R10-build-weapp.txt | exit 0；含 `BUILD_WEAPP_OK` | PASS | 构建失败 → FAIL | dev |
+| R11 | `bash scripts/verify-2502.sh r11` | docs/evidence/2502/R11-smoke.txt | exit 0；含 `SMOKE_EXIT=0` 与 `TESTS_FAIL=0` | PASS | 任一失败 → FAIL | dev |
+| R13 | `bash scripts/verify-2502.sh r13` | docs/evidence/2502/R13-legacy-customer.txt | exit 0；含 `ORG_ABSENT_BOTH_ENDS=1` | PASS | 渲染商户/网点名 → FAIL | dev |
+| R12 | `bash scripts/verify-2502.sh r12` | docs/evidence/2502/pre-ready-2502.json | 报告 `overall=PASS` | PASS | 缺报告 → FAIL | architect |
 
 ### Workload
 
@@ -190,6 +211,11 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 - Confidence: high
 
 ### Files（变更文件清单）
+
+- `docs/evidence/2502/R9-build-h5.txt`
+- `docs/evidence/2502/R10-build-weapp.txt`
+- `docs/evidence/2502/R11-smoke.txt`
+- `docs/evidence/2502/R13-legacy-customer.txt`
 
 - `frontend-mobile/src/utils/identity.js`
 - `frontend-mobile/src/pages/Profile.jsx`
@@ -213,4 +239,5 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 - `docs/evidence/2502/R7-docs.txt`
 
 *Model: DeepSeek V4.1 Flash 1017*
+
 
