@@ -1,0 +1,7 @@
+# build=1.0.7369e361a # commit=7369e361a716653c31c1801420bdd51a79a061e7 # dirty=false
+# tree=7369e361a716653c31c1801420bdd51a79a061e7
+CMD=bash -n scripts/migrate.sh
+SYNTAX_OK=1
+SHELLCHECK_EXIT=NA (shellcheck not installed)
+SAME_PATH_SCAN=2
+SAME_PATH_SCAN_NOTE=info only (report-merchant-direct-role-drift-2462.sh belongs to #2484)

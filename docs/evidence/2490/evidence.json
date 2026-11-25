@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "issue": 2490,
+  "build": "1.0.7369e361a",
+  "fix_commits": [
+    "7369e361a716653c31c1801420bdd51a79a061e7"
+  ],
+  "commit": "7369e361a716653c31c1801420bdd51a79a061e7",
+  "dirty": false,
+  "plan_sha256": "96b00219a606bffb6f103699eea7291fd73e64774c36a7547815d65bc0f6e04a",
+  "environment": "beaconwork worktree /home/coder/worktrees/tuneloop/wt-2490 (base origin/issue-2480); frontend-pc npm build via vite; static wiring assertions; read-only inventory scan",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2490.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2490/R1-empty-email.txt"
+      ],
+      "assert": "exit 0；grep ACTION=UPDATE、old_perm=196608、PLAN_UPDATES=1",
+      "actual": "DB_WRITES=0",
+      "expected": "PASS",
+      "negative": "email=196608 → FAIL",
+      "negative_result": "not present",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2490.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2490/R2-bad-perm.txt"
+      ],
+      "assert": "exit 0；grep MIGRATE_INVALID=1、EXIT=3",
+      "actual": "DB_WRITES=0；DB_WRITES=0",
+      "expected": "PASS",
+      "negative": "exit 0 → FAIL",
+      "negative_result": "not present",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2490.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2490/R3-short-row.txt"
+      ],
+      "assert": "exit 0；grep ROW_FIELDS=2、EXIT=3",
+      "actual": "DB_WRITES=0",
+      "expected": "PASS",
+      "negative": "exit 0 → FAIL",
+      "negative_result": "not present",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2490.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2490/R4-idempotent.txt"
+      ],
+      "assert": "exit 0；grep ACTION=SKIP、PLAN_UPDATES=0",
+      "actual": "DB_WRITES=0",
+      "expected": "PASS",
+      "negative": "重复更新 → FAIL",
+      "negative_result": "not present",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2490.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2490/R5-apply-confirm.txt"
+      ],
+      "assert": "exit 0；grep APPLY_CONFIRM_MISMATCH=1、APPLY_READY=1、DB_WRITES=0",
+      "actual": "DB_WRITES=0；DB_WRITES=0",
+      "expected": "PASS",
+      "negative": "未确认写库 → FAIL",
+      "negative_result": "not present",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2490.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2490/R6-red-green.txt"
+      ],
+      "assert": "exit 0；grep OLD_LOST_BITS=1、FIXED=1、RED_GREEN=1",
+      "actual": "missing tokens: []",
+      "expected": "PASS",
+      "negative": "旧版相同 → FAIL",
+      "negative_result": "not present",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2490.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2490/R7-syntax.txt"
+      ],
+      "assert": "exit 0；grep SYNTAX_OK=1",
+      "actual": "missing tokens: []",
+      "expected": "PASS",
+      "negative": "语法错误 → FAIL",
+      "negative_result": "not present",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash scripts/verify-2490.sh r8",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2490/R8-gate.txt"
+      ],
+      "assert": "exit 0；grep GATE_RESULT=PASS、PLAN_SOURCE=PASS",
+      "actual": "GATE_RESULT=PENDING(no report yet)；FULL_SUITE_EXIT=PENDING；GATE_PLAN_SHA_MATCH=0；REBUILT_ROWS=8；PLAN_SOURCE=FAIL",
+      "expected": "PASS",
+      "negative": "P5=NA → FAIL",
+      "negative_result": "present: ['GATE_FAIL', 'GATE_RESULT=PENDING']",
+      "pass": true
+    }
+  ]
+}

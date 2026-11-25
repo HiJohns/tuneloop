@@ -1,0 +1,46 @@
+# build=1.0.7369e361a # commit=7369e361a716653c31c1801420bdd51a79a061e7 # dirty=false
+# tree=7369e361a716653c31c1801420bdd51a79a061e7
+FIXTURE_1=u2|a@b|   FIXTURE_2=u3|a@b|abc
+--- empty cus_perm ---
+============================================
+  Namespace Admin cus_perm Migration
+============================================
+IAM URL:        http://localhost:5561
+Client ID:      tuneloop
+Bits to set:    18 (category:manage) + 19 (attribute:manage)
+Bitmask:        786432
+Mode:           DRY RUN (no changes)
+============================================
+
+[1/4] Reading fixture (offline mode)...
+  Fixture rows: 1
+BAD_ROW=1
+MIGRATE_INVALID=1
+ERROR: cus_perm must be a non-negative integer (got ''): u2|a@b|
+BAD_ROW=1
+MIGRATE_INVALID=1
+DB_WRITES=0
+ERROR: aborting migration because of malformed input (no changes were made)
+EXIT=3
+--- non-numeric cus_perm ---
+============================================
+  Namespace Admin cus_perm Migration
+============================================
+IAM URL:        http://localhost:5561
+Client ID:      tuneloop
+Bits to set:    18 (category:manage) + 19 (attribute:manage)
+Bitmask:        786432
+Mode:           DRY RUN (no changes)
+============================================
+
+[1/4] Reading fixture (offline mode)...
+  Fixture rows: 1
+BAD_ROW=1
+MIGRATE_INVALID=1
+ERROR: cus_perm must be a non-negative integer (got 'abc'): u3|a@b|abc
+BAD_ROW=1
+MIGRATE_INVALID=1
+DB_WRITES=0
+ERROR: aborting migration because of malformed input (no changes were made)
+EXIT=3
+RESULT: PASS
