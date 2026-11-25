@@ -1,10 +1,16 @@
 {
   "issue": 2459,
-  "overall": "PASS",
+  "overall": "FAIL",
   "plan": "/home/coder/worktrees/tuneloop/wt-2459/docs/evidence/2459/plan.md",
-  "plan_sha256": "b9b874a018dc307f191109709edbc293bd6ae936839bb86eced9230fcc998ead",
+  "plan_sha256": "c945a649bec94a7a07217c77441496bfe3c2481ef6c2f8b81dbcb52e0c237cd1",
+  "config_sha": "db40145bac55c26278f9da24652d1a7bad2ebaca",
+  "provenance": {
+    "build": "1.0.9e331203",
+    "commit": "9e3312033c7864795a129e46cdf9590db17db0b7",
+    "dirty": false
+  },
   "summary": "/home/coder/worktrees/tuneloop/wt-2459/tmp/work-summary-2459.md",
-  "timestamp": "20261124-202445",
+  "timestamp": "20261125-062104",
   "checks": [
     {
       "id": "P1",
@@ -14,12 +20,12 @@
     {
       "id": "P2",
       "status": "PASS",
-      "detail": "Work Summary covers all 14 matrix rows with PASS/N/A"
+      "detail": "Work Summary covers all 18 matrix rows with PASS/N/A"
     },
     {
       "id": "P3",
-      "status": "PASS",
-      "detail": "all referenced evidence paths exist and are durable"
+      "status": "FAIL",
+      "detail": "evidence paths do not exist: R1-iam-first.txt R10-doc.txt R11-build.txt R12-perm.txt R13-unique.txt R14-gate.txt R15-cross-merchant.txt R16-self-only.txt R17-local-conflict.txt R18-pagination.txt R2-iam-fail.txt R3-idempotent.txt R4-escalate.txt R5-conflict.txt R6-not-found.txt R7-empty-name.txt R8-reuse.txt R9-drift.txt evidence.json iam_client.go main.go matrix_parser.sh merchants.name plan-source.sh plan.md pre-ready-2459.json pre-ready-check.sh site.go site_name_drift.go verify-2459.sh"
     },
     {
       "id": "P4",
@@ -29,12 +35,17 @@
     {
       "id": "P12",
       "status": "PASS",
-      "detail": "Evidence Contract complete: 14 row(s) match the plan and have durable artifacts"
+      "detail": "Evidence Contract complete: 18 row(s) match the plan and have durable artifacts"
     },
     {
       "id": "P14",
       "status": "PASS",
-      "detail": "artifact provenance matches evidence (14 artifacts)"
+      "detail": "artifact provenance matches evidence (18 artifacts)"
+    },
+    {
+      "id": "P18",
+      "status": "PASS",
+      "detail": "tooling_commit matches the running scripts (db40145bac55c26278f9da24652d1a7bad2ebaca)"
     },
     {
       "id": "P15",
