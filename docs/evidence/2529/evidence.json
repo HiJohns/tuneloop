@@ -29,10 +29,10 @@
         "docs/evidence/2529/R2-pc-detail.txt"
       ],
       "assert": "exit 0；grep NODE_TEST_RC=0、TESTS_FAIL=0、ASSET_DETAIL_USES_GET=1、LIST_STILL_USES_LIST_SCAN=0、LEGACY_PLACEHOLDER_REF=0、FALLBACK_WIRED=2",
-      "actual": "PASS：NODE_TEST_RC=0、TESTS_PASS=9、TESTS_FAIL=0（assetDetailState 4 类响应 + assetHeroImage 4 档来源）、ASSET_DETAIL_USES_GET=1、LIST_STILL_USES_LIST_SCAN=0、LEGACY_PLACEHOLDER_REF=0、FALLBACK_WIRED=2；R2_OK",
+      "actual": "PASS：NODE_TEST_RC=0、TESTS_PASS=9、TESTS_FAIL=0（assetDetailState 4 类响应 + assetHeroImage 4 档来源）、ASSET_DETAIL_USES_GET=1、LIST_STILL_USES_LIST_SCAN=0、LEGACY_PLACEHOLDER_REF=0、LEGACY_PLACEHOLDER_REF_PRE_FIX=2（同一探针 `grep -rnE '<pattern>' <tree> | wc -l` 在 fix commit 父树 33570b31e 上实测 2 命中，命中行已随 artifact 打印）、FALLBACK_WIRED=2；R2_OK",
       "expected": "PASS",
       "negative": "LIST_STILL_USES_LIST_SCAN=1 → 详情仍按首页列表查 → FAIL",
-      "negative_result": "negative not triggered：修复前（fix commit 父提交 33570b31e）实测 LIST_STILL_USES_LIST_SCAN=1（AssetDetail 仍有 inventoryApi.list() + .find(a => a.id === id)）、LEGACY_PLACEHOLDER_REF=2（InstrumentListUser.jsx:163 /placeholder-instrument.png、IdPhotoDisplay.jsx:66 /placeholder.png）、页头无图且价格裸 toLocaleString（分当元）；修复后三项分别为 0/0 + FALLBACK_WIRED=2。",
+      "negative_result": "negative reproducible（round-1 Bug 1 已修）：LEGACY_PLACEHOLDER_REF 改为递归真实计数 `grep -rnE -- 'placeholder-instrument\\.png|\"/placeholder\\.png\"' frontend-pc/src | wc -l`。同一命令在 fix commit 父树（33570b31e，`git archive <fix>^ frontend-pc/src`）实测 LEGACY_PLACEHOLDER_REF_PRE_FIX=2（InstrumentListUser.jsx:163、IdPhotoDisplay.jsx:66），修复树为 0 → 若仍有旧路径引用，LEGACY_PLACEHOLDER_REF 将 >0 并以 `R2_FAIL: LEGACY_PLACEHOLDER_REF expected '0' got '2'` 非 0 退出；脚本内还断言 LEGACY_PLACEHOLDER_REF_PRE_FIX=2，故探针若退化为恒真/恒 0，该行同样 FAIL。旧实现 `grep -cE <dir>`（无 -r）在同一树上返回 0（stderr 被吞），即恒真断言——已移除。",
       "pass": true
     },
     {

@@ -12,8 +12,12 @@ ok 9 - assetHeroImage returns built-in placeholder when nothing is available
 NODE_TEST_RC=0
 TESTS_PASS=9
 TESTS_FAIL=0
+LEGACY_PLACEHOLDER_REF_PRE_FIX_TREE=33570b31e
+frontend-pc/src/pages/InstrumentListUser.jsx:163:                    fallback="/placeholder-instrument.png"
+frontend-pc/src/components/IdPhotoDisplay.jsx:66:            fallback="/placeholder.png"
 ASSET_DETAIL_USES_GET=1
 LIST_STILL_USES_LIST_SCAN=0
 LEGACY_PLACEHOLDER_REF=0
+LEGACY_PLACEHOLDER_REF_PRE_FIX=2
 FALLBACK_WIRED=2
 R2_OK
