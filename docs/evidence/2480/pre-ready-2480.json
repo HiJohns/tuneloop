@@ -3,8 +3,8 @@
   "overall": "PASS",
   "plan": "docs/evidence/2480/plan.md",
   "plan_sha256": "60fdb380122b8777e0600eb999944c49484ca00e92507ea08313b63311b96513",
-  "summary": "tmp/work-summary-2480.md",
-  "timestamp": "20261124-235341",
+  "summary": "tmp/fix-summary-2480.md",
+  "timestamp": "20261125-023700",
   "checks": [
     {
       "id": "P1",
@@ -24,7 +24,7 @@
     {
       "id": "P4",
       "status": "PASS",
-      "detail": "all 2 affected command(s) passed"
+      "detail": "all 4 affected command(s) passed"
     },
     {
       "id": "P12",
@@ -54,7 +54,7 @@
     {
       "id": "P5",
       "status": "PASS",
-      "detail": "full gate clean worktree; HEAD failures are a subset of baseline (eb6579802e7f1083586a6428fef344c4c6c110bc); source head=cache baseline=cache"
+      "detail": "full gate clean worktree; HEAD failures are a subset of baseline (eb6579802e7f1083586a6428fef344c4c6c110bc); source head=run baseline=cache"
     },
     {
       "id": "P6",
