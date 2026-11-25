@@ -1,0 +1,10 @@
+# build=1.0.d08a6228e # commit=d08a6228ee7fb655edb3a517c8df8077fca67ea3 # dirty=false
+# tree=d08a6228ee7fb655edb3a517c8df8077fca67ea3
+SHARED_IMPORT=1
+PERSIST_ALERT=1
+CODE_FIRST=1
+CONFLICT_TEXT=1
+CLEAR_CALLS=6
+LOCAL_CODE_LIST=0
+PAGE=frontend-pc/src/pages/MerchantManagement.jsx
+THEME_2459=1

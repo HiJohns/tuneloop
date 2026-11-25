@@ -1,0 +1,25 @@
+# build=1.0.d08a6228e # commit=d08a6228ee7fb655edb3a517c8df8077fca67ea3 # dirty=false
+# tree=d08a6228ee7fb655edb3a517c8df8077fca67ea3
+PC_BUILD_CMD=cd frontend-pc && npm run build
+computing gzip size...
+dist/index.html                     0.53 kB │ gzip:   0.34 kB
+dist/assets/index-B2wkjN-i.css     38.38 kB │ gzip:   7.13 kB
+dist/assets/index-DW-csUzd.js   2,626.46 kB │ gzip: 808.43 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 51.95s
+PC_BUILD=0
+LINT_CMD=npx eslint 2489 changed files
+/home/coder/worktrees/tuneloop/wt-2489/frontend-pc/src/pages/admin/pricing/MerchantPricingConfig.jsx
+  31:5   warning  'loadConfig' was used before it was defined                                                                    no-use-before-define
+  32:6   warning  React Hook useEffect has a missing dependency: 'loadConfig'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  44:11  warning  'applyConfig' was used before it was defined                                                                   no-use-before-define
+  46:11  warning  'applyConfig' was used before it was defined                                                                   no-use-before-define
+
+✖ 8 problems (0 errors, 8 warnings)
+
+LINT_EXIT=0
+BUILD_LINT_OK
