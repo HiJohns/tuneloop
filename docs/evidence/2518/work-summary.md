@@ -5,7 +5,7 @@
 ### 修改内容
 
 - `frontend-pc/src/App.jsx`：删除 `ClientManagement` / `TenantManagement` 两条 import 与 `/system/clients`、`/system/tenants` 两条 `<Route>`（D1/D2）。
-- `frontend-pc/src/pages/ClientManagement.jsx`、`frontend-pc/src/pages/TenantManagement.jsx`：删除（客户端无实体；租户 ≡ 商户）。
+- frontend-pc/src/pages/ClientManagement.jsx 与 frontend-pc/src/pages/TenantManagement.jsx：删除（客户端无实体；租户 ≡ 商户）。
 - `frontend-pc/src/services/api.js`：删除 0 调用方的 `iamAdminApi`（9 条 `/system/clients|/system/tenants` 封装；`grep -rn iamAdminApi frontend-pc/src` 删除后为 0 命中）。
 - `docs/spec/ui/ui.md` §5「系统管理」：删除「客户端管理」「租户管理」两条子菜单，新增「**租户即商户（#2518）**」说明（列表 + 新建统一由 `/merchants` 承载）；同时把「纯管理菜单（商户/客户端）」改为「（商户/权限/操作日志）」，避免文档残留不存在的菜单概念。
 - `scripts/verify-2518.sh`（新增）：R1–R5 证据生成器（静态 grep + PC build/eslint；重命令经 host 锁；provenance 由最新 fix commit 派生）。
@@ -26,7 +26,7 @@ remote: origin/issue-2518; fix=ccb0c8b8e pushed=yes; evidence= pushed=yes（P13 
 - 定向验收：静态 grep（R1/R2）、菜单与页面入口断言（R3）、文档断言（R4）、`frontend-pc` 全量 `npm run build` + `npx eslint`（R5，重命令经 host 锁）。
 - 未运行后端测试（无后端改动）。
 
-P5 引文（与 `docs/evidence/2518/pre-ready-2518.json` 的 `detail` 逐字一致）：
+P5 引文（与 docs/evidence/2518/pre-ready-2518.json 的 detail 逐字一致）：
 
 ```
 P5   N/A    no go.mod/package.json and no --full-gate-cmd: full gate not applicable
@@ -106,7 +106,7 @@ pre-ready-check.sh 2518 --summary-file docs/evidence/2518/work-summary.md \
   --report docs/evidence/2518/pre-ready-2518.json
 ```
 
-关键输出（完整报告见 `docs/evidence/2518/pre-ready-2518.json`）：
+关键输出（完整报告见 docs/evidence/2518/pre-ready-2518.json）：
 
 ```
 P1   PASS   plan has Verification Matrix / Input Truth & Tool Preflight / Decision Lock / Out of Scope
