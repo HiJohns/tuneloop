@@ -3146,9 +3146,8 @@ const handleSyncUsersFromIAM = async () => {
     - 勾选"跳过邮箱验证"且创建成功时，弹窗显示管理员初始密码
   - 操作日志 (`/system/audit-logs`) — sys_perm bit 5
   - 权限管理 (`/system/permissions`) — sys_perm bit 26（商户管理员）
-  - 客户端管理 (`/system/clients`) — sys_perm bit 0
-  - 租户管理 (`/system/tenants`) — sys_perm bit 6
   - 内容管理 (`/system/banners`) — cus_perm `banner:manage`：轮播图管理；同页下方「商城页图片管理」Card（cus_perm `mall_image:manage`，平台级全站配置、与租户无关，图片建议 750×400px）
+- **租户即商户（#2518）**：本项目不存在独立的「租户管理」页面，租户 ≡ 商户，统一由「商户管理」(`/merchants`) 承载列表与新建；「客户端管理」不承载（OAuth client 属 IAM 概念，平台端无此实体）。
 
 
 #### 权限控制汇总 (v2.2 — 10 cus_perm + sys_perm 25-26)
@@ -3159,7 +3158,7 @@ const handleSyncUsersFromIAM = async () => {
 **菜单可见性 = sys_perm + cus_perm + businessRole 组合判断**：
 - 组合菜单（网点管理/人员管理/角色配置）：需 sys_perm 授权 **且** cus_perm 含有任一业务权限
 - 纯业务菜单（乐器/库存/维修/财务）：仅需对应 cus_perm 代码
-- 纯管理菜单（商户/客户端）：仅需对应 sys_perm 位码
+- 纯管理菜单（商户/权限/操作日志）：仅需对应 sys_perm 位码
 
 角色可见菜单详见 [`docs/spec/permissions.md` §四](../permissions.md#四角色-权限分配矩阵)，各菜单项所需权限详见 [`docs/spec/permissions.md` §五](../permissions.md#五菜单-权限映射)。
 

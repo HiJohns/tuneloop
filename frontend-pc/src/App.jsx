@@ -35,8 +35,6 @@ import DirectMemberManagement from './pages/DirectMemberManagement'
 import NotificationCenter from './components/NotificationCenter'
 import PermissionManage from './pages/admin/PermissionManage'
 import AssetDetail from './pages/AssetDetail'
-import ClientManagement from './pages/ClientManagement'
-import TenantManagement from './pages/TenantManagement'
 import AppealManagement from './pages/AppealManagement'
 import RepairConfigPage from './pages/admin/repair/RepairConfigPage'
 import MerchantRepairList from './pages/admin/repair/MerchantRepairList'
@@ -731,8 +729,6 @@ function onMenuClick(e) {
             <Route path="/technician-profiles" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read'] }}><TechnicianProfiles /></ProtectedRoute>} />
             <Route path="/maintenance/suppliers" element={<ProtectedRoute><SupplierDB /></ProtectedRoute>} />
             <Route path="/system/permissions" element={<ProtectedRoute requiredPermission={{ sysPermBits: [27] }}><PermissionManage /></ProtectedRoute>} />
-            <Route path="/system/clients" element={<ProtectedRoute requiredPermission={{ sysPermBits: [0] }}><ClientManagement /></ProtectedRoute>} />
-            <Route path="/system/tenants" element={<ProtectedRoute requiredPermission={{ sysPermBits: [6] }}><TenantManagement /></ProtectedRoute>} />
             <Route path="/system/banners" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['banner:manage'] }}><BannerManagePage /></ProtectedRoute>} />
             <Route path="/system/content-edit" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['category:manage'] }}><ContentEdit /></ProtectedRoute>} />
             <Route path="/system/membership-levels" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['membership:manage'] }}><MembershipLevelsPage /></ProtectedRoute>} />
