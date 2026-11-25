@@ -61,7 +61,7 @@ finish() { # artifact
 }
 
 run_go_test() { # pkg run-regex logfile
-    go test "$1" -run "$2" -v -count=1 -timeout 10m > "$3" 2>&1
+    ( cd "$REPO/backend" && go test "$1" -run "$2" -v -count=1 -timeout 10m ) > "$3" 2>&1
 }
 
 usage() { echo "usage: $0 <r1|r2|r3|r4|r5|r6|r7>" >&2; exit 2; }
@@ -146,7 +146,7 @@ r6)
     [ "$BUILD_EXIT" = "0" ] && emit "BUILD_OK" || RC=1
 
     TEST_LOG="$REPO/tmp/verify-$ISSUE-r6-test.log"
-    go test ./services ./handlers -run '2470|2364' -count=1 -timeout 15m > "$TEST_LOG" 2>&1
+    ( cd backend && go test ./services ./handlers -run '2470|2364' -count=1 -timeout 15m ) > "$TEST_LOG" 2>&1
     TEST_EXIT=$?
     emit "GO_TEST_CMD=go test ./services ./handlers -run '2470|2364' -count=1 -timeout 15m"
     emit "GO_TEST_EXIT=$TEST_EXIT"
