@@ -1569,12 +1569,18 @@ API 来源：
 
 > **#2212 撤销 #2043/#2101 的错误菜单合并**，恢复两个独立页：「**乐器列表**」`/instruments/list`（渲染 `List.jsx`，乐器档案新增/编辑/导入/导出/设价/排序）与「**库存监控**」`/site/stock`（渲染 `InstrumentStock.jsx`，**透传 `?status=`**，Dashboard 链接不得破坏；工具栏含 导出/批量导入/批量设价/批量删除，按 cusPerm 门控）。
 
-- **列表列**：图片 / 识别码 / 分类 / 分级 / 网点 / 状态 / 估值（按权限显示）/ 加入时间 / 操作
+- **列表列**：图片 / 识别码 / 分类 / 分级 / 网点 / 状态 / **标准日租金**（按权限显示）/ **押金**（按权限显示）/ 加入时间 / 操作
+- **价格列（#2528）**：
+  - 「标准日租金」= API `resolved_daily_rate`（pricing-v2 生效值，**分**）> 0 优先，回落 `base_daily_rate`；两者皆无/≤0 显示 `-`。展示必须经 `formatCents`（分→元），**禁止**裸 `toLocaleString()`（旧实现「估值」把分当元 → 放大 100 倍）
+  - 「押金」= API `deposit`（分）：`null` → `-`（不伪造 0），显式 `0` → `¥0.00`；`deposit_reduced` 非空时追加「（差额 ¥X）」。两页（`InstrumentStock.jsx` / `admin/instrument/List.jsx`）同口径
+  - 旧列名「估值」已废弃（其值实为标准日租金，非资产估值）
+  - 取源/换算/兜底统一走 `frontend-pc/src/utils/instrumentDisplay.js`（`instrumentImageSrc` / `formatDailyRate` / `formatDeposit`）
+- **图片列取源（#2528）**：`thumbnail` → `poster` → `images[0]`（兼容 JSON 字符串）→ **内置 data-URI 占位**；`onError` 回落同一占位。禁止引用未入库静态资源（旧 `/images/default-instrument.jpg` 即为 404 → 二次空图），也禁止新增二进制占位文件
 - **操作门控**：按 cusPerm **不渲染**无权限按钮
   - `update`：编辑 / 丢失 / 恢复；`delete`：删除 / 批量删除；`RequireRole`：批量设价
 - **状态范围按角色（服务端）**：员工默认 可用/在租/维护；管理员增量 下架/已出售/丢失——实现为服务端 `exclude_status=lost,archived,sold`（非管理员），客户端不再过滤
 - **服务端分页（#2140）**：Table 改服务端 `page`/`pageSize`，`total` 取后端 `data.total`；状态筛选服务端化（`?status=` → 查询 `stock_status`）；移除 `pageSize:200` 硬编码与客户端 `filteredAssets` 过滤
-- **字段可见性**：估值 → 管理员/商户管理员可见，员工隐藏
+- **字段可见性**：标准日租金 / 押金 → 管理员/商户管理员可见（代理 `hasCusPerm('instrument:delete')`），员工隐藏
 - **详情/编辑**：统一「资产卡片」组件（两旧详情路径收敛，兼容重定向）
 - **排序语义（#2241 方案 A）**：分类内排序——默认列表按分类分组、组内按 `sort_order`；行内上移/下移在组内换位并重排序号（不再出现记录被甩到列表尾部/跨页）。组内首/末：后端返回 `already first` / `already last`，前端以 **warning** 提示「已在最前 / 已在最后」并禁用该方向按钮；移动成功后自动回到默认组内视图（避免表头 created_at 排序下“看起来没反应”）。
 
