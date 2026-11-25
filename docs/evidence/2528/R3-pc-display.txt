@@ -1,0 +1,25 @@
+# build=1.0.e594683c4 # commit=e594683c4650bf3244ddbb3149d6d08a12d49b30 # dirty=false
+== R3 PC display helper (frontend-pc/src/utils/instrumentDisplay.js) + page wiring ==
+ok 1 - instrumentImageSrc prefers thumbnail over other sources
+ok 2 - instrumentImageSrc falls back to poster when thumbnail is missing
+ok 3 - instrumentImageSrc supports legacy images array
+ok 4 - instrumentImageSrc supports legacy images JSON string
+ok 5 - instrumentImageSrc returns built-in placeholder for empty images
+ok 6 - instrumentImageSrc degrades to placeholder on malformed images without throwing
+ok 7 - formatDailyRate converts resolved cents to yuan
+ok 8 - formatDailyRate falls back to base_daily_rate when resolved is 0
+ok 9 - formatDailyRate shows dash when no rate can be resolved
+ok 10 - formatDeposit renders cents as yuan and appends reduced difference
+ok 11 - formatDeposit keeps explicit zero deposit visible
+ok 12 - formatDeposit shows dash for null or missing deposit
+NODE_TEST_RC=0
+TESTS_PASS=12
+TESTS_FAIL=0
+STOCK_WIRED=1
+LIST_WIRED=1
+LEGACY_ASSET_REF=0
+LEGACY_RAW_CENTS=0
+MANAGER_GATE_BOTH=1
+API_DOC_FIELDS=1
+UI_DOC_COLUMN=4
+R3_OK

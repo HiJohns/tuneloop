@@ -1198,8 +1198,16 @@ GET /api/confirmation-sessions/:id
 
 - **`GET /api/instruments`**：`?status=` 取值 `available|rented|maintenance|lost|delisted|sold`（可多值/逗号分隔）；分页 `page`/`page_size`
 - **实际参数（#2140 校正）**：`page`/`pageSize`（服务端分页，pageSize ≤100）、`sn`（模糊）、`category_id`（含后代）、`level_id`、`stock_status`（等值）、**`exclude_status`（csv，`stock_status NOT IN`）**、`sort`（`sort_order`(默认) / `created_at` / `-created_at`）
-- **返回字段（关键）**：`sn`（**识别码**，前端「识别码」列）、`site_name`（所属网点）、`category_name`、`level_name`、`stock_status`(=`status`)、`images`/`thumbnail`、`base_daily_rate`（前端「估值」语义）
+- **返回字段（关键）**：`sn`（**识别码**，前端「识别码」列）、`site_name`（所属网点）、`category_name`、`level_name`、`stock_status`(=`status`)、`images`/`thumbnail`、`base_daily_rate`（原始配置，分）
+- **价格字段（#2528）**：
+  | 字段 | 类型 | 语义 |
+  |------|------|------|
+  | `resolved_daily_rate` | int64（分） | **标准日租金**（pricing-v2 生效值：`resolveDailyRateCents` → `CalculatePricing`，含 `pricing_overrides.daily_rent` 覆盖）。`0` = 无法解析（pricing-v2 对同一乐器返回 `40004`）。前端列名「标准日租金」，展示走 `formatCents`（分→元） |
+  | `deposit` | int64（分）或 `null` | 与 pricing-v2 **同一函数**产出（`pricingResponseWithInstrument`）：`instruments.deposit` 非 nil 即权威（**含显式 0**），NULL 才回落商户定价。`null` = 无法解析（不伪造 0） |
+  | `deposit_reduced` | int64（分）或 `null` | `instruments.deposit_reduced` 原值；`null` = 无差额档，`0` = 显式零差额 |
+- **图片取源（#2528）**：`thumbnail`（`instrument_media` 优先 `is_display=true`）→ `poster` → `images[0]`（旧 JSONB，仅兼容回落）。前端不得再用 `images` 作为首选源，也不得引用未入库的静态占位文件
 - ⚠️ 该接口**不返回 `name`**：列表「名称」列应显示**识别码(sn)**（#2043 合并页据此对齐）
+- ⚠️ 列表金额**一律为分**（`models.Cents`）：前端必须经 `frontend-pc/src/utils/money.js` 的 `formatCents` 换算，禁止裸 `toLocaleString()`（#2528：曾放大 100 倍）
 
 ### 5.4 乐器列表
 

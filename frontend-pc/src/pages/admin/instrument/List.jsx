@@ -14,6 +14,13 @@ import {
 } from '../../../utils/batchPricing'
 import InstrumentForm from './Form'
 import PermissionGate from '../../../components/PermissionGate'
+import { usePermission } from '../../../hooks/usePermission'
+import {
+  INSTRUMENT_IMAGE_PLACEHOLDER,
+  formatDailyRate,
+  formatDeposit,
+  instrumentImageSrc,
+} from '../../../utils/instrumentDisplay'
 
 const { Option } = Select
 
@@ -158,14 +165,17 @@ export default function InstrumentList() {
 
   const businessRole = localStorage.getItem('user_business_role') || ''
   const isSiteLevelRole = businessRole === 'site_admin' || businessRole === 'site_member'
+  // #2528 D4：价格列沿用既有管理级代理（与库存监控页同一判定），不新增权限码。
+  const { hasCusPerm } = usePermission()
+  const isManagerLike = hasCusPerm('instrument:delete')
 
   const baseColumns = [
     {
       title: '图片',
-      dataIndex: 'images',
-      key: 'images',
+      dataIndex: 'thumbnail',
+      key: 'thumbnail',
       width: 80,
-      render: (images, record) => (
+      render: (_, record) => (
         <a 
           onClick={(e) => {
             e.preventDefault()
@@ -174,11 +184,13 @@ export default function InstrumentList() {
           className="cursor-pointer inline-block"
         >
           <Image
-            src={record.thumbnail || (images && images.length > 0 ? images[0] : '/images/default-instrument.jpg')}
+            src={instrumentImageSrc(record)}
             alt="instrument"
             width={50}
             height={50}
             className="object-cover rounded"
+            fallback={INSTRUMENT_IMAGE_PLACEHOLDER}
+            onError={(e) => { e.currentTarget.src = INSTRUMENT_IMAGE_PLACEHOLDER }}
           />
         </a>
       )
@@ -234,6 +246,22 @@ export default function InstrumentList() {
         return <Tag color={config.color}>{config.text}</Tag>
       }
     },
+    // #2528: 标准日租金 / 押金列（与库存监控页、详情页同源；分→元）
+    ...(isManagerLike ? [{
+      title: '标准日租金',
+      dataIndex: 'resolved_daily_rate',
+      key: 'resolved_daily_rate',
+      width: 130,
+      align: 'right',
+      render: (_, record) => formatDailyRate(record)
+    }, {
+      title: '押金',
+      dataIndex: 'deposit',
+      key: 'deposit',
+      width: 150,
+      align: 'right',
+      render: (_, record) => formatDeposit(record)
+    }] : []),
     {
       title: '操作',
       key: 'action',

@@ -12,6 +12,12 @@ import {
   batchPricingFeedback,
   buildBatchPricingPayload,
 } from '../utils/batchPricing'
+import {
+  INSTRUMENT_IMAGE_PLACEHOLDER,
+  formatDailyRate,
+  formatDeposit,
+  instrumentImageSrc,
+} from '../utils/instrumentDisplay'
 
 const statusColors = {
   "在租": "green",
@@ -66,14 +72,17 @@ export default function InstrumentStock() {
   const columns = [
     {
       title: '图片',
-      dataIndex: 'images',
-      key: 'images',
+      dataIndex: 'thumbnail',
+      key: 'thumbnail',
       width: 80,
-      render: (images) => {
-        const imageList = Array.isArray(images) ? images : (images ? JSON.parse(images) : [])
-        const src = imageList && imageList.length > 0 ? imageList[0] : '/images/default-instrument.jpg'
-        return <img src={src} alt="" style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 4 }} />
-      }
+      render: (_, record) => (
+        <img
+          src={instrumentImageSrc(record)}
+          alt=""
+          style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 4 }}
+          onError={(e) => { e.currentTarget.src = INSTRUMENT_IMAGE_PLACEHOLDER }}
+        />
+      )
     },
     {
       title: '识别码',
@@ -128,14 +137,22 @@ export default function InstrumentStock() {
       key: 'site_name',
       width: 150,
     },
-    // #2043: 估值 = 敏感字段，仅管理员/商户管理员可见
+    // #2043: 价格字段 = 敏感字段，仅管理员/商户管理员可见
+    // #2528: 「估值」实为标准日租金（分），改名 + 分→元换算；新增押金列（与详情同源）
     ...(isManagerLike ? [{
-      title: '估值',
-      dataIndex: 'base_daily_rate',
-      key: 'base_daily_rate',
-      width: 120,
+      title: '标准日租金',
+      dataIndex: 'resolved_daily_rate',
+      key: 'resolved_daily_rate',
+      width: 130,
       align: 'right',
-      render: (value) => value ? `¥${value.toLocaleString()}` : '-'
+      render: (_, record) => formatDailyRate(record)
+    }, {
+      title: '押金',
+      dataIndex: 'deposit',
+      key: 'deposit',
+      width: 150,
+      align: 'right',
+      render: (_, record) => formatDeposit(record)
     }] : []),
     {
       title: '操作',

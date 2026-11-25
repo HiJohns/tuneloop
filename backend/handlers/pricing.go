@@ -1,9 +1,12 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
@@ -265,6 +268,112 @@ func pricingResponseWithInstrument(result *services.InstrumentPricing, instrumen
 	return data
 }
 
+// defaultMerchantPricingConfigJSON is the built-in template used when a merchant
+// has no pricing config row yet. Single source: pricing-v2 and the instrument
+// list both fall back to it (#2528 D6).
+const defaultMerchantPricingConfigJSON = `{"deposit_mode":"ratio","deposit_ratio":0.3,"deposit_multiplier":7,"tiers":[{"days_max":30,"discount_percent":0},{"days_max":365,"discount_percent":20},{"days_max":-1,"discount_percent":40}]}`
+
+// loadMerchantPricingConfigJSON resolves the merchant pricing config for a tenant.
+//
+// #2528: extracted from pricing-v2 so the instrument list shares one source of
+// truth for deposit/daily-rate derivation. Behaviour contract:
+//   - row found      → its Config JSON
+//   - ErrRecordNotFound → built-in default template, nil error
+//   - other DB error    → ("", err); callers decide (pricing-v2: 500; list: log + default, D7)
+func loadMerchantPricingConfigJSON(ctx context.Context, tenantID string) (string, error) {
+	var config models.MerchantPricingConfig
+	if err := merchantConfigDB(ctx).Where("tenant_id = ?", tenantID).First(&config).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return defaultMerchantPricingConfigJSON, nil
+		}
+		return "", fmt.Errorf("failed to query pricing config: %w", err)
+	}
+	return config.Config, nil
+}
+
+// instrumentListPricing holds the additive price fields returned by the
+// instrument list (#2528). All money values are **cents**; nil means "unknown /
+// not configured" so the PC layer can render `-` instead of a fake ¥0.00.
+type instrumentListPricing struct {
+	ResolvedDailyRate int64  // pricing-v2 effective base daily rate; 0 = cannot resolve (pricing-v2 → 40004)
+	Deposit           *int64 // nil = cannot resolve; 0 = explicit zero deposit
+	DepositReduced    *int64 // nil = no reduced tier; 0 = explicit zero difference
+}
+
+// instrumentListPriceFields derives the list price fields from the same helpers
+// pricing-v2 uses (#2528 D6): resolveDailyRateCents → CalculatePricing →
+// pricingResponseWithInstrument (which owns the explicit-deposit authority).
+//
+// configCache is a per-request cache keyed by tenant ID so a page costs at most
+// one merchant-config query. It is never nil in callers; a nil map is tolerated.
+//
+// D7: a config read failure degrades to the built-in template (logged) instead of
+// failing the whole list; pricing-v2 keeps its own 500 semantics.
+func instrumentListPriceFields(ctx context.Context, instrument *models.Instrument, configCache map[string]string) instrumentListPricing {
+	if instrument == nil {
+		return instrumentListPricing{}
+	}
+	rate := resolveDailyRateCents(*instrument)
+	if rate <= 0 {
+		// No base rate → pricing-v2 answers 40004; the list reports "unknown".
+		return instrumentListPricing{}
+	}
+
+	configJSON, ok := configCache[instrument.TenantID]
+	if !ok {
+		loaded, err := loadMerchantPricingConfigJSON(ctx, instrument.TenantID)
+		if err != nil {
+			log.Printf("[InstrumentList] WARN: pricing config unavailable for tenant=%s, using default template: %v",
+				instrument.TenantID, err)
+			loaded = defaultMerchantPricingConfigJSON
+		}
+		configJSON = loaded
+		if configCache != nil {
+			configCache[instrument.TenantID] = loaded
+		}
+	}
+
+	// Mirror pricing-v2: the resolved rate becomes the model's base rate before
+	// CalculatePricing, so pricing_overrides.daily_rent can still take effect.
+	probe := *instrument
+	rateCents := models.Cents(rate)
+	probe.BaseDailyRate = &rateCents
+
+	totalPrice := 0.0
+	if probe.TotalPrice != nil {
+		totalPrice = probe.TotalPrice.ToYuan()
+	}
+	result := services.CalculatePricing(probe.BaseDailyRate.ToYuan(), totalPrice, configJSON, probe.PricingOverrides, probe.Pricing)
+	data := pricingResponseWithInstrument(result, &probe)
+
+	out := instrumentListPricing{}
+	switch v := data["base_daily_rate"].(type) {
+	case float64:
+		out.ResolvedDailyRate = int64(math.Round(v))
+	case int64:
+		out.ResolvedDailyRate = v
+	}
+	switch v := data["deposit"].(type) {
+	case float64:
+		deposit := int64(math.Round(v))
+		out.Deposit = &deposit
+	case int64:
+		deposit := v
+		out.Deposit = &deposit
+	}
+	switch v := data["deposit_reduced"].(type) {
+	case int64:
+		reduced := v
+		out.DepositReduced = &reduced
+	case *int64:
+		if v != nil {
+			reduced := *v
+			out.DepositReduced = &reduced
+		}
+	}
+	return out
+}
+
 // GET /api/instruments/:id/pricing-v2 - Get instrument full pricing with tier calculation
 func GetInstrumentPricingV2(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -314,24 +423,22 @@ func GetInstrumentPricingV2(c *gin.Context) {
 	instrument.BaseDailyRate = &rateCents
 
 	// Fetch merchant pricing config（#2251：按乐器归属商户 org，而非操作者 tenant）
-	var config models.MerchantPricingConfig
-	if err := merchantConfigDB(ctx).Where("tenant_id = ?", instrument.TenantID).First(&config).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			config.Config = `{"deposit_mode":"ratio","deposit_ratio":0.3,"deposit_multiplier":7,"tiers":[{"days_max":30,"discount_percent":0},{"days_max":365,"discount_percent":20},{"days_max":-1,"discount_percent":40}]}`
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"code":    50000,
-				"message": "failed to query pricing config",
-			})
-			return
-		}
+	// #2528 D6：与列表共用 loadMerchantPricingConfigJSON（NotFound → 内置默认模板；
+	// 其它错误保持本端点既有 500 语义）。
+	configJSON, err := loadMerchantPricingConfigJSON(ctx, instrument.TenantID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to query pricing config",
+		})
+		return
 	}
 
 	totalPrice := 0.0
 	if instrument.TotalPrice != nil {
 		totalPrice = (*instrument.TotalPrice).ToYuan()
 	}
-	result := services.CalculatePricing((*instrument.BaseDailyRate).ToYuan(), totalPrice, config.Config, instrument.PricingOverrides, instrument.Pricing)
+	result := services.CalculatePricing((*instrument.BaseDailyRate).ToYuan(), totalPrice, configJSON, instrument.PricingOverrides, instrument.Pricing)
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
 		"data": pricingResponseWithInstrument(result, &instrument),
