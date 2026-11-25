@@ -44,8 +44,22 @@ TEST_FILE="frontend-pc/tests/batchPricing.test.mjs"
 API_JS="frontend-pc/src/services/api.js"
 API_DOC="docs/spec/api/api.md"
 
-run_build() {
+run_build() { # standalone rows: acquire the host lock around the build
   ( cd frontend-pc && bash "$HOME/.config/opencode/scripts/heavy-run.sh" -- npm run build )
+}
+
+run_build_plain() { # called from `gate`, which already runs under gate-run.sh's host lock;
+  # nesting heavy-run.sh inside it would wait on the lock it already holds (deadlock).
+  ( cd frontend-pc && npm run build )
+}
+
+ensure_deps() {
+  # The gate executes in a clean worktree created by pre-ready-check.sh, where
+  # node_modules is absent (it is never committed). Install from the lockfile
+  # when missing so `gate` is self-contained; warm worktrees skip this.
+  [ -d frontend-pc/node_modules ] && return 0
+  echo "== installing frontend-pc dependencies (clean worktree) =="
+  ( cd frontend-pc && npm ci --prefer-offline --no-audit --no-fund --loglevel=error )
 }
 
 run_lint() { # logfile
@@ -235,6 +249,7 @@ case "$ROW" in
 
   r6)
     echo "== R6 frontend build + eslint no-undef =="
+    ensure_deps || fail "could not install frontend-pc dependencies"
     BUILD_LOG="$(mktemp)"
     run_build > "$BUILD_LOG" 2>&1
     BUILD_EXIT=$?
@@ -256,10 +271,12 @@ case "$ROW" in
     ;;
 
   gate)
-    # Full-gate entry used by pre-ready --full-gate-cmd. It must be runnable in a
-    # clean worktree at HEAD, so it installs nothing and only depends on the tree.
+    # Full-gate entry used by pre-ready --full-gate-cmd. pre-ready runs it inside
+    # a clean worktree at HEAD (no node_modules) and while gate-run.sh already
+    # holds the host lock, so install deps if missing and never re-wrap the lock.
+    ensure_deps || { echo "GATE_RESULT=FAIL"; exit 1; }
     BUILD_LOG="$(mktemp)"
-    run_build > "$BUILD_LOG" 2>&1
+    run_build_plain > "$BUILD_LOG" 2>&1
     BUILD_EXIT=$?
     tail -6 "$BUILD_LOG"
     rm -f "$BUILD_LOG"
