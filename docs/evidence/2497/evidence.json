@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "issue": 2497,
+  "build": "1.0.b41983e3",
+  "commit": "b41983e329cfae1a1175d371e42f1c7af218451b",
+  "dirty": false,
+  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2497 (branch issue-2497, base origin/develop b6c6d3c41 with #2480 merged); backend go build + frontend-pc eslint/build; node --test for PC/mobile resolvers; no real IAM/production calls",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2497.sh r1",
+      "exit": 0,
+      "artifacts": ["docs/evidence/2497/R1-scan.txt"],
+      "assert": "exit 0；含 CJK_ERR_CONCAT=0；基线 12 文件全部存在",
+      "actual": "PASS：CJK_ERR_CONCAT=0、BASELINE_FILES=12、SCANNED_FILES=12（正则 \"message\": \"<CJK>\" + err.Error()）",
+      "expected": "PASS",
+      "negative": "任一命中 → FAIL",
+      "negative_result": "修复前同口径扫描 CJK_ERR_CONCAT=22（12 文件）；修复后 0",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2497.sh r2",
+      "exit": 0,
+      "artifacts": ["docs/evidence/2497/R2-logs.txt"],
+      "assert": "exit 0；含 LOG_PRESENT>=22 与 LOST_DETAIL=0",
+      "actual": "PASS：LOG_PRESENT=71（12 文件中 log.Printf 带 err 的调用）、LOST_DETAIL=0（无 message 仍拼接 err.Error()）",
+      "expected": "PASS",
+      "negative": "缺日志（LOG_PRESENT<22）或 detail 丢失 → FAIL",
+      "negative_result": "LOG_PRESENT=71 ≥ 22，LOST_DETAIL=0",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2497.sh r3",
+      "exit": 0,
+      "artifacts": ["docs/evidence/2497/R3-5xx-guard.txt"],
+      "assert": "exit 0；含 LEAK=0；PC/mobile 输出「服务器开小差了，请稍后再试」且 layer=code_map",
+      "actual": "PASS：{code:50000,message:'标记删除失败：pq: duplicate key ...'} → PC_TEXT=服务器开小差了，请稍后再试 / PC_LAYER=code_map / MOBILE 同 / LEAK=0",
+      "expected": "PASS",
+      "negative": "回显内部串 → FAIL",
+      "negative_result": "回退前端 5xx 守卫后同一 fixture：PC_LAYER=human_message、PC_TEXT 含 `pq: duplicate key ...`、LEAK=1 → FAIL；恢复后 PASS",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2497.sh r4",
+      "exit": 0,
+      "artifacts": ["docs/evidence/2497/R4-passthrough.txt"],
+      "assert": "exit 0；含 PASSTHROUGH=1",
+      "actual": "PASS：{code:40900,message:'网点名称已存在'} → PC_TEXT=网点名称已存在 / PC_LAYER=human_message / MOBILE 同；业务码中文仍透传（#2480 不回退）",
+      "expected": "PASS",
+      "negative": "被通用文案替换 → FAIL",
+      "negative_result": "PASSTHROUGH=1，未被 code map 遮蔽",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2497.sh r5",
+      "exit": 0,
+      "artifacts": ["docs/evidence/2497/R5-parity.txt"],
+      "assert": "exit 0；含 PARITY=1",
+      "actual": "PASS：scripts/check-error-message-parity-2480.mjs → PARITY=1 / CASES=10 / DIFFS=0（PC 与 mobile 核心层序一致）",
+      "expected": "PASS",
+      "negative": "两端不一致 → FAIL",
+      "negative_result": "DIFFS=0",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2497.sh r6",
+      "exit": 0,
+      "artifacts": ["docs/evidence/2497/R6-build.txt"],
+      "assert": "exit 0；含 BUILD_OK 与 ESLINT_OK 与 NPM_BUILD_OK",
+      "actual": "PASS：go build ./... exit 0；frontend-pc eslint（errorMessages.js + 新测试）exit 0；npm run build exit 0",
+      "expected": "PASS",
+      "negative": "任一非 0 → FAIL",
+      "negative_result": "BUILD_EXIT=0 / ESLINT_EXIT=0 / NPM_BUILD_EXIT=0",
+      "pass": true
+    }
+  ]
+}

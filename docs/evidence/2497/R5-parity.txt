@@ -1,0 +1,8 @@
+# build=1.0.b41983e3 # commit=b41983e329cfae1a1175d371e42f1c7af218451b # dirty=false
+PARITY_SCRIPT=scripts/check-error-message-parity-2480.mjs
+PARITY_EXIT=0
+PARITY=1
+CASES=10
+DIFFS=0
+RESULT: PASS
+

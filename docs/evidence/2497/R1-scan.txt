@@ -1,0 +1,7 @@
+# build=1.0.b41983e3 # commit=b41983e329cfae1a1175d371e42f1c7af218451b # dirty=false
+SCAN_RE="message":\s*"[^"]*[\x{4e00}-\x{9fff}][^"]*"\s*\+\s*err\.Error\(\)
+CJK_ERR_CONCAT=0
+BASELINE_FILES=12
+SCANNED_FILES=12
+RESULT: PASS
+

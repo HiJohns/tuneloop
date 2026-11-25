@@ -1,0 +1,10 @@
+# build=1.0.b41983e3 # commit=b41983e329cfae1a1175d371e42f1c7af218451b # dirty=false
+BUILD_CMD=cd backend && go build ./...
+BUILD_EXIT=0
+ESLINT_EXIT=0
+NPM_BUILD_EXIT=0
+BUILD_OK
+ESLINT_OK
+NPM_BUILD_OK
+RESULT: PASS
+
