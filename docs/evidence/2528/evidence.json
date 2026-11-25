@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "issue": 2528,
+  "build": "1.0.e594683c4",
+  "commit": "e594683c4650bf3244ddbb3149d6d08a12d49b30",
+  "dirty": false,
+  "plan_sha256": "eae9c4d9644e016b47f5f5dc6ea7e69ef160007b86e35b9bbe781a32b9b82a86",
+  "tooling_commit": "f663626b8fe3895a49dffa4c43266664546741db",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2528.sh r1 > docs/evidence/2528/R1-list-fields.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2528/R1-list-fields.txt"
+      ],
+      "assert": "exit 0；grep -q '^TOTAL=3$'、'^F1_RESOLVED=1000$'、'^F1_DEPOSIT=50000$'、'^F3_DEPOSIT=0$'、'^F3_DEPOSIT_PRESENT=1$'、'^F4_RESOLVED=0$'、'^F4_DEPOSIT=null$'、'^R1_OK$'",
+      "actual": "PASS：TOTAL=3、F1_RESOLVED=1000、F1_DEPOSIT=50000、F3_DEPOSIT=0、F3_DEPOSIT_PRESENT=1、F4_RESOLVED=0、F4_DEPOSIT=null；--- PASS: TestInstrumentListPricing2528_R1；R1_OK",
+      "expected": "分字段原样透出（1000/50000 分）；显式零押金保留为 0 且非 null；无法解析日租时 resolved=0 且 deposit=null",
+      "negative": "F1_DEPOSIT=1000（分当元/取错源）或 F3_DEPOSIT=null（显式 0 被当未配置）或 F4_DEPOSIT=0（伪造零押金）→ 断言失败/脚本 FAIL",
+      "negative_result": "negative not triggered：三个方向的断言均在测试内 require，任一不成立即 --- FAIL 且脚本 R1_FAIL 非 0 退出；修复前 HEAD 实测 --- FAIL: TestInstrumentListPricing2528_R1（resolved_daily_rate must be present，字段完全缺失）",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2528.sh r2 > docs/evidence/2528/R2-parity.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2528/R2-parity.txt"
+      ],
+      "assert": "exit 0；grep -q '^PARITY_OK=4$'、'^PARITY_MISMATCH=0$'、'^F2_RESOLVED=1000$'、'^F2_DEPOSIT=3000$'、'^F5_RESOLVED=2000$'、'^R2_OK$'",
+      "actual": "PASS：PARITY_OK=4、PARITY_MISMATCH=0、F2_RESOLVED=1000、F2_DEPOSIT=3000、F5_RESOLVED=2000（F1/F2/F3/F5 四档逐字段一致）；--- PASS: TestInstrumentListPricing2528_R2；R2_OK",
+      "expected": "列表 resolved_daily_rate/deposit/deposit_reduced 与 GET /instruments/:id/pricing-v2 的 base_daily_rate/deposit/deposit_reduced 逐档完全一致（含 pricing 回落与 pricing_overrides 覆盖）",
+      "negative": "PARITY_MISMATCH>0（列表与详情不同源）→ 断言失败/脚本 FAIL",
+      "negative_result": "negative not triggered：任一档位 resolved/deposit/deposit_reduced（含 null 存在性）不一致即 mismatch++ 并 require.Equal(4, parityOK) 失败 → R2_FAIL；修复前 HEAD 因列表无字段直接 FAIL",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2528.sh r3 > docs/evidence/2528/R3-pc-display.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2528/R3-pc-display.txt"
+      ],
+      "assert": "exit 0；grep -q '^NODE_TEST_RC=0$'、'^TESTS_FAIL=0$'、'^TESTS_PASS=12$'、'^STOCK_WIRED=1$'、'^LIST_WIRED=1$'、'^LEGACY_ASSET_REF=0$'、'^LEGACY_RAW_CENTS=0$'、'^MANAGER_GATE_BOTH=1$'、'^R3_OK$'",
+      "actual": "PASS：NODE_TEST_RC=0、TESTS_PASS=12、TESTS_FAIL=0、STOCK_WIRED=1、LIST_WIRED=1、LEGACY_ASSET_REF=0、LEGACY_RAW_CENTS=0、MANAGER_GATE_BOTH=1、API_DOC_FIELDS=1、UI_DOC_COLUMN=4；R3_OK",
+      "expected": "纯函数 12 例全通过；两页均接线 helper（图片/日租/押金/占位）；不再引用失效静态占位、不再裸渲染分；两页同一管理级权限代理；api.md/ui.md 已落字",
+      "negative": "LEGACY_ASSET_REF>0（仍引用 404 占位）或 LEGACY_RAW_CENTS>0（仍裸 toLocaleString 渲染分）或 *_WIRED=0（新字段无消费方，死代码）→ 脚本 FAIL",
+      "negative_result": "negative not triggered：修复前 HEAD 实测 LEGACY_RAW_CENTS=1、LEGACY_ASSET_REF=2（探针可捕获旧缺陷）；修复后均为 0。evidence_type: static（D5：PC 无组件测试运行器，真实渲染截图归 Ops-Followup）",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2528.sh r4 > docs/evidence/2528/R4-gate.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2528/R4-gate.txt"
+      ],
+      "assert": "exit 0；grep -q '^BUILD_RC=0$'、'^TEST_FAIL_COUNT=0$'、'^ESLINT_NO_UNDEF=0$'、'^PC_BUILD_RC=0$'、'^GATE_RESULT=PASS$'、'^PLAN_SOURCE=PASS$'、'^R4_OK$'",
+      "actual": "PASS：BUILD_RC=0、TEST_TARGETED_RC=0、TEST_FAIL_COUNT=0、TEST_PASS_COUNT=10（含 TestInstrumentListPricing2528_R1/R2、TestGetInstruments_*、TestRentSetting_*、TestPricingResponseDeposit_*）、ESLINT_RC=0、ESLINT_NO_UNDEF=0、PC_BUILD_RC=0、PLAN_SOURCE=PASS、GATE_RESULT=PASS；R4_OK",
+      "expected": "go build ./... 通过；定向既有用例无 FAIL；ESLint 无 no-undef；PC vite build 通过；plan 四源/快照一致",
+      "negative": "任一 *_RC=1 或 TEST_FAIL_COUNT>0 或 GATE_RESULT!=PASS → 脚本 FAIL（不得作为 ready 证据）",
+      "negative_result": "negative not triggered：复合判定全部为 0/PASS 才输出 GATE_RESULT=PASS 并以 0 退出；否则打印 R4_FAIL 非 0 退出",
+      "pass": true
+    }
+  ]
+}

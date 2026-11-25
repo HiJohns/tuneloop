@@ -1,0 +1,13 @@
+# build=1.0.e594683c4 # commit=e594683c4650bf3244ddbb3149d6d08a12d49b30 # dirty=false
+== R1 instrument list price fields (backend) ==
+TOTAL=3
+F1_RESOLVED=1000
+F1_DEPOSIT=50000
+F3_DEPOSIT=0
+F3_DEPOSIT_PRESENT=1
+F4_RESOLVED=0
+F4_DEPOSIT=null
+--- PASS: TestInstrumentListPricing2528_R1 (1.64s)
+PASS
+ok  	tuneloop-backend/handlers	2.379s
+R1_OK
