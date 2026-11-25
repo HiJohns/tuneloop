@@ -1,16 +1,16 @@
 {
   "issue": 2513,
   "overall": "FAIL",
-  "plan": "/home/coder/worktrees/tuneloop/wt-2513/tmp/pre-ready-2513.UN4T1H/plan.md",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2513/tmp/pre-ready-2513.Mj0stj/plan.md",
   "plan_sha256": "1c5a5dfd140167330bda5e9a1f986f49b7fbc5767d50e1487f92b635086ef021",
   "config_sha": "f663626b8fe3895a49dffa4c43266664546741db",
   "provenance": {
-    "build": "1.0.d7a3cecc",
-    "commit": "d7a3cecc2c7342a9d9b9777347345f1f6924eb41",
+    "build": "1.0.b47ac5ed",
+    "commit": "b47ac5ed83c8e82fb8f80fd131e4fc5b585ceb0f",
     "dirty": false
   },
   "summary": "docs/evidence/2513/summary.md",
-  "timestamp": "20261125-190012",
+  "timestamp": "20261125-190120",
   "checks": [
     {
       "id": "P1",
@@ -20,12 +20,12 @@
     {
       "id": "P2",
       "status": "FAIL",
-      "detail": "Work Summary does not cover the matrix:; row has no status cell: R1 待发回清单：商户层级见历史带 site 行; row has no status cell: R2 任务列表 scope=site 不再漏历史行; row has no status cell: R3 单条守卫：历史行可操作; row has no status cell: R4 负例：跨租户 / 网点账号口径; row has no status cell: R5 既有维修服务套件回归; row has no status cell: R6 构建 + 同类扫描; row has no status cell: R7 pre-ready gate（四源 + 定向测试 + 构建）"
+      "detail": "Work Summary does not cover the matrix:; row has no status cell: R2 任务列表 scope=site 不再漏历史行"
     },
     {
       "id": "P3",
-      "status": "FAIL",
-      "detail": "evidence paths do not exist: 1.0.d7a3cecc R1-pending-dispatch.txt R2-list-tasks-site.txt R3-staff-allowed.txt R4-negative.txt R5-regression.txt R6-build-scan.txt docs/evidence/2513/pre-ready-2513.json"
+      "status": "PASS",
+      "detail": "all referenced evidence paths exist and are durable"
     },
     {
       "id": "P4",
@@ -35,12 +35,12 @@
     {
       "id": "P12",
       "status": "FAIL",
-      "detail": "R1: assert does not match the plan contract; R1: expected does not match the plan contract; R1: negative does not match the plan contract; R2: assert does not match the plan contract; R2: expected does not match the plan contract; R2: negative does not match the plan contract; R3: assert does not match the plan contract; R3: expected does not match the plan contract; R3: negative does not match the plan contract; R4: assert does not match the plan contract; R4: expected does not match the plan contract; R4: negative does not match the plan contract; R5: assert does not match the plan contract; R5: negative does not match the plan contract; R6: assert does not match the plan contract; R6: expected does not match the plan contract; R6: negative does not match the plan contract; R7: assert does not match the plan contract; R7: expected does not match the plan contract; R7: negative does not match the plan contract; R7: artifact not found: docs/evidence/2513/pre-ready-2513.json"
+      "detail": "commit must equal the latest fix commit d7a3cecc2c7342a9d9b9777347345f1f6924eb41 (got: b47ac5ed83c8e82fb8f80fd131e4fc5b585ceb0f)"
     },
     {
       "id": "P14",
       "status": "FAIL",
-      "detail": "artifact missing: docs/evidence/2513/pre-ready-2513.json"
+      "detail": "provenance mismatch build: artifact=1.0.d7a3cecc evidence=1.0.b47ac5ed (docs/evidence/2513/R1-pending-dispatch.txt)"
     },
     {
       "id": "P18",
@@ -99,8 +99,8 @@
     },
     {
       "id": "P13",
-      "status": "FAIL",
-      "detail": "artifacts not on origin/issue-2513: docs/evidence/2513/pre-ready-2513.json"
+      "status": "PASS",
+      "detail": "fix commit and evidence artifacts are on origin/issue-2513"
     }
   ]
 }

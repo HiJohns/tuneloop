@@ -63,7 +63,7 @@ PASS
 | 变更点 | 状态 | 证据路径 |
 |---|---|---|
 | R1 待发回清单：商户层级见历史带 site 行 | PASS | docs/evidence/2513/R1-pending-dispatch.txt |
-| R2 任务列表 `scope=site` 不再漏历史行 | PASS | docs/evidence/2513/R2-list-tasks-site.txt |
+| R2 任务列表 scope=site 不再漏历史行 | PASS | docs/evidence/2513/R2-list-tasks-site.txt |
 | R3 单条守卫：历史行可操作 | PASS | docs/evidence/2513/R3-staff-allowed.txt |
 | R4 负例：跨租户 / 网点账号口径 | PASS | docs/evidence/2513/R4-negative.txt |
 | R5 既有维修服务套件回归 | PASS | docs/evidence/2513/R5-regression.txt |
