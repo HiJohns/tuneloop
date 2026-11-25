@@ -1,4 +1,6 @@
-## Accepted Plan — #2479 v2（CreateSite 无负责人时跳过角色模板分配：nil UUID 不得作为 IAM 目标）
+## Accepted Plan — #2479 v3（CreateSite 无负责人时跳过角色模板分配 + nil UUID 不得落库本地表）
+
+> **v3 说明（承接审计 Round 1 Bug 1）**：v2 只覆盖「跳过 IAM 模板分配」；审计发现本地写支路 `site.go:422` 仍用 `adminID != ""` 判定，nil UUID 是**非空串且 `uuid.Parse` 成功**，会写入本地 `users`（ID/iam_sub）、并经由 `managerUUID` 写入 `sites.manager_id`（`site_members` 同源）。v3 新增 **D5 + R7**（含矩阵行、G0 行、合同行、Files 产物 `docs/evidence/2479/R7-no-nil-local.txt`）与对应变更点 4；v2 的 R1–R6 不变，实现可在现有 worktree 续做。
 
 > **v2 说明**：v1 的验收断言写 `STATUS=200`，与 `CreateSite` **既有**成功契约 `201 Created`（`backend/handlers/site.go:508`；基线用例 `site_create_anchor_2266_test.go` 亦断言 201）矛盾。按「开发发现计划层矛盾 → 回 Architect」（§计划偏差升级）裁定：**改计划，不改实现**（把成功码改成 200 会变更既有 API 契约，属 Out of Scope）。本 v2 仅把 R1/R2 的 `STATUS=200` 统一为 `STATUS=201`，其余断言与变更点不变。
 
@@ -21,6 +23,7 @@
    - `hasAdmin` 时保持既有 3 次重试逻辑与日志（回归不变）。
 2. `backend/handlers/site.go` 响应：不改 `iam_admin_id` 字段语义（仍透出 IAM 原值）；不新增 4xx —— 与本单 D2 一致（可选负责人是既有产品语义，`manager_pending` 已表达「待指定」）。
 3. 同类扫描结论（记录在证据里，不在本单改）：`merchant.go:360` 已有 `AdminID != ""` 判空且只用于回填 `adminUserID`，nil UUID 不会进入模板分配路径；`iam_admin_id` 为只读展示字段 → 无同类缺陷。
+4. **本地写支路守卫（审计 Bug 1）**：`backend/handlers/site.go` 的 `else if adminID != "" && req.ManagerName != ""` 改为 `else if hasAdmin && req.ManagerName != ""`，确保 nil UUID 不写入 `users`（`ID` / `iam_sub`）、不产生 `site_members` 行、不写 `sites.manager_id`；`managerUUID` 仅在 `hasAdmin` 时赋值。
 
 ## Verification Matrix
 
@@ -32,6 +35,7 @@
 | R4 分配失败重试路径不被破坏 | `backend/handlers/site.go` | 同上 | `admin_id=<有效 uuid>`，前两次 404、第三次 200 | 后端 | 调用 **3** 次后成功；不产生 `failed after retries` | R4 |
 | R5 gate 四源一致 + 全量套件 | `docs/evidence/2479/pre-ready-2479.json`、`docs/evidence/2479/plan.md` | `/work` 以 `--full-gate-cmd` 跑 pre-ready（`cd backend && go test ./handlers -count=1 -timeout 15m` 与 `./services`），随后 `plan-source.sh --issue 2479` | 修后树（干净） | 后端 | gate `result=PASS` 且含 `FULL_SUITE_EXIT=0 FAIL_COUNT=0 PANIC_COUNT=0`；`PLAN_SOURCE: PASS` | R5 |
 | R6 构建与定向回归 | `backend` | `go build ./...` + 定向测试（2479 + 2266 + 站点相关） | 修后树 | 后端 | `BUILD_EXIT=0`、`TESTS_FAIL=0` | R6 |
+| R7 nil UUID 不落本地表（审计 Bug 1） | `backend/handlers/site.go` | `POST /api/merchant/sites` | fake IAM `admin_id=00000000-0000-0000-0000-000000000000` 且请求带 `manager_name`/`manager_phone` | 后端 | `NIL_LOCAL_USERS=0`、`NIL_SITE_MEMBERS=0`、`SITES_MANAGER_ID_NIL=0`；响应 201；本地无 nil UUID 行 | R7 |
 
 ## Input Truth & Tool Preflight
 
@@ -49,6 +53,7 @@
 | D1 | 语义选择：**跳过**模板分配（不发 IAM、不打 error 日志、打 INFO），**不**改为 400 强制负责人 | Owner / Architect | 采用 Issue 期望 1（推荐项）；`CreateSite` 既有「可选负责人 + `manager_pending`」语义保持不变 | 若 Owner 要求「建网点必须有负责人」→ 回 Architect 改计划（新增 400/40002 与前端必填） |
 | D2 | 判定口径：`adminID != "" && adminID != uuid.Nil.String()`，不新增自定义常量（与 `merchant.go` 同口径） | Architect | 本计划锁定 | 阻塞实现 |
 | D3 | 不改响应字段 `iam_admin_id` 与 `manager_pending` 语义 | Architect | 本计划锁定 | 阻塞实现 |
+| D5 | nil UUID 贯穿守卫：`hasAdmin` 同时用于「跳过 IAM 模板分配」与「本地 users/site_members/sites.manager_id 写入」两支路 | Architect | 本计划锁定（v3 新增，审计 Bug 1） | 阻塞实现 |
 | D4 | 成功响应码保持 **201 Created**（既有契约，`site.go:508` + 基线用例 `site_create_anchor_2266_test.go`）；本单不改 HTTP 状态码，证据必须记录真实 201 | Architect | 本计划锁定（v2 修正） | 若 Owner 要求 200 → 另立 Issue（改前端/测试契约），本单不阻塞 |
 
 ## Out of Scope
@@ -68,6 +73,7 @@
 | R3 | `admin_id=<valid-uuid>`，fake IAM 模板分配 200 | 同上 | `docs/evidence/2479/R3-with-admin.txt` |
 | R4 | `admin_id=<valid-uuid>`，模板分配前两次 404、第三次 200 | 同上 | `docs/evidence/2479/R4-retry.txt` |
 | R5 | 修后干净树 + `--full-gate-cmd` gate 报告 | 读校验（`plan-source.sh` + gate 解析） | `docs/evidence/2479/R5-gate.txt` |
+| R7 | fake IAM 返回 `admin_id=00000000-…` + 请求携带 `manager_name`（模拟「未指定负责人但填了负责人资料」） | `CreateSite`（`POST /api/merchant/sites`） | `docs/evidence/2479/R7-no-nil-local.txt` |
 | R6 | 修后 backend | `go build ./...` + 定向测试 | `docs/evidence/2479/R6-build.txt` |
 
 ### Assertions
@@ -91,6 +97,7 @@
 | `docs/evidence/2479/R4-retry.txt` | `# build=1.0.<fix> # commit=<sha> # dirty=false` |
 | `docs/evidence/2479/R5-gate.txt` | `# build=1.0.<fix> # commit=<sha> # dirty=false` |
 | `docs/evidence/2479/R6-build.txt` | `# build=1.0.<fix> # commit=<sha> # dirty=false` |
+| `docs/evidence/2479/R7-no-nil-local.txt` | `# build=1.0.<fix> # commit=<sha> # dirty=false` |
 
 evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 
@@ -103,6 +110,7 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 | 正常负责人路径被误跳 | 过度判定 | 判空条件过宽 | 无正向用例 | — | handler | R3 红绿 | 双态 fixture |
 | 重试逻辑被破坏 | 改动守卫位置 | 未保留 retry | 无重试用例 | 其它 IAM 重试路径 | handler | R4 红绿 | 保留原循环 |
 | 验收断言与既有响应契约不符（本轮实际发生） | 计划写 `STATUS=200` | 计划未核对 `CreateSite` 现有成功码 | 无「响应码基线」核对项 | 其它写接口的 200/201 | 计划层（Architect） | 本轮已红（developer 实测 201） | D4 + Input Truth 基线核对 |
+| nil UUID 落库本地表（审计 Bug 1） | 未指定负责人 + 请求带 manager_name | 本地写支路仍用 `adminID != ""`；nil UUID 非空且可 `uuid.Parse` | 无「本地表 nil UUID」断言 | `CreateMerchant` 管理员回填 | handler | R7 红绿 | D5 统一 `hasAdmin` 判定贯穿两支路 |
 
 ## Evidence Contract
 
@@ -114,11 +122,12 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 | R4 | `bash scripts/verify-2479.sh r4` | `docs/evidence/2479/R4-retry.txt` | exit 0；grep `ASSIGN_CALLS=3`、`RETRY_OK=1` | PASS | 放弃重试 → FAIL | dev |
 | R5 | `bash scripts/verify-2479.sh r5` | `docs/evidence/2479/R5-gate.txt` | exit 0；grep `FULL_SUITE_EXIT=0`、`PLAN_SOURCE=PASS` | PASS | `P5=NA` → FAIL | dev |
 | R6 | `bash scripts/verify-2479.sh r6` | `docs/evidence/2479/R6-build.txt` | exit 0；grep `BUILD_EXIT=0`、`TESTS_FAIL=0` | PASS | 任一非 0 → FAIL | dev |
+| R7 | `bash scripts/verify-2479.sh r7` | `docs/evidence/2479/R7-no-nil-local.txt` | exit 0；grep `NIL_LOCAL_USERS=0`、`NIL_SITE_MEMBERS=0`、`SITES_MANAGER_ID_NIL=0` | PASS | 任一 >0 → FAIL | dev |
 
 ### Workload
 
 - Size: S
-- Basis: 1 个后端源文件（守卫 + INFO 日志 ~10 行）+ 1 个测试文件 + 1 个 verify 脚本 + 6 条证据行；无 migration、无前端
+- Basis: 1 个后端源文件（IAM 守卫 + INFO 日志 + 本地写支路守卫 ~15 行）+ 1 个测试文件（R1–R4 + R7）+ 1 个 verify 脚本 + 7 条证据行；无 migration、无前端
 - Confidence: high
 
 ### Files（变更文件清单）
@@ -134,6 +143,7 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 - `docs/evidence/2479/R4-retry.txt`
 - `docs/evidence/2479/R5-gate.txt`
 - `docs/evidence/2479/R6-build.txt`
+- `docs/evidence/2479/R7-no-nil-local.txt`
 - `docs/evidence/2479/evidence.json`
 
 ## Dependencies
@@ -148,5 +158,6 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 - **部署侧**：预生产不指定负责人建网点 → 日志无 3 次 404 的回归由 `[Ops-Followup of #2479]`（`waitForConfirm`）承载。
 
 *Model: DeepSeek V4.1 Flash 1017*
+
 
 

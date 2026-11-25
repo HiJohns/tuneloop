@@ -1,9 +1,9 @@
-# build=1.0.0316cb94 # commit=0316cb94c5aef8c709d2f51099332b9f6b6ae6d3 # dirty=false
+# build=1.0.ddd45358 # commit=ddd45358060d6e403dccb83596e07a38cf3b1475 # dirty=false
 BUILD_CMD=cd backend && go build ./...
 BUILD_EXIT=0
 TESTS_CMD=cd backend && go test ./handlers -run TestCreateSite -count=1 -timeout 15m
 TESTS_EXIT=0
 TESTS_FAIL=0
-TESTS_PASS_COUNT=8
+TESTS_PASS_COUNT=9
 RESULT: PASS
 
