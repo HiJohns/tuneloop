@@ -100,6 +100,10 @@ run_go_row() { # artifact test-regex sentinel key=value...
     done
     body+="--- go test tail ---"$'\n'
     body+="$(grep -E '^(--- (PASS|FAIL)|PASS|FAIL|ok )' "$log" | tail -20)"$'\n'
+    # 持久化关键键值（含夹具侧 SITE_ORG 与实际落库 ORDER_ORG），使契约断言可直接核对。
+    body+="--- go test kv ---"$'\n'
+    body+="$(grep -E '(^|[[:space:]])(ORDER_ORG|SITE_ORG|SITE_ID_IS|BATCH_ORG|STATUS|CODE|ORDERS_AFTER|BATCH_ORDERS_AFTER)=' "$log" \
+        | sed -E 's/^[[:space:]]+//' | sort -u | head -20)"$'\n'
     [ "$rc" = "0" ] && body+="$sentinel"$'\n'
     body+="RESULT: $([ "$rc" = "0" ] && echo PASS || echo FAIL)"$'\n'
     finish "$artifact" "$rc" "$body"
