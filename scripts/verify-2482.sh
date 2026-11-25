@@ -15,10 +15,19 @@ cd "$REPO_ROOT" || exit 2
 case "$ROW" in r1|r2|r3|r4|r5|r6|r7|r8) ;; *) echo "usage: $0 <r1..r8>" >&2; exit 2 ;; esac
 mkdir -p "$OUT_DIR"
 
-if [ -f "$REPO_ROOT/backend/.env" ]; then set -a; . "$REPO_ROOT/backend/.env"; set +a; fi
-if [ -z "${TUNELOOP_DB:-}" ] && [ -f /home/coder/tuneloop/backend/.env ]; then
-    set -a; . /home/coder/tuneloop/backend/.env; set +a
+# 仅取 DB 配置（POSTGRES_*/TUNELOOP_DB）；IAM 集成测试所需的 BEACONIAM_*/IAM_* 一律不注入：
+# 本机 IAM 内部/外部实例凭据不一致会把 iam_integration_test 打成 401 红，而这些 E2E 测试
+# 在无 IAM 配置时按设计 skip（见 backend/handlers/iam_integration_test.go:skipIfNoIAM）。
+_ENV_FILE=""
+[ -f "$REPO_ROOT/backend/.env" ] && _ENV_FILE="$REPO_ROOT/backend/.env"
+[ -z "$_ENV_FILE" ] && [ -f /home/coder/tuneloop/backend/.env ] && _ENV_FILE=/home/coder/tuneloop/backend/.env
+if [ -n "$_ENV_FILE" ]; then
+    set -a
+    # shellcheck disable=SC1090
+    . "$_ENV_FILE"
+    set +a
 fi
+unset BEACONIAM_INTERNAL_URL BEACONIAM_EXTERNAL_URL IAM_URL IAM_NAMESPACE IAM_SECRET IAM_PC_CLIENT_ID IAM_PC_CLIENT_SECRET IAM_CLIENT_ID IAM_CLIENT_SECRET
 export PATH="/usr/local/go/bin:${PATH}"
 
 FIX_SHA="$(git log --format=%H --grep="^fix(issue-$ISSUE)" -1 2>/dev/null || true)"
