@@ -98,7 +98,7 @@
       ],
       "assert": "exit 0；jq -e '.overall == \"PASS\"' docs/evidence/2513/pre-ready-2513.json 且 evidence 每行 pass=true",
       "actual": "overall=PASS",
-      "expected": "dirty=false、P13 提交在 origin/issue-2513",
+      "expected": "overall=PASS、dirty=false、P13 提交在 origin/issue-2513",
       "negative": "任一 P 项失败 / evidence 缺行 / dirty=true → gate 非 0，禁止 ready",
       "negative_result": "gate 重跑后 overall=PASS；dirty=false；P13 在 origin/issue-2513",
       "pass": true

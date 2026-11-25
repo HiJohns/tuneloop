@@ -10,8 +10,8 @@
 
 | 审计项 | 修复 | 证据 |
 |---|---|---|
-| Bug 1（Medium）R7 断言字段不存在（`.result` / `GATE_RESULT`） | R7 断言改为 `jq -e '.overall == "PASS"'`（gate 报告真实顶层键）；`actual` = `overall=PASS`；账本锚点改由 `bash scripts/verify-2513.sh ledger` 从最新 `fix(issue-2513)` commit 派生并写回，取消手工改 `build/commit` | `docs/evidence/2513/evidence.json`（R7 行）；`bash scripts/verify-2513.sh ledger` → `ARTIFACT_PROVENANCE=OK`、`LEDGER_ROWS=7/7`、`GATE_OVERALL=PASS`、`LEDGER_OK`；计划 Rev.2 勘误（断言文本对齐 schema，验收语义/工具未变） |
-| Bug 2（Low）RS-05 响应形态描述与实现不符 | `docs/cases/repair-service.md` RS-05 改为「两者均为 `data.{list,total}`（`total = len(list)`、无分页游标）；差异仅在入参与上限（pending 固定 `done_repair`、无 200 上限；`scope=site` 支持 `status/start/end/sort`、`Limit(200)`、回填 `user_name`）」 | `docs/cases/repair-service.md:141-142`（fix commit diff） |
+| Bug 1（Medium）R7 断言字段不存在（"result" / "GATE_RESULT" 都不是 gate 报告顶层键） | R7 断言改为 `jq -e '.overall == "PASS"'`（gate 报告真实顶层键）；`actual` = `overall=PASS`；账本锚点改由 `bash scripts/verify-2513.sh ledger` 从最新 `fix(issue-2513)` commit 派生并写回，取消手工改 `build/commit` | `docs/evidence/2513/evidence.json`（R7 行）；`bash scripts/verify-2513.sh ledger` → `ARTIFACT_PROVENANCE=OK`、`LEDGER_ROWS=7/7`、`GATE_OVERALL=PASS`、`LEDGER_OK`；计划 Rev.2 勘误（断言文本对齐 schema，验收语义/工具未变） |
+| Bug 2（Low）RS-05 响应形态描述与实现不符 | `docs/cases/repair-service.md` RS-05 改为「两者均为 data 的 list+total（total = len(list)、无分页游标）；差异仅在入参与上限（pending 固定 done_repair、无 200 上限；scope=site 支持 status/start/end/sort、Limit(200)、回填 user_name）」 | `docs/cases/repair-service.md` 第 141-142 行（fix commit diff） |
 | Bug 3（Low）provenance 指针停在中间提交 | 摘要改为按角色列出：fix commit / artifacts / ledger+gate+summary（本摘要所在提交）；Issue 评论同步 | 本节头部指针 + `## Remote` |
 | （建议，非阻断）R1 仅角色分支正向 | R1 增加商户直属员工（`Role=STAFF` + `oid=商户 org`）用例，覆盖 `repairServiceMerchantLevel` 的 DB 分支 → `MERCHANT_STAFF_ROWS=2` | `docs/evidence/2513/R1-pending-dispatch.txt`（`MERCHANT_STAFF_ROWS=2`）、计划 Rev.2 R1 行 |
 
@@ -78,7 +78,7 @@ PASS
 | R4 负例：跨租户 / 网点账号口径 | PASS | docs/evidence/2513/R4-negative.txt |
 | R5 既有维修服务套件回归 | PASS | docs/evidence/2513/R5-regression.txt |
 | R6 构建 + 同类扫描 | PASS | docs/evidence/2513/R6-build-scan.txt |
-| R7 pre-ready gate（四源 + 定向测试 + 构建） | PASS（overall=PASS） | docs/evidence/2513/pre-ready-2513.json |
+| R7 pre-ready gate（四源 + 定向测试 + 构建） | PASS | docs/evidence/2513/pre-ready-2513.json（overall=PASS） |
 
 ## Evidence Contract（7/7，见 docs/evidence/2513/evidence.json）
 
@@ -146,6 +146,17 @@ P15/P16/P7/P8/P9/P10 N/A
 P18 WARN tooling_commit missing (legacy bundle)
 REPORT: docs/evidence/2513/pre-ready-2513.json
 RESULT: PASS
+
+$ bash scripts/verify-2513.sh ledger --require-gate
+ARTIFACT_PROVENANCE=OK
+LEDGER_BUILD=1.0.27d9cf29
+LEDGER_COMMIT=27d9cf29e10fdbce00686d686575d9c071118648
+LEDGER_DIRTY=false
+LEDGER_ROWS=7/7
+GATE_OVERALL=PASS
+GATE_PROVENANCE_COMMIT=27d9cf29e10fdbce00686d686575d9c071118648
+LEDGER_OK
 ```
+
 
 *Model: DeepSeek V4.1 Flash 1017*
