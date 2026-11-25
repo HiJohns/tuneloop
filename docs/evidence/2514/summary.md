@@ -90,8 +90,8 @@ Commit：`8f7dc8c05`（fix，含 plan 快照）。
 ### 契约三向核对
 
 - **Plan/API**：计划把批量设价收敛到后端**唯一**存在的端点 `PUT /api/instruments/batch-pricing`（`backend/main.go` 注册，`RequireRole(ADMIN, OWNER, site_admin)` + `ExplicitTenantScope`）；R4 断言 `BACKEND_BATCH_PRICING_ROUTE=1`、`BACKEND_GHOST_ROUTE=0`（后端从不注册 `/instruments/batch/price`）。
-- **docs**：`docs/spec/api/api.md` §5.6.2 的路径、权限、请求体（`items` 必填，`base_daily_rate` 单位元）与响应（`data.updated`）逐项对照 `backend/handlers/pricing.go` 的 `BatchSetInstrumentPricing` 绑定结构；已知边界（逐条失败只回计数）标注归 #2519。
-- **handler/frontend**：前端 payload 由 `frontend-pc/src/utils/batchPricing.js` 生成 `{items:[{id, base_daily_rate}]}`，字段名与单位（元）与 handler 的 json tag 一致；响应按 `code` 与 `data.updated` 消费，不再发送 handler 无法绑定的 `{ids, price_type, amount, operator}`。
+- **docs**：`docs/spec/api/api.md` §5.6.2 的路径、权限、请求体（`items` 必填，`base_daily_rate` 单位元）与响应（data.updated）逐项对照 `backend/handlers/pricing.go` 的 `BatchSetInstrumentPricing` 绑定结构；已知边界（逐条失败只回计数）标注归 #2519。
+- **handler/frontend**：前端 payload 由 `frontend-pc/src/utils/batchPricing.js` 生成 `{items:[{id, base_daily_rate}]}`，字段名与单位（元）与 handler 的 json tag 一致；响应按 `code` 与 data.updated 消费，不再发送 handler 无法绑定的 `{ids, price_type, amount, operator}`。
 
 ### Dependency Order / 验收规则
 
