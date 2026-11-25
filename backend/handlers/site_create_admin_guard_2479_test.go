@@ -299,3 +299,107 @@ func TestCreateSite_InvalidAdminSkipsTemplate_2479(t *testing.T) {
 		})
 	}
 }
+
+// R7（v3 审计 Bug 1）：nil UUID 负责人 + 请求携带 manager_name 时，本地写支路
+// （旧守卫 `adminID != ""`）会把 nil UUID 写进 users / site_members / sites.manager_id。
+// hasAdmin 必须贯穿两支路：响应仍为 201，但本地不得出现任何 nil UUID 行。
+//
+// R7b（同函数的另一条本地写支路）：请求给出 manager_id（本地尚无该用户），
+// IAM 仍返回 nil UUID 负责人 → 不得把 nil UUID 写进该用户的 users.iam_sub。
+func TestCreateSite_NilUUIDAdminSkipsLocalRows_2479(t *testing.T) {
+	var nilUsers, nilMembers, nilManagerSites, iamSubNil int64
+
+	t.Run("manager_name_without_valid_admin", func(t *testing.T) {
+		testfixtures.SetupTestDB(t)
+		db := testfixtures.GetTestDB(t)
+		merchantOrg, tenantID := seedMerchantForSiteCreate2479(t)
+		iam := newFakeIAMCreateSite2479(t, siteCreateNilUUID2479)
+		captureStdLog2479(t)
+
+		body := `{"name":"测试网点 2479-F","manager_name":"临时负责人","manager_phone":"13800002479"}`
+		code, resp := postCreateSite2479(t, merchantOrg, tenantID, body)
+
+		require.Equal(t, http.StatusCreated, code, "既有成功契约是 201 Created; body=%v", resp)
+		assign, template := iam.counts()
+		require.Zero(t, assign)
+		require.Zero(t, template)
+
+		var users, members, managerSites int64
+		require.NoError(t, db.Model(&models.User{}).
+			Where("id = ? OR iam_sub = ?", siteCreateNilUUID2479, siteCreateNilUUID2479).
+			Count(&users).Error)
+		require.Zero(t, users, "NIL_LOCAL_USERS：nil UUID 不得写入 users")
+
+		require.NoError(t, db.Model(&models.SiteMember{}).
+			Where("user_id = ?", siteCreateNilUUID2479).
+			Count(&members).Error)
+		require.Zero(t, members, "NIL_SITE_MEMBERS：nil UUID 不得写入 site_members")
+
+		require.NoError(t, db.Model(&models.Site{}).
+			Where("manager_id = ?", siteCreateNilUUID2479).
+			Count(&managerSites).Error)
+		require.Zero(t, managerSites, "SITES_MANAGER_ID_NIL：nil UUID 不得写入 sites.manager_id")
+
+		var created models.Site
+		require.NoError(t, db.Where("tenant_id = ? AND name = ?", merchantOrg, "测试网点 2479-F").First(&created).Error)
+		require.Nil(t, created.ManagerID, "无负责人时 sites.manager_id 必须为 NULL")
+
+		nilUsers += users
+		nilMembers += members
+		nilManagerSites += managerSites
+	})
+
+	t.Run("manager_id_with_nil_iam_admin", func(t *testing.T) {
+		testfixtures.SetupTestDB(t)
+		db := testfixtures.GetTestDB(t)
+		merchantOrg, tenantID := seedMerchantForSiteCreate2479(t)
+		iam := newFakeIAMCreateSite2479(t, siteCreateNilUUID2479)
+		captureStdLog2479(t)
+
+		// manager_id 指向本地不存在的用户：handler 会补建本地行（既有 FK 语义），
+		// 但 iam_sub 不得取自 nil UUID 负责人。
+		managerID := uuid.NewString()
+		body := `{"name":"测试网点 2479-G","manager_id":"` + managerID + `"}`
+		code, resp := postCreateSite2479(t, merchantOrg, tenantID, body)
+
+		require.Equal(t, http.StatusCreated, code, "既有成功契约是 201 Created; body=%v", resp)
+		assign, template := iam.counts()
+		require.Zero(t, assign)
+		require.Zero(t, template)
+
+		var manager models.User
+		require.NoError(t, db.Where("id = ?", managerID).First(&manager).Error)
+		require.NotEqual(t, siteCreateNilUUID2479, manager.IAMSub, "IAM_SUB_NIL：nil UUID 不得写入 users.iam_sub")
+
+		var users int64
+		require.NoError(t, db.Model(&models.User{}).
+			Where("id = ? OR iam_sub = ?", siteCreateNilUUID2479, siteCreateNilUUID2479).
+			Count(&users).Error)
+		require.Zero(t, users, "NIL_LOCAL_USERS：nil UUID 不得写入 users")
+		nilUsers += users
+
+		var members int64
+		require.NoError(t, db.Model(&models.SiteMember{}).
+			Where("user_id = ?", siteCreateNilUUID2479).
+			Count(&members).Error)
+		require.Zero(t, members, "NIL_SITE_MEMBERS：nil UUID 不得写入 site_members")
+		nilMembers += members
+
+		var managerSites int64
+		require.NoError(t, db.Model(&models.Site{}).
+			Where("manager_id = ?", siteCreateNilUUID2479).
+			Count(&managerSites).Error)
+		require.Zero(t, managerSites, "SITES_MANAGER_ID_NIL：nil UUID 不得写入 sites.manager_id")
+		nilManagerSites += managerSites
+
+		if manager.IAMSub == siteCreateNilUUID2479 {
+			iamSubNil++
+		}
+	})
+
+	t.Logf("STATUS=201")
+	t.Logf("NIL_LOCAL_USERS=%d", nilUsers)
+	t.Logf("NIL_SITE_MEMBERS=%d", nilMembers)
+	t.Logf("SITES_MANAGER_ID_NIL=%d", nilManagerSites)
+	t.Logf("IAM_SUB_NIL=%d", iamSubNil)
+}

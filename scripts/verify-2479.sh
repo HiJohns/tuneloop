@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # scripts/verify-2479.sh — #2479 CreateSite「无负责人（nil UUID）」不得作为 IAM 模板分配目标
-# 的证据生成器（R1–R6）。
+# 的证据生成器（R1–R7）。
 #
-# 用法：bash scripts/verify-2479.sh <r1|r2|r3|r4|r5|r6>
+# 用法：bash scripts/verify-2479.sh <r1|r2|r3|r4|r5|r6|r7>
 #
 # 每行把结果写入 docs/evidence/2479/R*-*.txt（首行为 provenance），并打印机器可判定
 # 的断言键值；任一行断言不成立以非 0 退出。
@@ -33,7 +33,18 @@ if ! command -v go >/dev/null 2>&1 && [ -x /usr/local/go/bin/go ]; then
     export PATH="/usr/local/go/bin:$PATH"
 fi
 
-usage() { echo "usage: $0 <r1|r2|r3|r4|r5|r6>" >&2; exit 2; }
+# 测试库与构建缓存（可用环境变量覆盖）：默认指向本机一次性 PostgreSQL 与仓库内
+# tmp/（/tmp 为 tmpfs 且有配额，go build 工作目录必须落在仓库盘）。
+export POSTGRES_HOST="${POSTGRES_HOST:-127.0.0.1}"
+export POSTGRES_PORT="${POSTGRES_PORT:-15433}"
+export POSTGRES_USER="${POSTGRES_USER:-tuneloop_user}"
+export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-trust}"
+export TUNELOOP_TEST_DB="${TUNELOOP_TEST_DB:-tuneloop_test_local}"
+export TMPDIR="${TMPDIR:-$REPO_ROOT/tmp/gobuild}"
+export GOCACHE="${GOCACHE:-$REPO_ROOT/tmp/gocache}"
+mkdir -p "$TMPDIR" "$GOCACHE"
+
+usage() { echo "usage: $0 <r1|r2|r3|r4|r5|r6|r7>" >&2; exit 2; }
 [ -n "$ROW" ] || usage
 
 FIX_SHA="$(git log --format=%H --grep="^fix(issue-$ISSUE)" -1 2>/dev/null || true)"
@@ -168,6 +179,10 @@ r5)
     # （干净树上 P5 会把它判成 dirty）。机器可判定键已足以复现结论。
     body+="RESULT: $([ "$rc" = "0" ] && echo PASS || echo FAIL)"$'\n'
     finish R5-gate.txt "$rc" "$body"
+    ;;
+r7)
+    run_unit_row R7-no-nil-local.txt '^TestCreateSite_NilUUIDAdminSkipsLocalRows_2479$' \
+        NIL_LOCAL_USERS 0 NIL_SITE_MEMBERS 0 SITES_MANAGER_ID_NIL 0 IAM_SUB_NIL 0
     ;;
 r6)
     body="" rc=0

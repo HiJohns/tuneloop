@@ -406,9 +406,15 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	if managerUUID != nil {
 		var mgrUser models.User
 		if err := db.Where("id = ?", managerUUID.String()).First(&mgrUser).Error; err != nil {
+			// #2479：manager_id 由调用方给出、但 IAM 未返回有效负责人（nil UUID /
+			// 空白 / 非法值）时，users.iam_sub 不得落 nil UUID（D5 同一判定）。
+			iamSub := ""
+			if hasAdmin {
+				iamSub = adminID
+			}
 			localUser := models.User{
 				ID:       managerUUID.String(),
-				IAMSub:   adminID,
+				IAMSub:   iamSub,
 				TenantID: anchorOrgID,
 				OrgID:    siteOrgID,
 				Name:     req.ManagerName,
@@ -419,7 +425,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 				log.Printf("[CreateSite] Failed to create local user record for manager %s: %v", managerUUID.String(), err)
 			}
 		}
-	} else if adminID != "" && req.ManagerName != "" {
+	} else if hasAdmin && req.ManagerName != "" {
 		uuidVal, parseErr := uuid.Parse(adminID)
 		if parseErr == nil {
 			managerUUID = &uuidVal
