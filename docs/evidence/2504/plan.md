@@ -55,6 +55,8 @@
 | 旧断言翻转无残留 | PC/mobile 测试 + 平价脚本 | `bash scripts/verify-2504.sh r4` | 静态：检查 4 处翻转点 | PC + mobile | `STALE_RAW_PC=0`、`STALE_RAW_MOBILE=0`、`STALE_VERIFY2480=0`、`FLIP_COUNT=8`、`OLD_BEHAVIOR_GONE=1` | R4（合同 R4） |
 | 入口可见性 + 真实链路接线（静态） | `frontend-pc/src/services/errorMessages.js`（被门控/接线消费的唯一出口） | 源码结构断言（见 G0 R5 的四个接线点） | `site_member`（sys_perm 空）打开 `/staff` | PC | `/staff` 菜单 `requireAll` + sysPermBits[15] → 菜单隐藏；非 2xx 由 `resolveErrorMessage({code,message})` 转 `Error.message`，页面展示该中文（无 `access denied` 直出） | R5（合同 R5） |
 | 构建 + lint | `frontend-pc`、`frontend-mobile` | `npm run build`（PC）+ `npx eslint` 改动文件 | 修后树 | PC + mobile | `PC_BUILD=0`、`LINT_PC=0`、`LINT_MOBILE=0` | R6（合同 R6） |
+| #2480 证据脚本回归 | `scripts/verify-2480.sh` | `bash scripts/verify-2504.sh r7`（内部跑 r1–r4） | 修后树 | PC | `V2480_R1..R4=0`（4 个旧 token 已翻转且脚本跑通） | R7（合同 R7） |
+| L4 死层处置（Option 1） | PC/mobile 解析核心 + `docs/spec/api/api.md` | `bash scripts/verify-2504.sh r8` | 修后树 | PC + 文档 | `RAW_BRANCH_REMOVED=1`、`DOC_ANNOTATED=1` | R8（合同 R8） |
 
 ## Input Truth & Tool Preflight
 
@@ -100,6 +102,8 @@
 | R4 | 4 处翻转点（测试/平价脚本） | `bash scripts/verify-2504.sh r4` | `docs/evidence/2504/R4-flip.txt` | `STALE_RAW_PC=0`、`STALE_RAW_MOBILE=0`、`STALE_VERIFY2480=0`、`FLIP_COUNT=8`、`OLD_BEHAVIOR_GONE=1` | 仍存在 `raw_message` 的 ASCII 期望 → FAIL |
 | R5 | `App.jsx:359` 菜单项、`menuPermissions.js:39-62`、`api.js:352`、`StaffManagement.jsx:112-113` | `bash scripts/verify-2504.sh r5` | `docs/evidence/2504/R5-wiring-static.txt` | `MENU_GATED=1`、`API_RESOLVES=1`、`PAGE_MESSAGE_FROM_RESOLVER=1`、`DIRECT_ENGLISH_LEAK=0` | 页面直出 `error.response.message` 且未经 resolver → FAIL |
 | R6 | 修后树 | `bash scripts/verify-2504.sh r6` | `docs/evidence/2504/R6-build-lint.txt` | `PC_BUILD=0`、`LINT_PC=0`、`LINT_MOBILE=0` | 任一非 0 → FAIL |
+| R7 #2480 证据脚本回归 | `scripts/verify-2480.sh` | `bash scripts/verify-2504.sh r7`（内部跑 r1–r4） | 修后树 | PC | `V2480_R1..R4=0`（旧 4 个 token 已翻转且脚本可跑通） | R7 |
+| R8 L4 死层处置（Option 1） | PC/mobile 解析核心 + `docs/spec/api/api.md` | `bash scripts/verify-2504.sh r8` | 修后树 | PC + 文档 | `RAW_BRANCH_REMOVED=1`、`DOC_ANNOTATED=1` | R8 |
 | R7 #2480 证据脚本回归 | `scripts/verify-2480.sh` | `bash scripts/verify-2504.sh r7`（内部跑 r1–r4） | `docs/evidence/2504/R7-verify2480.txt` | `V2480_R1=0`、`V2480_R2=0`、`V2480_R3=0`、`V2480_R4=0` | 任一 FAIL → FAIL |
 | R8 L4 死层处置（Option 1） | PC/mobile 解析核心 + `docs/spec/api/api.md` | `bash scripts/verify-2504.sh r8` | `docs/evidence/2504/R8-l4-disposition.txt` | `RAW_BRANCH_REMOVED=1`、`DOC_ANNOTATED=1` | 死分支残留/缺注解 → FAIL |
 
@@ -113,6 +117,8 @@
 | R4 | `bash scripts/verify-2504.sh r4` | `docs/evidence/2504/R4-flip.txt` | exit 0；grep `STALE_RAW_PC=0`、`STALE_RAW_MOBILE=0`、`STALE_VERIFY2480=0`、`FLIP_COUNT=8`、`OLD_BEHAVIOR_GONE=1` | PASS | `STALE_RAW_PC=1` → FAIL | dev |
 | R5 | `bash scripts/verify-2504.sh r5` | `docs/evidence/2504/R5-wiring-static.txt` | exit 0；grep `MENU_GATED=1`、`API_RESOLVES=1`、`PAGE_MESSAGE_FROM_RESOLVER=1`、`DIRECT_ENGLISH_LEAK=0` | PASS | 直出英文分支命中 → FAIL | dev |
 | R6 | `bash scripts/verify-2504.sh r6` | `docs/evidence/2504/R6-build-lint.txt` | exit 0；grep `PC_BUILD=0`、`LINT_PC=0`、`LINT_MOBILE=0` | PASS | `PC_BUILD=1` → FAIL | dev |
+| R7 | `bash scripts/verify-2504.sh r7` | `docs/evidence/2504/R7-verify2480.txt` | exit 0；grep `V2480_R1=0`、`V2480_R2=0`、`V2480_R3=0`、`V2480_R4=0` | PASS | 任一 FAIL → FAIL | dev |
+| R8 | `bash scripts/verify-2504.sh r8` | `docs/evidence/2504/R8-l4-disposition.txt` | exit 0；grep `RAW_BRANCH_REMOVED=1`、`DOC_ANNOTATED=1` | PASS | 死分支残留 → FAIL | dev |
 
 ## Artifact Provenance
 
@@ -169,6 +175,8 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 - `docs/evidence/2504/R4-flip.txt`
 - `docs/evidence/2504/R5-wiring-static.txt`
 - `docs/evidence/2504/R6-build-lint.txt`
+- `docs/evidence/2504/R7-verify2480.txt`
+- `docs/evidence/2504/R8-l4-disposition.txt`
 
 ## Core Update
 
@@ -188,5 +196,6 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 - **部署侧**：预生产 `site_member` 直链 `/staff` 的人工走查 + 小程序真机文案，由关闭时创建的 `[Ops-Followup of #2504]`（仅 `waitForConfirm`）承载。
 
 *Model: DeepSeek V4.1 Flash 1017*
+
 
 
