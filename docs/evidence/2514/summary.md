@@ -52,7 +52,9 @@ Commit：`8f7dc8c05`（fix，含 plan 快照）+ `41b853a71`（fix，gate 入口
 ### Pre-ready gate
 
 - 命令（R7）：`pre-ready-check.sh 2514 --summary-file docs/evidence/2514/summary.md --changed-files docs/evidence/2514/changed-files.txt --evidence-file docs/evidence/2514/evidence.json --full-gate-cmd "bash scripts/verify-2514.sh gate" --report docs/evidence/2514/pre-ready-2514.json`，附加 `--fix-commit 41b853a71 --affected-cmd "node --test frontend-pc/tests/batchPricing.test.mjs" --no-gate-cache`。
-- 报告：`docs/evidence/2514/pre-ready-2514.json`；本轮 gate 的 `RESULT` 与 P5/P12/P13 输出在 gate 完成后回填本节。
+- 报告：`docs/evidence/2514/pre-ready-2514.json`；本轮 gate 输出：
+  - `RESULT: PASS`（`overall=PASS`、零 FAIL；唯一 WARN 为 P5 baseline 说明，见下）。
+  - P4 `all 1 affected command(s) passed`；P12 `Evidence Contract complete: 7 row(s)`；P13 `fix commit and evidence artifacts are on origin/issue-2514`；P11 `isolated worktree`；P1/P2/P3/P6/P7/P14/P16/P17/P18 全 PASS。
 - 依赖可见性 / 锁边界：`gate` 子命令在 pre-ready 的干净 worktree 内先 `npm ci --prefer-offline` 再 `npm run build`；pre-ready 的 gate runner 已持有 host 锁，故 gate 分支改用 `run_build_plain`（不再经 `heavy-run` 包装——否则会等待自己已持有的 host 锁而死锁，这是上一轮 gate 挂起、没有产出 gate 结果 JSON 的根因）。`r6` 仍在 worktree 内走 `run_build`（独立执行时需要锁）。
 - P5 说明：HEAD 干净 worktree 的 gate 命令 exit 0；baseline（`merge-base HEAD origin/main`）返回 127，因 `scripts/verify-2514.sh` 为本单新增、baseline 树中不存在该命令 → 无 baseline 失败清单可比对，P5 记 WARN（不是新增失败）。
 
