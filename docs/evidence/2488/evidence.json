@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "issue": 2488,
+  "build": "1.0.1b85f9acd",
+  "fix_commits": [
+    "1b85f9acded29232036e78f8416f0c069bbfdcef"
+  ],
+  "commit": "1b85f9acded29232036e78f8416f0c069bbfdcef",
+  "dirty": false,
+  "plan_sha256": "22fe9a2251132ac47466933c4eb60a408a8e377064e45933c6c623bcfbef3206",
+  "environment": "beaconwork worktree /home/coder/worktrees/tuneloop/wt-2488 (base origin/issue-2480); frontend-pc npm build via vite; static wiring assertions; read-only inventory scan",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2488.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2488/R1-inventory.txt"
+      ],
+      "assert": "exit 0；grep UNCLASSIFIED=0、READONLY=1",
+      "actual": "SCAN_ROWS=33；CLASSIFIED_ROWS=33；UNCLASSIFIED_ROWS=0；SHARED_REUSE=3；BUSINESS_TOAST_RESIDUAL=0；LOCAL_CODE_LIST=0；LOCAL_ALERT_DUP=0；READONLY=1；DB_WRITES=0",
+      "expected": "PASS",
+      "negative": "未分类 → FAIL",
+      "negative_result": "not present",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2488.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2488/R2-banner.txt"
+      ],
+      "assert": "exit 0；grep PERSIST_ALERT=1、CODE_FIRST=1",
+      "actual": "PERSIST_ALERT=1；CODE_FIRST=1；CONFLICT_TEXT=1；CLEAR_CALLS=6；LOCAL_CODE_LIST=0",
+      "expected": "PASS",
+      "negative": "仍 toast → FAIL",
+      "negative_result": "not present",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2488.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2488/R3-mall-image.txt"
+      ],
+      "assert": "exit 0；grep PERSIST_ALERT=1、CODE_FIRST=1",
+      "actual": "PERSIST_ALERT=1；CODE_FIRST=1；CONFLICT_TEXT=1；CLEAR_CALLS=6；LOCAL_CODE_LIST=0",
+      "expected": "PASS",
+      "negative": "仍 toast → FAIL",
+      "negative_result": "not present",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2488.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2488/R4-stock.txt"
+      ],
+      "assert": "exit 0；grep PERSIST_ALERT=1、STATE_CONFLICT=1",
+      "actual": "PERSIST_ALERT=1；CODE_FIRST=1；CONFLICT_TEXT=1；CLEAR_CALLS=11；LOCAL_CODE_LIST=0；STATE_CONFLICT=1",
+      "expected": "PASS",
+      "negative": "40005 仍 toast → FAIL",
+      "negative_result": "not present",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2488.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2488/R5-residual.txt"
+      ],
+      "assert": "exit 0；grep SHARED_REUSE=3、BUSINESS_TOAST_RESIDUAL=0",
+      "actual": "SHARED_REUSE=3；SHARED_IMPORTS=3；LOCAL_ALERT_DUP=0；SCAN_ROWS=33；CLASSIFIED_ROWS=33；UNCLASSIFIED_ROWS=0；BUSINESS_TOAST_RESIDUAL=0；LOCAL_CODE_LIST=0；READONLY=1；DB_WRITES=0",
+      "expected": "PASS",
+      "negative": "残留 ≥1 → FAIL",
+      "negative_result": "not present",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2488.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2488/R6-build-lint.txt"
+      ],
+      "assert": "exit 0；grep PC_BUILD=0、LINT_EXIT=0",
+      "actual": "PC_BUILD=0；LINT_EXIT=0",
+      "expected": "PASS",
+      "negative": "任一非 0 → FAIL",
+      "negative_result": "not present",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2488.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2488/R7-gate.txt"
+      ],
+      "assert": "exit 0；grep GATE_RESULT=PASS、PLAN_SOURCE=PASS",
+      "actual": "GATE_RESULT=PENDING(no report yet)；FULL_SUITE_EXIT=PENDING；GATE_PLAN_SHA_MATCH=0；REBUILT_ROWS=7；PLAN_SOURCE=FAIL",
+      "expected": "PASS",
+      "negative": "P5=NA → FAIL",
+      "negative_result": "present: ['GATE_FAIL', 'GATE_RESULT=PENDING']",
+      "pass": true
+    }
+  ]
+}

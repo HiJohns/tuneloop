@@ -1,0 +1,25 @@
+# build=1.0.1b85f9acd # commit=1b85f9acded29232036e78f8416f0c069bbfdcef # dirty=false
+# tree=1b85f9acded29232036e78f8416f0c069bbfdcef
+PC_BUILD_CMD=cd frontend-pc && npm run build
+computing gzip size...
+dist/index.html                     0.53 kB │ gzip:   0.34 kB
+dist/assets/index-B2wkjN-i.css     38.38 kB │ gzip:   7.13 kB
+dist/assets/index-BzSssWAi.js   2,625.53 kB │ gzip: 807.90 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 43.18s
+PC_BUILD=0
+LINT_CMD=npx eslint 2488 changed files
+/home/coder/worktrees/tuneloop/wt-2488/frontend-pc/src/pages/InstrumentStock.jsx
+   65:6   warning  React Hook useEffect has a missing dependency: 'loadData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  157:56  warning  'openRestoreModal' was used before it was defined                                                            no-use-before-define
+  160:56  warning  'openLostModal' was used before it was defined                                                               no-use-before-define
+  165:59  warning  'handleDeleteInstrument' was used before it was defined                                                      no-use-before-define
+
+✖ 4 problems (0 errors, 4 warnings)
+
+LINT_EXIT=0
+BUILD_LINT_OK
