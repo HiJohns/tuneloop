@@ -420,3 +420,4 @@
 - 2026-11-25: Batch processing completed, including tasks: Resolved: #2510（Ops #2520）｜REJECT: #2508（缺独立 Issue 全量 gate，已发 Verification Request）、#2470（UI 仅源码 grep + 缺全量 gate + 契约未文档化）、#2504（gate 报告 FAIL 却自证 PASS，pre-fix 证据）｜#2509 父任务待 #2511/#2512/#2513
 - 2026-11-25: Batch processing completed, including tasks: Resolved Issues: #2514
 - 2026-11-25: Batch processing completed, including tasks: Resolved Issues: #2513
+- 2026-11-25: Batch processing completed, including tasks: Resolved Issues: #2502
