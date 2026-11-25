@@ -1,0 +1,38 @@
+# build=1.0.9f40fd0 # commit=9f40fd05540dc3dd40fad0dc935ea4dc891ba4c8 # dirty=false
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s22-p22-fcd599 at_ms=1795598173945 wait_ms=82611
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s22-p22-fcd599 wait_ms=82611
+[WARNING] No .env file found in common paths
+2026/11/25 09:16:18 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+[test-template] migrations replayed: files=407 up=221 statements=1795 create_table=14 create_index=0 index_guard=283 dml_guard=54 alter_table=1013 add_column=6 version=20261123002
+Built test template tuneloop_test_template
+2026/11/25 09:16:30 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/25 09:16:30 [DB] Connected to database 'tuneloop_test_local'
+=== RUN   TestWxAccounts_ContextLabelDisambiguatesSameNamedSites_2455
+2026/11/25 09:16:30 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/25 09:16:30 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/25 09:16:30 [DB] Connected to database 'tuneloop_test_local'
+
+2026/11/25 09:16:31 [32m/home/coder/worktrees/tuneloop/wt-2455/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[659.265ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_levels", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /api/auth/wx-accounts     --> tuneloop-backend/handlers.(*AuthHandler).WxAccounts-fm (1 handlers)
+2026/11/25 09:16:31 [WxAccounts] openid=openid-accounts-001 accounts=3
+    wx_accounts_context_label_2455_test.go:135: LABEL_A=cadenza · 卡丹萨乐器
+    wx_accounts_context_label_2455_test.go:136: LABEL_B=卡丹萨 · 卡丹萨乐器
+    wx_accounts_context_label_2455_test.go:137: ORG_NAME_B=卡丹萨西铁营
+    wx_accounts_context_label_2455_test.go:138: DISTINCT=1
+    wx_accounts_context_label_2455_test.go:139: LEGACY_LABEL=卡丹萨 · 卡丹萨乐器
+    wx_accounts_context_label_2455_test.go:140: CUSTOMER_LABEL=顾客
+--- PASS: TestWxAccounts_ContextLabelDisambiguatesSameNamedSites_2455 (0.85s)
+PASS
+ok  	tuneloop-backend/handlers	13.045s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795598191997 hold_ms=18052
+LABEL_A=cadenza · 卡丹萨乐器
+LABEL_B=卡丹萨 · 卡丹萨乐器
+ORG_NAME_B=卡丹萨西铁营
+DISTINCT=1
+LEGACY_LABEL=卡丹萨 · 卡丹萨乐器
+CUSTOMER_LABEL=顾客

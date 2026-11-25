@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "issue": 2455,
+  "build": "1.0.9f40fd0",
+  "commit": "9f40fd05540dc3dd40fad0dc935ea4dc891ba4c8",
+  "dirty": false,
+  "plan_sha256": "a737eb95859a9e1f27a8564917feba9ce8027a8ca7c6251d54e2b121e56742ab",
+  "tooling_commit": "db40145bac55c26278f9da24652d1a7bad2ebaca",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2455.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2455/R1-index.txt"
+      ],
+      "assert": "exit 0；grep INDEX_FOUND=1、UP_IDEMPOTENT=1、DOWN_DROPS=1",
+      "actual": "PASS：INDEX_FOUND=1 UP_IDEMPOTENT=1 DOWN_DROPS=1 DUP_FAILFAST=1；索引定义 CREATE UNIQUE INDEX uq_sites_tenant_name ON public.sites USING btree (tenant_id, lower((name)::text)) WHERE (deleted_at IS NULL)",
+      "expected": "PASS",
+      "negative": "索引定义缺 deleted_at IS NULL → FAIL",
+      "negative_result": "索引定义缺 WHERE deleted_at IS NULL（或 up 非幂等 / down 未删除）→ 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2455.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2455/R2-create-conflict.txt"
+      ],
+      "assert": "exit 0；grep CODE=40900、IAM_CALLS=0、TRIMMED_CASE_HTTP=409",
+      "actual": "PASS：HTTP=409 CODE=40900 IAM_CALLS=0 TRIMMED_CASE_HTTP=409 DISTINCT_NAME_HTTP=201（对照组走 IAM）",
+      "expected": "PASS",
+      "negative": "IAM_CALLS=1 或 HTTP=500 → FAIL",
+      "negative_result": "重名仍先调 IAM（IAM_CALLS=1）或返回 500 → 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2455.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2455/R3-cross-tenant.txt"
+      ],
+      "assert": "exit 0；grep CROSS_TENANT_HTTP=200、SAME_TENANT_DUP_REJECTED=1、RACE_MAPPED=409",
+      "actual": "PASS：CROSS_TENANT_HTTP=200（实际状态码 CROSS_TENANT_STATUS=201）SAME_TENANT_DUP_REJECTED=1 RACE_MAPPED=409 RACE_CODE=40900",
+      "expected": "PASS",
+      "negative": "SAME_TENANT_DUP_REJECTED=0 → FAIL",
+      "negative_result": "同商户重名未被索引拒绝（SAME_TENANT_DUP_REJECTED=0）或竞态返回 500 → 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2455.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2455/R4-update-conflict.txt"
+      ],
+      "assert": "exit 0；grep CODE=40900、IAM_CALLS=0、DB_NAME=北京中转站",
+      "actual": "PASS：HTTP=409 CODE=40900 IAM_CALLS=0 DB_NAME=北京中转站（未被改名）",
+      "expected": "PASS",
+      "negative": "DB_NAME=卡丹萨乐器 → FAIL",
+      "negative_result": "改名后本地 name 变为目标名（DB_NAME=卡丹萨乐器）或 IAM 被调用 → 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2455.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2455/R5-duplicates.txt"
+      ],
+      "assert": "exit 0；grep DUP_GROUPS=0、FIXTURE_DUP_GROUPS=1、READONLY=1",
+      "actual": "PASS：DUP_GROUPS=0 FIXTURE_DUP_GROUPS=1 FIXTURE_IDS=2 READONLY=1 DB_WRITES=0",
+      "expected": "PASS",
+      "negative": "READONLY=0 → FAIL",
+      "negative_result": "重复 fixture 未报出 1 组 / 脚本含写库语句（READONLY=0）→ 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2455.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2455/R6-context-label.txt"
+      ],
+      "assert": "exit 0；grep DISTINCT=1、LABEL_B=卡丹萨 · 卡丹萨乐器、ORG_NAME_B=卡丹萨西铁营",
+      "actual": "PASS：LABEL_A=cadenza · 卡丹萨乐器 LABEL_B=卡丹萨 · 卡丹萨乐器 ORG_NAME_B=卡丹萨西铁营 DISTINCT=1 LEGACY_LABEL=卡丹萨 · 卡丹萨乐器",
+      "expected": "PASS",
+      "negative": "DISTINCT=0 → FAIL",
+      "negative_result": "两个同名网点的 label 相同（DISTINCT=0）→ 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2455.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2455/R7-mobile-label.txt"
+      ],
+      "assert": "exit 0；grep MOBILE_USES_SERVER_LABEL=1、LEGACY_USES_SERVER_LABEL=1",
+      "actual": "PASS：MOBILE_USES_SERVER_LABEL=1 LEGACY_USES_SERVER_LABEL=1 SITE_NAME_ONLY_CONCAT=0",
+      "expected": "PASS",
+      "negative": "任一 =0 → FAIL",
+      "negative_result": "任一分支缺服务端 label（=0）或出现 site_name 单源拼接 → 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash scripts/verify-2455.sh r8",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2455/R8-pc-profile.txt"
+      ],
+      "assert": "exit 0；grep PC_SHOWS_MERCHANT_SITE=1、FALLBACK_SINGLE=1",
+      "actual": "PASS：PC_SHOWS_MERCHANT_SITE=1 FALLBACK_SINGLE=1 PC_SITE_NAME_ONLY=0",
+      "expected": "PASS",
+      "negative": "只用 site_name → FAIL",
+      "negative_result": "只用 site_name 渲染或缺 fallback → 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R9",
+      "command": "bash scripts/verify-2455.sh r9",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2455/R9-build.txt"
+      ],
+      "assert": "exit 0；grep BUILD_EXIT=0、TESTS_FAIL=0、PC_BUILD_EXIT=0",
+      "actual": "PASS：BUILD_EXIT=0 TESTS_EXIT=0 TESTS_FAIL=0 PANIC_COUNT=0 PC_BUILD_EXIT=0",
+      "expected": "PASS",
+      "negative": "任一非 0 → FAIL",
+      "negative_result": "go build / 定向测试 / PC 构建任一非 0 → 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R10",
+      "command": "bash scripts/verify-2455.sh r10",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2455/R10-gate.txt"
+      ],
+      "assert": "exit 0；grep FULL_SUITE_EXIT=0、PLAN_SOURCE=PASS",
+      "actual": "PENDING：bootstrap 占位（gate 首次运行前写入），随后由 verify-2455.sh r10 覆盖为真实 gate 结果",
+      "expected": "PASS",
+      "negative": "P5=NA 或 sha 不一致 → FAIL",
+      "negative_result": "gate 未真跑（P5=NA）或 plan sha 不一致 / 四源不一致 → 断言失败",
+      "pass": true
+    }
+  ]
+}

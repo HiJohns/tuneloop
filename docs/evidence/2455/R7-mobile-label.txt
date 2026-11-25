@@ -1,0 +1,7 @@
+# build=1.0.9f40fd0 # commit=9f40fd05540dc3dd40fad0dc935ea4dc891ba4c8 # dirty=false
+SOURCE=frontend-mobile/src/pages-weapp/account-select/AccountSelect.jsx
+51:        label: ct.label || (ct.type === 'customer' ? '顾客' : ([ct.merchant_name, ct.site_name || ct.org_name].filter(Boolean).join(' · ') || a.name || '员工账户')),
+60:        label: a.is_customer ? '顾客' : (a.label || ([a.merchant_name, a.site_name].filter(Boolean).join(' · ') || a.nickname || a.name || '员工账户')),
+MOBILE_USES_SERVER_LABEL=1
+LEGACY_USES_SERVER_LABEL=1
+SITE_NAME_ONLY_CONCAT=0
