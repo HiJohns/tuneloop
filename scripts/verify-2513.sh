@@ -210,8 +210,12 @@ row_ledger() {
   echo "ARTIFACT_PROVENANCE=OK"
 
   if [ "$DIRTY" = "true" ]; then dirty_json=true; else dirty_json=false; fi
+  local plan_sha
+  plan_sha="$(sha256sum "$outdir/plan.md" | awk '{print $1}')"
   if ! jq --arg build "1.0.$SHORT" --arg commit "$FIX_COMMIT" --argjson dirty "$dirty_json" \
-      '.build = $build | .commit = $commit | .dirty = $dirty' "$ev" > "$ev.tmp.$$"; then
+      --arg plan "$plan_sha" \
+      '.build = $build | .commit = $commit | .dirty = $dirty | .plan_sha256 = $plan' \
+      "$ev" > "$ev.tmp.$$"; then
     rm -f "$ev.tmp.$$"
     fail_row LEDGER "evidence-json-rewrite-failed"
   fi
@@ -219,6 +223,7 @@ row_ledger() {
   echo "LEDGER_BUILD=1.0.$SHORT"
   echo "LEDGER_COMMIT=$FIX_COMMIT"
   echo "LEDGER_DIRTY=$DIRTY"
+  echo "LEDGER_PLAN_SHA=$plan_sha"
 
   total="$(jq -r '.rows | length' "$ev")"
   passcount="$(jq -r '[.rows[] | select(.pass == true)] | length' "$ev")"
