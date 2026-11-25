@@ -115,7 +115,9 @@ Commit：f7bf8e416（fix，含 plan.md 快照）+ c168d20d7（证据提交）。
 
 ### Pre-ready gate
 
-- RESULT: PASS — `docs/evidence/2516/pre-ready-2516.json`（overall=PASS；P12 Evidence Contract 7 行完整、P13 fix 与证据在 origin/issue-2516、P5 全量构建 `cd frontend-pc && npm run build` exit 0）。
-- 说明：首次运行暴露两处「证据形态」问题并已修正——(1) 本 Summary 用反引号包裹了非路径代码片段，被 P3 的 evidence-token 扫描判为缺失路径；(2) R7 合同把 gate 报告自身作为产物，报告必须先存在才能被 P12/P13/P14 校验（gate 报告路径由 P14 显式豁免 provenance）。修正方式：Summary 的代码片段改为围栏代码块，R7 报告先生成并入库后再跑最终 gate。
+- RESULT: PASS — `docs/evidence/2516/pre-ready-2516.json`（overall=PASS，timestamp=20261125-152502）；P12 Evidence Contract 7 行完整、P13 fix 与证据在 origin/issue-2516、P5 HEAD 与 baseline 干净 worktree 构建均 exit 0、provenance.dirty=false。
+- 实际调用在计划命令基础上补了 3 个运行期参数：--fix-commit f7bf8e416（锚定 fix commit）、--no-gate-cache（宿主缓存里存着依赖缺失时 HEAD rc=127 的记录，必须绕开才能反映当前树）、--affected-cmd（跑定向单测，清 P4 WARN）。
+- 依赖可见性：P5 在 worktree 下新建干净 worktree 构建，而 npm 依赖不在版本库里；本轮在工作树 tmp 目录建了指向 frontend-pc/node_modules 的链接（tmp 已 gitignore，工作树仍 clean），让干净 worktree 经祖先目录解析到已安装依赖。只有依赖被共享，被构建的源码仍是该干净 worktree 的 HEAD。
+- 说明：首次运行暴露两处证据形态问题并已修正 —— (1) Summary 用反引号包裹非路径代码片段，被 P3 的 evidence-token 扫描判为缺失路径，已改为围栏代码块；(2) R7 合同把 gate 报告自身作为产物，报告必须先入库才能被 P12/P13 校验，故先提交 bootstrap 报告再跑最终 gate。
 
 Model: DeepSeek V4.1 Flash 1017

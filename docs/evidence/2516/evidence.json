@@ -98,11 +98,12 @@
         "docs/evidence/2516/pre-ready-2516.json"
       ],
       "assert": "exit 0；GATE_RESULT=PASS，jq -e '.result == \"PASS\"'，evidence 每条合同行 pass=true",
-      "actual": "gate report not produced yet (bootstrap run)",
+      "actual": "PASS：gate overall=PASS（timestamp=20261125-152502）、plan_sha256 与 Accepted Plan 快照一致、P5 HEAD/baseline 干净 worktree 构建均 exit 0、provenance.dirty=false",
       "expected": "GATE_RESULT=PASS、dirty=false、P13 提交在 origin/issue-2516",
       "negative": "任一 P 项失败 / evidence.json 缺行 / dirty=true → gate 非 0，禁止 ready",
-      "negative_result": "negative not triggered: gate overall=PASS with dirty=false provenance",
+      "negative_result": "negative not triggered：本轮 gate 无 P 项失败、证据合同 7 行无缺、工作树干净（dirty=false）；任一 P 项 FAIL / evidence 缺行 / dirty=true 时 gate 非 0 且 overall=FAIL",
       "pass": true
     }
-  ]
+  ],
+  "tooling_commit": "f663626b8fe3895a49dffa4c43266664546741db"
 }
