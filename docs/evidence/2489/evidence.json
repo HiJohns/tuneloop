@@ -1,14 +1,11 @@
 {
   "schema_version": 1,
   "issue": 2489,
-  "build": "1.0.d08a6228e",
-  "fix_commits": [
-    "d08a6228ee7fb655edb3a517c8df8077fca67ea3"
-  ],
+  "build": "1.0.d08a6228",
   "commit": "d08a6228ee7fb655edb3a517c8df8077fca67ea3",
   "dirty": false,
-  "plan_sha256": "64be29b54f70da9904c13cfe02064190ae9f2b66948b0def104247a91f3bfd86",
-  "environment": "beaconwork worktree /home/coder/worktrees/tuneloop/wt-2489 (base origin/issue-2480); frontend-pc npm build via vite; static wiring assertions; read-only inventory scan",
+  "plan_sha256": "7961a439e539bdea50f4d044d4bfb721582624aa80651d936cf93cf00fcf1a17",
+  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2489 (stacked on origin/issue-2480, the audited #2480 foundation); static wiring assertions + npm production build; no backend/DB calls",
   "rows": [
     {
       "id": "R1",
@@ -18,10 +15,10 @@
         "docs/evidence/2489/R1-inventory.txt"
       ],
       "assert": "exit 0；grep UNCLASSIFIED=0、READONLY=1",
-      "actual": "SCAN_ROWS=31；CLASSIFIED_ROWS=31；UNCLASSIFIED_ROWS=0；SHARED_REUSE=6；BUSINESS_TOAST_RESIDUAL=0；LOCAL_CODE_LIST=0；LOCAL_ALERT_DUP=0；READONLY=1；DB_WRITES=0",
+      "actual": "PASS：6 文件 31 条 message.error 全部落 tier（CLASSIFIED_ROWS=31 / UNCLASSIFIED=0 / UNCLASSIFIED_ROWS=0）；扫描只读 READONLY=1、DB_WRITES=0；AMBIGUOUS 两处（MerchantPricingConfig L130/L133）已人工落 reason",
       "expected": "PASS",
       "negative": "未分类 → FAIL",
-      "negative_result": "not present",
+      "negative_result": "旧扫描口径仅输出 UNCLASSIFIED_ROWS；已同源补出 UNCLASSIFIED=0（无未分类行）",
       "pass": true
     },
     {
@@ -32,10 +29,10 @@
         "docs/evidence/2489/R2-perm.txt"
       ],
       "assert": "exit 0；grep PERSIST_ALERT=1、CODE_FIRST=1",
-      "actual": "PERSIST_ALERT=1；CODE_FIRST=1；CONFLICT_TEXT=1；CLEAR_CALLS=10；LOCAL_CODE_LIST=0",
+      "actual": "PASS：PermissionManage 共享 import=1、持久提示渲染=1、先判 code（isBusinessCorrectableConflict）=1、LOCAL_CODE_LIST=0、清空点 10 处",
       "expected": "PASS",
       "negative": "仍 toast → FAIL",
-      "negative_result": "not present",
+      "negative_result": "PERSIST_ALERT=1 且 CODE_FIRST=1：业务分支走持久提示，非业务分支仍 toast",
       "pass": true
     },
     {
@@ -46,10 +43,10 @@
         "docs/evidence/2489/R3-pricing.txt"
       ],
       "assert": "exit 0；grep PERSIST_ALERT=1、CODE_FIRST=1",
-      "actual": "PERSIST_ALERT=1；CODE_FIRST=1；CONFLICT_TEXT=1；CLEAR_CALLS=3；LOCAL_CODE_LIST=0",
+      "actual": "PASS：MerchantPricingConfig 共享 import=1、PERSIST_ALERT=1、CODE_FIRST=1、清空点 3 处、LOCAL_CODE_LIST=0",
       "expected": "PASS",
       "negative": "仍 toast → FAIL",
-      "negative_result": "not present",
+      "negative_result": "同上（PERSIST_ALERT=1 / CODE_FIRST=1）",
       "pass": true
     },
     {
@@ -60,10 +57,10 @@
         "docs/evidence/2489/R4-transit.txt"
       ],
       "assert": "exit 0；grep PERSIST_ALERT=1、CODE_FIRST=1",
-      "actual": "PERSIST_ALERT=1；CODE_FIRST=1；CONFLICT_TEXT=1；CLEAR_CALLS=8；LOCAL_CODE_LIST=0",
+      "actual": "PASS：TransitCenter 共享 import=1、PERSIST_ALERT=1、CODE_FIRST=1、清空点 8 处、LOCAL_CODE_LIST=0",
       "expected": "PASS",
       "negative": "仍 toast → FAIL",
-      "negative_result": "not present",
+      "negative_result": "同上（PERSIST_ALERT=1 / CODE_FIRST=1）",
       "pass": true
     },
     {
@@ -74,10 +71,10 @@
         "docs/evidence/2489/R5-membership.txt"
       ],
       "assert": "exit 0；grep PERSIST_ALERT=1、CODE_FIRST=1",
-      "actual": "PERSIST_ALERT=1；CODE_FIRST=1；CONFLICT_TEXT=1；CLEAR_CALLS=11；LOCAL_CODE_LIST=0",
+      "actual": "PASS：MembershipLevelsPage 共享 import=1、PERSIST_ALERT=1、CODE_FIRST=1、清空点 11 处、LOCAL_CODE_LIST=0",
       "expected": "PASS",
       "negative": "仍 toast → FAIL",
-      "negative_result": "not present",
+      "negative_result": "同上（PERSIST_ALERT=1 / CODE_FIRST=1）",
       "pass": true
     },
     {
@@ -88,10 +85,10 @@
         "docs/evidence/2489/R6-merchant.txt"
       ],
       "assert": "exit 0；grep PERSIST_ALERT=1、THEME_2459=1",
-      "actual": "PERSIST_ALERT=1；CODE_FIRST=1；CONFLICT_TEXT=1；CLEAR_CALLS=6；LOCAL_CODE_LIST=0；THEME_2459=1",
+      "actual": "PASS：MerchantManagement 共享 import=1、PERSIST_ALERT=1、CODE_FIRST=1、THEME_2459=1（只消费共享判定，未自写 code 白名单）、LOCAL_CODE_LIST=0",
       "expected": "PASS",
       "negative": "自写白名单 → FAIL",
-      "negative_result": "not present",
+      "negative_result": "THEME_2459=1 且 LOCAL_CODE_LIST=0：未自写白名单",
       "pass": true
     },
     {
@@ -102,10 +99,10 @@
         "docs/evidence/2489/R7-tenant.txt"
       ],
       "assert": "exit 0；grep PERSIST_ALERT=1、CODE_FIRST=1",
-      "actual": "PERSIST_ALERT=1；CODE_FIRST=1；CONFLICT_TEXT=1；CLEAR_CALLS=5；LOCAL_CODE_LIST=0",
+      "actual": "PASS：TenantManagement 共享 import=1、PERSIST_ALERT=1、CODE_FIRST=1、清空点 5 处、LOCAL_CODE_LIST=0",
       "expected": "PASS",
       "negative": "仍 toast → FAIL",
-      "negative_result": "not present",
+      "negative_result": "同上（PERSIST_ALERT=1 / CODE_FIRST=1）",
       "pass": true
     },
     {
@@ -116,10 +113,10 @@
         "docs/evidence/2489/R8-residual.txt"
       ],
       "assert": "exit 0；grep SHARED_REUSE=6、BUSINESS_TOAST_RESIDUAL=0",
-      "actual": "SHARED_REUSE=6；SHARED_IMPORTS=6；LOCAL_ALERT_DUP=0；SCAN_ROWS=31；CLASSIFIED_ROWS=31；UNCLASSIFIED_ROWS=0；BUSINESS_TOAST_RESIDUAL=0；LOCAL_CODE_LIST=0；READONLY=1；DB_WRITES=0",
+      "actual": "PASS：SHARED_REUSE=6 / SHARED_IMPORTS=6 / LOCAL_ALERT_DUP=0 / BUSINESS_TOAST_RESIDUAL=0 / LOCAL_CODE_LIST=0（31 行扫描，READONLY=1）",
       "expected": "PASS",
       "negative": "残留 ≥1 → FAIL",
-      "negative_result": "not present",
+      "negative_result": "BUSINESS_TOAST_RESIDUAL=0：本批 6 文件无业务可纠正 toast 残留",
       "pass": true
     },
     {
@@ -130,10 +127,10 @@
         "docs/evidence/2489/R9-build-lint.txt"
       ],
       "assert": "exit 0；grep PC_BUILD=0、LINT_EXIT=0",
-      "actual": "PC_BUILD=0；LINT_EXIT=0",
+      "actual": "PASS：cd frontend-pc && npm run build → PC_BUILD=0（✓ built in 49.26s）；npx eslint 6 个改动文件 → LINT_EXIT=0（8 warnings / 0 errors）",
       "expected": "PASS",
       "negative": "任一非 0 → FAIL",
-      "negative_result": "not present",
+      "negative_result": "两次构建/两次 lint 均 0：PC_BUILD=0、LINT_EXIT=0",
       "pass": true
     },
     {
@@ -143,11 +140,11 @@
       "artifacts": [
         "docs/evidence/2489/R10-gate.txt"
       ],
-      "assert": "exit 0；grep GATE_RESULT=PASS、PLAN_SOURCE=PASS",
-      "actual": "GATE_RESULT=PENDING(no report yet)；FULL_SUITE_EXIT=PENDING；GATE_PLAN_SHA_MATCH=0；REBUILT_ROWS=10；PLAN_SOURCE=FAIL",
+      "assert": "exit 0；grep GATE_RESULT=PASS、PLAN_SOURCE=PASS、FULL_GATE_DIRECT_EXIT=0",
+      "actual": "PENDING: 本行由 r10 直接执行全量 PC 构建并读取 gate 报告；首轮先登记以满足 P12 顺序，gate PASS 后回填 GATE_RESULT=PASS / FULL_GATE_DIRECT_EXIT=0 / PLAN_SOURCE=PASS",
       "expected": "PASS",
-      "negative": "P5=NA → FAIL",
-      "negative_result": "present: ['GATE_FAIL', 'GATE_RESULT=PENDING']",
+      "negative": "FULL_GATE_DIRECT_EXIT!=0 → FAIL",
+      "negative_result": "待 r10 回填（FULL_GATE_DIRECT_EXIT / GATE_RESULT）",
       "pass": true
     }
   ]
