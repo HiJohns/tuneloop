@@ -2,6 +2,17 @@
 
 > Parent: #2509（同族 ID 域审计）｜关联：#2122（网点脱离维修服务）、#2134（`{tid,oid}` 归属集合）、#1974 T1（师傅直属商户）
 
+> **Rev.2 勘误（2026-11-25，Round 1 审计 Bug 1；仅断言文本，不改验收规则）**
+> gate 报告 `docs/evidence/2513/pre-ready-2513.json` 的顶层键是 `overall`，**不存在** `result` / `GATE_RESULT`；
+> 原 R7 断言不可执行（`jq -e '.result == "PASS"'` → exit 1）。本修订**只**把断言文本对齐 artifact schema：
+> Verification Matrix R7 期望结果、G0 R7 assertions 的 `GATE_RESULT=PASS` → `overall=PASS`；
+> Evidence Contract R7 断言改为 `jq -e '.overall == "PASS"'`。验收语义（gate PASS、每行 `pass=true`、
+> `dirty=false`、P13 在 `origin/issue-2513`）与所有验收工具/规则**均未改变**。
+> 另：R1 采纳 Round 1 审计非阻断建议，增补 `MERCHANT_STAFF_ROWS=2`（商户直属员工 `Role=STAFF` +
+> `oid=商户 org` 覆盖 `repairServiceMerchantLevel` 的 DB 分支），合同断言同步增补该项。
+> `evidence.json` 的 `build/commit/dirty` 改由 `bash scripts/verify-2513.sh ledger` 从最新
+> `fix(issue-2513)` commit 派生并写回，取消手工修改。
+
 ### 背景与现状核对（代码 + 规格为据）
 
 | 事实 | 位置 |
@@ -88,13 +99,13 @@ query := db.WithContext(database.IdentityCtx(ctx)).
 
 | 变更点 | 文件/组件 | 入口/路由 | 触发状态 | 目标平台 | 期望结果 | 证据（命令/日志/截图） |
 |---|---|---|---|---|---|---|
-| R1 待发回清单：商户层级见历史带 site 行 | `backend/handlers/repair_service.go`、`backend/handlers/repair_service_2513_test.go` | `GET /repair-services/pending-dispatch` | 商户层级账号；行 `rrLegacy(site_id=aID)` + `rrNull` | backend（Postgres 测试库） | `MERCHANT_ROWS=2`、`LEGACY_VISIBLE=1`、`OLD_SITE_EQ_OID_ROWS=0`（红证据） | R1 |
+| R1 待发回清单：商户层级见历史带 site 行 | `backend/handlers/repair_service.go`、`backend/handlers/repair_service_2513_test.go` | `GET /repair-services/pending-dispatch` | 商户层级账号；行 `rrLegacy(site_id=aID)` + `rrNull` | backend（Postgres 测试库） | `MERCHANT_ROWS=2`、`MERCHANT_STAFF_ROWS=2`（STAFF 走 DB 分支）、`LEGACY_VISIBLE=1`、`OLD_SITE_EQ_OID_ROWS=0`（红证据） | R1 |
 | R2 任务列表 `scope=site` 不再漏历史行 | 同上 | `GET /repair-services?scope=site` | 同上夹具 | backend | `SITE_SCOPE_ROWS=2`、`OLD_FILTER_ROWS=1`（红证据） | R2 |
 | R3 单条守卫：历史行可操作 | 同上 | `repairServiceStaffAllowed`（经 `/repair-services/:id/quote` 等入口的公共判定） | 商户层级 + `rrLegacy` | backend | `ALLOWED_LEGACY=1`、`OLD_DIRECT_OID_COMPARE=0` | R3 |
 | R4 负例：跨租户 / 网点账号口径 | 同上 | 上两接口 + `staffAllowed` | 他租户商户；纯网点账号 | backend | `OTHER_TENANT_ROWS=0`、`SITE_STAFF_ROWS=0`（#2122 保持）、`OTHER_TENANT_ALLOWED=0` | R4 |
 | R5 既有维修服务套件回归 | 既有套件（`Repair*` / `ListTasks*`） | `scripts/verify-2513.sh r5` | #2116/#2122/#2134/#2248/#2255 全部用例 | backend | `REGRESSION_PASS=1`、`FAIL_COUNT=0` | R5 |
 | R6 构建 + 同类扫描 | `scripts/verify-2513.sh` | `cd backend` 构建 + grep | 修后工作树 | backend | `BUILD_RC=0`、`SITE_ID_EQ_ORG=0`、`SITE_FILTER_IN_SERVICE=0`、`MERCHANT_GATE_SHARED=1` | R6 |
-| R7 pre-ready gate（四源 + 定向测试 + 构建） | `docs/evidence/2513/pre-ready-2513.json` | `pre-ready-check.sh 2513` | 修后干净树 + 最新 Accepted Plan | backend | `GATE_RESULT=PASS`、P12 完整、P13 在 `origin/issue-2513` | R7 |
+| R7 pre-ready gate（四源 + 定向测试 + 构建） | `docs/evidence/2513/pre-ready-2513.json` | `pre-ready-check.sh 2513` | 修后干净树 + 最新 Accepted Plan | backend | `overall=PASS`、P12 完整、P13 在 `origin/issue-2513` | R7 |
 
 ## Input Truth & Tool Preflight
 
@@ -108,7 +119,7 @@ query := db.WithContext(database.IdentityCtx(ctx)).
   - `go test ./handlers` 需 Postgres 测试库（`docs/ops/test-db-lifecycle.md`），本单只跑**定向**套件（`-run 'Repair|ListTasks'`），全量由 pre-ready P5 baseline 差分承担；
   - R6 grep 为文本级，不能识别动态拼接条件；以「三处特征串为 0 + `repairServiceMerchantLevel` 被两处调用」作为最小防漂移断言；
   - 生产库里「带 `site_id` 的 service 单」实际条数本单无法核实（dev 无样本），由 R1–R3 夹具证明语义，生产抽样留 Out of Scope。
-- **证据时序**：fix commit 之后重跑 `bash scripts/verify-2513.sh r1` … `r6`；`evidence.json` 的 `build/commit/dirty` 由脚本从 `git rev-parse` 派生，禁止手改。
+- **证据时序**：fix commit 之后重跑 `bash scripts/verify-2513.sh r1` … `r6`；`evidence.json` 的 `build/commit/dirty` 由 `bash scripts/verify-2513.sh ledger` 从最新 `fix(issue-2513)` commit 派生并写回（禁止手改）。
 
 ## Decision Lock
 
@@ -140,19 +151,19 @@ query := db.WithContext(database.IdentityCtx(ctx)).
 | R4 | 同 R1 + 他租户商户(`tid=other`) + 纯网点账号(`tid=M, oid=aOrg`) | 上两接口 + 守卫 | `docs/evidence/2513/R4-negative.txt` | `OTHER_TENANT_ROWS=0`、`OTHER_TENANT_ALLOWED=0`、`SITE_STAFF_ROWS=0`（#2122 保持）；负例：他租户看到 >0 行 → FAIL |
 | R5 | 既有维修服务套件（`Repair*`/`ListTasks*`） | `scripts/verify-2513.sh r5` | `docs/evidence/2513/R5-regression.txt` | `REGRESSION_PASS=1`、`FAIL_COUNT=0`、`ok` 行存在；负例：任一既有用例 FAIL → 脚本非 0 |
 | R6 | 修后工作树 | `cd backend` 构建 + grep 扫描 | `docs/evidence/2513/R6-build-scan.txt` | `BUILD_RC=0`、`SITE_ID_EQ_ORG=0`、`SITE_FILTER_IN_SERVICE=0`、`MERCHANT_GATE_SHARED=1`；负例：残留 `site_id = orgID` 或 `rr.SiteID != oid` → FAIL |
-| R7 | 修后干净树 + 最新 Accepted Plan + evidence.json | `pre-ready-check.sh 2513` | `docs/evidence/2513/pre-ready-2513.json` | `GATE_RESULT=PASS`、每行 `pass=true`、`dirty=false`、P13 在 `origin/issue-2513`；负例：任一 P 失败/evidence 缺行 → 不得 ready |
+| R7 | 修后干净树 + 最新 Accepted Plan + evidence.json | `pre-ready-check.sh 2513` | `docs/evidence/2513/pre-ready-2513.json` | `overall=PASS`、每行 `pass=true`、`dirty=false`、P13 在 `origin/issue-2513`；负例：任一 P 失败/evidence 缺行 → 不得 ready |
 
 ### Evidence Contract
 
 | 行 ID | 命令 | 产物 | 断言 | 期望 | 负例 | 责任人 |
 |---|---|---|---|---|---|---|
-| R1 | `bash scripts/verify-2513.sh r1 > docs/evidence/2513/R1-pending-dispatch.txt` | `docs/evidence/2513/R1-pending-dispatch.txt` | exit 0；`grep -q '^R1_OK$'` 且 `grep -q 'MERCHANT_ROWS=2'` | `LEGACY_VISIBLE=1`、`OLD_SITE_EQ_OID_ROWS=0` | 修复后仍 0 行/漏 `rrLegacy` → `R1_FAIL` 且非 0 退出 | dev |
+| R1 | `bash scripts/verify-2513.sh r1 > docs/evidence/2513/R1-pending-dispatch.txt` | `docs/evidence/2513/R1-pending-dispatch.txt` | exit 0；`grep -q '^R1_OK$'` 且 `grep -q 'MERCHANT_ROWS=2'` 且 `grep -q 'MERCHANT_STAFF_ROWS=2'` | `LEGACY_VISIBLE=1`、`OLD_SITE_EQ_OID_ROWS=0` | 修复后仍 0 行/漏 `rrLegacy` → `R1_FAIL` 且非 0 退出 | dev |
 | R2 | `bash scripts/verify-2513.sh r2 > docs/evidence/2513/R2-list-tasks-site.txt` | `docs/evidence/2513/R2-list-tasks-site.txt` | exit 0；`grep -q '^R2_OK$'` 且 `grep -q 'SITE_SCOPE_ROWS=2'` | `OLD_FILTER_ROWS=1`（红证据） | 修复后仍 1 行 → `R2_FAIL` 且非 0 退出 | dev |
 | R3 | `bash scripts/verify-2513.sh r3 > docs/evidence/2513/R3-staff-allowed.txt` | `docs/evidence/2513/R3-staff-allowed.txt` | exit 0；`grep -q '^R3_OK$'` 且 `grep -q 'ALLOWED_LEGACY=1'` | `OLD_DIRECT_OID_COMPARE=0`、quote 入口 200 | 历史行仍 403 → `R3_FAIL` 且非 0 退出 | dev |
 | R4 | `bash scripts/verify-2513.sh r4 > docs/evidence/2513/R4-negative.txt` | `docs/evidence/2513/R4-negative.txt` | exit 0；`grep -q '^R4_OK$'` 且 `grep -q 'OTHER_TENANT_ROWS=0'` | `OTHER_TENANT_ALLOWED=0`、`SITE_STAFF_ROWS=0` | 他租户/网点账号出现 >0 行 → `R4_FAIL` 且非 0 退出 | dev |
 | R5 | `bash scripts/verify-2513.sh r5 > docs/evidence/2513/R5-regression.txt` | `docs/evidence/2513/R5-regression.txt` | exit 0；`grep -q '^R5_OK$'` 且 `grep -q 'FAIL_COUNT=0'` | 既有 #2116/#2122/#2134/#2248/#2255 用例全绿 | 任一既有用例 FAIL → `R5_FAIL` 且非 0 退出 | dev |
 | R6 | `bash scripts/verify-2513.sh r6 > docs/evidence/2513/R6-build-scan.txt` | `docs/evidence/2513/R6-build-scan.txt` | exit 0；`grep -q '^R6_OK$'` 且 `grep -q 'BUILD_RC=0'` | `SITE_ID_EQ_ORG=0`、`SITE_FILTER_IN_SERVICE=0`、`MERCHANT_GATE_SHARED=1` | 残留 ID 域比较或闸门未复用 → `R6_FAIL` 且非 0 退出 | dev |
-| R7 | `~/.config/opencode/scripts/pre-ready-check.sh 2513 --summary-file docs/evidence/2513/summary.md --changed-files docs/evidence/2513/changed-files.txt --evidence-file docs/evidence/2513/evidence.json --affected-cmd "bash scripts/verify-2513.sh r5" --full-gate-cmd "bash scripts/verify-2513.sh gate" --report docs/evidence/2513/pre-ready-2513.json` | `docs/evidence/2513/pre-ready-2513.json` | exit 0；`GATE_RESULT=PASS`，`jq -e '.result == "PASS"'`，evidence 每行 `pass=true` | `dirty=false`、P13 提交在 `origin/issue-2513` | 任一 P 项失败 / evidence 缺行 / `dirty=true` → gate 非 0，禁止 ready | dev |
+| R7 | `~/.config/opencode/scripts/pre-ready-check.sh 2513 --summary-file docs/evidence/2513/summary.md --changed-files docs/evidence/2513/changed-files.txt --evidence-file docs/evidence/2513/evidence.json --affected-cmd "bash scripts/verify-2513.sh r5" --full-gate-cmd "bash scripts/verify-2513.sh gate" --report docs/evidence/2513/pre-ready-2513.json` | `docs/evidence/2513/pre-ready-2513.json` | exit 0；`jq -e '.overall == "PASS"' docs/evidence/2513/pre-ready-2513.json` 且 evidence 每行 `pass=true` | `overall=PASS`、`dirty=false`、P13 提交在 `origin/issue-2513` | 任一 P 项失败 / evidence 缺行 / `dirty=true` → gate 非 0，禁止 ready | dev |
 
 ### Files（变更文件清单）
 
@@ -176,8 +187,8 @@ query := db.WithContext(database.IdentityCtx(ctx)).
 
 ## Artifact Provenance
 
-- 生成器：`scripts/verify-2513.sh`（`r1`–`r6` + `gate`），每个文本 artifact 首行必须是
-  `# build=1.0.<短码> # commit=<40 位 sha> # dirty=false`（锚定本单 fix commit；证据收尾提交不改变锚点）。
+- 生成器：`scripts/verify-2513.sh`（`r1`–`r6` + `gate` + `ledger`），每个文本 artifact 首行必须是
+  `# build=1.0.<短码> # commit=<40 位 sha> # dirty=false`（锚定本单最新 `fix(issue-2513)` commit；证据收尾提交不改变锚点）。
 - 逐条清单（全部位于 `docs/evidence/2513/`）：
   - `docs/evidence/2513/R1-pending-dispatch.txt`
   - `docs/evidence/2513/R2-list-tasks-site.txt`
@@ -191,4 +202,5 @@ query := db.WithContext(database.IdentityCtx(ctx)).
 - 证据重生成纪律：fix commit 之后统一重跑 `bash scripts/verify-2513.sh r1` … `r6`，禁止只改 `build/commit` 冒充新证据。
 
 *Model: DeepSeek V4.1 Flash 1017*
+
 

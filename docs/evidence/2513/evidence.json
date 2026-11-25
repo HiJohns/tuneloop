@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2513,
-  "build": "1.0.d7a3cecc",
-  "commit": "d7a3cecc2c7342a9d9b9777347345f1f6924eb41",
+  "build": "1.0.27d9cf29",
+  "commit": "27d9cf29e10fdbce00686d686575d9c071118648",
   "dirty": false,
   "rows": [
     {
@@ -12,8 +12,8 @@
       "artifacts": [
         "docs/evidence/2513/R1-pending-dispatch.txt"
       ],
-      "assert": "exit 0；grep -q '^R1_OK$' 且 grep -q 'MERCHANT_ROWS=2'",
-      "actual": "MERCHANT_ROWS=2 LEGACY_VISIBLE=1 OLD_SITE_EQ_OID_ROWS=0 R1_OK",
+      "assert": "exit 0；grep -q '^R1_OK$' 且 grep -q 'MERCHANT_ROWS=2' 且 grep -q 'MERCHANT_STAFF_ROWS=2'",
+      "actual": "MERCHANT_ROWS=2 MERCHANT_STAFF_ROWS=2 LEGACY_VISIBLE=1 OLD_SITE_EQ_OID_ROWS=0 R1_OK",
       "expected": "LEGACY_VISIBLE=1、OLD_SITE_EQ_OID_ROWS=0",
       "negative": "修复后仍 0 行/漏 rrLegacy → R1_FAIL 且非 0 退出",
       "negative_result": "旧谓词 site_id=oid 恒 0 行（红证据）",
@@ -96,11 +96,11 @@
       "artifacts": [
         "docs/evidence/2513/pre-ready-2513.json"
       ],
-      "assert": "exit 0；GATE_RESULT=PASS，jq -e '.result == \"PASS\"'，evidence 每行 pass=true",
-      "actual": "GATE_RESULT=PASS",
+      "assert": "exit 0；jq -e '.overall == \"PASS\"' docs/evidence/2513/pre-ready-2513.json 且 evidence 每行 pass=true",
+      "actual": "overall=PASS",
       "expected": "dirty=false、P13 提交在 origin/issue-2513",
       "negative": "任一 P 项失败 / evidence 缺行 / dirty=true → gate 非 0，禁止 ready",
-      "negative_result": "bootstrap 报告后重跑 gate 通过；dirty=false；P13 在 origin/issue-2513",
+      "negative_result": "gate 重跑后 overall=PASS；dirty=false；P13 在 origin/issue-2513",
       "pass": true
     }
   ]
