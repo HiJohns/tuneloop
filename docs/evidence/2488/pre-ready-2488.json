@@ -4,7 +4,7 @@
   "plan": "docs/evidence/2488/plan.md",
   "plan_sha256": "22fe9a2251132ac47466933c4eb60a408a8e377064e45933c6c623bcfbef3206",
   "summary": "tmp/work-summary-2488.md",
-  "timestamp": "20261125-002427",
+  "timestamp": "20261125-002614",
   "checks": [
     {
       "id": "P1",
@@ -18,8 +18,8 @@
     },
     {
       "id": "P3",
-      "status": "FAIL",
-      "detail": "evidence paths do not exist: message.error('更新失败')"
+      "status": "PASS",
+      "detail": "all referenced evidence paths exist and are durable"
     },
     {
       "id": "P4",
@@ -28,13 +28,13 @@
     },
     {
       "id": "P12",
-      "status": "FAIL",
-      "detail": "R3: artifact not found: docs/evidence/2488/R3-mall-image.txt"
+      "status": "PASS",
+      "detail": "Evidence Contract complete: 7 row(s) match the plan and have durable artifacts"
     },
     {
       "id": "P14",
       "status": "FAIL",
-      "detail": "artifact missing: docs/evidence/2488/R3-mall-image.txt"
+      "detail": "provenance mismatch dirty: artifact=true evidence=false (docs/evidence/2488/R3-mall-image.txt)"
     },
     {
       "id": "P15",
@@ -58,8 +58,8 @@
     },
     {
       "id": "P6",
-      "status": "FAIL",
-      "detail": "changed files not declared in the plan (Architect approval required): docs/evidence/2488/R3-mallimage.txt"
+      "status": "PASS",
+      "detail": "all changed files are declared in the Accepted Plan"
     },
     {
       "id": "P7",
@@ -88,8 +88,8 @@
     },
     {
       "id": "P13",
-      "status": "FAIL",
-      "detail": "artifacts not on origin/issue-2488: docs/evidence/2488/R3-mall-image.txt"
+      "status": "PASS",
+      "detail": "fix commit and evidence artifacts are on origin/issue-2488"
     }
   ]
 }

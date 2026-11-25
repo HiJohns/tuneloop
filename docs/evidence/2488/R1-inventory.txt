@@ -1,5 +1,5 @@
 # build=1.0.1b85f9acd # commit=1b85f9acded29232036e78f8416f0c069bbfdcef # dirty=false
-# tree=1b85f9acded29232036e78f8416f0c069bbfdcef
+# tree=e07a235a083e0691a0ddd32c42bf99a7734ad924
 SCAN_CMD=bash scripts/scan-form-toasts-2488.sh
 pages/System/BannerManagePage.jsx:26	fn=fetchBanners	reads_code=1	tier=defer:tier2	reason=form falls back to toast without reading code (needs per-page judgement)
 pages/System/BannerManagePage.jsx:29	fn=fetchBanners	reads_code=1	tier=keep:instant	reason=catch-all fallback (network/unknown)

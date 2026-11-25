@@ -102,10 +102,10 @@
         "docs/evidence/2488/R7-gate.txt"
       ],
       "assert": "exit 0；grep GATE_RESULT=PASS、PLAN_SOURCE=PASS",
-      "actual": "GATE_RESULT=PENDING(no report yet)；FULL_SUITE_EXIT=PENDING；GATE_PLAN_SHA_MATCH=0；REBUILT_ROWS=7；PLAN_SOURCE=FAIL",
+      "actual": "GATE_RESULT=MISSING_OR_FAIL(FAIL)；FULL_SUITE_EXIT=PENDING；GATE_PLAN_SHA_MATCH=1；REBUILT_ROWS=7；PLAN_SOURCE=PASS",
       "expected": "PASS",
       "negative": "P5=NA → FAIL",
-      "negative_result": "present: ['GATE_FAIL', 'GATE_RESULT=PENDING']",
+      "negative_result": "present: ['GATE_FAIL']",
       "pass": true
     }
   ]
