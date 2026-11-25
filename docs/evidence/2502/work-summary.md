@@ -32,7 +32,7 @@
 
 ### Remote
 
-remote: origin/issue-2502; fix=405cb8f20 pushed=yes; evidence= pushed=yes（P13 校验通过）
+remote: origin/issue-2502; fix=405cb8f20 pushed=yes; evidence=ae55f5eab（R1–R13 + ledger）与 1f240bb3b（gate 报告 + 本 Summary） pushed=yes（P13 校验通过）
 
 ### 验证层级（Issue #70）
 
