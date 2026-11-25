@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -142,7 +143,8 @@ func (h *PayscoreHandler) CreateAssessment(c *gin.Context) {
 	})
 	if err != nil {
 		// 外部依赖失败必须透传，不得静默降级为“已通过”
-		c.JSON(http.StatusBadGateway, gin.H{"code": 50200, "message": "发起信用评估失败: " + err.Error()})
+		log.Printf("[Payscore] create payscore order failed: %v", err)
+		c.JSON(http.StatusBadGateway, gin.H{"code": 50200, "message": "发起信用评估失败，请稍后再试"})
 		return
 	}
 

@@ -368,7 +368,8 @@ func (h *UserManagementHandler) MarkDeleted(c *gin.Context) {
 	}
 	if err := services.NewIAMClient().DeleteUser(user.IAMSub); err != nil {
 		log.Printf("[MarkDeleted] IAM deactivate failed user=%s: %v", user.ID, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "标记删除失败：" + err.Error()})
+		log.Printf("[UserManagement] mark delete failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "标记删除失败，请稍后再试"})
 		return
 	}
 	// 本地缓存同步（IAM 为权威）：标记 + 解除组织关联

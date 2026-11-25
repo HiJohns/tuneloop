@@ -321,7 +321,8 @@ func UpdateTransitSiteMemberRole(c *gin.Context) {
 		iamClient := services.NewIAMClient()
 		userToken := services.ExtractUserToken(c)
 		if err := iamClient.UpdateUserRoleInOrgWithToken(userToken, site.OrgID, member.UserID, toIAMRole(req.Role)); err != nil {
-			c.JSON(http.StatusBadGateway, gin.H{"code": 50000, "message": "IAM 角色更新失败: " + err.Error()})
+			log.Printf("[TransitSiteAdmin] IAM role update failed: %v", err)
+			c.JSON(http.StatusBadGateway, gin.H{"code": 50000, "message": "角色更新失败，请稍后再试"})
 			return
 		}
 		roleErrors = assignTransitRoleTemplate(c, iamClient, userToken, member.UserID, site.OrgID, req.Role)

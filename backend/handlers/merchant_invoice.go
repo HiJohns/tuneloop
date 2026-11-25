@@ -115,7 +115,8 @@ func (h *MerchantInvoiceHandler) Reply(c *gin.Context) {
 		InvoiceFile string `json:"invoice_file"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "参数错误: " + err.Error()})
+		log.Printf("[MerchantInvoice] invalid reply payload: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "请求参数有误，请检查后重试"})
 		return
 	}
 	if req.InvoiceFile == "" && req.Reply == "" {

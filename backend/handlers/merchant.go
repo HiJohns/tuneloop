@@ -733,7 +733,8 @@ func (h *MerchantHandler) DeleteMerchant(c *gin.Context) {
 	db.Where("tenant_id = ?", tenantID).Find(&merchantMembers)
 	for _, m := range merchantMembers {
 		if err := unbind(m.UserID, merchant.OrgID); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "级联解除商户成员失败：" + err.Error()})
+			log.Printf("[MerchantDelete] cascade unbind merchant member failed: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "级联解除商户成员失败，请稍后再试"})
 			return
 		}
 	}
@@ -745,7 +746,8 @@ func (h *MerchantHandler) DeleteMerchant(c *gin.Context) {
 			continue
 		}
 		if err := unbind(m.UserID, site.OrgID); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "级联解除网点成员失败：" + err.Error()})
+			log.Printf("[MerchantDelete] cascade unbind site member failed: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "级联解除网点成员失败，请稍后再试"})
 			return
 		}
 	}
