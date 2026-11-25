@@ -11,6 +11,11 @@ export default function UserProfile() {
   const [loading, setLoading] = useState(false)
   const [resetting, setResetting] = useState(false)
 
+  // #2455 R8：员工身份必须能区分「哪个商户的哪个网点」——只显示 sites.name 时，
+  // 跨商户同名网点（如两处「卡丹萨乐器」）无法辨识。展示「商户名 · 网点名」，
+  // 任一缺失时回退为单项，绝不渲染 undefined。
+  const identityLabel = [user?.tenant_name, user?.site_name].filter(Boolean).join(' · ') || '-'
+
   useEffect(() => {
     fetchProfile()
   }, [])
@@ -136,7 +141,8 @@ export default function UserProfile() {
         title={<span><BankOutlined /> 关联信息</span>}
       >
         <Descriptions column={1} bordered size="small">
-          <Descriptions.Item label="关联网点">{user?.site_name || '-'}</Descriptions.Item>
+          <Descriptions.Item label="关联网点">{identityLabel}</Descriptions.Item>
+          <Descriptions.Item label="商户">{user?.tenant_name || '-'}</Descriptions.Item>
           <Descriptions.Item label="网点 ID">{user?.site_id || '-'}</Descriptions.Item>
         </Descriptions>
       </Card>

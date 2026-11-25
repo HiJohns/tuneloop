@@ -278,6 +278,41 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 		return
 	}
 
+	// #2455：同商户网点名唯一（大小写不敏感、排除软删除）。
+	// 预检必须在 IAM CreateOrganization **之前**——否则先建组织再因重名失败会留下
+	// 无本地行的 IAM 孤儿组织（Decision Lock D2）。名称统一按 trim 后的值作为
+	// IAM body 与本地 sites.name 的单一真值，避免「加空格」绕过唯一性。
+	newName := strings.TrimSpace(req.Name)
+	if newName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "网点名不能为空",
+		})
+		return
+	}
+	var duplicateSites int64
+	// 显式租户口径：本查询按「商户锚点 org」（sites.tenant_id）过滤，必须在关闭
+	// 自动租户 scope 后执行——否则共享 tenant 下 JWT tenant ≠ 商户 org，
+	// 自动注入的 tenant_id 子句会把同商户已有网点过滤掉（预检静默失效）。
+	if err := database.GetDB().WithContext(database.ExplicitTenantScopeOnly(ctx)).
+		Model(&models.Site{}).
+		Where("tenant_id = ? AND deleted_at IS NULL AND lower(name) = lower(?)", anchorOrgID, newName).
+		Count(&duplicateSites).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "failed to check duplicate site name: " + err.Error(),
+		})
+		return
+	}
+	if duplicateSites > 0 {
+		c.JSON(http.StatusConflict, gin.H{
+			"code":    40900,
+			"message": "同商户已存在同名网点",
+		})
+		return
+	}
+	req.Name = newName
+
 	var parentUUID *uuid.UUID
 	if req.ParentID != nil && *req.ParentID != "" {
 		uuidVal, err := uuid.Parse(*req.ParentID)
@@ -467,6 +502,15 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	}
 
 	if err := db.Create(&site).Error; err != nil {
+		// #2455：并发竞态下预检可能漏过，由 uq_sites_tenant_name 兜底；
+		// 唯一冲突必须映射为 409/40900（可读业务冲突），不得冒 500。
+		if isUniqueViolation(err) {
+			c.JSON(http.StatusConflict, gin.H{
+				"code":    40900,
+				"message": "同商户已存在同名网点",
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
 			"message": "failed to create site: " + err.Error(),

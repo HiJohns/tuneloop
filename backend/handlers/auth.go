@@ -874,20 +874,17 @@ func (h *AuthHandler) WxAccounts(c *gin.Context) {
 			"org_id":      a.OrgID,
 			"tenant_id":   a.TenantID,
 			"is_customer": isCustomer,
-			"contexts":    a.Contexts,
+			"contexts":    enrichWxContexts2455(h.db, a),
 		}
 		if !isCustomer {
 			// Staff accounts: enrich with merchant/site display names so the
-			// account list can show 「商户名-网点名」 (docs/cases/account-select.md).
-			var merchantName, siteName string
-			if a.TenantID != "" {
-				h.db.Raw("SELECT name FROM merchants WHERE tenant_id = ? LIMIT 1", a.TenantID).Scan(&merchantName)
-			}
-			if a.OrgID != "" {
-				h.db.Raw("SELECT name FROM sites WHERE org_id = ? LIMIT 1", a.OrgID).Scan(&siteName)
-			}
+			// account list can show 「商户名 · 网点名」 (docs/cases/account-select.md).
+			merchantName, siteName := merchantAndSiteName2455(h.db, a.OrgID, a.TenantID)
 			acc["merchant_name"] = merchantName
 			acc["site_name"] = siteName
+			// #2455 D4：legacy（无 contexts）分支同样只消费服务端 label，
+			// 避免前端各自拼装出「商户名-网点名」两套口径。
+			acc["label"] = wxIdentityLabel2455(merchantName, siteName, "")
 		}
 		accounts = append(accounts, acc)
 	}
@@ -900,6 +897,97 @@ func (h *AuthHandler) WxAccounts(c *gin.Context) {
 			"exchange_token": result.ExchangeToken,
 		},
 	})
+}
+
+// merchantAndSiteName2455 resolves the display names used to disambiguate a
+// staff identity: the merchant (tenant) name and the site name for one org.
+// sites.name mirrors the IAM organization name (#2457) and merchants.name mirrors
+// the merchant root organization name, so 「商户名 · 网点名」 distinguishes two
+// same-named sites that belong to different merchants (#2455 D4).
+func merchantAndSiteName2455(db *gorm.DB, orgID, tenantID string) (merchantName, siteName string) {
+	resolvedTenantID := tenantID
+	if orgID != "" {
+		var site struct {
+			Name     string
+			TenantID string
+		}
+		// sites.tenant_id is the authoritative merchant anchor (see CreateSite);
+		// prefer it over the caller-supplied tenant id when the row exists.
+		if err := db.Raw(
+			"SELECT name, tenant_id FROM sites WHERE org_id = ? AND deleted_at IS NULL LIMIT 1", orgID,
+		).Scan(&site).Error; err == nil {
+			siteName = site.Name
+			if site.TenantID != "" {
+				resolvedTenantID = site.TenantID
+			}
+		}
+	}
+	if resolvedTenantID != "" {
+		db.Raw("SELECT name FROM merchants WHERE tenant_id = ? LIMIT 1", resolvedTenantID).Scan(&merchantName)
+	}
+	return merchantName, siteName
+}
+
+// wxIdentityLabel2455 is the single label contract for selectable identities:
+// 「商户名 · 网点名」, degrading to one of them, then to the IAM org name, then
+// to the raw org id — never an empty or duplicated string.
+func wxIdentityLabel2455(merchantName, siteName, orgName string) string {
+	switch {
+	case merchantName != "" && siteName != "":
+		return merchantName + " · " + siteName
+	case siteName != "":
+		return siteName
+	case merchantName != "" && orgName != "":
+		return merchantName + " · " + orgName
+	case orgName != "":
+		return orgName
+	case merchantName != "":
+		return merchantName
+	default:
+		return ""
+	}
+}
+
+// enrichWxContexts2455 attaches merchant/site display names and a composed
+// label to every login context (#2455 R6). IAM supplies org_id/org_name; the
+// local mirror supplies the site + merchant names. Customer contexts keep the
+// IAM label untouched.
+func enrichWxContexts2455(db *gorm.DB, a services.WxAccount) []map[string]interface{} {
+	if len(a.Contexts) == 0 {
+		return []map[string]interface{}{}
+	}
+	out := make([]map[string]interface{}, 0, len(a.Contexts))
+	for _, ct := range a.Contexts {
+		item := map[string]interface{}{
+			"type":             ct.Type,
+			"org_id":           ct.OrgID,
+			"org_name":         ct.OrgName,
+			"role":             ct.Role,
+			"functional_roles": ct.FunctionalRoles,
+			"label":            ct.Label,
+		}
+		if ct.Type == "customer" || ct.OrgID == "" {
+			if label, _ := item["label"].(string); label == "" {
+				item["label"] = "顾客"
+			}
+			out = append(out, item)
+			continue
+		}
+		merchantName, siteName := merchantAndSiteName2455(db, ct.OrgID, a.TenantID)
+		label := wxIdentityLabel2455(merchantName, siteName, ct.OrgName)
+		if label == "" {
+			label = ct.OrgID
+		}
+		item["merchant_name"] = merchantName
+		item["site_name"] = siteName
+		if ct.OrgName == "" {
+			// Keep org_name populated for the UI even on older IAM builds.
+			item["org_name"] = siteName
+		}
+		item["label"] = label
+		out = append(out, item)
+	}
+	return out
 }
 
 // wxAuthErrorMessage maps an IAM wx-auth API error to a user-friendly message.

@@ -279,6 +279,12 @@ H5 未捕获 JS 错误（`window.onerror` / `unhandledrejection`）上报，仅�
 - `openid` 始终返回真实 openid（`accounts=[]` 时也可用于首次绑定）；`exchange_token` 为单次使用，供 `wx-login-select` / `wx-bind` 消费
 - 0 账户 → 前端进入注册；1 账户 → 可直接登录；≥2 → 进入 `/account-select`
 - **顾客上下文派生（B1）**：非组织上下文——当用户持有 `customer` 职能角色（附着于其根组织 `member` 关系）时输出 `{type:"customer", label:"顾客"}`；签发时 tid 保持空
+- **身份上下文可辨识（#2455）**：tuneloop 在透传 IAM 的 `contexts[]` 基础上补齐展示字段（IAM 只给 `org_id`/`org_name`）
+  - `merchant_name`：该网点所属商户名（`merchants.name`，按 `sites.tenant_id` 解析）
+  - `site_name`：该网点本地名（`sites.name`，仍是 IAM 组织名的镜像，#2457）
+  - `org_name`：IAM 组织名（原样保留）
+  - `label`：**唯一展示口径** = `商户名 · 网点名`（商户名缺失用 `org_name`，两者都缺失回退 `org_id`）——跨商户同名网点据此区分
+  - 无 `contexts` 的 legacy 账户同样返回 account 级 `merchant_name`/`site_name`/`label`，前端不得自行拼接 `sites.name`
 - **PC 扫码绑定（#2409/#2410）**：Bind 页从本接口读取 `openid` 与 `exchange_token`；`POST /api/wechat-bind/confirm` 以 `exchange_token` 为**唯一绑定权威**（`wx_openid` 仅兼容展示，不转发给 IAM）。
 - **扫码冲突合并（#2445）**：`needs_merge` 时 IAM 同时返回一次性 `merge_ticket`；Bind 页可凭该 ticket 直接完成 X（管理员预建账户）→ Y（微信已绑个人账户）合并，无需 X 的用户名/密码。
 
@@ -1015,6 +1021,13 @@ GET /api/confirmation-sessions/:id
 > **注（#2266）**: 网点归属锚 = **目标商户 org**（`sites.tenant_id = merchants.org_id`），IAM 新组织父级同为此 org。
 > - 商户管理员：可省略 `merchant_id`，服务端按操作者解析本商户；若传入他人商户 → **403**。
 > - 平台管理员代建：**必须**传 `merchant_id`（可用 `GET /api/merchants` 列表），否则 **40301**；`merchant_id` 无效/商户 `org_id` 为空 → **40002**。
+>
+> **注（#2455）—— 同商户网点名唯一**：同一 `tenant_id`（= 商户 org）下网点名不可重复（`lower(name)` 归一，排除软删除；DB 唯一部分索引 `uq_sites_tenant_name`）。
+> - 重名判定在 **IAM `CreateOrganization` 之前**完成：命中 → `409/40900`（`同商户已存在同名网点`），**不创建 IAM 组织**（避免孤儿组织）。
+> - `name` 按 `TrimSpace` 归一后再做重名判定与写入（`" 卡丹萨乐器 "` 与 `卡丹萨乐器` 视为同名）；空白名 → `400/40002`。
+> - 并发竞态（预检通过后他人先写入）由唯一索引兜底，数据库 `23505` 映射为 `409/40900`（不返回 500）。
+> - **不同商户允许同名**（`tenant_id` 不同）；UI 靠「商户名 · 网点名」区分（见 wx-accounts `contexts[].label`）。
+> - 存量同商户重名：迁移 `20261123002` fail-fast 并列出 tenant/name/ids；只读清单 `bash scripts/site-name-duplicates.sh --report`（无写路径，改名由 Owner 授权后交运维执行）。
 >
 > **注**: `transit_site_id` 为受控商户（`merchant_type=controlled`）创建网点时的必填项。可选的中转网点通过 `GET /api/public/sites?type=transit` 获取（返回含 `address`）。
 

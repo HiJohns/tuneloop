@@ -37,6 +37,8 @@ export default function AccountSelect() {
 
   // #2027 S1 (B1): flatten to loginable contexts (org + customer). Legacy IAM
   // responses without contexts fall back to one context per account.
+  // #2455 R7：label 一律由服务端组合（「商户名 · 网点名」），前端不再自拼 sites.name，
+  // 否则跨商户同名网点在选择页无法区分。
   const contextItems = []
   accounts.forEach(a => {
     if (Array.isArray(a.contexts) && a.contexts.length > 0) {
@@ -46,7 +48,7 @@ export default function AccountSelect() {
         user_id: a.user_id,
         context: ct.type === 'customer' ? 'customer' : ct.org_id,
         type: ct.type,
-        label: ct.label || (ct.type === 'customer' ? '顾客' : ct.org_name),
+        label: ct.label || (ct.type === 'customer' ? '顾客' : ([ct.merchant_name, ct.site_name || ct.org_name].filter(Boolean).join(' · ') || a.name || '员工账户')),
         account: a,
       }))
     } else {
@@ -55,7 +57,7 @@ export default function AccountSelect() {
         user_id: a.user_id,
         context: a.is_customer ? 'customer' : (a.org_id || ''),
         type: a.is_customer ? 'customer' : 'org',
-        label: a.is_customer ? '顾客' : ([a.merchant_name, a.site_name].filter(Boolean).join('-') || a.nickname || a.name || '员工账户'),
+        label: a.is_customer ? '顾客' : (a.label || ([a.merchant_name, a.site_name].filter(Boolean).join(' · ') || a.nickname || a.name || '员工账户')),
         account: a,
       })
     }
