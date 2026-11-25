@@ -435,3 +435,4 @@
 - 2026-11-24: 批量处理完成，包含任务: Resolved Issues: #2475（审计 PASS，含 Ops #2481；另 #2480 退回 analysis 待 Architect 补计划、#2459 rejected 待返工）
 - 2026-11-25: 批量处理完成，包含任务: Resolved Issues: #2484 #2483 #2478（审计 PASS；Ops #2491 #2492 #2494）。待返工：#2480（R7 证据键与计划断言相反）、#2482（已发 Verification Request 待重跑）；新立项 #2490 #2493 + beaconiam#504
 - 2026-11-25: 批量处理完成，包含任务: Resolved Issues: #2482 (改主角色保留其它角色；#2485 已 REJECT 待返工)
+- 2026-11-25: 批量处理完成，包含任务: Resolved Issues: #2480
