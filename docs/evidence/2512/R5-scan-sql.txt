@@ -1,4 +1,4 @@
-# build=1.0.c8a2c5d4 # commit=c8a2c5d4f52b577ba72602aa9a11357c41ec3b57 # dirty=false
+# build=1.0.7013596d # commit=7013596d2496b751ad6345220f71db8d8e1a4088 # dirty=false
 SCAN_FILE=backend/handlers/user_rental.go
 SITE_ID_AS_ORG=0
 CURRENT_SITE_AS_ORG=0

@@ -10,9 +10,13 @@
 - `backend/handlers/user_rental_2512_test.go`（新增，262 行）：夹具 `sites.id ≠ sites.org_id`（#2508/#2510 口径）、游客上下文 = `ContextKeyUserID` 有值且 `TenantID`/`OrgID` 为空、用户经 `testutil.SeedVerifiedCustomer` 满足实名前置。
   - `TestCreateOrder2512_GuestOrgFromSite`（R1）、`TestCreateOrder2512_GuestOrgFromCurrentSite`（R2）、`TestCreateOrder2512_UnresolvableRejected`（R3）、`TestBatchCreateOrder2512_GuestOrgFromSiteAndReject`（R4）。
 - `docs/spec/api/api.md` §6.2 / §6.3（Core Update）：补 `org_id` 派生顺序（`instruments.org_id` → `sites.org_id` 反查）、**禁止**写入 `sites.id`、不可解析 → `400 / 40002`；批量注明「全部可解析才落库，零落库」。
-- `scripts/verify-2512.sh`（新增，214 行）：`r1`–`r6` + `gate`；每行首行写 PROVENANCE（`build`/`commit`/`dirty` 由 `git rev-parse` 派生），`gate` 供 `--full-gate-cmd` 使用。
+- `scripts/verify-2512.sh`（新增）：`r1`–`r6` + `gate`；每行首行写 PROVENANCE（`build`/`commit`/`dirty` 由 `git rev-parse` 派生），`gate` 供 `--full-gate-cmd` 使用。**脚本自身不申请 heavy-lock**（`#2512 Run aborted` 审计项：pre-ready 的 `--affected-cmd` 已由 `heavy-run.sh` 包锁、`gate-run.sh` 已持 host lock，内层再申请会等待同一把锁自死锁）；需要锁时由调用方在外层包裹。
 
-Commit：`c8a2c5d4f`（fix，含 plan 快照与证据 harness）。
+Commit：
+
+- `c8a2c5d4f` — 产品修复 + 测试 + API 文档 + 证据 harness（fix）
+- `25fc361c1` — 移除 harness 内层 heavy-lock + `NESTED_LOCK_REFS` 防漂移断言（fix，本轮审计项）
+- `301ba047b` / `7013596d2` — 产物持久化 `SITE_ORG` 与关键键值，使契约断言可直接核对（test/fix）
 
 ### 验证层级（Issue #70）
 
@@ -21,18 +25,30 @@ Commit：`c8a2c5d4f`（fix，含 plan 快照与证据 harness）。
   - 定向回归：`go test ./handlers -run 'CreateOrder|BatchCreateOrder' -count=1` → `REG_RC=0`。
   - 构建：`cd backend && go build ./...` → `BUILD_RC=0`。
   - 父任务 #2509 / 批次全量 `go test ./...` 由父批次 gate 承担（本单未重复执行）。
-- 证据在 fix commit `c8a2c5d4f` 之后整体重新生成：R1–R6 首行均为 `# build=1.0.c8a2c5d4 # commit=c8a2c5d4f52b577ba72602aa9a11357c41ec3b57 # dirty=false`。
+- 证据在本轮 fix commit `7013596d2` 之后整体重新生成：R1–R6 首行均为 `# build=1.0.7013596d # commit=7013596d2496b751ad6345220f71db8d8e1a4088 # dirty=false`。
 
 ### Remote
 
-- remote: origin/issue-2512; fix=c8a2c5d4f pushed=yes; evidence pushed=yes（见本评论发布时的 push 回执）
+- remote: `origin/issue-2512`；fix 与证据提交均已 push（push 于 gate 之前完成；P13 校验 `origin/issue-2512` 可达）。
+
+### 本轮 fixreview（审计项：`verify-2512.sh r6` 嵌套 heavy-lock 自等待）
+
+- 审计意见（`## Run aborted — verify-2512.sh r6 嵌套 heavy-lock 自等待`）修复要求：内层不得再调用 `heavy-lock.sh`（外层 pre-ready/gate 已持锁），直接执行命令。
+- 修复：`scripts/verify-2512.sh` 删除 `run_heavy`/`HEAVY_RUN`，`r6` 与 `gate` 直接执行 `go build`/`go test`；文件头写锁纪律（调用方负责锁，附 `heavy-run.sh -- bash scripts/verify-2512.sh r6` 示例）。
+- 红绿实证（基础设施类缺陷，先有能失败的断言）：
+  - 红：`git show c8a2c5d4f:scripts/verify-2512.sh | grep -vE '^[[:space:]]*#' | grep -cE 'run_[h]eavy|heavy-[l]ock\.sh|heavy-[r]un\.sh'` → `6`（旧 harness 内层会自动申请锁）→ `NESTED_LOCK_REFS=6` → R6 FAIL；
+  - 绿：同一命令对修复后脚本 → `0` → `NESTED_LOCK_REFS=0`，R6 PASS；
+  - 端到端：`--affected-cmd "bash scripts/verify-2512.sh r6"` 在 pre-ready 持锁状态下执行完成（修复前即审计报告中的外层持锁 31 分钟 + 内层 `flock -w 3600` 自等待）。
+- 附带：证据 artifact 原本只写布尔键，契约断言（`grep -q 'ORDER_ORG=aOrg'`，`aOrg` = 夹具 `sites.org_id` 的 uuid 占位名）无法被核对；现 R1/R2/R4 产物额外持久化 `ORDER_ORG`/`SITE_ORG`/`SITE_ID_IS`/`BATCH_ORG`，`ORDER_ORG == SITE_ORG != SITE_ID_IS` 可直接目视核对。
+- 另记：计划 R7 的 `assert` 写 `jq -e '.result == "PASS"'`，而 `pre-ready-check.sh` 报告的实际键为 `overall`（`{"overall":"PASS",...}`）。本轮按 `assert` 文本与计划逐字一致（P12 合同要求）如实登记，实测以 `.overall == "PASS"` 为准，不修改计划/验收。
 
 ### 红绿实证
 
 - 红（缺陷版语义）：修前 `effectiveOrgID = instrument.SiteID.String()` / `CurrentSiteID.String()` 直接把 `sites.id` 写入 `orders.org_id`。R1 用例显式打印 `OLD_FALLBACK_IS_SITE_ID=1`（旧回退值 `aID ≠ aOrg`）、`RED_CONFIRMED=1`（旧值 ≠ 实际落库值）——即缺陷版落库值为站点 ID。
   - 反向验证：若实现回退到旧逻辑（写 `sites.id`），`require.Equal(f.orgA, order.OrgID)` 与 `require.NotEqual(f.siteA, order.OrgID)` 立即失败 → `ORDER_ORG_MATCHES_SITE_ORG=0`、`R1_FAIL` 且非 0 退出；R2 同理（`bID` vs `bOrg`）。
-- 绿（修复版）：`ORDER_ORG_MATCHES_SITE_ORG=1`（R1）、`RESOLVED_FROM_CURRENT_SITE=1`（R2）、`STATUS=400/CODE=40002/ORDERS_AFTER=0`（R3）、`BATCH_ORGS_UNIQUE=1/BATCH_ORDERS_AFTER=0`（R4）、`SITE_ID_AS_ORG=0/CURRENT_SITE_AS_ORG=0/RESOLVER_CALLS=2`（R5）、`BUILD_RC=0/REG_RC=0`（R6）。
+- 绿（修复版）：`ORDER_ORG_MATCHES_SITE_ORG=1`（R1，产物内 `ORDER_ORG == SITE_ORG != SITE_ID_IS`）、`RESOLVED_FROM_CURRENT_SITE=1`（R2）、`STATUS=400/CODE=40002/ORDERS_AFTER=0`（R3）、`BATCH_ORGS_UNIQUE=1/BATCH_ORDERS_AFTER=0`（R4，产物内 `BATCH_ORG == SITE_ORG`）、`SITE_ID_AS_ORG=0/CURRENT_SITE_AS_ORG=0/RESOLVER_CALLS=2`（R5）、`BUILD_RC=0/REG_RC=0/NESTED_LOCK_REFS=0`（R6）。
 - 假阴性反例（已在矩阵登记）：落库等于 `sites.id`、全空仍下单成功、批量部分落库、残留站点 ID 兜底 → 对应行 FAIL 并非 0 退出。
+- 基础设施红绿（本轮审计项）：旧 harness 非注释行含 6 处锁调用 → `NESTED_LOCK_REFS=6` → R6 FAIL；修复后 0 → PASS。红证据 = 审计报告的 Run aborted 现场（外层持锁 31m、内层等同一把锁）。
 
 ### Accepted Plan 对照（8/8 变更点，n/n）
 
@@ -47,7 +63,7 @@ Commit：`c8a2c5d4f`（fix，含 plan 快照与证据 harness）。
 
 ### Pre-ready gate
 
-- 命令（R7）：
+- 命令（R7，与计划 Evidence Contract 逐字一致）：
 
   ```
   ~/.config/opencode/scripts/pre-ready-check.sh 2512 \
@@ -56,13 +72,13 @@ Commit：`c8a2c5d4f`（fix，含 plan 快照与证据 harness）。
     --evidence-file docs/evidence/2512/evidence.json \
     --affected-cmd "bash scripts/verify-2512.sh r6" \
     --full-gate-cmd "bash scripts/verify-2512.sh gate" \
-    --fix-commit c8a2c5d4f \
     --report docs/evidence/2512/pre-ready-2512.json
   ```
 
-- 报告：`docs/evidence/2512/pre-ready-2512.json`（`overall=PASS`、零 FAIL）。
-- 关键输出：P2（矩阵 7 行全 PASS）、P3（证据路径均存在）、P6（改动文件均在计划 Files 内）、P7（契约三向核对）、P12（Evidence Contract 7 行完整）、P13（fix 与证据在 `origin/issue-2512`）、P14、P17、P18 全 PASS。
-- 子任务只跑受影响包：`--affected-cmd "bash scripts/verify-2512.sh r6"`（构建 + `CreateOrder|BatchCreateOrder` 定向回归）；`--full-gate-cmd` 为同一 harness 的 `gate`（`go build ./...` + `go test ./handlers -timeout 30m`，30m ≥ 实测），未在子任务内重复父批次全量。
+- 报告：`docs/evidence/2512/pre-ready-2512.json`（`"overall": "PASS"`，零 FAIL；见该报告的 `checks[]`）。
+- 关键输出：P2（矩阵 7 行全 PASS）、P3（证据路径均存在且非 tmp-only）、P6（4 个改动文件均在计划 Files 内）、P7（契约三向核对）、P12（Evidence Contract 7 行与计划逐字一致、每行 `pass=true`、artifact 存在）、P13（fix `7013596d2` 与证据提交在 `origin/issue-2512`）、P14（artifact provenance 与 bundle 一致）、P17（plan 快照与 Accepted Plan 一致）、P18（tooling_commit）。
+- 子任务只跑受影响包：`--affected-cmd "bash scripts/verify-2512.sh r6"`（构建 + `CreateOrder|BatchCreateOrder` 定向回归，内层不再申请锁）；`--full-gate-cmd` 为同一 harness 的 `gate`（`go build ./...` + `go test ./handlers -timeout 30m`，30m ≥ 实测）；按子任务口径 P5 = N/A，父批次全量由 #2509 承担。
+- 首次运行因 R7 自身 artifact（gate 报告）尚不存在而 P12 FAIL（报告仍被写出）；随后同一命令复跑通过——这是「报告即验收产物」的既有语义，非代码缺陷。
 
 ### Evidence Contract（7/7 PASS）
 
@@ -71,9 +87,9 @@ Commit：`c8a2c5d4f`（fix，含 plan 快照与证据 harness）。
 - R3 → PASS → `docs/evidence/2512/R3-reject.txt`（`STATUS=400`、`CODE=40002`、`ORDERS_AFTER=0`）
 - R4 → PASS → `docs/evidence/2512/R4-batch.txt`（`BATCH_ORGS_UNIQUE=1`、`REJECT_STATUS=400`、`BATCH_ORDERS_AFTER=0`）
 - R5 → PASS → `docs/evidence/2512/R5-scan-sql.txt`（`SITE_ID_AS_ORG=0`、`CURRENT_SITE_AS_ORG=0`、`RESOLVER_CALLS=2`、`SQL_PRESENT=1`）
-- R6 → PASS → `docs/evidence/2512/R6-build-regression.txt`（`BUILD_RC=0`、`REG_RC=0`）
+- R6 → PASS → `docs/evidence/2512/R6-build-regression.txt`（`BUILD_RC=0`、`REG_RC=0`、`NESTED_LOCK_REFS=0`）
 - R7 → PASS → `docs/evidence/2512/pre-ready-2512.json`
-- 账本：`docs/evidence/2512/evidence.json`（schema v1，build=`1.0.c8a2c5d4`、dirty=false、plan_sha256=`9e7ca42277b7…`）。
+- 账本：`docs/evidence/2512/evidence.json`（schema v1，build=`1.0.7013596d`、commit=`7013596d2496b751ad6345220f71db8d8e1a4088`、dirty=false、plan_sha256=`9e7ca42277b7…`）。
 
 ### G0 Golden Acceptance
 
@@ -82,7 +98,7 @@ Commit：`c8a2c5d4f`（fix，含 plan 快照与证据 harness）。
 - R3：fixture 乐器三者全空；入口同上；断言 `STATUS=400`、`CODE=40002`、`ORDERS_AFTER=0`（负例 201 且落库 → FAIL）。
 - R4：批量两件（`site_id=aID`）→ `BATCH_ORG=aOrg`、`BATCH_ORGS_UNIQUE=1`；另一批含不可解析件 → `400/40002` 且 `BATCH_ORDERS_AFTER=0`。
 - R5：`user_rental.go` 静态扫描 `SITE_ID_AS_ORG=0`、`CURRENT_SITE_AS_ORG=0`、`RESOLVER_CALLS=2`；只读 SQL 文本存在（`SQL_PRESENT=1`，未执行）。
-- R6：`go build ./...` = 0、`CreateOrder|BatchCreateOrder` 定向回归 = 0。
+- R6：`go build ./...` = 0、`CreateOrder|BatchCreateOrder` 定向回归 = 0、`NESTED_LOCK_REFS=0`（harness 内无锁调用）。
 - R7：gate `overall=PASS`、零 FAIL、`dirty=false`、P13 在 `origin/issue-2512`。
 
 ### Verification Matrix n/n

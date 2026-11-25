@@ -1,4 +1,4 @@
-# build=1.0.c8a2c5d4 # commit=c8a2c5d4f52b577ba72602aa9a11357c41ec3b57 # dirty=false
+# build=1.0.7013596d # commit=7013596d2496b751ad6345220f71db8d8e1a4088 # dirty=false
 TEST_CMD=cd backend && go test ./handlers -run '^TestBatchCreateOrder2512_GuestOrgFromSiteAndReject$' -count=1 -v
 TEST_EXIT=0
 SENTINEL_R4_OK=1
@@ -10,7 +10,11 @@ BATCH_ORDERS_AFTER=0
 --- go test tail ---
 --- PASS: TestBatchCreateOrder2512_GuestOrgFromSiteAndReject (1.55s)
 PASS
-ok  	tuneloop-backend/handlers	2.682s
+ok  	tuneloop-backend/handlers	3.117s
+--- go test kv ---
+user_rental_2512_test.go:240: BATCH_ORG=61561917-8b98-449b-8017-75b099abf420
+user_rental_2512_test.go:241: SITE_ORG=61561917-8b98-449b-8017-75b099abf420
+user_rental_2512_test.go:259: BATCH_ORDERS_AFTER=0
 R4_OK
 RESULT: PASS
 

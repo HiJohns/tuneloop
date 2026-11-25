@@ -1,17 +1,13 @@
-# build=1.0.c8a2c5d4 # commit=c8a2c5d4f52b577ba72602aa9a11357c41ec3b57 # dirty=false
+# build=1.0.7013596d # commit=7013596d2496b751ad6345220f71db8d8e1a4088 # dirty=false
 BUILD_CMD=cd backend && go build ./...
 BUILD_RC=0
 REG_CMD=cd backend && go test ./handlers -run 'CreateOrder|BatchCreateOrder' -count=1
 REG_RC=0
+NESTED_LOCK_REFS=0
 --- build tail ---
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed at_ms=1795641220775 wait_ms=196
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed wait_ms=196
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795641231425 hold_ms=10650
+
 --- regression tail ---
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed at_ms=1795641231772 wait_ms=225
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed wait_ms=225
-ok  	tuneloop-backend/handlers	17.429s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795641253764 hold_ms=21992
+ok  	tuneloop-backend/handlers	16.811s
 R6_OK
 RESULT: PASS
 

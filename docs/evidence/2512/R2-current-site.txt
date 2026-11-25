@@ -1,13 +1,16 @@
-# build=1.0.c8a2c5d4 # commit=c8a2c5d4f52b577ba72602aa9a11357c41ec3b57 # dirty=false
+# build=1.0.7013596d # commit=7013596d2496b751ad6345220f71db8d8e1a4088 # dirty=false
 TEST_CMD=cd backend && go test ./handlers -run '^TestCreateOrder2512_GuestOrgFromCurrentSite$' -count=1 -v
 TEST_EXIT=0
 SENTINEL_R2_OK=1
 RESOLVED_FROM_CURRENT_SITE=1
 ORDER_ORG_MATCHES_CURRENT_SITE_ORG=1
 --- go test tail ---
---- PASS: TestCreateOrder2512_GuestOrgFromCurrentSite (1.47s)
+--- PASS: TestCreateOrder2512_GuestOrgFromCurrentSite (1.57s)
 PASS
-ok  	tuneloop-backend/handlers	2.462s
+ok  	tuneloop-backend/handlers	2.621s
+--- go test kv ---
+user_rental_2512_test.go:183: ORDER_ORG=e57a6859-a3d1-4f13-9431-e991f63805a5
+user_rental_2512_test.go:184: SITE_ORG=e57a6859-a3d1-4f13-9431-e991f63805a5
 R2_OK
 RESULT: PASS
 
