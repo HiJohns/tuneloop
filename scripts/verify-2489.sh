@@ -143,7 +143,7 @@ scan_metrics() {
   defer=$(printf '%s\n' "$rows" | grep -c $'tier=defer:tier2' || true)
   residual=$(printf '%s\n' "$rows" | grep -c $'tier=residual:business-toast' || true)
   unclassified=$((total - keep - persisted - defer - residual))
-  printf 'SCAN_ROWS=%s\nKEEP_ROWS=%s\nCONVERTED_ROWS=%s\nDEFER_ROWS=%s\nBUSINESS_TOAST_RESIDUAL=%s\nUNCLASSIFIED=%s\n' \
+  printf 'SCAN_ROWS=%s\nKEEP_ROWS=%s\nBUSINESS_FALLBACK_ROWS=%s\nDEFER_ROWS=%s\nBUSINESS_TOAST_RESIDUAL=%s\nUNCLASSIFIED=%s\n' \
     "${total:-0}" "${keep:-0}" "${persisted:-0}" "${defer:-0}" "${residual:-0}" "${unclassified:-0}"
 }
 
@@ -173,23 +173,31 @@ case "$MODE" in
     ;;
 
   r2)
-    CONVERTED=0; CODE_FIRST=1
+    CONVERTED=0; CODE_FIRST=1; PAGES_WITH_CONVERSION=0
     for rel in "${TARGETS[@]}"; do
       file="$SRC_DIR/$rel"
-      c=$(grep -c 'setFormConflict(conflictText(' "$file" 2>/dev/null || true)
+      # 转换点 = 任意 <set*Conflict>(conflictText(...)) 持久提示写入（各页 setter 命名不同，
+      # 不要固定 setFormConflict，否则会漏计 TransitCenter / MembershipLevelsPage）。
+      c=$(grep -oE 'set[A-Za-z0-9_]*Conflict\([[:space:]]*conflictText\(' "$file" 2>/dev/null | wc -l | tr -d ' ')
       c=${c:-0}
-      has_pred=0; has_set=0
+      has_pred=0; has_alert=0
       grep -q 'isBusinessCorrectableConflict(' "$file" && has_pred=1
-      grep -q 'setFormConflict(' "$file" && has_set=1
-      if [ "$c" -gt 0 ]; then
-        [ "$has_pred" = "1" ] && [ "$has_set" = "1" ] || CODE_FIRST=0
+      grep -q '<FormConflictAlert' "$file" && has_alert=1
+      page_code_first=0
+      if [ "$c" -gt 0 ] && [ "$has_pred" = "1" ] && [ "$has_alert" = "1" ]; then
+        page_code_first=1
+        PAGES_WITH_CONVERSION=$((PAGES_WITH_CONVERSION + 1))
       fi
+      [ "$page_code_first" = "1" ] || CODE_FIRST=0
       CONVERTED=$((CONVERTED + c))
-      emit "PAGE=$rel converted=$c code_first=$(( has_pred == 1 && has_set == 1 ? 1 : 0 ))"
+      emit "PAGE=$rel converted=$c code_first=$page_code_first"
     done
     emit "CONVERTED_ROWS=$CONVERTED"
     emit "CODE_FIRST=$CODE_FIRST"
+    emit "PAGES_WITH_CONVERSION=$PAGES_WITH_CONVERSION"
+    emit "PAGES_TOTAL=${#TARGETS[@]}"
     [ "$CONVERTED" -ge 1 ] || { echo "ASSERT_FAIL: CONVERTED_ROWS<1" >&2; RC=1; }
+    [ "$PAGES_WITH_CONVERSION" -eq "${#TARGETS[@]}" ] || { echo "ASSERT_FAIL: PAGES_WITH_CONVERSION!=${#TARGETS[@]}" >&2; RC=1; }
     [ "$CODE_FIRST" = "1" ] || { echo "ASSERT_FAIL: CODE_FIRST!=1" >&2; RC=1; }
     finish R2-converted.txt || RC=1
     ;;
