@@ -286,10 +286,13 @@ r6)
 r7)
     # #2480 证据脚本回归（审计 Bug 1）：其 4 个旧 token 已随本单翻转，必须全绿
     v1=0; v2=0; v3=0; v4=0
-    bash "$V2480" r1 > "$REPO_ROOT/tmp/verify-2504-v2480-r1.log" 2>&1 && v1=1
-    bash "$V2480" r2 > "$REPO_ROOT/tmp/verify-2504-v2480-r2.log" 2>&1 && v2=1
-    bash "$V2480" r3 > "$REPO_ROOT/tmp/verify-2504-v2480-r3.log" 2>&1 && v3=1
-    bash "$V2480" r4 > "$REPO_ROOT/tmp/verify-2504-v2480-r4.log" 2>&1 && v4=1
+    # #2480 的产物写到 tmp，避免污染 docs/evidence/2480（那会让后续行的 dirty 变 true）
+    V2480_OUT="$REPO_ROOT/tmp/verify-2504-v2480-out"
+    mkdir -p "$V2480_OUT"
+    OUT_DIR="$V2480_OUT" bash "$V2480" r1 > "$REPO_ROOT/tmp/verify-2504-v2480-r1.log" 2>&1 && v1=1
+    OUT_DIR="$V2480_OUT" bash "$V2480" r2 > "$REPO_ROOT/tmp/verify-2504-v2480-r2.log" 2>&1 && v2=1
+    OUT_DIR="$V2480_OUT" bash "$V2480" r3 > "$REPO_ROOT/tmp/verify-2504-v2480-r3.log" 2>&1 && v3=1
+    OUT_DIR="$V2480_OUT" bash "$V2480" r4 > "$REPO_ROOT/tmp/verify-2504-v2480-r4.log" 2>&1 && v4=1
     body="V2480_R1=$([ "$v1" = "1" ] && echo 0 || echo 1)"$'\n'
     body+="V2480_R2=$([ "$v2" = "1" ] && echo 0 || echo 1)"$'\n'
     body+="V2480_R3=$([ "$v3" = "1" ] && echo 0 || echo 1)"$'\n'
