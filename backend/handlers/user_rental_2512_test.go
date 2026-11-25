@@ -238,6 +238,7 @@ func TestBatchCreateOrder2512_GuestOrgFromSiteAndReject(t *testing.T) {
 		require.NotEqual(t, f.siteA, order.OrgID)
 	}
 	t.Logf("BATCH_ORG=%s", f.orgA)
+	t.Logf("SITE_ORG=%s", f.orgA)
 	t.Logf("BATCH_ORGS_UNIQUE=%d", int2512(len(orgs) == 1))
 	t.Logf("BATCH_ORG_MATCHES_SITE_ORG=%d", int2512(len(orgs) == 1))
 
