@@ -3,6 +3,7 @@ import Taro from '@tarojs/taro'
 import { useNavigate } from 'react-router-dom'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken, notificationApi , resolveErrorMessage } from '../services/api'
+import { identityBadgeText } from '../utils/identity'
 import { env, storage, session, toWeappRoute, getInputValue, eventBus, useDidShow } from '../platform'
 import { getAppConfig } from '../platform/init'
 import { isStaffRole } from '../utils/role'
@@ -329,6 +330,11 @@ export default function Profile() {
                   <Text className="text-sm text-zinc-500">{user?.phone || '未绑定手机'}</Text>
                 )}
               </View>
+              {isStaff && (
+                <Text className="text-xs text-zinc-400 mt-1">
+                  {identityBadgeText({ tenantName: user?.tenant_name, siteName: user?.site_name, roles: myRoles, isStaff })}
+                </Text>
+              )}
               {user?.membership_level_id && (
                 <Text className="text-xs text-amber-700 mt-0.5">
                   {user.membership_level_name || `Level ${user.membership_level_id}`}

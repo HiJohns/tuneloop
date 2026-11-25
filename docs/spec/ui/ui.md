@@ -673,6 +673,14 @@ setInterval(() => {
 **路由**: `/profile`
 **组件**: `frontend-mobile/src/pages/Profile.jsx`
 
+#### 头部身份徽标（#2502）
+
+- **员工上下文**：姓名下一行显示 `{商户名} · {网点名} · {职位}`（分隔符固定为 ` · `）。
+- **数据源**：`GET /users/me` 的 `tenant_name`（JWT `tid` → `merchants.name`，#2117）与 `site_name`（JWT `oid` → `sites.name`，#2449）；前端不得自拼组织查询。
+- **回退**：缺任一组织段 → 只显示另一项；两者都缺 → 只显示职位；**禁止**渲染 `undefined`/`null`，也禁止出现前导/尾随 ` · `。
+- **职位标签**：`site_admin` → 管理员、`site_member` → 员工、`repair_technician` → 维修师傅（多角色以 ` · ` 连接）；无匹配角色 → 员工；非员工 → 顾客。
+- **双端一致**：H5（`pages/Profile.jsx`）与 weapp（`pages-weapp/Profile.jsx`）同文案、同顺序，统一由 `frontend-mobile/src/utils/identity.js` 的 `identityBadgeText()` 产出（禁止页面各自拼口径）。weapp 多身份顾客的「顾客」徽标 H5 无（H5 无 `login_contexts`），登记为 `docs/cases/h5-weapp-differences.md` A23。
+
 #### 顾客视图
 
 当 `businessRole` 不是 `site_admin` 或 `site_member` 时显示：

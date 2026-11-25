@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Image, ScrollView, Input } from '@tarojs/components'
 import { apiFetch, getToken, notificationApi, resolveLogin , resolveErrorMessage } from '../services/api'
+import { identityBadgeText, roleBadgeTextFromRoles } from '../utils/identity'
 import { env, storage, session, eventBus, wxLogin, dialog } from '../platform'
 import { parseJWT } from '../platform/init'
 import BottomNav from '../components-weapp/BottomNav'
@@ -215,12 +216,9 @@ export default function Profile() {
   // isStaff 统一判定（#1639 / #1700）：对齐后端 GetBusinessRole——role == 'USER'
   // （含 oid/tid 非空的顾客）→ 顾客；仅非 USER 角色才视为员工
   const isStaff = !!claims.role && claims.role !== 'USER'
-  // #2117: 头部身份徽标角色标签——显示**全部**适用标签（与账户选择页口径一致：员工 · 维修师傅）
-  const roleBadges = isStaff
-    ? [['site_admin', '管理员'], ['site_member', '员工'], ['repair_technician', '维修师傅']]
-        .filter(([code]) => myRoles.includes(code)).map(([, label]) => label)
-    : ['顾客']
-  const roleBadgeText = roleBadges.length > 0 ? roleBadges.join(' · ') : '员工'
+  // #2117/#2502: 头部身份徽标角色标签——显示**全部**适用标签（与账户选择页口径一致：员工 · 维修师傅）。
+  // 统一由 utils/identity.js 收口，页面不再自拼口径。
+  const roleBadgeText = roleBadgeTextFromRoles(myRoles, isStaff)
   // #2089：金刚区角色判定（纯维修师 / 员工兼师傅）
   const isTech = myRoles.includes('repair_technician')
   const hasSiteRole = myRoles.some(r => ['site_admin', 'site_member'].includes(r))
@@ -423,7 +421,7 @@ export default function Profile() {
                     backgroundColor: isStaff ? '#e0e7ff' : '#f4f4f5',
                   }}>
                     {isStaff
-                      ? [[user?.site_name || user?.tenant_name], roleBadgeText].flat().filter(Boolean).join(' · ')
+                      ? identityBadgeText({ tenantName: user?.tenant_name, siteName: user?.site_name, roles: myRoles, isStaff })
                       : roleBadgeText}
                   </Text>
                 )}

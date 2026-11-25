@@ -536,6 +536,15 @@ HTTP 401。H5（`client_type=wx`）与小程序 `/api/auth/wx-login` 令牌没�
 - `needs_credentials=true`：`username` 为空或仍等于手机号（微信自助注册的自动形态）；
 - `needs_credentials=false`：用户已设置独立用户名。
 
+**GET 组织上下文字段（#2449 / #2117 / #2502）**：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `site_id` / `site_name` | string | 员工上下文按 JWT `oid` 解析 `sites.name`（#2449）；顾客上下文不返回 |
+| `tenant_name` | string | 员工上下文按 JWT `tid` 解析 `merchants.name`（#2117）；顾客上下文不返回 |
+
+移动端「我的」身份徽标据此渲染 `商户名 · 网点名 · 职位`（`docs/spec/ui/ui.md` §2.5a，#2502）；前端不得自行查询 `sites`/`merchants` 拼装组织名。
+
 **PUT**：当前用户修改本人资料。新增/明确的字段：
 
 | 字段 | 类型 | 说明 |
