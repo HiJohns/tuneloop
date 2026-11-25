@@ -4,7 +4,7 @@
   "plan": "tmp/plan-2490.md",
   "plan_sha256": "96b00219a606bffb6f103699eea7291fd73e64774c36a7547815d65bc0f6e04a",
   "summary": "tmp/work-summary-2490.md",
-  "timestamp": "20261125-023417",
+  "timestamp": "20261125-023737",
   "checks": [
     {
       "id": "P1",
@@ -54,7 +54,7 @@
     {
       "id": "P5",
       "status": "PASS",
-      "detail": "full gate clean worktree; HEAD failures are a subset of baseline (7369e361a); source head=cache(reused:non-input) baseline=run"
+      "detail": "full gate clean worktree; HEAD failures are a subset of baseline (7369e361a); source head=run baseline=cache"
     },
     {
       "id": "P6",
