@@ -1,0 +1,23 @@
+# build=1.0.c931502a0 # commit=c931502a0152238d6f5a70c4a0a310dda8410db0 # dirty=false
+# tree=c931502a0152238d6f5a70c4a0a310dda8410db0
+PC_BUILD_CMD=cd frontend-pc && npm run build
+computing gzip size...
+dist/index.html                     0.53 kB │ gzip:   0.34 kB
+dist/assets/index-B2wkjN-i.css     38.38 kB │ gzip:   7.13 kB
+dist/assets/index-CSNJmD7k.js   2,624.63 kB │ gzip: 807.59 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 46.59s
+PC_BUILD=0
+LINT_CMD=npx eslint frontend-pc/src/utils/formConflict.js frontend-pc/src/components/FormConflictAlert.jsx frontend-pc/src/pages/SiteManagement.jsx frontend-pc/src/pages/StaffManagement.jsx frontend-pc/tests/formConflict.test.mjs
+  83:6  warning  React Hook useEffect has a missing dependency: 'fetchStaffList'. Either include it or remove the dependency array                                                                                                                            react-hooks/exhaustive-deps
+  86:5  warning  'fetchStaffList' was used before it was defined                                                                                                                                                                                              no-use-before-define
+  87:6  warning  React Hook useEffect has a missing dependency: 'fetchStaffList'. Either include it or remove the dependency array. Mutable values like 'pagination.current' aren't valid dependencies because mutating them doesn't re-render the component  react-hooks/exhaustive-deps
+
+✖ 24 problems (0 errors, 24 warnings)
+
+LINT_EXIT=0
+BUILD_LINT_OK

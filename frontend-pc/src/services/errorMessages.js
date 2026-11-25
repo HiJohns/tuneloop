@@ -1,6 +1,10 @@
 // 后端错误消息统一解析器（#1675）
 // 后端 message 是机器可读稳定标识（英文），前端在此集中翻译为用户友好中文。
-// 三层回退：L1 message 精确匹配 → L2 code 家族映射 → L3 调用点 fallback。
+// #2480：后端也可能给出面向用户的中文文案（如「网点名称已存在」），此时必须原样透传，
+// 不能被 code 家族通用文案（40900「数据冲突，请刷新后重试」）遮蔽。
+// 解析顺序（唯一出口 resolveErrorMessage）：
+//   L1 ERROR_MESSAGE_MAP 精确英文键 → L2 可读中文 message 透传 → L3 code 家族兜底 →
+//   L4 其它 message 透传 → L5 调用点 fallback。
 
 // L2: code 家族 → 通用中文（兜底）
 export const ERROR_CODE_MAP = {
@@ -86,16 +90,40 @@ export const ERROR_MESSAGE_MAP = {
   'delete instrument failed': '删除乐器失败，请重试',
 }
 
+// #2480：判定后端 message 是否为「面向用户的可读文案」。
+// 口径：字符串且含 CJK 统一表意文字（含扩展 A）。ASCII 串视为机器码，仍走 L1/L3 映射，
+// 避免把后端英文技术串（如 `failed to load site: ...`）直接抛给用户。
+const CJK_RE = /[\u3400-\u4dbf\u4e00-\u9fff]/
+
+export function isHumanReadableMessage(message) {
+  return typeof message === 'string' && CJK_RE.test(message)
+}
+
+function hasMessage(message) {
+  return typeof message === 'string' && message.trim() !== ''
+}
+
+// 解析核心（层序唯一 owner）；返回 { text, layer } 便于断言「哪一层胜出」。
+// layer ∈ message_map | human_message | code_map | raw_message | fallback
+export function resolveErrorCore(result, options = {}) {
+  const {
+    codeMap = ERROR_CODE_MAP,
+    messageMap = ERROR_MESSAGE_MAP,
+    fallback = '操作失败，请重试',
+  } = options
+  if (!result) return { text: fallback, layer: 'fallback' }
+  const { code, message } = result
+  if (hasMessage(message) && messageMap[message]) return { text: messageMap[message], layer: 'message_map' }
+  // #2480：可读中文文案优先于 code 家族通用文案（40900/40901 等）——
+  // #2290/#2104 曾把 4091x 排除出 map，本单把规则升级为「含 CJK 即优先透传」。
+  if (isHumanReadableMessage(message)) return { text: message, layer: 'human_message' }
+  if (code && codeMap[code]) return { text: codeMap[code], layer: 'code_map' }
+  // #2104：未知 code 且后端给出可执行 message 时透传，不再被通用 fallback 遮蔽。
+  if (hasMessage(message)) return { text: message, layer: 'raw_message' }
+  return { text: fallback, layer: 'fallback' }
+}
+
 // 解析器（唯一出口）
 export function resolveErrorMessage(result, fallback = '操作失败，请重试') {
-  if (!result) return fallback
-  const { code, message } = result
-  if (message && ERROR_MESSAGE_MAP[message]) return ERROR_MESSAGE_MAP[message]
-  if (code && ERROR_CODE_MAP[code]) return ERROR_CODE_MAP[code]
-  // #2290：4091x（IAM 用户名/手机号/邮箱冲突）依赖后端中文 message 透传，
-  // 禁止加入 ERROR_CODE_MAP —— code 映射会遮蔽具体字段值。
-  // #2104：未知 code 且后端给出可执行 message（如 40912「学生证作为第二证件需介绍信…」）
-  // 直接透传——不再被通用 fallback 遮蔽为「数据冲突，请刷新后重试」（#2100 教训）
-  if (message) return message
-  return fallback
+  return resolveErrorCore(result, { fallback }).text
 }
