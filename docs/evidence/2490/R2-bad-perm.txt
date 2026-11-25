@@ -1,5 +1,5 @@
-# build=1.0.389340f9d # commit=389340f9dc78ff83c7efbcc76fe7dc4d9b8481b3 # dirty=false
-# tree=389340f9dc78ff83c7efbcc76fe7dc4d9b8481b3
+# build=1.0.c0539fd00 # commit=c0539fd00ba769039194e174dfd49a70ad754303 # dirty=false
+# tree=c0539fd00ba769039194e174dfd49a70ad754303
 FIXTURE_1=u2|a@b|   FIXTURE_2=u3|a@b|abc
 --- empty cus_perm ---
 ============================================

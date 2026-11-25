@@ -1,12 +1,13 @@
 {
   "schema_version": 1,
   "issue": 2490,
-  "build": "1.0.389340f9d",
+  "build": "1.0.c0539fd00",
   "fix_commits": [
+    "c0539fd00ba769039194e174dfd49a70ad754303",
     "389340f9dc78ff83c7efbcc76fe7dc4d9b8481b3",
     "7369e361a716653c31c1801420bdd51a79a061e7"
   ],
-  "commit": "389340f9dc78ff83c7efbcc76fe7dc4d9b8481b3",
+  "commit": "c0539fd00ba769039194e174dfd49a70ad754303",
   "dirty": false,
   "plan_sha256": "96b00219a606bffb6f103699eea7291fd73e64774c36a7547815d65bc0f6e04a",
   "environment": "beaconwork worktree /home/coder/worktrees/tuneloop/wt-2490 (base origin/develop bdf2419cd); shell-only offline fixtures for scripts/migrate.sh --fixture; no network, no IAM, no DB access",
@@ -49,7 +50,7 @@
       "expected": "PASS",
       "negative": "exit 0 → FAIL",
       "exit": 0,
-      "actual": "PASS：2 列 fixture（u4|a@b）→ BAD_ROW=1、ROW_FIELDS=2、EXIT=3，未写库",
+      "actual": "PASS：2 列 fixture（u4|a@b）→ BAD_ROW=1、ROW_FIELDS=2、MIGRATE_INVALID=1、DB_WRITES=0、EXIT=3；空 uid（|a@b|196608）同样 BAD_ROW=1 + MIGRATE_INVALID=1 + EXIT=3，均未写库",
       "negative_result": "not present（2 列行 exit 3，未出现 exit 0）",
       "pass": true
     },
@@ -105,7 +106,7 @@
       "expected": "PASS",
       "negative": "语法错误 → FAIL",
       "exit": 0,
-      "actual": "PASS：SYNTAX_OK=1；SHELLCHECK_EXIT=NA（shellcheck 未安装）；信息行 SAME_PATH_SCAN=2（scripts/verify-2490.sh:139 R6 回放 + scripts/report-merchant-direct-role-drift-2462.sh:75 属 #2484，不参与 PASS/FAIL）",
+      "actual": "PASS：SYNTAX_OK=1；SHELLCHECK_EXIT=NA（shellcheck 未安装）；信息行 SAME_PATH_SCAN=1（仅 scripts/report-merchant-direct-role-drift-2462.sh:75，属 #2484 未合入，不参与 PASS/FAIL；R6 回放改用 printf 构造 tab，不计入解析点）",
       "negative_result": "not present（bash -n 通过，无语法错误）",
       "pass": true
     },

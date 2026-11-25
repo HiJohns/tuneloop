@@ -1,11 +1,10 @@
-# build=1.0.389340f9d # commit=389340f9dc78ff83c7efbcc76fe7dc4d9b8481b3 # dirty=false
-# tree=389340f9dc78ff83c7efbcc76fe7dc4d9b8481b3
+# build=1.0.c0539fd00 # commit=c0539fd00ba769039194e174dfd49a70ad754303 # dirty=false
+# tree=c0539fd00ba769039194e174dfd49a70ad754303
 CMD=bash -n scripts/migrate.sh
 SYNTAX_OK=1
 SHELLCHECK_EXIT=NA (shellcheck not installed)
-SAME_PATH_SCAN=2
+SAME_PATH_SCAN=1
 SAME_PATH_SCAN_HITS_BEGIN
-scripts/verify-2490.sh:139:      IFS=$'\t' read -r _ouid _oemail _operm <<< "$OLD_INPUT"
 scripts/report-merchant-direct-role-drift-2462.sh:75:while IFS=$'\t' read -r user_id mm_role users_role merchant_id has_site_member; do
 SAME_PATH_SCAN_HITS_END
-SAME_PATH_SCAN_NOTE=info only: report-merchant-direct-role-drift-2462.sh belongs to #2484 (fix 827f9d1dc not merged into develop); verify-2490.sh is the deliberate Tab-IFS replay proving the old defect (R6)
+SAME_PATH_SCAN_NOTE=info only: the remaining hit is report-merchant-direct-role-drift-2462.sh, which belongs to #2484 (fix 827f9d1dc not merged into develop); the R6 replay builds its tab via printf so it is not counted as a parsing site
