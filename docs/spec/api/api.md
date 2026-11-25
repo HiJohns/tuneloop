@@ -27,7 +27,7 @@
 }
 ```
 
-> **用户可见文案（#1675 / #2480 / #2504）**：后端 `message` 为机器可读标识（英文为主，**不得原样展示给用户**），前端统一由 `resolveErrorMessage` 解析（`frontend-mobile/src/services/errorMessages.js` / `frontend-pc/src/services/errorMessages.js`，层序 owner 为 `errorMessageResolution.mjs`）翻译为用户友好中文。五层回退：L1 `message_map` 精确匹配（高频错误，如 `order not found` → 「未找到订单」）→ L2 `human_message` 可读中文透传（含 CJK，优先于 code 家族，#2480）→ L3 `code_map` code 家族映射（如 40400 → 「未找到相关数据」、40303 → 「暂无权限访问该页面」）→ L4 `raw_message` 仅透传含 CJK 的兜底文案（#2504：ASCII 机器串不外溢）→ L5 调用点业务 fallback。完整错误码分类见 [`docs/archive/reports/backend_api_error_codes_report.md`](../../archive/reports/backend_api_error_codes_report.md)。新增后端错误消息时，如属用户可见高频错误，请同步补充 `ERROR_MESSAGE_MAP`；新增错误码请同时补 `ERROR_CODE_MAP`（PC + mobile，文案逐字一致）。
+> **用户可见文案（#1675 / #2480 / #2504）**：后端 `message` 为机器可读标识（英文为主，**不得原样展示给用户**），前端统一由 `resolveErrorMessage` 解析（`frontend-mobile/src/services/errorMessages.js` / `frontend-pc/src/services/errorMessages.js`，层序 owner 为 `errorMessageResolution.mjs`）翻译为用户友好中文。五层回退：L1 `message_map` 精确匹配（高频错误，如 `order not found` → 「未找到订单」）→ L2 `human_message` 可读中文透传（含 CJK，优先于 code 家族，#2480）→ L3 `code_map` code 家族映射（如 40400 → 「未找到相关数据」、40303 → 「暂无权限访问该页面」）→ L4 `raw_message`（**已不可达**：含 CJK 的文案在 L2 已返回，本层仅保留层名以兼容历史断言/日志；#2504 D8）→ L5 调用点业务 fallback（ASCII 机器串不外溢）。完整错误码分类见 [`docs/archive/reports/backend_api_error_codes_report.md`](../../archive/reports/backend_api_error_codes_report.md)。新增后端错误消息时，如属用户可见高频错误，请同步补充 `ERROR_MESSAGE_MAP`；新增错误码请同时补 `ERROR_CODE_MAP`（PC + mobile，文案逐字一致）。
 
 ### 1.4 时间戳契约（#1759）
 - 所有时间字段（`created_at` / `updated_at` / 各事件时间戳）为 **ISO8601 UTC**，JSON 序列化带 `Z` 后缀（如 `"2026-08-22T16:02:01Z"`）

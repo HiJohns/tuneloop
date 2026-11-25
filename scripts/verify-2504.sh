@@ -26,6 +26,9 @@ MB_TEST="frontend-mobile/src/services/errorMessageResolution.test.mjs"
 MB_CORE="frontend-mobile/src/services/errorMessageResolution.mjs"
 MB_MAP="frontend-mobile/src/services/errorMessages.js"
 PARITY="scripts/check-error-message-parity-2480.mjs"
+V2480="scripts/verify-2480.sh"
+PC_RESOLVER="frontend-pc/src/services/errorMessages.js"
+MB_CORE_REL="frontend-mobile/src/services/errorMessageResolution.mjs"
 API_DOC="docs/spec/api/api.md"
 
 EXPECT_LAYERS="human_message,code_map,code_map,human_message,message_map,fallback,fallback,human_message"
@@ -71,7 +74,7 @@ run_mb_tests() { # log
     node --test "$MB_TEST" > "$1" 2>&1
 }
 
-usage() { echo "usage: $0 <r1|r2|r3|r4|r5|r6>" >&2; exit 2; }
+usage() { echo "usage: $0 <r1|r2|r3|r4|r5|r6|r7|r8>" >&2; exit 2; }
 [ -n "$ROW" ] || usage
 
 rc=0
@@ -184,28 +187,42 @@ r4)
     mb_unknown="$(grep -cE "\{ key: 'UNKNOWN', input: \{ code: 49999, message: 'unknown conflict' \}, layer: 'fallback'" "$MB_TEST" || true)"
     mb_special="$(grep -cF "}).layer, 'fallback')" "$MB_TEST" || true)"
     parity_neg="$(grep -cF "expectLayer: 'fallback'" "$PARITY" || true)"
+    # #2504 v2（审计 Bug 1）：scripts/verify-2480.sh 的 4 个旧 token 必须同批翻转
+    v2480_c49999="$(grep -cF "C49999_ASCII=操作失败，请重试" "$V2480" || true)"
+    v2480_layers_pc="$(grep -cF "LAYERS=human_message,code_map,code_map,human_message,message_map,fallback,fallback,human_message" "$V2480" || true)"
+    v2480_cases="$(grep -cF "'CASES=12'" "$V2480" || true)"
     flip_count=$(( $( [ "${pc_unknown:-0}" -ge 1 ] && echo 1 || echo 0 ) \
                  + $( [ "${mb_unknown:-0}" -ge 1 ] && echo 1 || echo 0 ) \
                  + $( [ "${mb_special:-0}" -ge 1 ] && echo 1 || echo 0 ) \
-                 + $( [ "${parity_neg:-0}" -ge 1 ] && echo 1 || echo 0 ) ))
+                 + $( [ "${parity_neg:-0}" -ge 1 ] && echo 1 || echo 0 ) \
+                 + $( [ "${v2480_c49999:-0}" -ge 1 ] && echo 1 || echo 0 ) \
+                 + $( [ "${v2480_layers_pc:-0}" -ge 2 ] && echo 1 || echo 0 ) \
+                 + $( [ "${v2480_cases:-0}" -ge 1 ] && echo 1 || echo 0 ) \
+                 + $( [ "${v2480_layers_pc:-0}" -ge 2 ] && echo 1 || echo 0 ) ))
     # 旧行为残留：断言中出现 raw_message 层，或仍期望把 ASCII 原文当作文案
     stale_pc="$(grep -cE "layer: 'raw_message'" "$PC_TEST" || true)"
     stale_mb="$(grep -cE "layer: 'raw_message'" "$MB_TEST" || true)"
     old_text_pc="$(grep -cF "text: 'unknown conflict'" "$PC_TEST" || true)"
+    stale_v2480="$(grep -cE "C49999_ASCII=unknown conflict|fallback,raw_message,human_message|CASES=10" "$V2480" || true)"
     body="FLIP_PC_UNKNOWN=$pc_unknown"$'\n'
     body+="FLIP_MOBILE_UNKNOWN=$mb_unknown"$'\n'
     body+="FLIP_MOBILE_SPECIAL=$mb_special"$'\n'
     body+="FLIP_PARITY_NEG=$parity_neg"$'\n'
+    body+="FLIP_V2480_C49999=$v2480_c49999"$'\n'
+    body+="FLIP_V2480_LAYERS=$v2480_layers_pc"$'\n'
+    body+="FLIP_V2480_CASES=$v2480_cases"$'\n'
     body+="FLIP_COUNT=$flip_count"$'\n'
     body+="STALE_RAW_PC=${stale_pc:-0}"$'\n'
     body+="STALE_RAW_MOBILE=${stale_mb:-0}"$'\n'
+    body+="STALE_VERIFY2480=${stale_v2480:-0}"$'\n'
     body+="OLD_TEXT_PC=${old_text_pc:-0}"$'\n'
-    [ "$flip_count" = "4" ] || rc=1
+    [ "$flip_count" = "8" ] || rc=1
     [ "${stale_pc:-1}" = "0" ] || rc=1
     [ "${stale_mb:-1}" = "0" ] || rc=1
+    [ "${stale_v2480:-1}" = "0" ] || rc=1
     [ "${old_text_pc:-1}" = "0" ] || rc=1
     old_gone=0
-    if [ "${stale_pc:-1}" = "0" ] && [ "${stale_mb:-1}" = "0" ] && [ "${old_text_pc:-1}" = "0" ]; then
+    if [ "${stale_pc:-1}" = "0" ] && [ "${stale_mb:-1}" = "0" ] && [ "${stale_v2480:-1}" = "0" ] && [ "${old_text_pc:-1}" = "0" ]; then
         old_gone=1
     fi
     body+="OLD_BEHAVIOR_GONE=$old_gone"$'\n'
@@ -265,6 +282,42 @@ r6)
     [ "$lint_mb_exit" = "0" ] || rc=1
     body+="RESULT: $([ "$rc" = "0" ] && echo PASS || echo FAIL)"$'\n'
     finish R6-build-lint.txt "$rc" "$body"
+    ;;
+r7)
+    # #2480 证据脚本回归（审计 Bug 1）：其 4 个旧 token 已随本单翻转，必须全绿
+    v1=0; v2=0; v3=0; v4=0
+    bash "$V2480" r1 > "$REPO_ROOT/tmp/verify-2504-v2480-r1.log" 2>&1 && v1=1
+    bash "$V2480" r2 > "$REPO_ROOT/tmp/verify-2504-v2480-r2.log" 2>&1 && v2=1
+    bash "$V2480" r3 > "$REPO_ROOT/tmp/verify-2504-v2480-r3.log" 2>&1 && v3=1
+    bash "$V2480" r4 > "$REPO_ROOT/tmp/verify-2504-v2480-r4.log" 2>&1 && v4=1
+    body="V2480_R1=$([ "$v1" = "1" ] && echo 0 || echo 1)"$'\n'
+    body+="V2480_R2=$([ "$v2" = "1" ] && echo 0 || echo 1)"$'\n'
+    body+="V2480_R3=$([ "$v3" = "1" ] && echo 0 || echo 1)"$'\n'
+    body+="V2480_R4=$([ "$v4" = "1" ] && echo 0 || echo 1)"$'\n'
+    [ "$v1" = "1" ] && [ "$v2" = "1" ] && [ "$v3" = "1" ] && [ "$v4" = "1" ] || rc=1
+    body+="RESULT: $([ "$rc" = "0" ] && echo PASS || echo FAIL)"$'\n'
+    finish R7-verify2480.txt "$rc" "$body"
+    ;;
+r8)
+    # #2504 D8 Option 1：不可达的 L4 raw_message 返回分支已删除，文档已标注不可达
+    raw_pc="$(grep -cE "layer: 'raw_message'" "$PC_RESOLVER" || true)"
+    raw_mb="$(grep -cE "layer: 'raw_message'" "$MB_CORE_REL" || true)"
+    raw_branch_removed=0
+    if [ "${raw_pc:-1}" = "0" ] && [ "${raw_mb:-1}" = "0" ]; then
+        raw_branch_removed=1
+    fi
+    doc_annotated=0
+    if grep -E "raw_message.*不可达|不可达.*raw_message" "$API_DOC" >/dev/null 2>&1; then
+        doc_annotated=1
+    fi
+    body="RAW_BRANCH_REMOVED=$raw_branch_removed"$'\n'
+    body+="RAW_BRANCH_PC=$raw_pc"$'\n'
+    body+="RAW_BRANCH_MOBILE=$raw_mb"$'\n'
+    body+="DOC_ANNOTATED=$doc_annotated"$'\n'
+    [ "$raw_branch_removed" = "1" ] || rc=1
+    [ "$doc_annotated" = "1" ] || rc=1
+    body+="RESULT: $([ "$rc" = "0" ] && echo PASS || echo FAIL)"$'\n'
+    finish R8-l4-disposition.txt "$rc" "$body"
     ;;
 *)
     usage
