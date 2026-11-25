@@ -5,6 +5,8 @@ import { EyeOutlined, EditOutlined, WarningOutlined, RollbackOutlined, FileTextO
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { inventoryApi, lossApi, api } from '../services/api'
 import PermissionGate from '../components/PermissionGate'
+import FormConflictAlert from '../components/FormConflictAlert'
+import { conflictText, isBusinessCorrectableConflict } from '../utils/formConflict'
 import { usePermission } from '../hooks/usePermission'
 
 const statusColors = {
@@ -30,6 +32,11 @@ export default function InstrumentStock() {
   const [selectedRowKeys, setSelectedRowKeys] = useState([]) // #2043 批量操作
   const [priceModalVisible, setPriceModalVisible] = useState(false) // #2043 批量设价
   const [priceForm] = Form.useForm()
+  // #2488（沿用 #2480 D8）：业务可纠正冲突（40005 状态不允许 / 40900 冲突）用表单内持久提示，
+  // 不当作瞬时 toast —— 库存状态冲突是用户可改输入后重试的业务错误。
+  const [priceConflict, setPriceConflict] = useState('')
+  const [lostConflict, setLostConflict] = useState('')
+  const [restoreConflict, setRestoreConflict] = useState('')
 
   // #2043: 管理员级可见性代理（删除权限=管理级）
   const { hasCusPerm } = usePermission()
@@ -182,6 +189,7 @@ export default function InstrumentStock() {
 
   // #2043: 批量设价（服务端 RequireRole(ADMIN/OWNER/site_admin) 兜底）
   const handleBatchPrice = async () => {
+    setPriceConflict('') // #2488 D8：提交开始即清空
     try {
       const values = await priceForm.validateFields()
       const res = await api.put('/instruments/batch/price', {
@@ -196,6 +204,9 @@ export default function InstrumentStock() {
         priceForm.resetFields()
         setSelectedRowKeys([])
         loadData()
+      } else if (isBusinessCorrectableConflict(res)) {
+        // #2488：状态不允许/冲突（40005/40900）→ 持久提示，不得降级为瞬时 toast。
+        setPriceConflict(conflictText(res, '批量修改价格失败，请调整后重试'))
       } else {
         message.error(res.message || '批量修改价格失败')
       }
@@ -267,11 +278,13 @@ export default function InstrumentStock() {
   const [restoreFiles, setRestoreFiles] = useState([])
 
   const openLostModal = (record) => {
+    setLostConflict('') // #2488 D8：打开表单即清空陈旧冲突提示
     setLostTarget(record)
     lossForm.setFieldsValue({ responsible_party: 'user', user_ratio: 100 })
     setRestoreFiles([])
   }
   const openRestoreModal = (record) => {
+    setRestoreConflict('')
     setRestoreTarget(record)
     restoreForm.setFieldsValue({ damaged: false })
     setRestoreFiles([])
@@ -287,6 +300,7 @@ export default function InstrumentStock() {
 
   const submitLost = async () => {
     const v = await lossForm.validateFields()
+    setLostConflict('') // #2488 D8：提交开始即清空
     setSubmitting(true)
     try {
       const resp = await lossApi.register(lostTarget.id, {
@@ -298,8 +312,12 @@ export default function InstrumentStock() {
       })
       if (resp.code === 20000) {
         message.success('丢失登记完成')
+        setLostConflict('')
         setLostTarget(null)
         loadData()
+      } else if (isBusinessCorrectableConflict(resp)) {
+        // #2488：状态冲突（如已在丢失/维修中）→ 持久提示。
+        setLostConflict(conflictText(resp, '登记失败，请调整后重试'))
       } else message.error(resp.message || '登记失败')
     } catch (e) { message.error(e.message || '登记失败') }
     setSubmitting(false)
@@ -307,6 +325,7 @@ export default function InstrumentStock() {
 
   const submitRestore = async () => {
     const v = await restoreForm.validateFields()
+    setRestoreConflict('') // #2488 D8：提交开始即清空
     setSubmitting(true)
     try {
       const photos = []
@@ -319,8 +338,12 @@ export default function InstrumentStock() {
         message.success(d.reversal === 'refunded'
           ? `恢复成功，冲正退款 ¥${formatCents(d.refund_cents || 0)}`
           : d.reversal === 'held_pending_assessment' ? '恢复成功（有损坏，赔偿暂扣待定损）' : '恢复成功')
+        setRestoreConflict('')
         setRestoreTarget(null)
         loadData()
+      } else if (isBusinessCorrectableConflict(resp)) {
+        // #2488：状态冲突（如未在丢失状态）→ 持久提示。
+        setRestoreConflict(conflictText(resp, '恢复失败，请调整后重试'))
       } else message.error(resp.message || '恢复失败')
     } catch (e) { message.error(e.message || '恢复失败') }
     setSubmitting(false)
@@ -371,9 +394,10 @@ export default function InstrumentStock() {
         title="批量修改价格"
         open={priceModalVisible}
         onOk={handleBatchPrice}
-        onCancel={() => setPriceModalVisible(false)}
+        onCancel={() => { setPriceConflict(''); setPriceModalVisible(false); }}
         width={500}
       >
+        <FormConflictAlert text={priceConflict} testId="stock-price-conflict" />
         <Form form={priceForm} layout="vertical">
           <Form.Item name="price_type" label="价格类型" rules={[{ required: true, message: '请选择价格类型' }]}>
             <Select placeholder="请选择价格类型">
@@ -463,10 +487,11 @@ export default function InstrumentStock() {
 
       {/* 丢失登记（LS-01/02） */}
       <Modal title={`丢失登记 — ${lostTarget?.name || ''}`} open={!!lostTarget}
-        onCancel={() => setLostTarget(null)} onOk={submitLost} confirmLoading={submitting} okText="提交登记">
+        onCancel={() => { setLostConflict(''); setLostTarget(null); }} onOk={submitLost} confirmLoading={submitting} okText="提交登记">
+        <FormConflictAlert text={lostConflict} testId="stock-lost-conflict" />
         <Form form={lossForm} layout="vertical">
           <Form.Item name="description" label="丢失描述" rules={[{ required: true, message: '请填写丢失描述' }]}>
-            <Input.TextArea rows={3} placeholder="描述丢失经过" />
+            <Input.TextArea rows={3} placeholder="描述丢失经过" onChange={() => { if (lostConflict) setLostConflict(''); }} />
           </Form.Item>
           <Form.Item name="responsible_party" label="责任方" rules={[{ required: true }]}>
             <Select options={[
@@ -488,7 +513,8 @@ export default function InstrumentStock() {
 
       {/* 恢复（LS-05） */}
       <Modal title={`乐器恢复 — ${restoreTarget?.name || ''}`} open={!!restoreTarget}
-        onCancel={() => setRestoreTarget(null)} onOk={submitRestore} confirmLoading={submitting} okText="确认恢复">
+        onCancel={() => { setRestoreConflict(''); setRestoreTarget(null); }} onOk={submitRestore} confirmLoading={submitting} okText="确认恢复">
+        <FormConflictAlert text={restoreConflict} testId="stock-restore-conflict" />
         <Form form={restoreForm} layout="vertical">
           <Form.Item name="damaged" label="是否有损坏">
             <Radio.Group>

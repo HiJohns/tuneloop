@@ -3,6 +3,8 @@ import { Table, Card, Button, Space, Modal, Form, Input, Upload, Image, Popconfi
 import { PlusOutlined, UploadOutlined, EditOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import { mallImageApi } from '../../services/api';
 import { antdUploadProps } from '../../utils/upload';
+import FormConflictAlert from '../../components/FormConflictAlert';
+import { conflictText, isBusinessCorrectableConflict } from '../../utils/formConflict';
 
 // #2210: 商城页图片管理（平台级全站配置，与租户无关）——复用轮播图管理模式。
 export default function MallImageManageCard() {
@@ -11,6 +13,8 @@ export default function MallImageManageCard() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingImage, setEditingImage] = useState(null);
   const [form] = Form.useForm();
+  // #2488（沿用 #2480 D8）：业务可纠正冲突用表单内持久提示，不用 3 秒 toast。
+  const [formConflict, setFormConflict] = useState('');
 
   const fetchImages = async () => {
     setLoading(true);
@@ -30,6 +34,7 @@ export default function MallImageManageCard() {
   useEffect(() => { fetchImages(); }, []);
 
   const handleCreate = () => {
+    setFormConflict(''); // #2488 D8：打开表单即清空陈旧冲突提示
     setEditingImage(null);
     form.resetFields();
     form.setFieldsValue({ status: 'active' });
@@ -37,6 +42,7 @@ export default function MallImageManageCard() {
   };
 
   const handleEdit = (record) => {
+    setFormConflict('');
     setEditingImage(record);
     form.setFieldsValue(record);
     setModalOpen(true);
@@ -85,14 +91,19 @@ export default function MallImageManageCard() {
   }
 
   const handleSubmit = async () => {
+    setFormConflict(''); // #2488 D8：提交开始即清空
     try {
       const values = await form.validateFields();
       if (editingImage) {
         const res = await mallImageApi.update(editingImage.id, values);
         if (res.code === 20000) {
           message.success('更新成功');
+        } else if (isBusinessCorrectableConflict(res)) {
+          // #2488：商城图片业务冲突改为表单内持久提示。
+          setFormConflict(conflictText(res, '更新失败，请调整后重试'));
+          return;
         } else {
-          message.error('更新失败');
+          message.error(res.message || '更新失败');
           return;
         }
       } else {
@@ -100,11 +111,15 @@ export default function MallImageManageCard() {
         const res = await mallImageApi.create({ ...values, sort_order: maxSort + 1 });
         if (res.code === 20000 || res.code === 20100) {
           message.success('创建成功');
+        } else if (isBusinessCorrectableConflict(res)) {
+          setFormConflict(conflictText(res, '创建失败，请调整后重试'));
+          return;
         } else {
-          message.error('创建失败');
+          message.error(res.message || '创建失败');
           return;
         }
       }
+      setFormConflict('');
       setModalOpen(false);
       fetchImages();
     } catch (e) {
@@ -172,10 +187,11 @@ export default function MallImageManageCard() {
         title={editingImage ? '编辑商城图片' : '新增商城图片'}
         open={modalOpen}
         onOk={handleSubmit}
-        onCancel={() => setModalOpen(false)}
+        onCancel={() => { setFormConflict(''); setModalOpen(false); }}
         okText="保存"
         cancelText="取消"
       >
+        <FormConflictAlert text={formConflict} testId="mall-image-form-conflict" />
         <Form form={form} layout="vertical">
           <Form.Item label="图片" extra="支持上传或输入图片URL，建议 750×400px">
             <Upload
@@ -192,7 +208,7 @@ export default function MallImageManageCard() {
             </Upload>
           </Form.Item>
           <Form.Item name="image_url" label="图片URL" rules={[{ required: true, message: '请上传或输入图片URL' }]}>
-            <Input placeholder="图片URL" />
+            <Input placeholder="图片URL" onChange={() => { if (formConflict) setFormConflict(''); }} />
           </Form.Item>
           <Form.Item name="link_url" label="跳转链接">
             <Input placeholder="可选：点击图片跳转的链接（留空则点击不跳转）" />
