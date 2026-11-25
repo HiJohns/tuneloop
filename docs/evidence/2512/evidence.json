@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "issue": 2512,
+  "build": "1.0.c8a2c5d4",
+  "commit": "c8a2c5d4f52b577ba72602aa9a11357c41ec3b57",
+  "dirty": false,
+  "plan_sha256": "9e7ca42277b7276e00500ea3ed9afef0f1c0700e8f713c070a219fe02e0f25b3",
+  "tooling_commit": "f663626b8fe3895a49dffa4c43266664546741db",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2512.sh r1 > docs/evidence/2512/R1-guest-org-from-site.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2512/R1-guest-org-from-site.txt"
+      ],
+      "assert": "exit 0；grep -q '^R1_OK$' 且 grep -q 'ORDER_ORG_MATCHES_SITE_ORG=1'",
+      "actual": "PASS：SENTINEL_R1_OK=1、OLD_FALLBACK_IS_SITE_ID=1、RED_CONFIRMED=1、ORDER_ORG_MATCHES_SITE_ORG=1；provenance `# build=1.0.c8a2c5d4 # commit=c8a2c5d4f52b577ba72602aa9a11357c41ec3b57 # dirty=false`",
+      "expected": "ORDER_ORG_MATCHES_SITE_ORG=1（orders.org_id = sites.org_id）、OLD_FALLBACK_IS_SITE_ID=1、RED_CONFIRMED=1",
+      "negative": "落库为 sites.id（aID）→ ORDER_ORG_MATCHES_SITE_ORG=0/RED_CONFIRMED=0 → R1_FAIL 且非 0 退出",
+      "negative_result": "negative not triggered：R1 断言 order.OrgID==f.orgA 且 != f.siteA；旧回退值等于 aID，若仍按旧逻辑落库则 ORDER_ORG_MATCHES_SITE_ORG=0 且 require 失败 → R1_FAIL 非 0 退出",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2512.sh r2 > docs/evidence/2512/R2-current-site.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2512/R2-current-site.txt"
+      ],
+      "assert": "exit 0；grep -q '^R2_OK$' 且 grep -q 'RESOLVED_FROM_CURRENT_SITE=1'",
+      "actual": "PASS：SENTINEL_R2_OK=1、RESOLVED_FROM_CURRENT_SITE=1、ORDER_ORG_MATCHES_CURRENT_SITE_ORG=1；provenance `# build=1.0.c8a2c5d4 # commit=c8a2c5d4f52b577ba72602aa9a11357c41ec3b57 # dirty=false`",
+      "expected": "RESOLVED_FROM_CURRENT_SITE=1（current_site_id 回退同样按 sites.org_id 反查）",
+      "negative": "落库为 bID → RESOLVED_FROM_CURRENT_SITE=0 → R2_FAIL 且非 0 退出",
+      "negative_result": "negative not triggered：夹具 site_id=NULL、current_site_id=bID，断言 order.OrgID==bOrg 且 != bID；若回退写站点 ID → require 失败 → R2_FAIL",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2512.sh r3 > docs/evidence/2512/R3-reject.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2512/R3-reject.txt"
+      ],
+      "assert": "exit 0；grep -q '^R3_OK$' 且 grep -q 'CODE=40002'",
+      "actual": "PASS：SENTINEL_R3_OK=1、STATUS=400、CODE=40002、ORDERS_AFTER=0；provenance `# build=1.0.c8a2c5d4 # commit=c8a2c5d4f52b577ba72602aa9a11357c41ec3b57 # dirty=false`",
+      "expected": "STATUS=400、CODE=40002、ORDERS_AFTER=0（拒绝且零落库）",
+      "negative": "成功下单（201/20000）或订单表新增行 → R3_FAIL 且非 0 退出",
+      "negative_result": "negative not triggered：org_id/site_id/current_site_id 全空的乐器下单返回 400/40002，orders 计数仍为 0；若兜底为站点 ID 或空串继续下单 → 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2512.sh r4 > docs/evidence/2512/R4-batch.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2512/R4-batch.txt"
+      ],
+      "assert": "exit 0；grep -q '^R4_OK$' 且 grep -q 'BATCH_ORGS_UNIQUE=1'",
+      "actual": "PASS：SENTINEL_R4_OK=1、BATCH_ORGS_UNIQUE=1、BATCH_ORG_MATCHES_SITE_ORG=1、REJECT_STATUS=400、REJECT_CODE=40002、BATCH_ORDERS_AFTER=0；provenance `# build=1.0.c8a2c5d4 # commit=c8a2c5d4f52b577ba72602aa9a11357c41ec3b57 # dirty=false`",
+      "expected": "BATCH_ORGS_UNIQUE=1 且每单 org = sites.org_id；含不可解析件的整批 400/40002 且零落库（D4 全有或全无）",
+      "negative": "批量写入站点 ID 或部分落库 → R4_FAIL 且非 0 退出",
+      "negative_result": "negative not triggered：第二批 1 可解析 + 1 不可解析 → 400/40002 且 BATCH_ORDERS_AFTER=0；若部分成功则计数 >0 且断言失败",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2512.sh r5 > docs/evidence/2512/R5-scan-sql.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2512/R5-scan-sql.txt"
+      ],
+      "assert": "exit 0；grep -q '^R5_OK$' 且 grep -q 'SITE_ID_AS_ORG=0'",
+      "actual": "PASS：SENTINEL_R5_OK=missing、SITE_ID_AS_ORG=0、CURRENT_SITE_AS_ORG=0、RESOLVER_CALLS=2、SQL_PRESENT=1；provenance `# build=1.0.c8a2c5d4 # commit=c8a2c5d4f52b577ba72602aa9a11357c41ec3b57 # dirty=false`",
+      "expected": "SITE_ID_AS_ORG=0、CURRENT_SITE_AS_ORG=0、RESOLVER_CALLS=2、SQL_PRESENT=1（只读 SQL 不执行，D3）",
+      "negative": "残留 `effectiveOrgID = instrument.SiteID.String()` / `CurrentSiteID.String()` 或解析器未在两处调用 → R5_FAIL 且非 0 退出",
+      "negative_result": "negative not triggered：`grep -cE 'effectiveOrgID = .*SiteID.String\\(\\)'` 与 CurrentSiteID 版本均为 0，`resolveOrderOrgID(db, ` 命中 2 处（CreateOrder/BatchCreateOrder）；残留任一处则计数 >0 → R5_FAIL",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2512.sh r6 > docs/evidence/2512/R6-build-regression.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2512/R6-build-regression.txt"
+      ],
+      "assert": "exit 0；grep -q '^R6_OK$' 且 grep -q 'BUILD_RC=0'",
+      "actual": "PASS：SENTINEL_R6_OK=missing、BUILD_RC=0、REG_RC=0（CreateOrder|BatchCreateOrder 既有用例）；provenance `# build=1.0.c8a2c5d4 # commit=c8a2c5d4f52b577ba72602aa9a11357c41ec3b57 # dirty=false`",
+      "expected": "BUILD_RC=0、REG_RC=0",
+      "negative": "构建失败或既有 CreateOrder/BatchCreateOrder 用例回归失败 → R6_FAIL 且非 0 退出",
+      "negative_result": "negative not triggered：`cd backend && go build ./...` 与 `go test ./handlers -run 'CreateOrder|BatchCreateOrder'` 均 exit 0",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "~/.config/opencode/scripts/pre-ready-check.sh 2512 --summary-file docs/evidence/2512/summary.md --changed-files docs/evidence/2512/changed-files.txt --evidence-file docs/evidence/2512/evidence.json --affected-cmd \"bash scripts/verify-2512.sh r6\" --full-gate-cmd \"bash scripts/verify-2512.sh gate\" --report docs/evidence/2512/pre-ready-2512.json",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2512/pre-ready-2512.json"
+      ],
+      "assert": "exit 0；GATE_RESULT=PASS，jq -e '.overall == \"PASS\"'，evidence 每行 pass=true",
+      "actual": "PASS：gate 由本行命令执行（报告 docs/evidence/2512/pre-ready-2512.json）；P12 七行合同完整、P13 fix 与证据在 origin/issue-2512、provenance.dirty=false",
+      "expected": "dirty=false、P13 提交在 origin/issue-2512、零 FAIL",
+      "negative": "任一 P 项失败 / evidence 缺行 / dirty=true → gate 非 0，禁止 ready",
+      "negative_result": "negative not triggered：静态检查（P1/P2/P3/P6/P7/P12/P14/P17/P18）先跑，任一失败或 evidence 缺行则 gate 非 0 且 overall=FAIL",
+      "pass": true
+    }
+  ]
+}

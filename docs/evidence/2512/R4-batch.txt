@@ -1,0 +1,16 @@
+# build=1.0.c8a2c5d4 # commit=c8a2c5d4f52b577ba72602aa9a11357c41ec3b57 # dirty=false
+TEST_CMD=cd backend && go test ./handlers -run '^TestBatchCreateOrder2512_GuestOrgFromSiteAndReject$' -count=1 -v
+TEST_EXIT=0
+SENTINEL_R4_OK=1
+BATCH_ORGS_UNIQUE=1
+BATCH_ORG_MATCHES_SITE_ORG=1
+REJECT_STATUS=400
+REJECT_CODE=40002
+BATCH_ORDERS_AFTER=0
+--- go test tail ---
+--- PASS: TestBatchCreateOrder2512_GuestOrgFromSiteAndReject (1.55s)
+PASS
+ok  	tuneloop-backend/handlers	2.682s
+R4_OK
+RESULT: PASS
+

@@ -1,0 +1,4 @@
+backend/handlers/user_rental.go
+backend/handlers/user_rental_2512_test.go
+docs/spec/api/api.md
+scripts/verify-2512.sh

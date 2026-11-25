@@ -1,0 +1,14 @@
+# build=1.0.c8a2c5d4 # commit=c8a2c5d4f52b577ba72602aa9a11357c41ec3b57 # dirty=false
+TEST_CMD=cd backend && go test ./handlers -run '^TestCreateOrder2512_UnresolvableRejected$' -count=1 -v
+TEST_EXIT=0
+SENTINEL_R3_OK=1
+STATUS=400
+CODE=40002
+ORDERS_AFTER=0
+--- go test tail ---
+--- PASS: TestCreateOrder2512_UnresolvableRejected (1.34s)
+PASS
+ok  	tuneloop-backend/handlers	2.158s
+R3_OK
+RESULT: PASS
+
