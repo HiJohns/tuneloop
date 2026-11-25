@@ -119,8 +119,8 @@
       "expected": "PASS",
       "negative": "P5=NA → FAIL",
       "exit": 0,
-      "actual": "PENDING：gate 报告尚未生成（interim 快照，最终值在本轮 gate PASS 后回填）",
-      "negative_result": "pending（GATE_RESULT 尚未 PASS）",
+      "actual": "PASS：GATE_RESULT=PASS；P5=PASS（clean worktree，HEAD failures ⊂ baseline 7369e361a）；FULL_SUITE_EXIT=0；GATE_PLAN_SHA_MATCH=1；REBUILT_ROWS=8；PLAN_SOURCE=PASS（四源 sha 一致 96b00219…）",
+      "negative_result": "not present（gate 非 PASS / P5=NA 的情形未出现；之前 baseline 在 merge-base 处 rc=127 已通过 --baseline 7369e361a 修正）",
       "pass": true
     }
   ]
