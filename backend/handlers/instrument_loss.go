@@ -33,19 +33,35 @@ type InstrumentLossHandler struct{}
 func NewInstrumentLossHandler() *InstrumentLossHandler { return &InstrumentLossHandler{} }
 
 // loadLossInstrument 加载乐器并校验操作者归属：JWT tid 必须匹配乐器租户；
-// 有 oid（网点级）时要求乐器当前网点一致。
+// 有 oid（网点级）时要求乐器**当前物理位置**的站点属于该 oid 组织（#2510）。
+//
+// ID 域（权威：docs/cases/cases.md:289）：JWT oid = sites.org_id；instruments.current_site_id = sites.id。
+// 两者是不同主键域，绝不能字符串比较（旧实现即因此把网点账号全部拒掉）。
 func loadLossInstrument(c *gin.Context, db *gorm.DB, id string) (*models.Instrument, bool) {
 	ctx := c.Request.Context()
 	var inst models.Instrument
 	if err := db.Where("id = ?", id).First(&inst).Error; err != nil {
+		log.Printf("[InstrumentLoss] WARN: instrument %s not found: %v", id, err)
 		return nil, false
 	}
 	tid := middleware.GetTenantID(ctx)
 	if tid == "" || inst.TenantID != tid {
+		log.Printf("[InstrumentLoss] WARN: tenant mismatch instrument=%s (tenant=%s, operator=%s)", inst.ID, inst.TenantID, tid)
 		return nil, false
 	}
-	if oid := middleware.GetOrgID(ctx); oid != "" && inst.CurrentSiteID != nil && inst.CurrentSiteID.String() != oid {
-		return nil, false
+	if oid := middleware.GetOrgID(ctx); oid != "" && inst.CurrentSiteID != nil {
+		// 网点判定 = 「current_site_id 是 oid 组织下的站点之一」（集合成员，非字符串相等）。
+		var n int64
+		if err := db.Model(&models.Site{}).
+			Where("id = ? AND org_id = ?", *inst.CurrentSiteID, oid).
+			Count(&n).Error; err != nil {
+			log.Printf("[InstrumentLoss] ERROR: resolve site org failed (site=%s, org=%s): %v", *inst.CurrentSiteID, oid, err)
+			return nil, false // fail-closed
+		}
+		if n == 0 {
+			log.Printf("[InstrumentLoss] WARN: access denied — instrument %s at site %s is not in operator org %s", inst.ID, *inst.CurrentSiteID, oid)
+			return nil, false
+		}
 	}
 	return &inst, true
 }
