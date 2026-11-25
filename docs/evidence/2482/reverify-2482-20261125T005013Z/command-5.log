@@ -1,0 +1,12 @@
+PROVENANCE: fix=719e649291800235e48194c8ef10ad0420a3c70a request=2482-20261125T005013Z ts=2026-11-25T01:20:27Z
+# command: cd backend && go test ./services -count=1 -timeout 15m
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s25-p25-657d6f at_ms=1795570014372 wait_ms=386580
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s25-p25-657d6f wait_ms=386580
+# github.com/mattn/go-sqlite3
+sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
+sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+123133 |   zTail = strrchr(zName, '_');
+       |         ^
+ok  	tuneloop-backend/services	12.703s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795570039297 hold_ms=24925
+EXIT_CODE=0
