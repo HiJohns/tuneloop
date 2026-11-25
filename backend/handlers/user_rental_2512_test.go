@@ -152,6 +152,7 @@ func TestCreateOrder2512_GuestOrgFromSite(t *testing.T) {
 
 	oldFallback := f.siteA // pre-fix: effectiveOrgID = instrument.SiteID.String()
 	t.Logf("ORDER_ORG=%s", order.OrgID)
+	t.Logf("SITE_ORG=%s", f.orgA)
 	t.Logf("SITE_ID_IS=%s", oldFallback)
 	t.Logf("OLD_FALLBACK_IS_SITE_ID=%d", int2512(oldFallback != f.orgA))
 	t.Logf("RED_CONFIRMED=%d", int2512(oldFallback != order.OrgID))
@@ -180,6 +181,7 @@ func TestCreateOrder2512_GuestOrgFromCurrentSite(t *testing.T) {
 	require.NoError(t, f.db.Where("id = ?", resp.Data.OrderID).First(&order).Error)
 
 	t.Logf("ORDER_ORG=%s", order.OrgID)
+	t.Logf("SITE_ORG=%s", f.orgB)
 	t.Logf("RESOLVED_FROM_CURRENT_SITE=%d", int2512(order.OrgID == f.orgB))
 	t.Logf("ORDER_ORG_MATCHES_CURRENT_SITE_ORG=%d", int2512(order.OrgID == f.orgB))
 	require.Equal(t, f.orgB, order.OrgID)
