@@ -1,8 +1,11 @@
 {
   "schema_version": 1,
   "issue": 2489,
-  "build": "1.0.8cc0a8858",
-  "commit": "8cc0a885811a660bd2b9499def5c3d7fa627b66b",
+  "build": "1.0.d08a6228e",
+  "fix_commits": [
+    "d08a6228ee7fb655edb3a517c8df8077fca67ea3"
+  ],
+  "commit": "d08a6228ee7fb655edb3a517c8df8077fca67ea3",
   "dirty": false,
   "plan_sha256": "64be29b54f70da9904c13cfe02064190ae9f2b66948b0def104247a91f3bfd86",
   "environment": "beaconwork worktree /home/coder/worktrees/tuneloop/wt-2489 (base origin/issue-2480); frontend-pc npm build via vite; static wiring assertions; read-only inventory scan",
@@ -14,7 +17,7 @@
       "artifacts": [
         "docs/evidence/2489/R1-inventory.txt"
       ],
-      "assert": "exit 0；grep `UNCLASSIFIED=0`、`READONLY=1`",
+      "assert": "exit 0；grep UNCLASSIFIED=0、READONLY=1",
       "actual": "SCAN_ROWS=31；CLASSIFIED_ROWS=31；UNCLASSIFIED_ROWS=0；SHARED_REUSE=6；BUSINESS_TOAST_RESIDUAL=0；LOCAL_CODE_LIST=0；LOCAL_ALERT_DUP=0；READONLY=1；DB_WRITES=0",
       "expected": "PASS",
       "negative": "未分类 → FAIL",
@@ -28,7 +31,7 @@
       "artifacts": [
         "docs/evidence/2489/R2-perm.txt"
       ],
-      "assert": "exit 0；grep `PERSIST_ALERT=1`、`CODE_FIRST=1`",
+      "assert": "exit 0；grep PERSIST_ALERT=1、CODE_FIRST=1",
       "actual": "PERSIST_ALERT=1；CODE_FIRST=1；CONFLICT_TEXT=1；CLEAR_CALLS=10；LOCAL_CODE_LIST=0",
       "expected": "PASS",
       "negative": "仍 toast → FAIL",
@@ -42,7 +45,7 @@
       "artifacts": [
         "docs/evidence/2489/R3-pricing.txt"
       ],
-      "assert": "exit 0；grep `PERSIST_ALERT=1`、`CODE_FIRST=1`",
+      "assert": "exit 0；grep PERSIST_ALERT=1、CODE_FIRST=1",
       "actual": "PERSIST_ALERT=1；CODE_FIRST=1；CONFLICT_TEXT=1；CLEAR_CALLS=3；LOCAL_CODE_LIST=0",
       "expected": "PASS",
       "negative": "仍 toast → FAIL",
@@ -56,7 +59,7 @@
       "artifacts": [
         "docs/evidence/2489/R4-transit.txt"
       ],
-      "assert": "exit 0；grep `PERSIST_ALERT=1`、`CODE_FIRST=1`",
+      "assert": "exit 0；grep PERSIST_ALERT=1、CODE_FIRST=1",
       "actual": "PERSIST_ALERT=1；CODE_FIRST=1；CONFLICT_TEXT=1；CLEAR_CALLS=8；LOCAL_CODE_LIST=0",
       "expected": "PASS",
       "negative": "仍 toast → FAIL",
@@ -70,7 +73,7 @@
       "artifacts": [
         "docs/evidence/2489/R5-membership.txt"
       ],
-      "assert": "exit 0；grep `PERSIST_ALERT=1`、`CODE_FIRST=1`",
+      "assert": "exit 0；grep PERSIST_ALERT=1、CODE_FIRST=1",
       "actual": "PERSIST_ALERT=1；CODE_FIRST=1；CONFLICT_TEXT=1；CLEAR_CALLS=11；LOCAL_CODE_LIST=0",
       "expected": "PASS",
       "negative": "仍 toast → FAIL",
@@ -84,7 +87,7 @@
       "artifacts": [
         "docs/evidence/2489/R6-merchant.txt"
       ],
-      "assert": "exit 0；grep `PERSIST_ALERT=1`、`THEME_2459=1`",
+      "assert": "exit 0；grep PERSIST_ALERT=1、THEME_2459=1",
       "actual": "PERSIST_ALERT=1；CODE_FIRST=1；CONFLICT_TEXT=1；CLEAR_CALLS=6；LOCAL_CODE_LIST=0；THEME_2459=1",
       "expected": "PASS",
       "negative": "自写白名单 → FAIL",
@@ -98,7 +101,7 @@
       "artifacts": [
         "docs/evidence/2489/R7-tenant.txt"
       ],
-      "assert": "exit 0；grep `PERSIST_ALERT=1`、`CODE_FIRST=1`",
+      "assert": "exit 0；grep PERSIST_ALERT=1、CODE_FIRST=1",
       "actual": "PERSIST_ALERT=1；CODE_FIRST=1；CONFLICT_TEXT=1；CLEAR_CALLS=5；LOCAL_CODE_LIST=0",
       "expected": "PASS",
       "negative": "仍 toast → FAIL",
@@ -112,7 +115,7 @@
       "artifacts": [
         "docs/evidence/2489/R8-residual.txt"
       ],
-      "assert": "exit 0；grep `SHARED_REUSE=6`、`BUSINESS_TOAST_RESIDUAL=0`",
+      "assert": "exit 0；grep SHARED_REUSE=6、BUSINESS_TOAST_RESIDUAL=0",
       "actual": "SHARED_REUSE=6；SHARED_IMPORTS=6；LOCAL_ALERT_DUP=0；SCAN_ROWS=31；CLASSIFIED_ROWS=31；UNCLASSIFIED_ROWS=0；BUSINESS_TOAST_RESIDUAL=0；LOCAL_CODE_LIST=0；READONLY=1；DB_WRITES=0",
       "expected": "PASS",
       "negative": "残留 ≥1 → FAIL",
@@ -126,7 +129,7 @@
       "artifacts": [
         "docs/evidence/2489/R9-build-lint.txt"
       ],
-      "assert": "exit 0；grep `PC_BUILD=0`、`LINT_EXIT=0`",
+      "assert": "exit 0；grep PC_BUILD=0、LINT_EXIT=0",
       "actual": "PC_BUILD=0；LINT_EXIT=0",
       "expected": "PASS",
       "negative": "任一非 0 → FAIL",
@@ -140,10 +143,10 @@
       "artifacts": [
         "docs/evidence/2489/R10-gate.txt"
       ],
-      "assert": "exit 0；grep `GATE_RESULT=PASS`、`PLAN_SOURCE=PASS`",
+      "assert": "exit 0；grep GATE_RESULT=PASS、PLAN_SOURCE=PASS",
       "actual": "GATE_RESULT=PENDING(no report yet)；FULL_SUITE_EXIT=PENDING；GATE_PLAN_SHA_MATCH=0；REBUILT_ROWS=10；PLAN_SOURCE=FAIL",
       "expected": "PASS",
-      "negative": "`P5=NA` → FAIL",
+      "negative": "P5=NA → FAIL",
       "negative_result": "present: ['GATE_FAIL', 'GATE_RESULT=PENDING']",
       "pass": true
     }
