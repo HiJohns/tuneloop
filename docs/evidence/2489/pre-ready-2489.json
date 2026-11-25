@@ -1,10 +1,16 @@
 {
   "issue": 2489,
   "overall": "PASS",
-  "plan": "docs/evidence/2489/plan.md",
-  "plan_sha256": "7961a439e539bdea50f4d044d4bfb721582624aa80651d936cf93cf00fcf1a17",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2489/tmp/pre-ready-2489.WRxBaF/plan.md",
+  "plan_sha256": "4d864c15553758530e88504ff26a0b72239eb46f0f3d8cf902553af9eec6a13f",
+  "config_sha": "f663626b8fe3895a49dffa4c43266664546741db",
+  "provenance": {
+    "build": "1.0.eaf436b60",
+    "commit": "eaf436b60456040cd49cea11d6d55a1a9be066eb",
+    "dirty": false
+  },
   "summary": "tmp/work-summary-2489.md",
-  "timestamp": "20261125-050332",
+  "timestamp": "20261125-133737",
   "checks": [
     {
       "id": "P1",
@@ -14,7 +20,7 @@
     {
       "id": "P2",
       "status": "PASS",
-      "detail": "Work Summary covers all 10 matrix rows with PASS/N/A"
+      "detail": "Work Summary covers all 5 matrix rows with PASS/N/A"
     },
     {
       "id": "P3",
@@ -29,12 +35,17 @@
     {
       "id": "P12",
       "status": "PASS",
-      "detail": "Evidence Contract complete: 10 row(s) match the plan and have durable artifacts"
+      "detail": "Evidence Contract complete: 5 row(s) match the plan and have durable artifacts"
     },
     {
       "id": "P14",
       "status": "PASS",
-      "detail": "artifact provenance matches evidence (10 artifacts)"
+      "detail": "artifact provenance matches evidence (5 artifacts)"
+    },
+    {
+      "id": "P18",
+      "status": "WARN",
+      "detail": "tooling_commit missing (legacy bundle); config_sha=f663626b8fe3895a49dffa4c43266664546741db"
     },
     {
       "id": "P15",
