@@ -4,7 +4,7 @@
 # 用法：bash scripts/verify-2488.sh <r1..r10>
 #   r1 docs/evidence/2488/R1-inventory.txt   判定表（只读扫描，3 文件每个 toast 一行）
 #   r2 docs/evidence/2488/R2-banner.txt      轮播配置页接线（静态结构断言）
-#   r3 docs/evidence/2488/R3-mallimage.txt   商城图片页接线
+#   r3 docs/evidence/2488/R3-mall-image.txt   商城图片页接线
 #   r4 docs/evidence/2488/R4-stock.txt       库存操作页接线（含 STATE_CONFLICT=1）
 #   r5 docs/evidence/2488/R5-residual.txt    复用/残留度量（可失败）
 #   r6 docs/evidence/2488/R6-build-lint.txt  PC 构建 + eslint（改动文件）
@@ -115,7 +115,7 @@ case "$MODE" in
     [ "${scan_rows:-0}" -gt 0 ] || { echo "ASSERT_FAIL: SCAN_ROWS<=0" >&2; RC=1; }
     ;;
   r2) NAME="R2-banner.txt"; page_row r2 "$BANNER_PAGE" ;;
-  r3) NAME="R3-mallimage.txt"; page_row r3 "$MALLIMAGE_PAGE" ;;
+  r3) NAME="R3-mall-image.txt"; page_row r3 "$MALLIMAGE_PAGE" ;;
   r4)
     NAME="R4-stock.txt"
     page_row r4 "$STOCK_PAGE"
@@ -194,7 +194,7 @@ case "$MODE" in
         echo "GATE_PLAN_SHA_MATCH=0"; fail=1
       fi
       rebuilt=0
-      for f in R1-inventory.txt R2-banner.txt R3-mallimage.txt R4-stock.txt R5-residual.txt R6-build-lint.txt; do
+      for f in R1-inventory.txt R2-banner.txt R3-mall-image.txt R4-stock.txt R5-residual.txt R6-build-lint.txt; do
         [ -f "$OUT_DIR/$f" ] || continue
         head -1 "$OUT_DIR/$f" | grep -q "commit=$FIX_SHA " && rebuilt=$((rebuilt + 1))
       done
