@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "issue": 2567,
-  "build": "1.0.017bc5619",
-  "commit": "017bc5619be91047ea7acb74c93b14f1a8ae0f75",
+  "build": "1.0.4935db7f4",
+  "commit": "4935db7f4a61d2579f668557caaf7e1a9a34b757",
   "dirty": false,
-  "plan_sha256": "cfe5bdb93391602fca96af8636fc9cd8fe914a7bf089aa0dc34bbc3295cab4d5",
+  "plan_sha256": "062b7066e9e69259fad12baf6252e6bf5d751f611969adde6e6db5224807bf0e",
   "environment": "isolated worktree wt-2567 (branch issue-2567, base origin/develop 0d32a283e); backend go build ./... + handlers 定向 go test (Postgres 127.0.0.1:15433/tuneloop_test_2567, docs/ops/test-db-lifecycle.md); frontend-mobile Node v22.22.3 npm run build:weapp + npx eslint; no production calls",
   "rows": [
     {
@@ -42,11 +42,11 @@
       "artifacts": [
         "docs/evidence/2567/R3-audit.txt"
       ],
-      "assert": "exit 0；含 AUDIT_ACTION=ACCOUNT_MERGE",
-      "actual": "PASS：AUDIT_ACTION=ACCOUNT_MERGE / AUDIT_HAS_FROM_TO=1 / AUDIT_SOURCE=qr_bind / AUDIT_RESOURCE=user；R3_OK",
+      "assert": "exit 0；含 AUDIT_ACTION=ACCOUNT_MERGE、AUDIT_ORG_ID=NON_NIL",
+      "actual": "PASS：AUDIT_ACTION=ACCOUNT_MERGE / AUDIT_HAS_FROM_TO=1 / AUDIT_SOURCE=qr_bind / AUDIT_RESOURCE=user / AUDIT_ORG_ID=NON_NIL（审计行 org_id 与 details.org_id 均为合并后商户 org）/ RECONCILE_SOURCE=membership；R3_OK",
       "expected": "PASS",
-      "negative": "无审计 → FAIL",
-      "negative_result": "红实证（同上）：audits 为空 → --- FAIL（require.Len 期望 1 条 ACCOUNT_MERGE）；恢复修复后恰好 1 条 → PASS",
+      "negative": "无审计或缺 org_id → FAIL",
+      "negative_result": "红实证（Rev.3，tmp/red-2567-r7.log，把 account_merge.go 回退到 017bc5619 后跑同一用例）：AUDIT_ORG_ID=NIL、RECONCILE_SOURCE=<nil> → --- FAIL（Messages: AUDIT_ORG_ID=NON_NIL / RECONCILE_SOURCE）；恢复修复后 AUDIT_ORG_ID=NON_NIL、RECONCILE_SOURCE=membership → PASS（红绿可证）",
       "pass": true
     },
     {
@@ -71,7 +71,7 @@
         "docs/evidence/2567/R5-build.txt"
       ],
       "assert": "exit 0；含 GO_TEST_OK=1、MOBILE_BUILD_OK=1",
-      "actual": "PASS：GO_TEST_OK=1（GO_TEST_PASS_COUNT=15、GO_TEST_FAIL_COUNT=0）/ GO_BUILD_OK=1 / MOBILE_BUILD_OK=1 / ESLINT_OK=1 / WEAPP_NATIVE_TAG_HITS=0；R5_OK",
+      "actual": "PASS：GO_TEST_OK=1（GO_TEST_PASS_COUNT=16、GO_TEST_FAIL_COUNT=0，含 Rev.3 新增 TestAccountMergeAuditAttribution_2567）/ GO_BUILD_OK=1 / MOBILE_BUILD_OK=1 / ESLINT_OK=1 / WEAPP_NATIVE_TAG_HITS=0；R5_OK",
       "expected": "PASS",
       "negative": "任一失败 → FAIL",
       "negative_result": "红实证：本轮首跑 weapp 构建在无 node_modules 的隔离 worktree 中 `sh: 1: taro: not found` → MOBILE_BUILD_OK=0、exit 1（tmp 日志）；链接依赖并以 Node v22.22.3 重跑后 MOBILE_BUILD_OK=1 → PASS",
@@ -89,6 +89,20 @@
       "expected": "PASS",
       "negative": "待办未关闭 → FAIL",
       "negative_result": "红实证（同上）：LOCAL_INVITES_CLOSED=0、CONFIRM_SESSIONS_CLOSED=0（邀请仍 pending、会话仍 waiting）→ --- FAIL；恢复修复后两者均 1 → PASS。另 grep 全仓无 user_task_queues 的 SQL（IAM_SQL_HITS=0），跨库红线未破",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2567.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2567/R7-audit-attribution.txt"
+      ],
+      "assert": "exit 0；含 AUDIT_ORG_ID=NON_NIL、LEGACY_FROM_IAM_SUB_EMPTY=1",
+      "actual": "PASS：AUDIT_ORG_ID=NON_NIL（审计行 org_id + details.org_id = 合并后商户 org）/ AUDIT_TO_IAM_SUB=NON_EMPTY（存活账户 A 的真实 iam_sub，未被 C 的空值覆盖）/ LEGACY_FROM_IAM_SUB_EMPTY=1（legacy 员工行合并前 iam_sub 为空，按历史值留痕）/ RECONCILE_SOURCE=membership / FROM_LOCAL_TRACEABLE=1（from_local 保留可反查）；R7_OK",
+      "expected": "PASS",
+      "negative": "审计缺 org_id → FAIL",
+      "negative_result": "红实证（tmp/red-2567-r7.log，account_merge.go 回退到 017bc5619）：AUDIT_ORG_ID=NIL、RECONCILE_SOURCE=<nil> → --- FAIL（审计组织归属取自合并前内存值，与 Round 1 Audit Bug 1 同因）；修复版 A、C 两侧归属与 iam_sub 均正确 → PASS",
       "pass": true
     }
   ]

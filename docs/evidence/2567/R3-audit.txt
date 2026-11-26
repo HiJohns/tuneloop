@@ -1,6 +1,6 @@
-# build=1.0.017bc5619 # commit=017bc5619be91047ea7acb74c93b14f1a8ae0f75 # dirty=false
-GENERATED_AT_HEAD=017bc5619be91047ea7acb74c93b14f1a8ae0f75
+# build=1.0.4935db7f4 # commit=4935db7f4a61d2579f668557caaf7e1a9a34b757 # dirty=false
+GENERATED_AT_HEAD=4935db7f4a61d2579f668557caaf7e1a9a34b757
 == R3 合并审计（ACCOUNT_MERGE + from/to iam_sub + 来源 qr_bind） ==
---- PASS: TestAccountMergeWritesAudit_2567 (0.92s)
-    account_merge_2567_test.go:280: AUDIT_ACTION=ACCOUNT_MERGE AUDIT_HAS_FROM_TO=1 AUDIT_SOURCE=qr_bind AUDIT_RESOURCE=user
+--- PASS: TestAccountMergeWritesAudit_2567 (0.89s)
+    account_merge_2567_test.go:288: AUDIT_ACTION=ACCOUNT_MERGE AUDIT_HAS_FROM_TO=1 AUDIT_SOURCE=qr_bind AUDIT_RESOURCE=user AUDIT_ORG_ID=NON_NIL RECONCILE_SOURCE=membership
 R3_OK
