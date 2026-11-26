@@ -90,10 +90,21 @@
 
 ### 人工/部署侧
 
-- D4 的**真实渲染/点击回执**不在 Developer 可完成范围，由 `[Ops-Followup of #2564]`（label `waitForConfirm`，无 `status:*`）承载，主 Issue 验收独立判定。
+- D4 的**真实渲染/点击回执**不在 Developer 可完成范围，已建跟踪 Issue #2572（`[Ops-Followup of #2564]`，label `waitForConfirm`，无 `status:*`）承载；主 Issue 验收独立判定。
 
 ### Pre-ready gate
 
-- 待运行（本评论随后更新 `RESULT: PASS` 与报告路径）。
+- 命令（与计划 R4 合同逐字一致）：
+  ```
+  /home/coder/.config/opencode/scripts/pre-ready-check.sh 2564 \
+    --summary-file docs/evidence/2564/summary.md \
+    --changed-files docs/evidence/2564/changed-files.txt \
+    --evidence-file docs/evidence/2564/evidence.json \
+    --full-gate-cmd "cd frontend-pc && npm run build" \
+    --report docs/evidence/2564/pre-ready-2564.json
+  ```
+- 报告：`docs/evidence/2564/pre-ready-2564.json`；`RESULT: PASS`（P1/P2/P3/P6/P11/P12/P13/P14/P16/P17/P18 全 PASS；P15/P7/P8/P9/P10 为 N/A）。
+- P5 为 `N/A (sub-task: full gate belongs to the parent/batch gate)`：本 Issue body 含 `Parent: #2563`，按 Issue #70 分层口径，全量 gate 由父任务 #2563 承担（其 gate 已 PASS 并合入 `origin/develop`）。
+- P4 为 `WARN (no --affected-cmd supplied)`：计划 R4 命令未包含 `--affected-cmd`（本单为静态接线 + 构建，无独立测试套件），定向构建/静态断言由 R1–R3 承担。
 
 *Model: DeepSeek V4.1 Flash 1017*

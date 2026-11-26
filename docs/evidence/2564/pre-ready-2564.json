@@ -1,7 +1,7 @@
 {
   "issue": 2564,
-  "overall": "FAIL",
-  "plan": "/tmp/opencode/tuneloop/wt-2564/tmp/pre-ready-2564.6zrd28/plan.md",
+  "overall": "PASS",
+  "plan": "/tmp/opencode/tuneloop/wt-2564/tmp/pre-ready-2564.6moRpS/plan.md",
   "plan_sha256": "b0d4e3be3b99e40fb1eeb020b61191473dfc7e5a0b8c6ee672ab506617af692e",
   "config_sha": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
   "provenance": {
@@ -10,7 +10,7 @@
     "dirty": false
   },
   "summary": "docs/evidence/2564/summary.md",
-  "timestamp": "20261126-160017",
+  "timestamp": "20261126-160045",
   "checks": [
     {
       "id": "P1",
@@ -24,8 +24,8 @@
     },
     {
       "id": "P3",
-      "status": "FAIL",
-      "detail": "evidence paths do not exist: docs/evidence/2564/pre-ready-2564.json message.error message.success('创建成功') services/apiError.js"
+      "status": "PASS",
+      "detail": "all referenced evidence paths exist and are durable"
     },
     {
       "id": "P4",
@@ -34,13 +34,13 @@
     },
     {
       "id": "P12",
-      "status": "FAIL",
-      "detail": "R4: artifact not found: docs/evidence/2564/pre-ready-2564.json"
+      "status": "PASS",
+      "detail": "Evidence Contract complete: 4 row(s) match the plan and have durable artifacts"
     },
     {
       "id": "P14",
-      "status": "FAIL",
-      "detail": "artifact missing: docs/evidence/2564/pre-ready-2564.json"
+      "status": "PASS",
+      "detail": "artifact provenance matches evidence (4 artifacts)"
     },
     {
       "id": "P18",
@@ -65,7 +65,7 @@
     {
       "id": "P5",
       "status": "N/A",
-      "detail": "skipped: P12/P14/P15/P16 static checks failed (static checks run first)"
+      "detail": "sub-task: full gate belongs to the parent/batch gate"
     },
     {
       "id": "P6",
@@ -99,8 +99,8 @@
     },
     {
       "id": "P13",
-      "status": "FAIL",
-      "detail": "artifacts not on origin/issue-2564: docs/evidence/2564/pre-ready-2564.json"
+      "status": "PASS",
+      "detail": "fix commit and evidence artifacts are on origin/issue-2564"
     }
   ]
 }
