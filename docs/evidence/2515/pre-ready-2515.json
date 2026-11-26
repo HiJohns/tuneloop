@@ -1,16 +1,16 @@
 {
   "issue": 2515,
   "overall": "FAIL",
-  "plan": "/tmp/opencode/tuneloop/wt-2515/tmp/pre-ready-2515.jI7syn/plan.md",
+  "plan": "/tmp/opencode/tuneloop/wt-2515/tmp/pre-ready-2515.waBgbZ/plan.md",
   "plan_sha256": "c3d4ae2062fd45928e866898e1dfc00e06852853ee7a6125058c4738f86c812f",
   "config_sha": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
   "provenance": {
-    "build": "1.0.a5980e4fe",
-    "commit": "a5980e4fe195555b968e9c97278e0290bf7d3302",
+    "build": "1.0.254dbaecf",
+    "commit": "254dbaecf76bfc0b506ebf2c6a4f7af037b0b484",
     "dirty": false
   },
   "summary": "docs/evidence/2515/summary.md",
-  "timestamp": "20261126-105548",
+  "timestamp": "20261126-110041",
   "checks": [
     {
       "id": "P1",
@@ -24,8 +24,8 @@
     },
     {
       "id": "P3",
-      "status": "FAIL",
-      "detail": "evidence paths do not exist: docs/evidence/2515/pre-ready-2515.json instA.current_site_id instrument_loss.go instruments.site_id"
+      "status": "PASS",
+      "detail": "all referenced evidence paths exist and are durable"
     },
     {
       "id": "P4",
@@ -34,13 +34,13 @@
     },
     {
       "id": "P12",
-      "status": "FAIL",
-      "detail": "R7: artifact not found: docs/evidence/2515/pre-ready-2515.json"
+      "status": "PASS",
+      "detail": "Evidence Contract complete: 7 row(s) match the plan and have durable artifacts"
     },
     {
       "id": "P14",
-      "status": "FAIL",
-      "detail": "provenance mismatch build: artifact=1.0.52620d9db evidence=1.0.a5980e4fe (docs/evidence/2515/R5-regression.txt)"
+      "status": "PASS",
+      "detail": "artifact provenance matches evidence (7 artifacts)"
     },
     {
       "id": "P18",
@@ -64,8 +64,8 @@
     },
     {
       "id": "P5",
-      "status": "N/A",
-      "detail": "skipped: P12/P14/P15/P16 static checks failed (static checks run first)"
+      "status": "FAIL",
+      "detail": "working tree is dirty or has untracked files (only tmp/ and --allow-file are allowed):  docs/evidence/2515/pre-ready-2515.json"
     },
     {
       "id": "P6",
@@ -99,8 +99,8 @@
     },
     {
       "id": "P13",
-      "status": "FAIL",
-      "detail": "artifacts not on origin/issue-2515: docs/evidence/2515/pre-ready-2515.json"
+      "status": "PASS",
+      "detail": "fix commit and evidence artifacts are on origin/issue-2515"
     }
   ]
 }
