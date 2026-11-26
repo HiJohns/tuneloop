@@ -1,0 +1,29 @@
+# build=1.0.52f1ed229 # commit=52f1ed22905827b97e14feb76e67b64f2791cc67 # dirty=false
+# 码来源可追溯（D1）：判定表每行引用的 code 必须在 code_source 指定的 handler 行真实导出
+TRACEABLE row=frontend-pc/src/components/SiteMemberManagement.jsx:message.error(resp.message || '提交申请失败');... code=40900 source=backend/handlers/member_invite_2114.go:158
+TRACEABLE row=frontend-pc/src/components/MerchantMemberManagement.jsx:message.error(invite.message || '发送邀请失败'... code=40900 source=backend/handlers/member_invite_2114.go:416
+TRACEABLE row=frontend-pc/src/pages/DirectMemberManagement.jsx:message.error(resp.message || '邀请失败')... code=40900 source=backend/handlers/member_invite_2114.go:416+483
+TRACEABLE row=frontend-pc/src/pages/DirectMemberManagement.jsx:message.error(resp.message || '创建失败')... code=40900 source=backend/handlers/user_staff.go:296
+TRACEABLE row=frontend-pc/src/pages/admin/category/List.jsx:message.error(updated.message || '更新失败')... code=40002 source=backend/handlers/api.go:955
+TRACEABLE row=frontend-pc/src/pages/admin/category/List.jsx:message.error(response.message || '创建失败'... code=40002 source=backend/handlers/api.go:876
+CODE_ROWS_CHECKED=6
+CODE_SOURCE_MISSING=0
+UNREACHABLE_CODES=0
+BACKEND_HANDLERS_EXPORT code=40002 files=75
+BACKEND_HANDLERS_EXPORT code=40900 files=20
+BACKEND_EXPORT_MISSING=0
+# 传输层可达性：business-persisted 的码必须由 HTTP 409 送达（services/api.js 保留 code）
+CLIENT_409_RETURN=1
+CLIENT_404_RETURN=1
+CLIENT_OTHER_THROW=1
+TRANSPORT row=frontend-pc/src/components/SiteMemberManagement.jsx verdict=business-persisted code=40900 status=StatusConflict observable_by_client=1
+TRANSPORT row=frontend-pc/src/components/MerchantMemberManagement.jsx verdict=business-persisted code=40900 status=StatusConflict observable_by_client=1
+TRANSPORT row=frontend-pc/src/pages/DirectMemberManagement.jsx verdict=business-persisted code=40900 status=StatusConflict observable_by_client=1
+TRANSPORT row=frontend-pc/src/pages/DirectMemberManagement.jsx verdict=business-persisted code=40900 status=StatusConflict observable_by_client=1
+TRANSPORT row=frontend-pc/src/pages/DirectMemberManagement.jsx verdict=business-persisted code=40900 status=StatusConflict observable_by_client=1
+TRANSPORT row=frontend-pc/src/pages/admin/category/List.jsx verdict=defer:tier2 code=40002 status=StatusBadRequest observable_by_client=0
+TRANSPORT row=frontend-pc/src/pages/admin/category/List.jsx verdict=defer:tier2 code=40002 status=StatusBadRequest observable_by_client=0
+TRANSPORT_ROWS_CHECKED=6
+TRANSPORT_UNOBSERVABLE_PERSISTED=0
+TRANSPORT_OBSERVABLE_DEFERRED=0
+TRANSPORT_UNKNOWN_STATUS=0

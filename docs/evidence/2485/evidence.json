@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "issue": 2485,
+  "build": "1.0.52f1ed229",
+  "commit": "52f1ed22905827b97e14feb76e67b64f2791cc67",
+  "dirty": false,
+  "plan_sha256": "74b016a1bbd5398badf3b215d2310e3df9333e63a92ee86dfe315d4464254db9",
+  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2485 (branch issue-2485, base origin/develop 58cb3a54a with #2480 formConflict/FormConflictAlert merged); node v20.20.2; frontend-pc node_modules present (eslint 8.57); decision table + scans are read-only (no DB); build/eslint via host heavy-lock",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2485.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2485/R1-classify.txt"
+      ],
+      "assert": "exit 0；含 UNCLASSIFIED=0",
+      "actual": "PASS：SCAN_ROWS=35 CLASSIFIED_ROWS=35 UNCLASSIFIED=0 INVALID_VERDICT=0 ROWS_GE_BASELINE=1（BASELINE_ROWS=32，来自 #2480 的 R11-scan.txt）；KEEP_ROWS=29 PERSISTED_ROWS=4 DEFER_ROWS=2，每行带 verdict/code/code_source/reason",
+      "expected": "PASS",
+      "negative": "无结论行 → FAIL",
+      "negative_result": "扫描每个 message.error 调用点都必须在判定表命中；未命中直接记 UNCLASSIFIED=1 并打印 MISSING TABLE ROW。本轮 35/35 命中（比 #2480 基线 32 行更全）",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2485.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2485/R2-codes.txt"
+      ],
+      "assert": "exit 0；含 CODE_SOURCE_MISSING=0 与 UNREACHABLE_CODES=0",
+      "actual": "PASS：CODE_ROWS_CHECKED=6 CODE_SOURCE_MISSING=0 UNREACHABLE_CODES=0 BACKEND_EXPORT_MISSING=0；另加传输层可达性：TRANSPORT_ROWS_CHECKED=6 TRANSPORT_UNOBSERVABLE_PERSISTED=0 TRANSPORT_OBSERVABLE_DEFERRED=0 TRANSPORT_UNKNOWN_STATUS=0，CLIENT_409_RETURN=1/CLIENT_404_RETURN=1/CLIENT_OTHER_THROW=1",
+      "expected": "PASS",
+      "negative": "引用未导出码 → FAIL",
+      "negative_result": "两段判定都可失败：① code_source 行用 sed 取回后断言含 \"code\": <code>，引用未导出码 → UNREACHABLE_CODES>0；② 对每行 code_source 的 http.Status* 求值，business-persisted 行必须为 StatusConflict（services/api.js 仅对 409 保留 code，对其余非 2xx 直接 throw），defer 行必须不是 409（否则记为 MISCLASSIFIED_DEFER）。本轮据此把分类新建/改名（40002 + StatusBadRequest）从 business-persisted 纠正为 defer:tier2（#2563）",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2485.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2485/R3-converted.txt"
+      ],
+      "assert": "exit 0；含 CONVERTED_ROWS>=1 与 CODE_FIRST=1",
+      "actual": "PASS：CONVERTED_ROWS=4 CONVERTED_GE_1=1 CODE_FIRST=1；3 个文件的 isBusinessCorrectableConflict 判定（共 4 处）都在 ≤3 行内落到 set*Conflict(conflictText(...))，并由 <FormConflictAlert> 渲染",
+      "expected": "PASS",
+      "negative": "缺 code 判定 → FAIL",
+      "negative_result": "CODE_FIRST 由成对断言计算（每处 isBusinessCorrectableConflict 之后 3 行内必须出现持久 setter）；只换文案不先判 code → pairs != matched → CODE_FIRST=0",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2485.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2485/R4-shared.txt"
+      ],
+      "assert": "exit 0；含 SHARED_REUSE>=1 与 LOCAL_ALERT_DUP=0",
+      "actual": "PASS：SHARED_REUSE=3 SHARED_REUSE_GE_1=1 LOCAL_ALERT_DUP=0 LOCAL_CODE_LIST_FILES=0；PERSISTED_FILES=3 PERSISTED_FILES_MISSING_ALERT=0（3 个仍有转换点的文件都渲染共享件；分类页无转换点，已按 D3 移除其 Alert 接线）",
+      "expected": "PASS",
+      "negative": "自建 Alert → FAIL",
+      "negative_result": "LOCAL_ALERT_DUP 统计 <Alert> 邻域出现 Conflict 状态变量；LOCAL_CODE_LIST_FILES 统计文件内重新维护 40002/40004/40005 白名单（口径必须留在 utils/formConflict.js）；PERSISTED_FILES_MISSING_ALERT 统计有 business-persisted 行却不渲染 <FormConflictAlert> 的文件",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2485.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2485/R5-residual.txt"
+      ],
+      "assert": "exit 0；含 BUSINESS_TOAST_RESIDUAL=0",
+      "actual": "PASS：BUSINESS_TOAST_RESIDUAL=0 RESIDUAL_DETECTOR_SELF_TEST=1 RESIDUAL_SELF_TEST_HITS=1 KEEP_ROWS=29 KEEP_WITH_REASON=29 DEFER_ROWS=2 DEFER_WITH_REASON=2 KEEP_REASON_COMPLETE=1 DEFER_REASON_COMPLETE=1",
+      "expected": "PASS",
+      "negative": "残留 >0 → FAIL",
+      "negative_result": "残留扫描按「message.error 前 10 行内出现 code === 40002|40004|40005|40900」判定；同一检测器对内置缺陷样本（tmp/residual-selftest-2485.jsx）必须命中 ≥1（RESIDUAL_DETECTOR_SELF_TEST=1），证明它能在缺陷形态下失败；keep/defer 行理由为空 → KEEP_REASON_COMPLETE/DEFER_REASON_COMPLETE=0",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2485.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2485/R6-build.txt"
+      ],
+      "assert": "exit 0；含 BUILD_OK 与 ESLINT_OK",
+      "actual": "PASS：BUILD_EXIT=0 BUILD_OK、ESLINT_EXIT=0 ESLINT_OK（cd frontend-pc && npm run build + npx eslint 4 个改动文件：0 error / 8 既有 warning）",
+      "expected": "PASS",
+      "negative": "构建失败 → FAIL",
+      "negative_result": "BUILD_EXIT/ESLINT_EXIT 非 0 时输出 BUILD_FAIL/ESLINT_FAIL，r6 断言失败",
+      "pass": true
+    }
+  ],
+  "tooling_commit": "a017a25d46fec75ebb30fd9e19eb220c51fb166a"
+}
