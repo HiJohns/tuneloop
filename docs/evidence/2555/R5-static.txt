@@ -1,0 +1,7 @@
+# build=1.0.9b18e8931 # commit=9b18e893171ce064ce75abbb81babfbee28ee05b # dirty=false
+# R5 gofmt -l + go vet ./handlers
+GOFMT_DIFF=0
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795689872408 wait_ms=84
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=84
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795689875529 hold_ms=3121
+VET_RC=0

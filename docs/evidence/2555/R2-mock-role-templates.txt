@@ -1,0 +1,17 @@
+# build=1.0.9b18e8931 # commit=9b18e893171ce064ce75abbb81babfbee28ee05b # dirty=false
+# CMD go test -count=1 -v -run '^TestActivateUser2309_IAMMockServesRoleTemplates$' ./handlers/
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795689858450 wait_ms=68
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=68
+[DEBUG] Loaded .env from: ../.env
+2026/11/26 10:44:23 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c sslmode=disable
+2026/11/26 10:44:23 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c
+2026/11/26 10:44:23 [DB] Connected to database 'tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c'
+=== RUN   TestActivateUser2309_IAMMockServesRoleTemplates
+2026/11/26 10:44:24 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:41371, clientID=test-ns, namespace=test-ns
+2026/11/26 10:44:24 [IAMClient] Obtained client credentials token, expires in 7200s
+IAM_ROLE_TEMPLATE_COUNT=1 IAM_ROLE_TEMPLATE_CODE=site_member
+--- PASS: TestActivateUser2309_IAMMockServesRoleTemplates (0.00s)
+PASS
+ok  	tuneloop-backend/handlers	0.707s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795689864127 hold_ms=5677
+GO_TEST_RC=0

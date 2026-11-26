@@ -1,0 +1,28 @@
+# build=1.0.9b18e8931 # commit=9b18e893171ce064ce75abbb81babfbee28ee05b # dirty=false
+# R4 go build ./... + 定向回归（#2309 / #2526 / #2375）
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795689875681 wait_ms=71
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=71
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795689883562 hold_ms=7881
+BUILD_RC=0
+--- PASS: TestStaffDetail2526_ZeroTenantMember (0.96s)
+--- PASS: TestStaffDetail2526_SiteAdmin (0.74s)
+--- PASS: TestStaffDetail2526_SystemAdmin (0.76s)
+--- PASS: TestStaffDetail2526_IsolationNegative (0.76s)
+--- PASS: TestStaffDetail2526_ListDetailParity (0.76s)
+--- PASS: TestStaffUpdate2526_ZeroTenantPersists (0.76s)
+--- PASS: TestStaffActivate2526_RowAction (0.75s)
+--- PASS: TestPersonnelAttributionFlag2526 (0.76s)
+--- PASS: TestCreateUserRoleErrors_2375 (0.70s)
+--- PASS: TestUpdateUserRoleForbidden_2375 (0.69s)
+--- PASS: TestCreateUser2309_LocalTxFailurePurgesIAM (0.66s)
+--- PASS: TestCreateUser2309_BindFailurePurgesIAM (0.63s)
+--- PASS: TestActivateUser2309_BindFailurePurgesIAM (0.63s)
+--- PASS: TestActivateUser2309_PermissionFailurePurgesIAM (0.63s)
+--- PASS: TestActivateUser2309_LocalUpdateFailurePurgesIAM (0.64s)
+--- PASS: TestActivateUser2309_IAMMockServesRoleTemplates (0.00s)
+--- PASS: TestActivateUser2309_FixtureVisibilityPrecondition (0.64s)
+REGRESSION_RC=0
+FAIL_COUNT=0
+REGRESSION_PASS=1
+EXISTING_2526_PASS=1
+EXISTING_2375_PASS=1

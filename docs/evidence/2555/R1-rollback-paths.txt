@@ -1,0 +1,55 @@
+# build=1.0.9b18e8931 # commit=9b18e893171ce064ce75abbb81babfbee28ee05b # dirty=false
+# CMD go test -count=1 -v -run '^(TestActivateUser2309_BindFailurePurgesIAM|TestActivateUser2309_PermissionFailurePurgesIAM|TestActivateUser2309_LocalUpdateFailurePurgesIAM)$' ./handlers/
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795689848658 wait_ms=78
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=78
+[DEBUG] Loaded .env from: ../.env
+2026/11/26 10:44:15 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c sslmode=disable
+2026/11/26 10:44:15 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c
+2026/11/26 10:44:15 [DB] Connected to database 'tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c'
+=== RUN   TestActivateUser2309_BindFailurePurgesIAM
+2026/11/26 10:44:15 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c sslmode=disable
+2026/11/26 10:44:15 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c
+2026/11/26 10:44:15 [DB] Connected to database 'tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c'
+
+2026/11/26 10:44:16 [32m/tmp/opencode/tuneloop/wt-2555/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[599.747ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/26 10:44:16 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:46657, clientID=test-ns, namespace=test-ns
+2026/11/26 10:44:16 [IAMClient] Obtained client credentials token, expires in 7200s
+2026/11/26 10:44:16 [IAMClient] Created user: user_id=d8b486eb-1d6b-4ed9-9da9-b30387b536fd, status=active
+ACTIVATE2309_CASE=bind_failure HTTP=500 PURGE=1 SOFT=0 IAM_CREATE=1 IAM_BIND=1 IAM_PERM=0 IAM_UNBIND=0
+--- PASS: TestActivateUser2309_BindFailurePurgesIAM (0.92s)
+=== RUN   TestActivateUser2309_PermissionFailurePurgesIAM
+
+2026/11/26 10:44:17 [32m/tmp/opencode/tuneloop/wt-2555/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[480.697ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "pricing_templates", "users" RESTART IDENTITY CASCADE[0m
+2026/11/26 10:44:17 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:39309, clientID=test-ns, namespace=test-ns
+2026/11/26 10:44:17 [IAMClient] Obtained client credentials token, expires in 7200s
+2026/11/26 10:44:17 [IAMClient] Created user: user_id=30103f14-6f2b-4f31-82e6-17791aa2931c, status=active
+2026/11/26 10:44:17 [IAMClient] Bound user 30103f14-6f2b-4f31-82e6-17791aa2931c to org 27ea6c61-2c28-4e1f-b7a8-c9f34f708f20 with role user
+2026/11/26 10:44:17 [IAMClient] Incremented perm_version
+2026/11/26 10:44:17 [IAMClient] Unbound user 30103f14-6f2b-4f31-82e6-17791aa2931c from org 27ea6c61-2c28-4e1f-b7a8-c9f34f708f20
+2026/11/26 10:44:17 [IAMClient] Incremented perm_version
+ACTIVATE2309_CASE=permission_failure HTTP=500 PURGE=1 SOFT=0 IAM_CREATE=1 IAM_BIND=1 IAM_PERM=1 IAM_UNBIND=1
+--- PASS: TestActivateUser2309_PermissionFailurePurgesIAM (0.65s)
+=== RUN   TestActivateUser2309_LocalUpdateFailurePurgesIAM
+
+2026/11/26 10:44:18 [32m/tmp/opencode/tuneloop/wt-2555/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[485.502ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "pricing_templates", "users" RESTART IDENTITY CASCADE[0m
+2026/11/26 10:44:18 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:44151, clientID=test-ns, namespace=test-ns
+2026/11/26 10:44:18 [IAMClient] Obtained client credentials token, expires in 7200s
+2026/11/26 10:44:18 [IAMClient] Created user: user_id=90e88d67-a209-461e-a0e1-3205c5822b73, status=active
+2026/11/26 10:44:18 [IAMClient] Bound user 90e88d67-a209-461e-a0e1-3205c5822b73 to org 52571213-e8a9-431b-9ed8-951eaa81ae04 with role user
+2026/11/26 10:44:18 [IAMClient] Incremented perm_version
+2026/11/26 10:44:18 [IAMClient] Incremented perm_version
+2026/11/26 10:44:18 [IAMClient] Unbound user 90e88d67-a209-461e-a0e1-3205c5822b73 from org 52571213-e8a9-431b-9ed8-951eaa81ae04
+2026/11/26 10:44:18 [IAMClient] Incremented perm_version
+ACTIVATE2309_CASE=local_update_failure HTTP=500 PURGE=1 SOFT=0 IAM_CREATE=1 IAM_BIND=1 IAM_PERM=1 IAM_UNBIND=1 LOCAL_UPDATE_ATTEMPT=1
+
+2026/11/26 10:44:18 [34;1m/tmp/opencode/tuneloop/wt-2555/backend/handlers/user_staff_rollback_2309_test.go:289
+[0m[35m[warn] [0mremoving callback `fail_users_update_2309` from /tmp/opencode/tuneloop/wt-2555/backend/handlers/user_staff_rollback_2309_test.go:289
+--- PASS: TestActivateUser2309_LocalUpdateFailurePurgesIAM (0.66s)
+PASS
+ok  	tuneloop-backend/handlers	3.047s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795689858306 hold_ms=9648
+GO_TEST_RC=0
+ACTIVATE2309_PASS_COUNT=3

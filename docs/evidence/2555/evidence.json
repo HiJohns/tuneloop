@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "issue": 2555,
+  "build": "1.0.9b18e8931",
+  "commit": "9b18e893171ce064ce75abbb81babfbee28ee05b",
+  "dirty": false,
+  "plan_sha256": "e38d583c94d8c18cf6c572a67a77485fccd5910ed50dcd7003cbf481fdc8c044",
+  "tooling_commit": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2555 (branch issue-2555, base origin/develop c37655eb0); go1.27.4; postgres via backend/.env (test template clone); fake IAM via httptest with create/bind/unbind/perm counters and role-templates payload; scripts/verify-2555.sh r1-r5 under host heavy-lock",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2555.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2555/R1-rollback-paths.txt"
+      ],
+      "assert": "exit 0；grep ACTIVATE2309_CASE=bind_failure HTTP=500 PURGE=1 SOFT=0 IAM_CREATE=1 IAM_BIND=1 IAM_PERM=0 IAM_UNBIND=0、ACTIVATE2309_CASE=permission_failure HTTP=500 PURGE=1 SOFT=0 IAM_CREATE=1 IAM_BIND=1 IAM_PERM=1 IAM_UNBIND=1、ACTIVATE2309_CASE=local_update_failure HTTP=500 PURGE=1 SOFT=0 IAM_CREATE=1 IAM_BIND=1 IAM_PERM=1 IAM_UNBIND=1 LOCAL_UPDATE_ATTEMPT=1；grep -c '^--- PASS: TestActivateUser2309_' ≥3",
+      "actual": "PASS：三行 token 分别为 bind_failure（IAM_BIND=1 IAM_PERM=0 IAM_UNBIND=0）、permission_failure（IAM_PERM=1 IAM_UNBIND=1）、local_update_failure（IAM_PERM=1 IAM_UNBIND=1 LOCAL_UPDATE_ATTEMPT=1），三行均 HTTP=500 PURGE=1 SOFT=0 IAM_CREATE=1；ACTIVATE2309_PASS_COUNT=3",
+      "expected": "PASS",
+      "negative": "任一行 HTTP=404、PURGE=0、IAM_CREATE=0 或 LOCAL_UPDATE_ATTEMPT=0 → 回滚分支未被走到 → FAIL",
+      "negative_result": "任一行 HTTP=404（夹具退回顾客形态）会直接让 require.Equal(500) 失败；PURGE=0 或 LOCAL_UPDATE_ATTEMPT=0 也会让 token 不匹配，因此「被 404 短路」或「第三处回滚未走到」都不可能是绿",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2555.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2555/R2-mock-role-templates.txt"
+      ],
+      "assert": "exit 0；grep IAM_ROLE_TEMPLATE_COUNT=1、IAM_ROLE_TEMPLATE_CODE=site_member",
+      "actual": "PASS：IAM_ROLE_TEMPLATE_COUNT=1、IAM_ROLE_TEMPLATE_CODE=site_member（旧 {\"data\":[]} 会让 ListRoleTemplates 解析失败）",
+      "expected": "PASS",
+      "negative": "IAM_ROLE_TEMPLATE_COUNT=0（mock 未提供模板，#2540 合入后用例会退化为模板查询回滚）→ FAIL",
+      "negative_result": "旧 mock 响应解析失败 → ListRoleTemplates 返回 error → 用例 require.NoError 失败；COUNT/CODE token 同时不匹配",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2555.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2555/R3-fixture-precondition.txt"
+      ],
+      "assert": "exit 0；grep EMPTY_ROLE_STATUS=404、EMPTY_ROLE_IAM_CREATE=0、STAFF_ROLE_STATUS=500、STAFF_ROLE_PURGE=1",
+      "actual": "PASS：EMPTY_ROLE_STATUS=404、EMPTY_ROLE_IAM_CREATE=0（红条件固定）、STAFF_ROLE_STATUS=500、STAFF_ROLE_PURGE=1（绿条件）",
+      "expected": "PASS",
+      "negative": "EMPTY_ROLE_STATUS=200（纯顾客 by-id 被放宽）或 STAFF_ROLE_STATUS=404（主诉复发）→ FAIL",
+      "negative_result": "若 #2526 的顾客收窄被放宽（EMPTY_ROLE_STATUS=200）或夹具再次退回空 role（STAFF_ROLE_STATUS=404），token 不匹配",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2555.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2555/R4-regression.txt"
+      ],
+      "assert": "exit 0；grep BUILD_RC=0、REGRESSION_PASS=1、FAIL_COUNT=0、EXISTING_2526_PASS=1、EXISTING_2375_PASS=1",
+      "actual": "PASS：BUILD_RC=0、REGRESSION_PASS=1、FAIL_COUNT=0、EXISTING_2526_PASS=1、EXISTING_2375_PASS=1",
+      "expected": "PASS",
+      "negative": "REGRESSION_PASS=0 或 FAIL_COUNT>0 → FAIL",
+      "negative_result": "定向回归任一 FAIL 或 go build 失败 → FAIL_COUNT/REGRESSION_PASS 不匹配",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2555.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2555/R5-static.txt"
+      ],
+      "assert": "exit 0；grep GOFMT_DIFF=0、VET_RC=0",
+      "actual": "PASS：GOFMT_DIFF=0、VET_RC=0",
+      "expected": "PASS",
+      "negative": "GOFMT_DIFF≠0 或 VET_RC≠0 → FAIL",
+      "negative_result": "gofmt 有差异或 go vet 失败 → token 不匹配",
+      "pass": true
+    }
+  ]
+}

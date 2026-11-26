@@ -1,0 +1,25 @@
+# build=1.0.9b18e8931 # commit=9b18e893171ce064ce75abbb81babfbee28ee05b # dirty=false
+# CMD go test -count=1 -v -run '^TestActivateUser2309_FixtureVisibilityPrecondition$' ./handlers/
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795689864270 wait_ms=68
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=68
+[DEBUG] Loaded .env from: ../.env
+2026/11/26 10:44:29 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c sslmode=disable
+2026/11/26 10:44:29 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c
+2026/11/26 10:44:29 [DB] Connected to database 'tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c'
+=== RUN   TestActivateUser2309_FixtureVisibilityPrecondition
+2026/11/26 10:44:29 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c sslmode=disable
+2026/11/26 10:44:29 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c
+2026/11/26 10:44:29 [DB] Connected to database 'tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c'
+
+2026/11/26 10:44:30 [32m/tmp/opencode/tuneloop/wt-2555/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[614.680ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/26 10:44:30 [ActivateUser] WARN: invisible staff user=c5f60a63-7b2a-462b-9c7e-79b54032268c actor=c4058316-46ed-48c2-a019-eedcc813138b role=site_admin tid=37b5d003-7a4d-4b26-8641-8bde974d3aef oid=a24284d5-ceba-466d-8b27-65c4014bc100 user_role= user_tid=37b5d003-7a4d-4b26-8641-8bde974d3aef
+2026/11/26 10:44:30 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:46269, clientID=test-ns, namespace=test-ns
+2026/11/26 10:44:30 [IAMClient] Obtained client credentials token, expires in 7200s
+2026/11/26 10:44:30 [IAMClient] Created user: user_id=dd4cf8bb-ffd8-42fe-92e1-d9c57ee32545, status=active
+EMPTY_ROLE_STATUS=404 EMPTY_ROLE_IAM_CREATE=0 STAFF_ROLE_STATUS=500 STAFF_ROLE_PURGE=1
+--- PASS: TestActivateUser2309_FixtureVisibilityPrecondition (0.90s)
+PASS
+ok  	tuneloop-backend/handlers	1.698s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795689870918 hold_ms=6648
+GO_TEST_RC=0
