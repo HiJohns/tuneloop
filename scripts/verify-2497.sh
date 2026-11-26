@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # scripts/verify-2497.sh — #2497「5xx 内部诊断不得透传」证据生成器（R1–R8）。
 #
-# 用法：bash scripts/verify-2497.sh <r1|r2|r3|r4|r5|r6|r7|r8>
+# 用法：bash scripts/verify-2497.sh <r1|r2|r3|r4|r5|r6|r7|r8|r9>
 #
 # 每行把结果写入 docs/evidence/2497/R*-*.txt（首行 provenance），并打印机器可判定的
 # 断言键值；任一行断言不成立以非 0 退出。
@@ -15,6 +15,7 @@
 #   R6 go build + eslint + PC 全量构建 + mobile chokepoint 接线
 #   R7 全量后端回归（go test ./... -timeout 20m）
 #   R8 四源可复现（plan-source.sh → PLAN_SOURCE: PASS）
+#   R9 mobile H5 构建（Node 22，frontend-mobile npm run build:h5）
 #
 # 重命令（go build/test、npm build）经 heavy-run.sh 持 host 锁；已处锁内（gate）时用
 # VERIFY_2497_NO_LOCK=1 跳过二次取锁。
@@ -50,7 +51,7 @@ export TMPDIR="${TMPDIR:-$REPO_ROOT/tmp/gobuild}"
 export GOCACHE="${GOCACHE:-$REPO_ROOT/tmp/gocache}"
 mkdir -p "$TMPDIR" "$GOCACHE"
 
-usage() { echo "usage: $0 <r1|r2|r3|r4|r5|r6|r7|r8>" >&2; exit 2; }
+usage() { echo "usage: $0 <r1|r2|r3|r4|r5|r6|r7|r8|r9>" >&2; exit 2; }
 [ -n "$ROW" ] || usage
 
 FIX_SHA="$(git log --format=%H --grep="^fix(issue-$ISSUE)" -1 2>/dev/null || true)"
@@ -349,6 +350,40 @@ r8)
     fi
     body+="RESULT: $([ "$rc" = "0" ] && echo PASS || echo FAIL)"$'\n'
     finish R8-plan-source.txt "$rc" "$body"
+    ;;
+r9)
+    # v4 R9：mobile H5 生产构建（Taro v4 要求 Node 22；Node 24 会报 ESM 兼容错误）。
+    body="" rc=0
+    mobile="$REPO_ROOT/frontend-mobile"
+    node22_bin="${NODE22_BIN:-}"
+    if [ -z "$node22_bin" ]; then
+        for d in "$HOME"/.nvm/versions/node/v22*/bin; do
+            [ -x "$d/node" ] && node22_bin="$d"
+        done
+    fi
+    node_path="${node22_bin:+$node22_bin:}$PATH"
+    if [ ! -d "$mobile/node_modules" ]; then
+        body+="MOBILE_NODE_MODULES=missing"$'\n'
+        rc=1
+    else
+        mobile_log="$REPO_ROOT/tmp/verify-$ISSUE-r9-mobile-build.log"
+        ( cd "$mobile" && PATH="$node_path" heavy npm run build:h5 ) > "$mobile_log" 2>&1
+        mobile_exit=$?
+        node_full="$(PATH="$node_path" node -v 2>/dev/null || true)"
+        node_major="${node_full#v}"
+        node_major="${node_major%%.*}"
+        body+="MOBILE_BUILD_CMD=cd frontend-mobile && npm run build:h5（Node 22）"$'\n'
+        body+="MOBILE_BUILD_EXIT=$mobile_exit"$'\n'
+        body+="NODE_VERSION=${node_major:-unknown}"$'\n'
+        body+="NODE_VERSION_FULL=${node_full:-unknown}"$'\n'
+        body+="--- mobile build tail ---"$'\n'
+        body+="$(tail -8 "$mobile_log")"$'\n'
+        [ "$mobile_exit" = "0" ] || rc=1
+        [ "$node_major" = "22" ] || rc=1
+        [ "$rc" = "0" ] && body+="MOBILE_BUILD_OK=1"$'\n'
+    fi
+    body+="RESULT: $([ "$rc" = "0" ] && echo PASS || echo FAIL)"$'\n'
+    finish R9-mobile-build.txt "$rc" "$body"
     ;;
 *)
     usage
