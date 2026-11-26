@@ -1,0 +1,49 @@
+# build=1.0.b31e7815d # commit=b31e7815d # dirty=false
+== R6 构建 + gofmt + 定向回归 ==
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795693559514 wait_ms=69
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=69
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795693571300 hold_ms=11786
+--- PASS: TestPersonnel2065_MerchantView (0.92s)
+--- PASS: TestPersonnel2065_SiteView (0.73s)
+--- PASS: TestPersonnel2065_SystemView (0.74s)
+--- PASS: TestPersonnel2065_CustomerDenied (0.74s)
+--- PASS: TestPersonnel2065_MerchantSearchAndSiteFilter (0.74s)
+--- PASS: TestStaffDetail2526_ZeroTenantMember (0.74s)
+--- PASS: TestStaffDetail2526_SiteAdmin (0.74s)
+--- PASS: TestStaffDetail2526_SystemAdmin (0.75s)
+--- PASS: TestStaffDetail2526_IsolationNegative (0.74s)
+--- PASS: TestStaffDetail2526_ListDetailParity (0.75s)
+--- PASS: TestPersonnel2508_IDDomainRootCause (0.74s)
+--- PASS: TestPersonnel2508_SiteView (0.74s)
+--- PASS: TestPersonnel2508_CrossOrgIsolation (0.74s)
+--- PASS: TestPersonnel2508_OldKeyingGone (0.75s)
+--- PASS: TestPersonnel2508_MultiSiteFilter (0.83s)
+--- PASS: TestPersonnelTransitPredicate2552 (0.90s)
+--- PASS: TestPersonnelTransitPredicate2552_WithTenantClaim (0.72s)
+--- PASS: TestPersonnelTransitPredicate2552_NoOrgRule (0.66s)
+--- PASS: TestTransitOps_TransitSiteScoped (0.69s)
+--- PASS: TestTransitSiteMemberRoleFailFast_2461 (0.74s)
+--- PASS: TestTransitRoute_DBCreation (0.00s)
+--- PASS: TestTransitMemberScope2552_RepeatedAddKeepsSingleRow (0.67s)
+--- PASS: TestTransitMemberScope2552_NewUserTenantIsLocal (0.66s)
+--- PASS: TestTransitMemberOrgPaths2552_RoleAndUnbind (0.68s)
+--- PASS: TestTransitSiteCreate2552_Contract (0.64s)
+--- PASS: TestTransitSiteCreate2552_PrimaryUnresolved (0.66s)
+--- PASS: TestTransitSiteCreate2552_OrphanCompensated (0.65s)
+--- PASS: TestListControlledSitesExcludesTransit (0.64s)
+--- PASS: TestCreateAdminTransitSiteValidation (0.71s)
+--- PASS: TestTransitSiteMemberRoleRestriction (0.77s)
+--- PASS: TestTransitSiteMemberIAMSync (0.70s)
+--- PASS: TestTransitSiteMemberRoleTemplateErrorReported (0.65s)
+PASS
+ok  	tuneloop-backend/handlers	23.477s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795693600784 hold_ms=28533
+BUILD_RC=0
+GOFMT_DIFF=0
+REGRESSION_RC=0
+REGRESSION_PASS=1
+FAIL_COUNT=0
+REGRESSION_PASS_COUNT=32
+EXISTING_TRANSIT_IAM_PASS=1
+EXISTING_PERSONNEL_SYSTEM_VIEW_PASS=1
+R6_OK
