@@ -1597,6 +1597,8 @@ API 来源：
   - 库存监控页（固定集合，与表格列一致）：`sn,category_name,level,daily_rate,deposit,overdue_daily_fee,status`
   - 乐器列表页（弹窗可选）：识别码 / 分类 / 级别 / 日租金 / 押金 / 逾期租金 / 状态 / 描述（默认 `sn,category_name,status`）；**不再提供** 品牌 / 型号 / 库存 / 月租金
   - 金额列展示「元、2 位小数」；无值显示 `-`（显式 0 显示 `0.00`）
+  - **按角色裁剪（#2579 D9）**：无 `instrument:delete` 的角色（网点员工等）导出时**不包含**日租金 / 押金 / 逾期租金三列；
+    字段选择器同步隐藏这三项，且后端二次裁剪（不依赖前端传入）——「导出信息不得超出列表」
 
 - **导出（#2578）**：工具栏「导出 Excel」**跟随当前筛选**（识别码 / 分类（含后代）/ 状态 / 可见性范围），
   请求 `GET /api/instruments/export`（参数 `sn` / `category_id` / `status` / `exclude_status` / `fields=sn,category_name,status`），

@@ -134,7 +134,7 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | 丢失 / 恢复 | `instrument:update` | 原库存监控页动作并入 |
 | 删除 / 批量删除 | `instrument:delete` | |
 | 批量设价 | `RequireRole(ADMIN/OWNER/site_admin)` | 管理员专属 |
-| 导出 / 批量导入 | `instrument:read` / `instrument:create` | |
+| 导出 / 批量导入 | `instrument:read` / `instrument:create` | **导出字段 ⊆ 列表可见字段**（#2579 D9）：价格列（日租金 / 押金 / 逾期租金）需 `instrument:delete`，无该权限时后端裁剪、前端选择器隐藏；未知 `fields` → `400 40002`（#2579 D10） |
 | 字段「估值」可见 | 管理员 / 商户管理员 | 员工隐藏 |
 | 状态范围可见增量（下架/已出售/丢失） | 管理员 | 员工默认 可用/在租/维护 |
 

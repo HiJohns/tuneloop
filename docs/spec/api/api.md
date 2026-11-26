@@ -1772,6 +1772,15 @@ curl -X POST http://localhost:5554/api/instruments/import \  -H "Authorization: 
 >
 > **已移除字段（#2579）**：`brand`（品牌）、`model`（型号）、`monthly_rate`（月租金）、`stock`（库存数量）——
 > 模型字段已删除或定价链不产出，导出只会得到空列/恒 0 列，故不再接收。
+>
+> **未知 `fields` 值 → `400 / 40002`（#2579 D10）**：白名单 = 上述 9 个有数据源字段；出现任何未登记字段
+> （如已移除的 `brand`）时直接拒绝 —— `message` 形如 `invalid fields: brand`，并返回
+> `data.invalid_fields`（数组），**不会**返回 200 + 空列文件。
+>
+> **按角色裁剪（#2579 D9）**：导出字段 ⊆ 列表可见字段。无 `instrument:delete` 的账号（网点员工等）
+> 请求价格列（`daily_rate` / `deposit` / `overdue_daily_fee`）时，后端自动剔除这三列（不报错、不降级为 500）；
+> PC 字段选择器同样按该权限裁剪，避免「勾了却没有列」。`cus_perm = 0`（legacy JWT）与系统级角色沿用既有
+> `RequireCusPerm` 放行语义，不做收紧。
 
 > **注（#2578 可见性与过滤口径）**：导出与列表 `GET /api/instruments` 使用**同一套**过滤与可见性语义——
 > 可见性由 `applyInstrumentListScope` 注入（网点员工/维修师傅只看所属网点，其余按 `ApplyOrgScope`），
