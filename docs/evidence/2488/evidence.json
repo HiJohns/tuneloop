@@ -99,10 +99,10 @@
         "docs/evidence/2488/R7-gate.txt"
       ],
       "assert": "exit 0；grep GATE_RESULT=PASS、PLAN_SOURCE=PASS、FULL_GATE_DIRECT_EXIT=0",
-      "actual": "bootstrap pass 1：gate 报告待本轮全量 gate 产出；本行在 gate PASS 后立即重跑 r7 覆盖（同 fix commit a98106a26）",
+      "actual": "GATE_RESULT=PASS；FULL_GATE_DIRECT_EXIT=0；GATE_PLAN_SHA_MATCH=1；REBUILT_ROWS=7；PLAN_SOURCE=PASS",
       "expected": "PASS",
       "negative": "FULL_GATE_DIRECT_EXIT!=0 → FAIL",
-      "negative_result": "负例：全量 PC 构建失败 → FULL_GATE_DIRECT_EXIT!=0 或 GATE_RESULT!=PASS（r7 FAIL）",
+      "negative_result": "红：把任一行 artifact 改成旧 fix commit 或删掉 → REBUILT_ROWS<7；全量 PC 构建失败 → FULL_GATE_DIRECT_EXIT!=0；计划/证据/报告 sha 不一致 → GATE_PLAN_SHA_MATCH=0 或 PLAN_SOURCE=FAIL（r7 FAIL）",
       "pass": true
     }
   ]
