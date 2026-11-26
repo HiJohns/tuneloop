@@ -4,8 +4,8 @@
   "build": "1.0.52f1ed229",
   "commit": "52f1ed22905827b97e14feb76e67b64f2791cc67",
   "dirty": false,
-  "plan_sha256": "74b016a1bbd5398badf3b215d2310e3df9333e63a92ee86dfe315d4464254db9",
-  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2485 (branch issue-2485, base origin/develop 58cb3a54a with #2480 formConflict/FormConflictAlert merged); node v20.20.2; frontend-pc node_modules present (eslint 8.57); decision table + scans are read-only (no DB); build/eslint via host heavy-lock",
+  "plan_sha256": "ebdd0b1eaa0a4b3d5e271e5b0f7c3c6b794ba9c5279845233c5367a44a981278",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2485 (branch issue-2485, base origin/develop 58cb3a54a with #2480 formConflict/FormConflictAlert merged); node v24.13.0; frontend-pc node_modules linked from the main checkout (eslint 8.57); decision table + scans are read-only (no DB); build/eslint via host heavy-lock",
   "rows": [
     {
       "id": "R1",
