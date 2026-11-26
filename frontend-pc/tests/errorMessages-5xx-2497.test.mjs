@@ -10,12 +10,18 @@
 // mobile = frontend-mobile/src/services/errorMessageResolution.mjs（纯核心）。
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import {
   ERROR_CODE_MAP as PC_CODE_MAP,
   resolveErrorCore as resolvePcCore,
 } from '../src/services/errorMessages.js'
 import { resolveErrorCore as resolveMobileCore } from '../../frontend-mobile/src/services/errorMessageResolution.mjs'
+
+const HERE = path.dirname(fileURLToPath(import.meta.url))
+const REPO_ROOT = path.resolve(HERE, '../..')
 
 // mobile 的 code map 由 mobile errorMessages.js 注入；这里用与 mobile 同源的子集
 // （50000/50001 文案两端一致，平价脚本 check-error-message-parity-2480.mjs 兜住漂移）。
@@ -95,4 +101,53 @@ test('5xx 守卫不影响 L1 精确英文键映射 (#2497)', () => {
   const got = resolvePcCore({ code: 50000, message: 'order not found' })
   assert.equal(got.text, '未找到订单')
   assert.equal(got.layer, 'message_map')
+})
+
+// mobile 生产路径（Round 1 Bug 2）：解析核心只有在 api.js 的响应分支把 code 一并交出去时
+// 才可达。这里同时断言「接线」与「展示文本」：
+//   1) api.js 的 !response.ok 分支必须把 {code, message} 交给 resolveErrorMessage，
+//      并抛出解析结果（而不是原样 throw 后端 message）；
+//   2) 用 mobile 真实 code map（从源文件静态抽取，与 check-error-message-parity-2480.mjs
+//      同口径）跑同一 5xx 内部诊断载荷，模拟 apiFetch 抛错后页面拿到的展示文本。
+test('mobile 生产路径：api.js 非 2xx 分支经解析层，内部诊断不上屏 (#2497)', () => {
+  const apiSrc = fs.readFileSync(
+    path.join(REPO_ROOT, 'frontend-mobile/src/services/api.js'),
+    'utf8',
+  )
+  assert.match(
+    apiSrc,
+    /resolveErrorMessage\(\s*\{\s*code:\s*error\.code,\s*message:\s*error\.message\s*\}/,
+    'mobile chokepoint 必须把 code+message 交给解析层',
+  )
+  assert.match(
+    apiSrc,
+    /const requestError = new Error\(resolvedMessage\)/,
+    '抛出的 Error 必须是解析后的文案',
+  )
+  assert.doesNotMatch(
+    apiSrc,
+    /throw new Error\(error\.message \|\| error\.code/,
+    '不得原样抛出后端 message（会绕过 5xx 守卫）',
+  )
+
+  const mobileSrc = fs.readFileSync(
+    path.join(REPO_ROOT, 'frontend-mobile/src/services/errorMessages.js'),
+    'utf8',
+  )
+  const mobileMapText = (code) => {
+    const match = mobileSrc.match(new RegExp(`\\b${code}:\\s*'([^']*)'`))
+    return match ? match[1] : undefined
+  }
+  const generic = mobileMapText(50000)
+  assert.ok(generic, 'mobile ERROR_CODE_MAP 必须含 50000')
+
+  // 模拟 apiFetch 收到 500 + {code:50000, message:'标记删除失败：pq: ...'}
+  const resolved = resolveMobileCore(
+    { code: 50000, message: `标记删除失败：${INTERNAL_TAG}` },
+    { codeMap: { 50000: generic } },
+  )
+  assert.equal(resolved.text, generic, 'mobile 展示文本 = 通用文案')
+  assert.equal(resolved.layer, 'code_map')
+  assert.ok(!resolved.text.includes(INTERNAL_TAG), '内部串不得回显')
+  console.log('MOBILE_PROD_PATH=1')
 })

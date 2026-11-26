@@ -367,8 +367,8 @@ func (h *UserManagementHandler) MarkDeleted(c *gin.Context) {
 		return
 	}
 	if err := services.NewIAMClient().DeleteUser(user.IAMSub); err != nil {
+		// #2497：detail 只进日志（单一来源，避免同一次失败打两遍）。
 		log.Printf("[MarkDeleted] IAM deactivate failed user=%s: %v", user.ID, err)
-		log.Printf("[UserManagement] mark delete failed: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "标记删除失败，请稍后再试"})
 		return
 	}

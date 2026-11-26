@@ -2200,8 +2200,8 @@ func (h *UserStaffHandler) WxMergeCurrentUser(c *gin.Context) {
 		return
 	}
 	if err := services.NewIAMService().WxMerge(userToken, userID, req.ToUserID, req.OpenID); err != nil {
+		// #2497：detail 只进日志（单一来源，避免同一次失败打两遍）。
 		log.Printf("[WxMergeCurrentUser] merge failed for user %s -> %s: %v", userID, req.ToUserID, err)
-		log.Printf("[UserStaff] account merge failed: %v", err)
 		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "账户合并失败，请稍后再试"})
 		return
 	}
