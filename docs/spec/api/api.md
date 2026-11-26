@@ -1035,6 +1035,14 @@ GET /api/confirmation-sessions/:id
 > - **加盟店**：**必须**传 `owner_user_id`（否则 `40002`）；IAM 在命名空间下建**独立组织**（`parent_id = null`，`kind=franchise`）并把该用户绑为 **OWNER**，随后建 `org_link(kind=franchise)` 关联当前商户；`sites.org_id` 为该独立组织。
 > - 角色模板：直营店继承所属商户 OWNER 定义的模板；加盟店按 `org_link` 继承（默认开）。
 
+> **注（#2581）**: 同一商户（`sites.tenant_id` = 商户 `org_id`）内已存在同名网点 / IAM 组织名冲突 → **`409/40900`**，
+> `message` 为**中文具体原因**：`该商户下已存在同名网点「<name>」，请换一个名称`（与 §4.5.2 改名口径一致）。
+> - 判据：IAM 返回 409 → 哨兵 `services.ErrOrganizationNameConflict`（`errors.Is`，见 #2552），保留字符串匹配兼容历史 message；
+> - 文案必须含 CJK：PC 端 `resolveErrorMessage` 对 ASCII message 一律落 `ERROR_CODE_MAP[40900]` 通用文案
+>   「数据冲突，请刷新后重试」，用户读不出真实原因（#2581 缺陷根因）；
+> - PC 端据 `40900` 走**表单内持久提示**（`FormConflictAlert`），不得降级为数秒消失的 toast；
+> - **跨商户同名仍允许**（唯一性 scope = 商户内，不是全局）；本地重名预检/归一化见 #2477。
+
 **响应**:
 ```json
 {

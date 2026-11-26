@@ -339,10 +339,14 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	orgResp, err := iamClient.CreateOrganizationWithToken(userToken, iamReq)
 	if err != nil {
 		log.Printf("[CreateSite] IAM CreateOrganization failed: %v", err)
-		if strings.Contains(err.Error(), "name conflict") || strings.Contains(err.Error(), "already exists") {
+		// #2581：重名判定以哨兵 errors.Is(err, ErrOrganizationNameConflict) 为准（#2552 口径），
+		// 保留字符串匹配兜底以兼容历史 IAM message；message 必须是含 CJK 的具体原因，
+		// 否则前端「CJK 优先透传」口径会把 40900 降级成通用「数据冲突，请刷新后重试」。
+		if errors.Is(err, services.ErrOrganizationNameConflict) ||
+			strings.Contains(err.Error(), "name conflict") || strings.Contains(err.Error(), "already exists") {
 			c.JSON(http.StatusConflict, gin.H{
 				"code":    40900,
-				"message": "organization name already exists: " + err.Error(),
+				"message": fmt.Sprintf("该商户下已存在同名网点「%s」，请换一个名称", strings.TrimSpace(req.Name)),
 			})
 			return
 		}
