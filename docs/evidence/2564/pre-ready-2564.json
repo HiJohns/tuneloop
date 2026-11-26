@@ -1,7 +1,7 @@
 {
   "issue": 2564,
-  "overall": "FAIL",
-  "plan": "/tmp/opencode/tuneloop/wt-2564/tmp/pre-ready-2564.Ysboyr/plan.md",
+  "overall": "PASS",
+  "plan": "/tmp/opencode/tuneloop/wt-2564/tmp/pre-ready-2564.Ub5mrc/plan.md",
   "plan_sha256": "e85e6ecca2d4cc865e3d7fa76041d97a92d3b52340b3ee67bb2226a35101a3db",
   "config_sha": "acab7d27d28832d1ad366dd4c944ffb3e2ff9ca8",
   "provenance": {
@@ -10,7 +10,7 @@
     "dirty": false
   },
   "summary": "docs/evidence/2564/summary.md",
-  "timestamp": "20261126-212237",
+  "timestamp": "20261126-212248",
   "checks": [
     {
       "id": "P1",
@@ -24,13 +24,13 @@
     },
     {
       "id": "P3",
-      "status": "FAIL",
-      "detail": "evidence paths do not exist: .overall .result"
+      "status": "PASS",
+      "detail": "all referenced evidence paths exist and are durable"
     },
     {
       "id": "P4",
-      "status": "WARN",
-      "detail": "no --affected-cmd supplied; affected-package tests were not run"
+      "status": "PASS",
+      "detail": "all 1 affected command(s) passed"
     },
     {
       "id": "P12",
@@ -44,8 +44,8 @@
     },
     {
       "id": "P18",
-      "status": "WARN",
-      "detail": "tooling_commit mismatch: evidence=a017a25d46fec75ebb30fd9e19eb220c51fb166a config_sha=acab7d27d28832d1ad366dd4c944ffb3e2ff9ca8"
+      "status": "PASS",
+      "detail": "tooling_commit matches the running scripts (acab7d27d28832d1ad366dd4c944ffb3e2ff9ca8)"
     },
     {
       "id": "P15",
