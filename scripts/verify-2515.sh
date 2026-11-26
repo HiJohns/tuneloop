@@ -74,6 +74,22 @@ assert_grep() { # artifact token...
   fi
 }
 
+# assert_absent：反向断言（token 不得出现）。用于证明测试未依赖 GORM 自动租户作用域。
+assert_absent() { # artifact token...
+  local artifact="$1"; shift
+  local hit=0
+  for token in "$@"; do
+    if grep -qF -- "$token" "$artifact"; then
+      echo "UNEXPECTED: $token (in ${artifact#$ROOT/})" >&2
+      hit=1
+      FAILURES=$((FAILURES + 1))
+    fi
+  done
+  if [ "$hit" = "0" ]; then
+    echo "ASSERT_ABSENT_OK: ${artifact#$ROOT/} ($# tokens)"
+  fi
+}
+
 # list_block 抽出 List handler 的函数体，供文本级断言使用（R6）。
 list_block() {
   awk '/^func \(h \*InstrumentLossHandler\) List\(/{f=1} f{print} f&&/^}/{exit}' "$ROOT/backend/handlers/instrument_loss.go"
@@ -95,8 +111,12 @@ go_row() { # artifact testregex ok-token
 
 row_r1() {
   local a="$OUT/R1-site-scope.txt"; : >"$a"
-  go_row "$a" '^TestInstrumentLoss2515_SiteScope$' 'R1_OK'
-  assert_grep "$a" 'R1_OK' 'CROSS_SITE_LEAK=0' 'OLD_PREDICATE_LEAK=2' 'RED_CONFIRMED=1'
+  # R1 = site_member 隔离 + 红证据；R1a = site_admin（同持 instrument:read）同口径。
+  go_row "$a" '^TestInstrumentLoss2515_(SiteScope|SiteAdminScope)$' 'R1_OK'
+  assert_grep "$a" 'R1_OK' 'CROSS_SITE_LEAK=0' 'OLD_PREDICATE_LEAK=2' 'RED_CONFIRMED=1' \
+    'SITE_ADMIN_ROWS=1' 'SITE_ADMIN_CROSS_SITE_LEAK=0'
+  # 测试路由已挂 middleware.ExplicitTenantScope()（与生产一致）→ 请求期不得出现自动租户注入日志。
+  assert_absent "$a" '[TenantScope][observe]'
 }
 
 row_r2() {
@@ -114,7 +134,7 @@ row_r3() {
 row_r4() {
   local a="$OUT/R4-negative.txt"; : >"$a"
   go_row "$a" '^TestInstrumentLoss2515_NegativeCrossSiteInstrument$' 'R4_OK'
-  assert_grep "$a" 'R4_OK' 'CROSS_INSTRUMENT_ROWS=0' 'DRIFT_SCOPE=1' 'SAME_SITE_ROWS=1'
+  assert_grep "$a" 'R4_OK' 'CROSS_INSTRUMENT_ROWS=0' 'DRIFT_SCOPE=0' 'SAME_SITE_ROWS=1' 'NO_DRIFT_PROOF=1'
 }
 
 row_r5() {

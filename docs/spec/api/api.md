@@ -2257,7 +2257,7 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
 |---|---|
 | 网点员工 / 网点管理员（`business_role ∈ {site_member, site_admin}`，`oid ≠ tid`） | **本网点归属站点**：`instrument_id ∈ (instruments WHERE site_id IN 本人 site_members)`，即与乐器列表同一权威（`applyInstrumentListScope`，#1911）；无 `site_members` 行时回退 `org_id IN (自身 org)`（fail-closed） |
 | 商户管理员（`oid == tid`） | 本商户全量（组织 + 下级站点） |
-| 平台 / 系统管理员 | 全量（不再收敛） |
+| 平台 / 系统管理员 | **本租户全量**（不按站点收敛；`tenant_id` 为空直接 `40300`） |
 
 **重要约束**: 站点归属判定使用 `instruments.site_id`（**归属站点**），**不使用** `current_site_id`（调拨会改写物理位置，若据此判定会让历史凭证随乐器搬家、产生新的跨网点泄漏）。`instruments.site_id IS NULL` 的历史乐器，其台账对网点级账号不可见（fail-closed），由部署侧抽样核对。
 

@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"tuneloop-backend/handlers/testfixtures"
+	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/testutil"
 
@@ -95,6 +96,9 @@ func lossRouter2515(actor testutil.TestActor) *gin.Engine {
 		c.Request = c.Request.WithContext(actor.InjectContext(c.Request.Context()))
 		c.Next()
 	})
+	// 生产路由挂 middleware.ExplicitTenantScope()（backend/main.go:442）→ 关闭 GORM 自动租户注入，
+	// handler 必须全靠显式过滤。测试必须镜像同一模式，否则「隔离成立」可能只是自动作用域的副作用。
+	r.Use(middleware.ExplicitTenantScope())
 	h := &InstrumentLossHandler{}
 	r.GET("/instrument-loss", h.List)
 	return r
@@ -168,6 +172,24 @@ func TestInstrumentLoss2515_SiteScope(t *testing.T) {
 	require.EqualValues(t, 2, tenantOnly, "old tenant-only predicate leaks both sites")
 }
 
+// R1a：网点管理员（Role="ADMIN" 且 oid≠tid → business_role=site_admin，同样持
+// instrument:read）必须与 site_member 同口径收敛到本网点归属站点。
+func TestInstrumentLoss2515_SiteAdminScope(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+	testutil.SetDB(t, db)
+	f := seedLoss2515(t, db)
+
+	actor := testutil.TestActor{TenantID: f.tid, OrgID: f.aOrg, UserID: f.userA, Role: "ADMIN"}
+	got := serveLoss2515(t, lossRouter2515(actor), "")
+
+	leak := contains2515(got.ids, f.recB)
+	fmt.Printf("R1A STATUS=%d SITE_ADMIN_ROWS=%d SITE_ADMIN_CROSS_SITE_LEAK=%d SITE_ADMIN_IDS=[%s]\n",
+		got.status, len(got.ids), flag2515(leak), joinIDs2515(got.ids))
+	require.Equal(t, http.StatusOK, got.status)
+	require.False(t, leak, "site admin of site A must not see site B loss records")
+	require.Equal(t, []string{f.recA}, got.ids)
+}
+
 // R2：商户管理员（tid==oid）与平台管理员仍看全量（不回归）。
 func TestInstrumentLoss2515_MerchantAndPlatform(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
@@ -216,13 +238,25 @@ func TestInstrumentLoss2515_NegativeCrossSiteInstrument(t *testing.T) {
 	cross := serveLoss2515(t, router, "instrument_id="+f.instB)
 	same := serveLoss2515(t, router, "instrument_id="+f.instA)
 
-	// DRIFT_SCOPE：若过滤改用 current_site_id（instA 指向 B 站），同站查询会返回 0 条。
-	driftScope := flag2515(len(same.ids) == 1 && same.ids[0] == f.recA)
+	// DRIFT_SCOPE（计划语义，期望 0）：返回行中按「归属站点」判定为错归属
+	// （instrument.site_id 不在操作者可见站点）的条数——调拨漂移不得改写凭证归属。
+	var driftScope int64
+	if len(same.ids) > 0 {
+		require.NoError(t, db.Model(&models.InstrumentLossRecord{}).
+			Joins("JOIN instruments ON instruments.id = instrument_loss_records.instrument_id").
+			Where("instrument_loss_records.id IN ?", same.ids).
+			Where("instruments.site_id IS DISTINCT FROM ?", f.aID).
+			Count(&driftScope).Error)
+	}
+	// NO_DRIFT_PROOF=1：recA 的 current_site_id 指向 B 站却仍被返回 → 证明判定未使用 current_site_id。
+	noDriftProof := flag2515(len(same.ids) == 1 && same.ids[0] == f.recA)
 
-	fmt.Printf("R4 CROSS_INSTRUMENT_ROWS=%d SAME_SITE_ROWS=%d DRIFT_SCOPE=%d\n",
-		len(cross.ids), len(same.ids), driftScope)
+	fmt.Printf("R4 CROSS_INSTRUMENT_ROWS=%d SAME_SITE_ROWS=%d DRIFT_SCOPE=%d NO_DRIFT_PROOF=%d\n",
+		len(cross.ids), len(same.ids), driftScope, noDriftProof)
 	require.Equal(t, 0, len(cross.ids), "site A must not read site B records by instrument id")
 	require.Equal(t, 1, len(same.ids))
+	require.Zero(t, driftScope, "no returned row may be misattributed by site ownership drift")
+	require.Equal(t, 1, noDriftProof, "site ownership must not be judged by current_site_id")
 }
 
 func joinIDs2515(ids []string) string {
