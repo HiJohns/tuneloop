@@ -125,6 +125,12 @@
 
 ### Pre-ready gate
 
-- 待运行（本评论随后更新 `RESULT: PASS` 与报告路径）。
+- 命令（与计划 R7 合同逐字一致）：
+  ```
+  ~/.config/opencode/scripts/pre-ready-check.sh 2512     --summary-file docs/evidence/2512/summary.md     --changed-files docs/evidence/2512/changed-files.txt     --evidence-file docs/evidence/2512/evidence.json     --affected-cmd "bash scripts/verify-2512.sh r6"     --full-gate-cmd "bash scripts/verify-2512.sh gate"     --report docs/evidence/2512/pre-ready-2512.json
+  ```
+- 报告：`docs/evidence/2512/pre-ready-2512.json`；`RESULT: PASS`（P1/P2/P3/P4/P6/P7/P11/P12/P13/P14/P17/P18 全 PASS；P15/P16/P8/P9/P10 为 N/A）。
+- P5 为 `N/A (sub-task: full gate belongs to the parent/batch gate)`：本 Issue body 含 `Parent: #2509`，全量 handlers 套件由父任务/批次 gate 承担；本单定向回归 `bash scripts/verify-2512.sh r6`（P4）已通过。
+- `jq -e '.overall == "PASS"' docs/evidence/2512/pre-ready-2512.json` → `true`。
 
 *Model: DeepSeek V4.1 Flash 1017*
