@@ -275,7 +275,10 @@ export default function CategoryList() {
         // 成功提示与 setSelectedParentId 成为死分支（D1）。
         if (response.code === 20000 || response.code === 20100) {
           message.success('创建成功')
-          if (response.data?.id) {
+          // #2564 R1 复查：只有顶级创建才自动选中新分类（新分类存在于 level-1 列表）。
+          // 子分类创建必须保持父分类选中——level-2 id 不在 level1Categories 里，
+          // 写入 selectedParentId 会让右侧面板清空且「编辑」按钮取到 undefined。
+          if (response.data?.id && !finalParentId) {
             setSelectedParentId(response.data.id)
           }
         } else {

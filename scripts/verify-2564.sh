@@ -89,6 +89,30 @@ catch_body() { # 提取 handleFormSubmit 的 catch 块
   ' "$1"
 }
 
+# 创建成功块：从 create 的成功判码行到其后的 `} else {`（含）为止。
+create_success_block() {
+  awk '
+    /response\.code === 20000/ { f = 1 }
+    f { print }
+    f && /^[[:space:]]*} else \{[[:space:]]*$/ { exit }
+  ' "$1"
+}
+
+# 统计创建成功块内 setSelectedParentId 的调用与「顶级创建」守卫：输出 "<total> <guarded>"。
+# guarded 判定 = 该调用上一行是 `if (response.data?.id && !finalParentId)`。
+autoselect_counts() {
+  awk '
+    {
+      if ($0 ~ /setSelectedParentId\(/) {
+        total++
+        if (prev ~ /if \(response[.]data[?][.]id && !finalParentId\)/) guarded++
+      }
+      prev = $0
+    }
+    END { printf "%d %d\n", total, guarded }
+  ' "$1"
+}
+
 case "$MODE" in
 r1)
   NAME="R1-consumer-wiring.txt"
@@ -131,8 +155,14 @@ r1)
 r2)
   NAME="R2-code-first.txt"
   FILE="$REPO/$SRC"
-  # 红样锚点 = 该文件最近一次变更提交（禁止手写 sha）；绿样 = 工作树当前内容。
-  FILE_FIX="$(git log -1 --format=%H -- "$SRC" 2>/dev/null || true)"
+  # 红样锚点 = 本 Issue 第一个页面 fix commit 的父提交（修复前基线）。
+  # 不能用 `git log -1 -- $SRC` 的父提交：第二次 fix（R1 复查）之后该锚点会前移到
+  # 上一版绿样（已含 20100 + catch code 分支），红绿对照退化为「绿 vs 绿」。
+  # 仍为动态推导（--grep + --reverse），不手写 sha。
+  FILE_FIX="$(git log --format=%H --grep="^fix(issue-$ISSUE" --reverse -- "$SRC" | head -1)"
+  if [ -z "$FILE_FIX" ]; then
+    FILE_FIX="$(git log -1 --format=%H -- "$SRC" 2>/dev/null || true)"
+  fi
   GREEN="$(cat "$FILE")"
   if [ -n "$FILE_FIX" ] && git rev-parse --verify "$FILE_FIX^" >/dev/null 2>&1; then
     RED="$(git show "$FILE_FIX^:$SRC" 2>/dev/null || true)"
@@ -174,6 +204,37 @@ r2)
     mark RED_NO_CATCH_BRANCH 1 0
   fi
 
+  # ---- R1 复查（#2564 Round 1 Bug 1）：创建成功后的选中语义 ----
+  # 只对「顶级创建」自动选中新分类；子分类创建必须保持父分类选中。
+  GREEN_BLOCK="$WORK/green-create-block.jsx"
+  create_success_block "$GREEN_FILE" > "$GREEN_BLOCK"
+  read -r AUTO_TOTAL AUTO_GUARDED <<< "$(autoselect_counts "$GREEN_BLOCK")"
+  AUTO_TOTAL="${AUTO_TOTAL:-0}"; AUTO_GUARDED="${AUTO_GUARDED:-0}"
+  mark AUTOSELECT_TOPLEVEL_ONLY 1 \
+    "$([ "$AUTO_TOTAL" = "1" ] && [ "$AUTO_GUARDED" = "1" ] && echo 1 || echo 0)"
+  GUARD_REF=0
+  grep -q '!finalParentId' "$GREEN_BLOCK" && GUARD_REF=1
+  mark CREATED_SUBCATEGORY_KEEPS_PARENT 1 \
+    "$([ "$AUTO_TOTAL" = "1" ] && [ "$AUTO_GUARDED" = "1" ] && [ "$GUARD_REF" = "1" ] && echo 1 || echo 0)"
+
+  # 负例（mutation）：删掉 `&& !finalParentId` → 守卫断言必须归零（否则断言无效）
+  MUT_FILE="$WORK/green-create-block.mut.jsx"
+  sed 's/ && !finalParentId//' "$GREEN_BLOCK" > "$MUT_FILE"
+  read -r MUT_TOTAL MUT_GUARDED <<< "$(autoselect_counts "$MUT_FILE")"
+  MUT_TOTAL="${MUT_TOTAL:-0}"; MUT_GUARDED="${MUT_GUARDED:-0}"
+  mark GUARD_MUTATION_DETECTED 1 \
+    "$([ "$MUT_TOTAL" = "1" ] && [ "$MUT_GUARDED" = "0" ] && echo 1 || echo 0)"
+
+  # 红样：修复前创建分支没有 finalParentId 守卫（无 20100 分支，选中调用裸奔）
+  RED_GUARDED=0; RED_TOTAL=0
+  if [ -s "$RED_FILE" ]; then
+    create_success_block "$RED_FILE" > "$WORK/red-create-block.jsx"
+    read -r RED_TOTAL RED_GUARDED <<< "$(autoselect_counts "$WORK/red-create-block.jsx")"
+  fi
+  RED_TOTAL="${RED_TOTAL:-0}"; RED_GUARDED="${RED_GUARDED:-0}"
+  mark RED_NO_AUTOSELECT_GUARD 1 "$([ "$RED_GUARDED" = "0" ] && echo 1 || echo 0)"
+
+  echo "CREATE_BLOCK_AUTOSELECT: total=$AUTO_TOTAL guarded=$AUTO_GUARDED mutation_guarded=$MUT_GUARDED red_total=$RED_TOTAL red_guarded=$RED_GUARDED" | tee -a "$LOG"
   echo "RED_SAMPLE=${FILE_FIX:-unknown}^:$SRC" | tee -a "$LOG"
   if [ "$FAIL" = "0" ]; then echo "R2_OK" | tee -a "$LOG"; else echo "R2_FAIL" | tee -a "$LOG"; fi
   ;;
