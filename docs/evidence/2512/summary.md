@@ -111,6 +111,12 @@
 | R6 构建 + 定向回归 | PASS | `docs/evidence/2512/R6-build-regression.txt` |
 | R7 pre-ready gate（四源 + 定向测试 + 构建） | PASS | `docs/evidence/2512/pre-ready-2512.json` |
 
+### 契约三向核对
+
+- **Plan/API**：`docs/spec/api/api.md` §6.2 / §6.3 明确 `orders.org_id` 派生顺序（instruments.org_id → 按 site_id / current_site_id 反查 sites.org_id）、**禁止**写入 sites.id、不可解析 → `400 / 40002`；批量「全部可解析才落库」。
+- **文档 ↔ 实现**：`resolveOrderOrgID(db, inst)` 是唯一解析入口，`CreateOrder` 与 `BatchCreateOrder` 两条路径共用；`grep resolveOrderOrgID(db, ` = 2 次调用（R5 `RESOLVER_CALLS=2`）。
+- **handler ↔ 下游**：订单落库后 `orders.org_id` 恒为组织域（sites.org_id / merchants.org_id 集合内），下游按 org 过滤（warehouse / merchant_order / repair_service）语义不变；无前端改动，接口响应字段未变。
+
 ### 依赖 / 边界
 
 - 前置父任务 #2509（关联，非硬依赖）；同族 #2508 的夹具口径（`sites.id ≠ sites.org_id`）已在 R1–R4 采用。
