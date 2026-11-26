@@ -1,0 +1,6 @@
+# build=1.0.1f53e729d # commit=1f53e729dd4e98929182fb6245f9f3ee27d6d33c # dirty=false
+== R1b bind/role/unbind 三路径 org 段 = 站点组织（sites.org_id） ==
+MEMBER_ROLE_ORG_IS_SITE_ORG=1
+MEMBER_UNBIND_ORG_IS_SITE_ORG=1
+--- PASS: TestTransitMemberOrgPaths2552_RoleAndUnbind (1.56s)
+R1b_OK

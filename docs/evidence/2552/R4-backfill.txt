@@ -1,4 +1,4 @@
-# build=1.0.7ca438baa # commit=7ca438baa7818a25198ef77fa10911d311920b96 # dirty=false
+# build=1.0.1f53e729d # commit=1f53e729dd4e98929182fb6245f9f3ee27d6d33c # dirty=false
 == R4 回填工具：dry-run 0 写入 + apply 幂等 + members 阶段 ==
 BACKFILL_WIRED_TO_STARTUP=0
 DRYRUN_WRITES=0
@@ -11,8 +11,12 @@ SECOND_APPLY_UPDATED=0
 SECOND_APPLY_CREATED=0
 MEMBERS_REBIND=1
 MEMBERS_BIND_CALLS=1
---- PASS: TestTransitBackfill2552_DryRunApplyIdempotentMembers (0.41s)
+--- PASS: TestTransitBackfill2552_DryRunApplyIdempotentMembers (0.30s)
 IAM_FAILURE_EXPLICIT=1
 IAM_FAILURE_UNTOUCHED=1
---- PASS: TestTransitBackfill2552_IAMFailureExplicit (0.24s)
+--- PASS: TestTransitBackfill2552_IAMFailureExplicit (0.15s)
+UPDATE_FAILURE_COMPENSATED=1
+UPDATE_FAILURE_UNTOUCHED=1
+UPDATE_FAILURE_EXPLICIT=1
+--- PASS: TestTransitBackfill2552_UpdateFailureCompensated (0.16s)
 R4_OK

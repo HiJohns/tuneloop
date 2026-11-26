@@ -1,4 +1,4 @@
-# build=1.0.7ca438baa # commit=7ca438baa7818a25198ef77fa10911d311920b96 # dirty=false
+# build=1.0.1f53e729d # commit=1f53e729dd4e98929182fb6245f9f3ee27d6d33c # dirty=false
 == R1 D2：成员 tenant 列 = 本地租户；IAM org = 站点 org；重复添加不增行 ==
 BIND_ORG_AS_TENANT=0
 LOCAL_TENANT_ARG=1
@@ -6,8 +6,8 @@ MEMBER_ROWS=1
 MEMBER_TENANT_IS_LOCAL_TENANT=1
 MEMBER_IAM_ORG_IS_SITE_ORG=1
 NO_DUPLICATE_MEMBER_ROW=1
---- PASS: TestTransitMemberScope2552_RepeatedAddKeepsSingleRow (0.75s)
+--- PASS: TestTransitMemberScope2552_RepeatedAddKeepsSingleRow (1.45s)
 USER_TENANT_IS_LOCAL_TENANT=1
 USER_ORG_IS_SITE_ORG=1
---- PASS: TestTransitMemberScope2552_NewUserTenantIsLocal (0.62s)
+--- PASS: TestTransitMemberScope2552_NewUserTenantIsLocal (1.08s)
 R1_OK

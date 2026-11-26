@@ -1,4 +1,4 @@
-# build=1.0.7ca438baa # commit=7ca438baa7818a25198ef77fa10911d311920b96 # dirty=false
+# build=1.0.1f53e729d # commit=1f53e729dd4e98929182fb6245f9f3ee27d6d33c # dirty=false
 == R2 中转成员识别改为站点维度（列表 + by-id + 负例） ==
 OLD_ORG_EQUALS_TENANT_RULE=0
 TRANSIT_TENANT_RULE_SITES=2
@@ -8,13 +8,13 @@ NEG_STORE_SAME_TENANT=0
 NEG_OTHER_TENANT_TRANSIT=0
 BYID_STORE_SAME_TENANT=200
 BYID_OTHER_TENANT_TRANSIT=404
---- PASS: TestPersonnelTransitPredicate2552 (0.82s)
+--- PASS: TestPersonnelTransitPredicate2552 (1.31s)
 CLAIM_SYSTEM_VIEW_TRANSIT=1
 CLAIM_NEG_STORE_SAME_TENANT=0
 CLAIM_NEG_OTHER_TENANT_TRANSIT=0
---- PASS: TestPersonnelTransitPredicate2552_WithTenantClaim (0.66s)
+--- PASS: TestPersonnelTransitPredicate2552_WithTenantClaim (1.19s)
 OTHER_TENANT_TRANSIT_MEMBERSHIP=0
 STORE_MEMBER_TRANSIT_MEMBERSHIP=0
 TRANSIT_MEMBER_TRANSIT_MEMBERSHIP=1
---- PASS: TestPersonnelTransitPredicate2552_NoOrgRule (0.65s)
+--- PASS: TestPersonnelTransitPredicate2552_NoOrgRule (0.96s)
 R2_OK
