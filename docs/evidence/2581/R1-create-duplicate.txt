@@ -1,0 +1,14 @@
+# build=1.0.f6174f7ee # commit=f6174f7ee7b852e9873a5eb7737b781217d41ee1 # dirty=false
+# POST /api/merchant/sites：同商户第二次同名 → 409/40900 + 中文具体原因；本地不落第二个网点
+RED_ENGLISH_MSG_PRE=1
+AFTER_ASCII_MSG_LITERAL=0
+AFTER_SENTINEL_COUNT=2
+AFTER_SENTINEL_IS=1
+GO_TEST_EXIT=0
+site_create_conflict_2581_test.go:140: DUP_STATUS=409
+site_create_conflict_2581_test.go:141: DUP_CODE=40900
+site_create_conflict_2581_test.go:142: DUP_MSG_CJK=1
+site_create_conflict_2581_test.go:143: DUP_MSG_HAS_NAME=1
+site_create_conflict_2581_test.go:144: DUP_SITES_COUNT=1
+site_create_conflict_2581_test.go:145: DUP_ORG_CALLS=2
+R1_OK

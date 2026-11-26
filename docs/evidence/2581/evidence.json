@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "issue": 2581,
+  "build": "1.0.f6174f7ee",
+  "commit": "f6174f7ee7b852e9873a5eb7737b781217d41ee1",
+  "dirty": false,
+  "plan_sha256": "ca2497978794ee444e4095cb852ee9e8eb5267e90261d5a908e1fab711b2fe32",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2581 (branch issue-2581, base origin/develop fc5dfe9e0); Postgres test DB 127.0.0.1:15433/tuneloop_test_node_opencode_s107_p107_350703_ff978a8e; fake IAM via httptest (services.SetIAMInternalURLForTesting); Go 1.27.4; Node 24 (node --test); host heavy-lock via heavy-run.sh",
+  "tooling_commit": "d0aebca197e30a8ec4d07981aa3b3a112f8924aa",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2581.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2581/R1-create-duplicate.txt"
+      ],
+      "assert": "exit 0 且含 DUP_STATUS=409、DUP_CODE=40900、DUP_MSG_CJK=1、DUP_MSG_HAS_NAME=1、DUP_SITES_COUNT=1、DUP_ORG_CALLS=2、RED_ENGLISH_MSG_PRE=1",
+      "actual": "PASS：DUP_STATUS=409、DUP_CODE=40900、DUP_MSG_CJK=1、DUP_MSG_HAS_NAME=1（message 含「海淀店」）、DUP_SITES_COUNT=1、DUP_ORG_CALLS=2；附带 RED_ENGLISH_MSG_PRE=1（fix^ 含 ASCII 字面量 organization name already exists: ）、AFTER_ASCII_MSG_LITERAL=0、AFTER_SENTINEL_IS=1",
+      "expected": "PASS",
+      "negative": "message 含 ASCII `already exists`、DUP_SITES_COUNT=2（落了第二个网点）、HTTP≠409 或 code≠40900 → 任一即 FAIL",
+      "negative_result": "测试内显式断言 `require.NotContains(dupMsg, \"already exists\")`；fix^ 源码含该 ASCII 字面量（RED_ENGLISH_MSG_PRE=1）证明红样真实成立；若 409 分支误落到本地写支路，DUP_SITES_COUNT 会变 2 并触发 `require.Equal(1, sites)` 失败",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2581.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2581/R2-cross-merchant.txt"
+      ],
+      "assert": "exit 0 且含 CROSS_FIRST=201、CROSS_SECOND=201、CROSS_TENANTS=2、CROSS_SAME_NAME=1",
+      "actual": "PASS：CROSS_FIRST=201、CROSS_SECOND=201、CROSS_TENANTS=2、CROSS_SAME_NAME=1（两行同名、各自 tenant）",
+      "expected": "PASS",
+      "negative": "第二次请求 409（跨商户被误拦）或两行同 tenant → FAIL",
+      "negative_result": "若把唯一性判据误做成全局（而非商户内），第二次 POST 会命中 IAM 409 分支返回 409，CROSS_SECOND≠201；若 tenant 锚解析错写成操作者 tenant 之外的固定值，CROSS_TENANTS 会变 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2581.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2581/R3-frontend-chain.txt"
+      ],
+      "assert": "exit 0 且含 CHAIN_KIND=result、CHAIN_CODE=40900、CHAIN_MSG_CJK=1、CHAIN_TEXT_MATCH=1、CHAIN_RUBRIC=1、NEG_ENGLISH_GENERIC=1、CATCH_RUBRIC=1、# fail 0",
+      "actual": "PASS：CHAIN_KIND=result、CHAIN_CODE=40900、CHAIN_MSG_CJK=1、CHAIN_TEXT_MATCH=1（逐字透传「该商户下已存在同名网点「海淀店」，请换一个名称」）、CHAIN_RUBRIC=1、NEG_ENGLISH_GENERIC=1、CATCH_RUBRIC=1；node --test 3 用例全绿（# fail 0）",
+      "expected": "PASS",
+      "negative": "中文 message 被替换成「数据冲突，请刷新后重试」（CHAIN_TEXT_MATCH=0）、409 变成 throw（CHAIN_KIND≠result）、catch 的 ApiError 不被 rubric 命中 → 任一即 FAIL",
+      "negative_result": "负例用例把旧实现形态（409 + ASCII message）钉为期望「落通用文案」，实测 NEG_ENGLISH_GENERIC=1 —— 即修复前的用户可见症状被保留为红样；若把 CJK 透传口径改坏，该负例仍绿而正例 CHAIN_TEXT_MATCH 会变 0",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2581.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2581/R4-page-wiring.txt"
+      ],
+      "assert": "exit 0 且含 SITE_ALERT_MOUNTED=1、SITE_CONFLICT_BEFORE_TOAST=1、SITE_TOAST_ON_CONFLICT=0、SITE_CATCH_RUBRIC=1、SITE_TIMER_DISMISS=0",
+      "actual": "PASS：SITE_ALERT_MOUNTED=1（<FormConflictAlert> 唯一挂载）、SITE_CONFLICT_BEFORE_TOAST=1（冲突分支先于 toast）、SITE_TOAST_ON_CONFLICT=0、SITE_CONFLICT_RETURN=1、SITE_CATCH_RUBRIC=1、SITE_TIMER_DISMISS=0；附 api.md §4.5.1 DOC_CONTRACT_OK=1",
+      "expected": "PASS",
+      "negative": "冲突分支内出现 message.error、冲突分支缺少 return、Alert 未挂载、用定时器自动消失 → 任一即 FAIL",
+      "negative_result": "静态断言按 handleSubmit 函数体切片：冲突分支块内统计 message.error（0）与 return（1）；全文件统计 setTimeout+setFormConflict（0）。任一违反即对应 token 变 0/非 0 → R4_FAIL",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2581.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2581/R5-build-lint.txt"
+      ],
+      "assert": "exit 0 且含 GO_BUILD_OK=1、ESLINT_NOUNDEF=0、NODE_TEST_FAIL=0",
+      "actual": "PASS：BUILD_EXIT=0/GO_BUILD_OK=1（cd backend && go build ./...）、ESLINT_EXIT=0、ESLINT_NOUNDEF=0（19 条 warning 均为存量 no-use-before-define / exhaustive-deps）、NODE_TEST_EXIT=0、NODE_TEST_FAIL=0（24 pass / 0 fail，含 siteConflict2581 + formConflict + apiError + errorMessages）",
+      "expected": "PASS",
+      "negative": "go build 失败、eslint 出现 no-undef、前端单测失败 → FAIL",
+      "negative_result": "r5 分别断言 BUILD_EXIT=0、ESLINT_NOUNDEF=0、NODE_TEST_FAIL=0（`^# fail [1-9]` 计数）；任一非零即 R5_FAIL",
+      "pass": true
+    }
+  ]
+}

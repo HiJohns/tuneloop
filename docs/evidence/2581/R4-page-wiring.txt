@@ -1,0 +1,23 @@
+# build=1.0.f6174f7ee # commit=f6174f7ee7b852e9873a5eb7737b781217d41ee1 # dirty=false
+# SiteManagement.handleSubmit：409 冲突先落表单内常驻 Alert 并 return；catch 仍按共享 rubric 判定
+SITE_ALERT_MOUNTED=1
+SITE_CONFLICT_BEFORE_TOAST=1
+SITE_TOAST_ON_CONFLICT=0
+SITE_CONFLICT_RETURN=1
+SITE_CONFLICT_TEXT_FALLBACK=1
+SITE_CATCH_RUBRIC=1
+SITE_TIMER_DISMISS=0
+--- conflict block ---
+      if (isBusinessCorrectableConflict(result)) {
+        setFormConflict(conflictText(result, '网点名称已存在'))
+        return
+      }
+R4_OK
+--- api.md §4.5.1 ---
+DOC_SECTION_LINES=9
+DOC_HAS[该商户下已存在同名网点]=1
+DOC_HAS[40900]=1
+DOC_HAS[FormConflictAlert]=1
+DOC_HAS[跨商户同名仍允许]=1
+DOC_CONTRACT_OK=1
+R4_DOC_OK
