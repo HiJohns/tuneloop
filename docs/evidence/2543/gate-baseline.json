@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "key": "de2fc4f588e4ef1fe46155d6f268fdbac4bd19c4162c6f17dc38e0eda4588890",
+  "repo_id": "9347f047f1d385a1ea9fb6ef125fa10d090d09ed11f425403db0fbd7dba03bf6",
+  "commit": "758e447ed62c6438bf437a4dd9659271a2494797",
+  "command": "cd backend && go build ./... && go test ./... -timeout 20m",
+  "adapter": "go",
+  "platform": "Linux 7.0.0-1014-aws x86_64",
+  "env_fingerprint": "ADAPTER=go\nGOCACHE=/home/coder/.cache/go-build\nGOMODCACHE=/home/coder/go/pkg/mod\nGO_VERSION=go version go1.22.5 linux/amd64\nPARSE_SCHEMA=1",
+  "source": "run",
+  "role": "final",
+  "exit_code": 1,
+  "failures": [
+    "--- FAIL: TestBulkImportIAMRole2540",
+    "FAIL tuneloop-backend/handlers",
+    "FAIL tuneloop-backend/services"
+  ],
+  "created_at": 1795711330,
+  "ttl_seconds": 604800,
+  "log_tail": "2026/11/26 16:42:08 [DB] Configuration loaded: host=localhost port=5432 user=tuneloop dbname=tuneloop sslmode=disable\n2026/11/26 16:42:08 [DB] Connecting: host=localhost port=5432 user=tuneloop dbname=tuneloop\n\r\n2026/11/26 16:42:08 \u001b[35m/home/coder/worktrees/tuneloop/wt-2543/tmp/pre-ready-2543.nJUfbe/wt-baseline/backend/database/db.go:197\n\u001b[0m\u001b[31m[error] \u001b[0mfailed to initialize database, got error failed to connect to `user=tuneloop database=`: 127.0.0.1:5432 (localhost): failed SASL auth: FATAL: password authentication failed for user \"tuneloop\" (SQLSTATE 28P01)\n2026/11/26 16:42:08 [WechatShipping] upload attempt 1/2 failed for virtual membership (out_trade_no=out_trade_1 transaction_id=tx_1): wechat upload_shipping_info error 10060001: 支付单不存在\n2026/11/26 16:42:08 [WechatShipping] upload_shipping_info ok label=virtual membership out_trade_no=out_trade_1 transaction_id=tx_1\n2026/11/26 16:42:08 [WechatShipping] upload attempt 1/2 failed for virtual membership (out_trade_no=out_trade_2 transaction_id=tx_2): wechat upload_shipping_info error 10060001: 支付单不存在\n2026/11/26 16:42:08 [WechatShipping] upload attempt 2/2 failed for virtual membership (out_trade_no=out_trade_2 transaction_id=tx_2): wechat upload_shipping_info error 10060001: 支付单不存在\n2026/11/26 16:42:08 [WechatShipping] upload_shipping_info gave up after 2 attempts for virtual membership (out_trade_no=out_trade_2 transaction_id=tx_2): wechat upload_shipping_info error 10060001: 支付单不存在\nFAIL\nFAIL\ttuneloop-backend/services\t0.831s\nok  \ttuneloop-backend/services/tencentcloud\t0.040s\nok  \ttuneloop-backend/services/wechatpay\t0.070s\n?   \ttuneloop-backend/testutil\t[no test files]\n?   \ttuneloop-backend/tools/backfill_transit_site_orgs\t[no test files]\n?   \ttuneloop-backend/tools/merge_duplicate_accounts\t[no test files]\n?   \ttuneloop-backend/tools/oss_smoke\t[no test files]\nFAIL\n[heavy-lock] released scope=host slot=0 rc=1 at_ms=1795711330127 hold_ms=99474"
+}
