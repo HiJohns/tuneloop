@@ -1,16 +1,16 @@
 {
   "issue": 2487,
   "overall": "PASS",
-  "plan": "/tmp/opencode/tuneloop/wt-2487/tmp/pre-ready-2487.J6h4WG/plan.md",
+  "plan": "/tmp/opencode/tuneloop/wt-2487/tmp/pre-ready-2487.wyizeV/plan.md",
   "plan_sha256": "a4c585e8fbf7f168538392ff53dd7255407162d3e601b5863d34d83fea8d2bde",
   "config_sha": "acab7d27d28832d1ad366dd4c944ffb3e2ff9ca8",
   "provenance": {
-    "build": "1.0.a18849559",
-    "commit": "a188495591a7c3eb1506f093deebb6ceef137c2f",
+    "build": "1.0.3b8bdf18e",
+    "commit": "3b8bdf18e8955cd9dc57f4da53bc0a4eb8598a94",
     "dirty": false
   },
-  "summary": "tmp/work-summary-2487.md",
-  "timestamp": "20261126-222730",
+  "summary": "tmp/fix-summary-2487.md",
+  "timestamp": "20261126-223709",
   "checks": [
     {
       "id": "P1",

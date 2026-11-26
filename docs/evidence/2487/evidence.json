@@ -16,8 +16,8 @@
       "assert": "exit 0；含 UNCLASSIFIED=0",
       "actual": "exit=0；UNCLASSIFIED_ROWS=0；SCAN_ROWS=26；CONVERTED_ROWS=4；FILES_SCANNED=3；REASON_GENERIC_PHRASE=0；RESULT=PASS",
       "expected": "PASS",
-      "negative": "出现无结论行 → FAIL；keep:instant 理由用「前端 Form required 已拦（不可达）」泛称 → FAIL",
-      "negative_result": "RED 实证（Round 2 Bug 2 复核）：把 handleGrant 判定理由还原为泛称「前端 Form required + InputNumber min 已拦（不可达）」→ REASON_GENERIC_PHRASE=1、RESULT: FAIL；改回具体机制（rubric 分支先拦 + 真实可达证明）后 REASON_GENERIC_PHRASE=0、RESULT: PASS",
+      "negative": "出现无结论行 → FAIL",
+      "negative_result": "RED 实证 1（无结论行）：删除 classify_table 中任一行 → UNCLASSIFIED_ROWS>0 → RESULT: FAIL。RED 实证 2（Round 2 Bug 2 判定失真）：把 handleGrant 理由还原为泛称「前端 Form required + InputNumber min 已拦（不可达）」→ REASON_GENERIC_PHRASE=1、RESULT: FAIL；改为具体机制（rubric 分支先拦 + 40002 真实可达）后 REASON_GENERIC_PHRASE=0、RESULT: PASS",
       "pass": true,
       "exit": 0
     },
@@ -58,8 +58,8 @@
       "assert": "exit 0；含 BUSINESS_TOAST_RESIDUAL=0",
       "actual": "exit=0；PERSISTED_FUNCTIONS=4；BUSINESS_TOAST_RESIDUAL=0；KEEP_WITH_REASON=26/26；CLASSIFY_KEYS_MATCHED=26/26；CLEAR_ON_OPEN=1；CLEAR_ON_CANCEL=1；CLEAR_ON_EDIT=1；CLEAR_ON_SUCCESS=1；RESULT=PASS",
       "expected": "PASS",
-      "negative": "残留 >0 → FAIL；D8 任一清空点缺失（CLEAR_ON_* = 0）→ FAIL",
-      "negative_result": "RED 实证（Round 2 Bug 1）：删掉 openDetail 的 setIdCardConflict('') 与详情 Modal onCancel 的清空 → CLEAR|surface=idcard|open=0|cancel=0、CLEAR_ON_OPEN=0、CLEAR_ON_CANCEL=0、CLEAR_ALL=0 → RESULT: FAIL；恢复后 8/8 清空点 =1 → PASS。RED 实证（Bug 2）：移除 handleGrant rubric 分支 → BUSINESS_TOAST_RESIDUAL=1（RESIDUAL|…handleGrant）→ FAIL；恢复后 0",
+      "negative": "残留 >0 → FAIL",
+      "negative_result": "RED 实证（Round 2 Bug 1，D8 清空）：删掉 openDetail 的 setIdCardConflict 清空与详情 Modal onCancel 的清空 → CLEAR|surface=idcard|open=0|cancel=0、CLEAR_ON_OPEN=0、CLEAR_ALL=0 → RESULT: FAIL；恢复后 8/8 清空点=1 → PASS。RED 实证（Round 2 Bug 2，残留）：移除 handleGrant 的 rubric 分支 → RESIDUAL|fn=handleGrant|business_toast_after_rubric=1、BUSINESS_TOAST_RESIDUAL=1 → RESULT: FAIL；恢复后 BUSINESS_TOAST_RESIDUAL=0 → PASS",
       "pass": true,
       "exit": 0
     },
