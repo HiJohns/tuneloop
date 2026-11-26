@@ -7,7 +7,7 @@
   "rows": [
     {
       "id": "R1",
-      "command": "bash scripts/verify-2547.sh r1",
+      "command": "bash scripts/verify-2547.sh r1 > docs/evidence/2547/R1-create-org.txt",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2547/R1-create-org.txt"
@@ -15,13 +15,13 @@
       "assert": "exit 0；含 CREATE_SITE_ORG=1、CREATE_PARENT_IS_NAMESPACE=1、CREATE_TYPE_BRANCH=1、NO_SITE_ON_IAM_FAILURE=1、DUPLICATE_NAME_409=1",
       "actual": "CREATE_SITE_ORG=1 CREATE_PARENT_IS_NAMESPACE=1 CREATE_TYPE_BRANCH=1 CREATE_ADMIN_INFO_ABSENT=1 NO_SITE_ON_IAM_FAILURE=1 NO_SITE_ON_NO_PRIMARY=1 NO_SITE_ON_EMPTY_TENANT=1 DUPLICATE_NAME_409=1",
       "expected": "PASS",
-      "negative": "站点 org_id 仍等于 tenant_id，或失败分支残留 sites 行 → FAIL",
+      "negative": "站点 org 仍等于 tenant，或失败后残留站点行 → FAIL",
       "negative_result": "旧 CreateAdminTransitSite（只写本地 sites 行、OrgID=tenantID）：CREATE_SITE_ORG=0，TestCreateAdminTransitSiteCreatesBranchOrg2547 FAIL",
       "pass": true
     },
     {
       "id": "R2",
-      "command": "bash scripts/verify-2547.sh r2",
+      "command": "bash scripts/verify-2547.sh r2 > docs/evidence/2547/R2-member-bind-org.txt",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2547/R2-member-bind-org.txt"
@@ -35,7 +35,7 @@
     },
     {
       "id": "R3",
-      "command": "bash scripts/verify-2547.sh r3",
+      "command": "bash scripts/verify-2547.sh r3 > docs/evidence/2547/R3-personnel-visibility.txt",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2547/R3-personnel-visibility.txt"
@@ -49,7 +49,7 @@
     },
     {
       "id": "R4",
-      "command": "bash scripts/verify-2547.sh r4",
+      "command": "bash scripts/verify-2547.sh r4 > docs/evidence/2547/R4-backfill-dryrun.txt",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2547/R4-backfill-dryrun.txt"
@@ -63,7 +63,7 @@
     },
     {
       "id": "R5",
-      "command": "bash scripts/verify-2547.sh r5",
+      "command": "bash scripts/verify-2547.sh r5 > docs/evidence/2547/R5-docs-sync.txt",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2547/R5-docs-sync.txt"
@@ -77,7 +77,7 @@
     },
     {
       "id": "R6",
-      "command": "bash scripts/verify-2547.sh r6",
+      "command": "bash scripts/verify-2547.sh r6 > docs/evidence/2547/R6-build-regression.txt",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2547/R6-build-regression.txt"
