@@ -296,7 +296,9 @@ H5 未捕获 JS 错误（`window.onerror` / `unhandledrejection`）上报，仅�
 | 场景 | HTTP | code | data | token 状态 |
 |---|---:|---:|---|---|
 | 首次绑定成功 | 200 | 20000 | — | `bound` |
-| 该微信已绑定其他存活账户 | 409 | 40900 | `{needs_merge:true, existing_user_id, target_user_id, openid, merge_ticket}` | `needs_merge` |
+| 该微信已绑定其他存活账户 | 409 | 40900 | `{needs_merge:true, existing_user_id, target_user_id, openid, merge_ticket, org_name, staff_name, retires_staff}` | `needs_merge` |
+
+> **#2567 确认页摘要字段**：`needs_merge` 分支额外返回 `org_name`（将被绑定的组织名）、`staff_name`（原员工账户姓名）、`retires_staff:true`（原员工账户将**废止**）。三者由 tuneloop 本地缓存尽力解析（`describeMergeTarget`），解析失败返回空串/`false`，**不得**阻断合并凭证签发。
 
 #### `POST /api/wechat-bind/merge`（扫码冲突合并，#2445）
 
@@ -308,9 +310,14 @@ H5 未捕获 JS 错误（`window.onerror` / `unhandledrejection`）上报，仅�
 1. tuneloop 调用 IAM `POST /api/v1/auth/wx-merge-confirm`（凭证即 ticket，无需 X 访问令牌）；
 2. IAM 将 X（管理员预建，`active|init|pending`）置 `obsolete`，组织关系（含职能角色）迁移到 Y（openid 已绑定的个人账户），**不迁移 X 的密码**；
 3. tuneloop 同步本地员工表（`site_members` / `merchant_members` / `technician_profiles`）从 X 本地用户到 Y 本地用户；冲突行去重并合并角色；
-4. token 状态置 `merged`，PC 轮询显示合并成功。
+4. **#2567 缓存镜像**：同一事务内调用 `reconcileUserCache` 重算双方 `users.role/tenant_id/org_id` —— Y 继承组织身份（`merchant_members` 优先，其次 `site_members`+`sites`），X 回落顾客态（`USER` + nil UUID）；
+5. **#2567 本地待办关闭**：X 的 `staff_invites`（`status='pending'`）→ `rejected` + `reject_reason='account_merged'`；`confirmation_sessions`（`status='waiting'`）→ `cancelled`（表缺失时跳过并记日志）。**语义是「关闭」不是「转挂」**；IAM 侧 `user_task_queues` 属运维，tuneloop 不直连 IAM 库；
+6. **#2567 审计**：同一事务写 `audit_logs`（`action=ACCOUNT_MERGE`、`resource=user`、`resource_id`=X 本地 id、`details={from_local, from_iam_sub, to_local, to_iam_sub, org_id, source:"qr_bind"}`）；写入失败**整笔回滚**（合并留痕不得丢失）；
+7. token 状态置 `merged`，PC 轮询显示合并成功。
 
 **响应**：`200 / 20000` + `data: {merged:true, from_user_id, to_user_id, needs_credentials, suggested_username}`；本地同步失败时额外返回 `local_sync:false` + `warning`（不阻断 IAM 合并，由 `user.account_merged` 回调重试）。
+
+> **废止 ≠ 删除**：X 的 `users` 行保留（`status=obsolete`），任意时刻可按 `audit_logs.details.from_iam_sub` 反查「Y 吸收了哪个员工账号」。成员列表与人员管理三视图一律只列 `status IN ('active','pending')`（`obsolete`/`disabled`/`deleted` 不出现，`pending` 保留以兼容「待确认」行）。
 
 **IAM 内部端点**：`POST /api/v1/auth/wx-bind` 的 `needs_merge` 响应新增 `merge_ticket`；`POST /api/v1/auth/wx-merge-confirm` 凭 ticket 执行合并（单次消费）。
 | token 无效/已用/过期 | 400 | 40004 | — | — |

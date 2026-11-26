@@ -306,6 +306,22 @@ steps:
 - **扫码绑定二维码（#2445，Bind 页）**：管理员预建账户 X 的二维码被员工个人微信（已绑 Y）扫描时，Bind 页直接确认合并，无需 X 的用户名/密码；方向同上（X→obsolete、组织关系→Y），但**不迁移 X 密码**（保留员工个人账户密码），并同步 tuneloop 本地员工表（site_members / merchant_members / technician_profiles）。合并后清理会话，重新登录进入身份选择页，个人中心显示「切换身份」。
 - 与本文档既有「一微信多账户**分流/切换**」的关系：**新模型收敛为「一微信一账户」**，冲突走**合并**而非并存；存量"一 openid 多账户"需迁移/清理（生产当前为 0）
 
+### 扫码绑定的合并语义（#2567，Owner + Ken 2026-11-26 裁定）
+
+> 措辞统一为「**废止**」——不出现「删除员工账号」；X 的 `users` 行保留可追溯。
+
+| 环节 | 语义 |
+|---|---|
+| 触发 | 顾客账户 A（个人微信/手机注册）扫码拿到组织 B 的员工账户 C 的绑定二维码 |
+| 确认页 | 展示「将绑定到 **{组织名}**（原员工：**{C 姓名}**），原员工账户将被**废止**」→ **二次确认**（`dialog.confirm`）后才执行合并 |
+| C（被吸收方） | `status=obsolete`；不再出现在成员列表/人员管理；本地待办关闭（`staff_invites`→`rejected(account_merged)`、`confirmation_sessions`→`cancelled`）；IAM 用户保留，仅组织关系停用 |
+| A（保留方） | 继承 `merchant_members` / `site_members` / `technician_profiles`；`users.role/tenant_id/org_id` 经 `reconcileUserCache` 镜像为组织身份（→ 人员管理可见） |
+| 密码步骤 | 合并成功后，**A 无登录密码** → 进入「设置登录密码 + 确认密码」（`/pages-weapp/credentials`，复用 #2446 表单）；**A 已有密码** → 直接成功页 |
+| 审计 | `audit_logs` 写 `ACCOUNT_MERGE`（from/to `iam_sub`、组织、来源 `qr_bind`），事务内写入失败即回滚 |
+
+- 合并完成后重新登录 → 身份选择页 → 个人中心「切换身份」进入员工身份。
+
+
 ---
 
 ## 协议勾选显性阅读同意流（#2244）

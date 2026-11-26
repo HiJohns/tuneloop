@@ -51,6 +51,8 @@ func (h *UserStaffHandler) ListStaff(c *gin.Context) {
 
 	// Build query
 	query := db.Where("tenant_id = ? AND deleted_at IS NULL", tenantID)
+	// #2567 D3：合并后废止（obsolete）的账户不得出现在成员列表。
+	query = query.Where("status IN ?", visibleUserStatuses)
 
 	if scopedDB, err := middleware.ApplyOrgScope(query, ctx); err == nil {
 		query = scopedDB

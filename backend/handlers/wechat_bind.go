@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -205,6 +206,10 @@ func (h *WechatBindHandler) ConfirmBind(c *gin.Context) {
 		}
 		bindTokensMu.Unlock()
 
+		// #2567 变更点 4：确认页必须能让顾客看清「绑定到哪个组织 + 原来是哪位员工 +
+		// 原员工账户将被废止」。组织名/员工名从本地缓存解析，解析失败不影响合并能力。
+		orgName, staffName := describeMergeTarget(db, user.TenantID, user.OrgID, user.Name, mergeErr.TargetUserID)
+
 		c.JSON(http.StatusConflict, gin.H{
 			"code":    40900,
 			"message": "该微信已绑定其他账户，需要合并",
@@ -214,6 +219,9 @@ func (h *WechatBindHandler) ConfirmBind(c *gin.Context) {
 				"target_user_id":   mergeErr.TargetUserID,
 				"openid":           mergeErr.OpenID,
 				"merge_ticket":     mergeErr.MergeTicket,
+				"org_name":         orgName,
+				"staff_name":       staffName,
+				"retires_staff":    true,
 			},
 		})
 		return
@@ -231,6 +239,42 @@ func (h *WechatBindHandler) ConfirmBind(c *gin.Context) {
 	bindTokensMu.Unlock()
 
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "binding success"})
+}
+
+// describeMergeTarget resolves the human labels shown on the merge
+// confirmation screen (#2567): the organization the customer is joining and the
+// staff account that will be retired.
+//
+// The staff account is X — the admin-provisioned account the bind QR belongs to
+// (the token user), whose IAM sub is mergeErr.TargetUserID. Lookups are
+// best-effort: an unresolved label must never block the merge flow.
+func describeMergeTarget(db *gorm.DB, tenantID, orgID, tokenUserName, targetIAMSub string) (string, string) {
+	staffName := strings.TrimSpace(tokenUserName)
+
+	// Prefer the local row of the account being retired (X).
+	if sub := strings.TrimSpace(targetIAMSub); sub != "" {
+		var staff models.User
+		if err := db.Where("iam_sub = ?", sub).First(&staff).Error; err == nil {
+			if n := strings.TrimSpace(staff.Name); n != "" {
+				staffName = n
+			}
+			if staff.TenantID != "" {
+				tenantID = staff.TenantID
+			}
+			if staff.OrgID != "" {
+				orgID = staff.OrgID
+			}
+		}
+	}
+
+	orgName := ""
+	if tenantID != "" && tenantID != zeroUUID {
+		db.Raw("SELECT name FROM merchants WHERE tenant_id = ? LIMIT 1", tenantID).Scan(&orgName)
+	}
+	if strings.TrimSpace(orgName) == "" && orgID != "" && orgID != zeroUUID {
+		db.Raw("SELECT name FROM sites WHERE org_id = ? LIMIT 1", orgID).Scan(&orgName)
+	}
+	return strings.TrimSpace(orgName), staffName
 }
 
 // MergeBind completes a bind-QR needs_merge conflict (#2445).

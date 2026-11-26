@@ -12,6 +12,7 @@ package handlers
 // audit; only the staff identity moves to Y.
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -136,10 +137,117 @@ func migrateMergedAccountLocal(db *gorm.DB, fromIAMSub, toIAMSub string) error {
 			Updates(map[string]interface{}{"status": "active", "updated_at": time.Now()}).Error; err != nil {
 			return err
 		}
-		log.Printf("[AccountMerge] local staff data migrated: %s (%s) -> %s (%s)",
-			fromUser.ID, fromIAMSub, toUser.ID, toIAMSub)
+
+		// #2567 D2: the three cache columns are recomputed from the membership
+		// rows we just moved — never written inline. Y inherits the org identity
+		// (visible in 人员管理), X falls back to the customer state.
+		if err := reconcileUserCache(tx, toUser.ID); err != nil {
+			return err
+		}
+		if err := reconcileUserCache(tx, fromUser.ID); err != nil {
+			return err
+		}
+
+		// #2567 D7（Rev.2）：X is obsolete, so its *local* pending work must be
+		// closed instead of being re-homed or left dangling. IAM's
+		// user_task_queues is ops-side (tuneloop must not touch the IAM DB).
+		invites, sessions, err := closeMergedAccountLocalTodo(tx, fromUser.ID)
+		if err != nil {
+			return err
+		}
+
+		if err := writeAccountMergeAudit(tx, fromUser, toUser, invites, sessions); err != nil {
+			return err
+		}
+
+		log.Printf("[AccountMerge] local staff data migrated: %s (%s) -> %s (%s); closed invites=%d confirm_sessions=%d",
+			fromUser.ID, fromIAMSub, toUser.ID, toIAMSub, invites, sessions)
 		return nil
 	})
+}
+
+// closeMergedAccountLocalTodo closes X's *local* pending work when X becomes
+// obsolete (#2567 D7 / Rev.2). Semantic is "close", not "re-home": the source
+// account is retired, so its pending invites/confirmations must not continue
+// under the surviving identity.
+//
+// Only local tables are touched — IAM's user_task_queues is ops-side and
+// tuneloop is forbidden to connect to the IAM database.
+func closeMergedAccountLocalTodo(tx *gorm.DB, fromLocalID string) (int64, int64, error) {
+	var invites, sessions int64
+	res := tx.Model(&models.StaffInvite{}).
+		Where("invitee_user_id = ? AND status = ?", fromLocalID, "pending").
+		Updates(map[string]interface{}{
+			"status":        "rejected",
+			"reject_reason": "account_merged",
+			"updated_at":    time.Now(),
+		})
+	if res.Error != nil {
+		return 0, 0, fmt.Errorf("close staff_invites for %s: %w", fromLocalID, res.Error)
+	}
+	invites = res.RowsAffected
+
+	if !tx.Migrator().HasTable(&models.ConfirmationSession{}) {
+		// #2543 created this table; older databases may not have it yet.
+		log.Printf("[AccountMerge] confirmation_sessions table missing; skip local todo close for %s", fromLocalID)
+		return invites, 0, nil
+	}
+	res = tx.Model(&models.ConfirmationSession{}).
+		Where("user_id = ? AND status = ?", fromLocalID, "waiting").
+		Updates(map[string]interface{}{"status": "cancelled", "updated_at": time.Now()})
+	if res.Error != nil {
+		return invites, 0, fmt.Errorf("close confirmation_sessions for %s: %w", fromLocalID, res.Error)
+	}
+	sessions = res.RowsAffected
+	return invites, sessions, nil
+}
+
+// writeAccountMergeAudit records ACCOUNT_MERGE inside the merge transaction.
+//
+// Unlike the fire-and-forget writeAuditLog helper, a failure here fails the
+// merge: "who absorbed which staff account" must never be lost (#2567 D5).
+func writeAccountMergeAudit(tx *gorm.DB, fromUser, toUser *models.User, invites, sessions int64) error {
+	details := map[string]interface{}{
+		"from_local":              fromUser.ID,
+		"from_iam_sub":            fromUser.IAMSub,
+		"to_local":                toUser.ID,
+		"to_iam_sub":              toUser.IAMSub,
+		"org_id":                  toUser.OrgID,
+		"source":                  "qr_bind",
+		"invites_closed":          invites,
+		"confirm_sessions_closed": sessions,
+	}
+	b, err := json.Marshal(details)
+	if err != nil {
+		return fmt.Errorf("account merge audit details: %w", err)
+	}
+	d := string(b)
+	tenant := toUser.TenantID
+	if tenant == "" || tenant == zeroUUID {
+		tenant = fromUser.TenantID
+	}
+	if tenant == "" {
+		tenant = zeroUUID
+	}
+	row := models.AuditLog{
+		ID:           uuid.NewString(),
+		TenantID:     tenant,
+		UserID:       toUser.ID,
+		ActorName:    toUser.Name,
+		Action:       "ACCOUNT_MERGE",
+		ResourceType: "user",
+		ResourceID:   fromUser.ID,
+		Details:      &d,
+		CreatedAt:    time.Now(),
+	}
+	if toUser.OrgID != "" && toUser.OrgID != zeroUUID {
+		org := toUser.OrgID
+		row.OrgID = &org
+	}
+	if err := tx.Create(&row).Error; err != nil {
+		return fmt.Errorf("account merge audit write: %w", err)
+	}
+	return nil
 }
 
 func migrateSiteMembers(tx *gorm.DB, fromLocalID, toLocalID string) error {

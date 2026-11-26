@@ -210,6 +210,8 @@ func personnelMerchantView(db *gorm.DB, tid, keyword, siteFilter string, directO
 	}
 	var users []models.User
 	q := db.Where("id IN ? AND deleted_at IS NULL", ids)
+	// #2567 D3：废止账户（obsolete）不得出现在人员视图。
+	q = q.Where("status IN ?", visibleUserStatuses)
 	if keyword != "" {
 		like := "%" + keyword + "%"
 		q = q.Where("name ILIKE ? OR phone ILIKE ? OR email ILIKE ?", like, like, like)
@@ -264,6 +266,8 @@ func personnelSiteView(db *gorm.DB, orgID, keyword, siteFilter string) ([]person
 	}
 	var users []models.User
 	q := db.Where("id IN ? AND deleted_at IS NULL", ids)
+	// #2567 D3：废止账户（obsolete）不得出现在人员视图。
+	q = q.Where("status IN ?", visibleUserStatuses)
 	if keyword != "" {
 		like := "%" + keyword + "%"
 		q = q.Where("name ILIKE ? OR phone ILIKE ? OR email ILIKE ?", like, like, like)
@@ -286,6 +290,8 @@ func personnelSystemView(db *gorm.DB, rootOrgID, platformTenantID, keyword strin
 	var staff []models.User
 	q := db.Where("org_id = ? AND LOWER(role) IN ? AND deleted_at IS NULL",
 		rootOrgID, []string{"staff", "namespace_admin", "sys_admin"})
+	// #2567 D3：废止账户（obsolete）不得出现在人员视图。
+	q = q.Where("status IN ?", visibleUserStatuses)
 	if keyword != "" {
 		like := "%" + keyword + "%"
 		q = q.Where("name ILIKE ? OR phone ILIKE ? OR email ILIKE ?", like, like, like)
@@ -327,6 +333,8 @@ func personnelSystemView(db *gorm.DB, rootOrgID, platformTenantID, keyword strin
 	if len(ids) > 0 {
 		var members []models.User
 		mq := db.Where("id IN ? AND deleted_at IS NULL", ids)
+		// #2567 D3：废止账户（obsolete）不得出现在人员视图。
+		mq = mq.Where("status IN ?", visibleUserStatuses)
 		if keyword != "" {
 			like := "%" + keyword + "%"
 			mq = mq.Where("name ILIKE ? OR phone ILIKE ? OR email ILIKE ?", like, like, like)

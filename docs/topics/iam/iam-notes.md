@@ -194,3 +194,25 @@ CreateMerchant → CreateUser(CallbackURL)  ← CreateOrg(CallbackURL)
 - **PC 前端**：`/callback` 失败分支不落任何 token 并展示后端 message（2s 后重新发起 OAuth，可重选组织）；`40104` → `clearTokens()` + `logout_reason=org_context_missing` → 登出页提示「登录上下文缺失，请重新登录并选择组织」。
 - **部署顺序**（Ops Follow-up）：beaconiam 先发布（授权码绑定组织），tuneloop 后发布；否则 PC 会稳定收到可诊断的 `50202`（不可登录但不再静默弹回）。
 - 相关：#2457（组织名权威源）、#2455（同商户网点名唯一 + 组织名/网点名可辨识）、#2456（PC idle）。
+
+## 账户生命周期：绑定 → 废止 → 顾客回退（#2567）
+
+> Owner + Ken 2026-11-26 裁定。权威口径：`docs/cases/account-select.md`「扫码绑定的合并语义」。
+
+**三态流转（合并场景，C = 被吸收的员工账户 / A = 保留的顾客账户）**：
+
+| 阶段 | C（被吸收） | A（保留） |
+|---|---|---|
+| 合并前 | IAM `active` + 组织 relation（org/职能角色）；本地 `users.status=active`、三宿字段=组织身份 | IAM `active`，仅 `customer` 用途；本地 `users.role=USER`、`tenant_id`/`org_id`=nil UUID |
+| 合并后（IAM 权威） | `status=obsolete`；组织 relation 停用（**不删除** IAM 用户） | 承接 C 的组织 relation（角色沿用 C 的关系角色） |
+| 合并后（本地缓存） | `users.status=obsolete`；`role=USER`、三宿字段=nil UUID；不进成员列表/人员管理 | 承接 `merchant_members`/`site_members`/`technician_profiles`；三宿字段镜像为组织身份 |
+
+**本地缓存收口（D2）**：`users.role` / `tenant_id` / `org_id` 是成员关系的**缓存**，任何改变成员的路径（合并、解绑、移除成员）都调用 `backend/handlers/user_cache.go` 的 `reconcileUserCache(tx, userID)` 重算，禁止各处手写这三列。合并路径已接入（本单）；解绑/移除成员由 #2568 接入。
+
+**可见性（D3）**：成员列表（`GET /api/staff`）与人员管理三视图（`GET /api/admin/personnel`）一律只列 `status IN ('active','pending')`。`obsolete`/`disabled`/`deleted` 不出现；`pending` 保留（PC 列表渲染「待确认」、激活流程依赖）。
+
+**可追溯（D5）**：`audit_logs` 的 `ACCOUNT_MERGE` 行记录 `from_local/from_iam_sub/to_local/to_iam_sub/org_id/source:"qr_bind"`，与本地 `obsolete` 行共同构成「A 吸收了哪个员工账号」的反查链。
+
+**跨库红线（D7）**：C 的待办只做**本地**关闭（`staff_invites`→`rejected`、`confirmation_sessions`→`cancelled`）。IAM 侧 `user_task_queues` 属运维范畴，tuneloop 不得直连 IAM 库（见 `docs/ops/pending-user-orphan-cleanup.md` §5），需要清理由运维在 IAM 侧执行。
+
+**密码步骤（D4）**：合并成功后仅当 A 无登录凭据时提示「设置登录密码 + 确认密码」（复用 #2446 凭据表单）；A 已有密码则直接成功页——不得对已有密码账户重复弹窗。

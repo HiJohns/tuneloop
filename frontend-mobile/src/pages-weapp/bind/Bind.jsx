@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Taro from '@tarojs/taro'
 import { View, Text, Button } from '@tarojs/components'
-import { wxLogin, storage, session, env, request, navigation } from '../../platform'
+import { wxLogin, storage, session, env, request, navigation, dialog } from '../../platform'
 import { maskOpenid } from '../../utils/wechatBind.mjs'
 import { resolveLogin } from '../../services/api'
 
@@ -85,11 +85,19 @@ export default function Bind() {
   }
 
   // #2445：X（管理员预建）→ obsolete，Y（员工个人账户）保留并接收网点身份。
+  // #2567 变更点 4：二次确认——合并前必须让顾客看到「绑定到哪个组织、原来是谁、
+  // 原员工账户将被废止」，避免一键合并掉别人的员工身份。
   const doMerge = async () => {
     if (!bindToken || !mergeInfo?.merge_ticket) {
       setStatus('error')
       return
     }
+    const orgLabel = mergeInfo?.org_name || '该组织'
+    const staffLabel = mergeInfo?.staff_name || '原员工'
+    const confirmed = await dialog.confirm(
+      `确认合并？\n\n将把「${orgLabel}」的员工身份绑定到你的账户（原员工：${staffLabel}）。\n合并后原员工账户（${staffLabel}）将被废止，不再出现在成员列表。`
+    )
+    if (!confirmed) return
     setStatus('merging')
     try {
       const res = await request(`${env.apiBaseUrl}/wechat-bind/merge`, {
@@ -141,10 +149,14 @@ export default function Bind() {
         <View style={{ alignItems: 'center', padding: 12, width: '100%', boxSizing: 'border-box' }}>
           <Text style={{ display: 'block', fontSize: 48, marginBottom: 16 }}>🔗</Text>
           <Text style={{ display: 'block', fontSize: 18, fontWeight: '700', color: '#000', marginBottom: 8, textAlign: 'center' }}>该微信已绑定个人账户</Text>
-          <Text style={{ display: 'block', fontSize: 14, color: '#71717a', marginBottom: 12, textAlign: 'center', lineHeight: '22px' }}>
-            继续将把管理员为你创建的员工账户合并到当前微信的个人账户：
-            员工账户作废，网点身份与角色转入个人账户。合并后可重新登录并切换为员工身份。
-          </Text>
+          <View style={{ width: '100%', backgroundColor: '#fff', borderRadius: 12, padding: 16, boxSizing: 'border-box', marginBottom: 12 }}>
+            <Text style={{ display: 'block', fontSize: 14, color: '#18181b', lineHeight: '22px', textAlign: 'center' }}>
+              将绑定到 {mergeInfo?.org_name || '该组织'}（原员工：{mergeInfo?.staff_name || '原员工'}）
+            </Text>
+            <Text style={{ display: 'block', fontSize: 13, color: '#b45309', lineHeight: '20px', textAlign: 'center', marginTop: 6 }}>
+              原员工账户将被废止，网点身份与角色转入你的个人账户；合并后可重新登录并切换为员工身份。
+            </Text>
+          </View>
           {maskOpenid(mergeInfo?.openid) ? (
             <Text style={{ display: 'block', fontSize: 12, color: '#a1a1aa', marginBottom: 16, textAlign: 'center' }}>
               绑定编号：{maskOpenid(mergeInfo?.openid)}
@@ -152,7 +164,7 @@ export default function Bind() {
           ) : null}
           {mergeInfo?.merge_ticket ? (
             <View style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
-              <Button onClick={doMerge} style={primaryBtn}>合并到我的个人账户</Button>
+              <Button onClick={doMerge} style={primaryBtn}>确认合并（原员工账户将废止）</Button>
               <Button onClick={() => navigation.safeBack()} style={secondaryBtn}>取消</Button>
             </View>
           ) : (
@@ -171,7 +183,7 @@ export default function Bind() {
           <Text style={{ display: 'block', fontSize: 48, marginBottom: 16 }}>✅</Text>
           <Text style={{ display: 'block', fontSize: 18, fontWeight: '700', color: '#000', marginBottom: 8, textAlign: 'center' }}>合并成功</Text>
           <Text style={{ display: 'block', fontSize: 14, color: '#71717a', marginBottom: 12, textAlign: 'center', lineHeight: '22px' }}>
-            员工身份已转入你的个人账户。请重新登录小程序，在「我的」页点击「切换身份」进入员工身份。
+            员工身份已转入你的个人账户，原员工账户已废止。请重新登录小程序，在「我的」页点击「切换身份」进入员工身份。
           </Text>
           {mergeResult?.needs_credentials ? (
             <>
