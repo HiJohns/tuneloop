@@ -1,7 +1,7 @@
 {
   "issue": 2552,
   "overall": "PASS",
-  "plan": "/tmp/opencode/tuneloop/wt-2552/tmp/pre-ready-2552.cP54TH/plan.md",
+  "plan": "/tmp/opencode/tuneloop/wt-2552/tmp/pre-ready-2552.0c3Yrf/plan.md",
   "plan_sha256": "90ccb3388dc87d0ad0c0024e660212f567a621af8e94f318b8e9f32c1a58de62",
   "config_sha": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
   "provenance": {
@@ -10,7 +10,7 @@
     "dirty": false
   },
   "summary": "tmp/work-summary-2552.md",
-  "timestamp": "20261126-130319",
+  "timestamp": "20261126-130503",
   "checks": [
     {
       "id": "P1",
@@ -65,7 +65,7 @@
     {
       "id": "P5",
       "status": "PASS",
-      "detail": "full gate clean worktree; HEAD failures are a subset of baseline (origin/develop); source head=cache baseline=cache"
+      "detail": "full gate clean worktree; HEAD failures are a subset of baseline (origin/develop); source head=cache(reused:non-input) baseline=cache"
     },
     {
       "id": "P6",
