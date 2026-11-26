@@ -1,0 +1,7 @@
+# build=1.0.44f9368c7 # commit=44f9368c757143396bcaf0dabe3db2d3f2741441 # dirty=false
+== R7 激活行操作：零租户行不再 404 ==
+ACTIVATE_ZERO_STATUS=40001
+ACTIVATE_ZERO_HTTP=400
+ACTIVATE_CROSS_TENANT_STATUS=404
+--- PASS: TestStaffActivate2526_RowAction (0.82s)
+R7_OK

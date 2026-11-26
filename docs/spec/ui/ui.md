@@ -2531,6 +2531,17 @@ const handleSyncUsersFromIAM = async () => {
 - 字段仅用于**平台代建**；商户管理员传入他人商户会被后端 **403** 拒绝。
 - 后端以该商户 `org_id` 作为 `sites.tenant_id` 与 IAM 新组织父级（锚模型见 #2266 / #2245）。
 
+**网点类型（2026-11-26 组织模型）**：
+
+| 类型 | 表单表现 | IAM 组织 |
+|---|---|---|
+| 直营店（默认） | 管理员**可选**（允许零成员） | `parent_id = 商户 org_id`（branch，无 OWNER） |
+| 加盟店 | **所有人（OWNER）必填** + 管理员可选 | 命名空间下独立组织（franchise，有 OWNER）+ `org_link` 关联当前商户 |
+| 合作店 | **不提供**（暂不做） | — |
+
+- 角色模板定义权归**组织 OWNER**（直营店 = 商户 OWNER；加盟店 = 自身 OWNER），网点管理员只能分配。
+- 中转网点（平台直属直营）在系统管理端创建，`parent_id = 命名空间组织`，无 OWNER（见 `docs/cases/transit.md`）。
+
 ---
 
 ### 3.10.3 权限管理页面设计（#660）
@@ -2617,6 +2628,8 @@ const handleSyncUsersFromIAM = async () => {
 | system_admin | 平台员工 + 中转网点成员 | 同商户管理员；平台员工显示「平台」、中转网点成员显示网点名 |
 
 职位列取 `position`（缺失时回退 role 映射；师傅显示「维修师傅」）。
+
+**#2526 归属缺失标记**：`attribution_missing=true` 的行（本地 `users.tenant_id`/`org_id` 为空或 nil UUID 的存量数据）在「所属网点」列网点名后追加 `归属缺失`（`Tag color="gold"`，`title` 说明为本地归属缺失、数据按成员关系展示、不影响编辑）。判定抽为纯函数 `frontend-pc/src/utils/personnelQuery.js` 的 `attributionMissingBadge(record)`（接受 `true` 与字符串 `'true'`），三视图一致；商户/网点/系统行均由后端同一来源填充。
 
 **#2462 角色列与编辑页预填口径**：
 - 角色列对直属员工（无 `site_members` 行 / 无 `site_name`）显示 `商户直属员工`（`merchant_staff`），不再显示「成员」；

@@ -79,14 +79,32 @@ func CreateAdminTransitSite(c *gin.Context) {
 	}
 
 	db := database.GetDB()
-	tenantID := middleware.GetTenantID(c.Request.Context())
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
 
-	// #1935: 中转网点直辖平台顶层组织 —— OrgID 填平台租户 ID（顶层）
+	// #2547: 中转网点是平台直属直营分支，必须有自己的一级组织——
+	// 在命名空间组织（= 系统管理员的顶层组织）下建子组织（kind=branch，无 OWNER）。
+	// 建组织失败则整站创建失败，禁止留下“无 IAM 组织”的站点（成员会绑到平台租户组织）。
+	orgName := req.Name
+	if orgName == "" {
+		orgName = "中转网点"
+	}
+	iamClient := services.NewIAMClient()
+	parentOrgID := tenantID
+	createdOrg, err := iamClient.CreateOrganization(&services.CreateOrganizationRequest{
+		Name:     orgName,
+		ParentID: parentOrgID,
+	})
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"code": 50200, "message": "中转网点组织创建失败（IAM）：" + err.Error()})
+		return
+	}
+
 	// #1935 audit Bug4: contact_name 持久化（此前被静默丢弃）
 	site := models.Site{
 		ID:          uuid.New().String(),
 		TenantID:    tenantID,
-		OrgID:       tenantID,
+		OrgID:       createdOrg.OrgID,
 		Name:        req.Name,
 		Address:     req.Address,
 		Phone:       req.Phone,
@@ -268,7 +286,12 @@ func AddTransitSiteMember(c *gin.Context) {
 		}
 	}
 
-	res, fail := addMembersCore(c, db, site, site.TenantID, siteID, input)
+	// #2547: 成员绑定到中转网点自己的组织（不是平台租户组织，避免全部中转网点共享一个组织上下文）。
+	bindOrgID := site.OrgID
+	if bindOrgID == "" {
+		bindOrgID = site.TenantID // legacy rows before #2547 backfill
+	}
+	res, fail := addMembersCore(c, db, site, bindOrgID, siteID, input)
 	if fail != nil {
 		c.JSON(fail.Status, fail.Body)
 		return

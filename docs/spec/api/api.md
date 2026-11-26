@@ -1018,6 +1018,11 @@ GET /api/confirmation-sessions/:id
 >
 > **注**: `transit_site_id` 为受控商户（`merchant_type=controlled`）创建网点时的必填项。可选的中转网点通过 `GET /api/public/sites?type=transit` 获取（返回含 `address`）。
 
+> **注（2026-11-26 组织模型）**：`type` 取值收敛为 `direct`（直营店，默认）与 `franchise`（加盟店）；`partner`（合作店）**暂不支持**，传值 → `40002`。
+> - **直营店**：`manager_user_id` 可省略（允许零成员）；IAM 建 `parent_id = 商户 org_id` 的**分支组织**（`kind=branch`，无 OWNER），`sites.org_id` 为该子组织。
+> - **加盟店**：**必须**传 `owner_user_id`（否则 `40002`）；IAM 在命名空间下建**独立组织**（`parent_id = null`，`kind=franchise`）并把该用户绑为 **OWNER**，随后建 `org_link(kind=franchise)` 关联当前商户；`sites.org_id` 为该独立组织。
+> - 角色模板：直营店继承所属商户 OWNER 定义的模板；加盟店按 `org_link` 继承（默认开）。
+
 **响应**:
 ```json
 {
@@ -6265,7 +6270,7 @@ GET /api/admin/dashboard/near-transfers
 
 **ID 域（#2508）**: `sites.org_id`（= JWT `oid`，组织 ID）与 `sites.id`（= `site_members.site_id`，本地主键）是两列不同域，生产上恒不相等。凡按组织隔离的查询必须 `JOIN sites` 用 `s.org_id`；把 `oid` 直接当 `site_id` 比较会恒返回 0 行且无报错（静默空列表）。
 
-**响应行**: `{id, user_id, name, phone, email, position, role, status, iam_sub, site_id, site_name, is_technician, bio, avatar}`（#2073 增 `bio`/`avatar`）
+**响应行**: `{id, user_id, name, phone, email, position, role, status, iam_sub, site_id, site_name, is_technician, bio, avatar, attribution_missing}`（#2073 增 `bio`/`avatar`；#2526 增 `attribution_missing`——`users.tenant_id`/`org_id` 为空或 nil UUID 时 `true`，PC 在「所属网点」列显示「归属缺失」标签）
 （一行一人；多网点归属时 `site_name` 逗号聚合；`id`/`user_id` 同值，兼容既有行操作）
 
 **排序**（#2072）：按 `users.created_at DESC`（**新建用户置顶**；此前无 ORDER BY，行序不稳定致新建用户不在当前页）。
@@ -6481,7 +6486,36 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 
 **说明**: 预览解析结果，不实际创建用户。支持 `skip_activation` 参数。
 
-#### 10.18.6 激活员工（IAM 关系角色与权限模板，#2540）
+#### 10.18.6 员工详情 / 保存 / 激活的可见性口径（#2526）
+
+**接口**: `GET /api/admin/staff/:id`、`PUT /api/users/:id`、`POST /api/users/:id/activate`
+
+**背景**: 人员列表以 membership 为权威（§10.18.0），但上述 by-id 动作曾按 `users.tenant_id = ?` 过滤，导致 `users.tenant_id`/`org_id` 为 nil UUID 的存量行「列表可见、点开 404」（生产样本 `linwx1978@163.com`）。三者现共用同一判定。
+
+**可见性判定（唯一口径）**:
+
+```
+可见 = 列表 membership 口径 ∪（旧 tenant/org 口径 ∧ 非顾客角色 lower(users.role) ∉ {"", "user"}）
+```
+
+| businessRole | 判定 |
+|---|---|
+| merchant_admin | `site_members→sites.tenant_id = tid`（active）或 `merchant_members.tenant_id = tid`（active）或 `technician_profiles.tenant_id = tid`；否则 `users.tenant_id = tid` 且 `lower(role) ∉ {"", "user"}` |
+| site_admin | `site_members→sites.org_id = oid`（active）；否则 `users.tenant_id = tid` + `org_id` 在可见组织内，且 `lower(role) ∉ {"", "user"}` |
+| system_admin | `users.org_id = oid` 且 `lower(role) ∈ {staff, namespace_admin, sys_admin}`；或中转网点成员（`sites.type='transit'` 且 `sites.tenant_id/org_id = oid`）；或 `tid` 非空时 `users.tenant_id = tid` |
+| 其他 | 仅旧口径：`users.tenant_id = tid` + `org_id` 在可见组织内 |
+
+**纯顾客**: `lower(users.role) ∈ {"", "user"}` 且无任何成员关系 → 一律 `404 40400`（不得通过 `users.tenant_id` 命中被当作员工打开，避免个人信息越权读取）。
+
+**不可见 vs 不存在**: 两者对外都返回 `404 40400`（不泄漏存在性），仅在服务端日志区分（`WARN` 含 actor/businessRole/tid/oid/user_role/user_tid）。非 UUID 的 `:id` 视为不存在 → `404`。
+
+**保存（PUT）**: 读路径与写路径同源——写库为显式作用域（`id + deleted_at IS NULL`，不按 `users.tenant_id` 过滤）并校验 `RowsAffected`；`0` 行 → `50000`（禁止「保存成功但没写」）。
+
+**激活（POST）**: 可见性同源；`iam_sub` 已存在仍返回 `40001 user already activated`。
+
+**`attribution_missing`（§10.18.0 响应行字段）**: `users.tenant_id` 或 `users.org_id` 为空/nil UUID 时为 `true`（三视图同源）。该标记仅表示本地归属未回填，不影响可见性与编辑；存量回填需 Owner 授权（#2527）。
+
+#### 10.18.7 激活员工（IAM 关系角色与权限模板，#2540）
 
 **接口**: `POST /api/users/:id/activate`
 
@@ -6491,7 +6525,7 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 
 | 项 | 取值 |
 |---|---|
-| 业务角色模板 | 取自 `users.role`，须命中 `services.AllRoleTemplates` 白名单；`users.role` 为空、`customer`、或未知码 → legacy 兜底 `site_member` |
+| 业务角色模板 | 取自 `users.role`，须命中**员工级**白名单 `site_admin`/`site_member`/`merchant_staff`/`repair_technician`；平台级（`namespace_admin`/`sys_admin`）、`merchant_admin`、`customer`、空值、未知码 → legacy 兜底 `site_member`（Rev.3 D2：平台模板 + 员工关系角色属语义混搭） |
 | IAM 关系角色 | `iamRole = NormalizeIAMRelationRole(ToIAMRole(roleTemplate))`，即 `site_member`→`STAFF`、`site_admin`→`ADMIN`、`merchant_admin`→`OWNER`、`repair_technician`→`repair_technician`；无法识别 → `STAFF` |
 | 客户权限位 | 与关系角色**同一个** `roleTemplate` 的 `CusPermCodes` 计算（`ComputeCusPermBitmapExt`）——不得硬编码 `site_member` |
 | 功能角色模板 | 同样来自**同一个** `roleTemplate`：`AssignRoleTemplateToUserWithToken`（`role_ids=[roleTemplate]`，`org_id` = 绑定组织，namespace 取 JWT）。只写关系角色/权限位而不分配模板会使 `RoleTemplate.SysPermBits` 不落库、JWT `fn_roles` 为空 |
@@ -6678,7 +6712,7 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 - `40001`: 请求参数错误
 - `40900`: IAM 组织名称冲突
 
-**IAM 关系角色（#2540 D4，Owner 2026-11-26 裁定）**: 商户管理员绑定商户组织的 **`OWNER`**（唯一权威映射 `toIAMRole("merchant_admin")`，见 10.18.6）。审批确认路径（`ConfirmationSession`，`action_type=merchant_admin`）同样绑定 `OWNER`，不得使用字面量 `"admin"`/`"ADMIN"`：beaconiam 的 `POST /organizations`（建网点）、角色模板定义、命名空间操作用均要求 `PermissionOwner`，绑定 `ADMIN` 会使商户创建者**无法再创建网点**。
+**IAM 关系角色（#2540 D4，Owner 2026-11-26 裁定）**: 商户管理员绑定商户组织的 **`OWNER`**（唯一权威映射 `toIAMRole("merchant_admin")`，见 10.18.7）。审批确认路径（`ConfirmationSession`，`action_type=merchant_admin`）同样绑定 `OWNER`，不得使用字面量 `"admin"`/`"ADMIN"`：beaconiam 的 `POST /organizations`（建网点）、角色模板定义、命名空间操作用均要求 `PermissionOwner`，绑定 `ADMIN` 会使商户创建者**无法再创建网点**。
 
 #### 12.3.2 商户列表
 
