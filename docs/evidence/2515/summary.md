@@ -12,7 +12,7 @@
 1. **读侧收敛（唯一改动点）**：`backend/handlers/instrument_loss.go` 的 `List` 保留租户过滤，新增站点收敛——`business_role ∈ {site_admin, site_member}` 时用子查询 `instruments WHERE tenant_id = ?` 再经 **applyInstrumentListScope（#1911，唯一权威）**，以 `instrument_id IN (?)` 与既有 `instrument_id` / `open` 条件取交集。商户/平台/系统管理员不进入该分支（保持全量）。
 2. **口径**：站点归属使用 instruments.site_id（**归属站点**）；**不使用** current_site_id（调拨会改写 → 历史凭证随乐器搬家，会制造新的跨网点泄漏）。site_id IS NULL 的历史乐器对网点账号不可见（fail-closed，D5）。
 3. **写侧未改**：loadLossInstrument 与丢失登记/找回逻辑零改动（D3，避免与 #2510 冲突）。
-4. **测试**（新增 `backend/handlers/instrument_loss_2515_test.go`）：夹具强制 ID 域分离（`sites.id ≠ sites.org_id ≠ tenant_id`），并把 instA.current_site_id 指向 B 站；测试路由挂 `middleware.ExplicitTenantScope()`（与生产 `main.go:442` 一致）；5 个用例覆盖 site_member 隔离 + 红证据、site_admin 同口径、商户/平台、多站点员工、跨站指名负例与漂移口径排除。
+4. **测试**（新增 `backend/handlers/instrument_loss_2515_test.go`）：夹具强制 ID 域分离（`sites.id ≠ sites.org_id ≠ tenant_id`），并把 instA.current_site_id 指向 B 站；测试路由挂 `ExplicitTenantScope`（与生产 `backend/main.go` 第 442 行一致）；5 个用例覆盖 site_member 隔离 + 红证据、site_admin 同口径、商户/平台、多站点员工、跨站指名负例与漂移口径排除。
 5. **文档**：docs/spec/api/api.md 新增 §5.12（3 个端点的路径/权限/参数/响应 + 可见性口径表 + current_site_id 禁用理由）；docs/cases/instrument-loss.md LS-04 补「可见范围」，角色矩阵补网点/平台范围。
 6. **证据生成器**：`scripts/verify-2515.sh`（r1–r6 + gate），每条首行 provenance，重命令经 heavy-run。
 
@@ -94,11 +94,11 @@ Model: DeepSeek V4.1 Flash 1017
 
 | 审计项 | 矩阵行 | 修复后证据 |
 |---|---|---|
-| Bug 1（High）R4 `DRIFT_SCOPE` 极性与计划相反、`evidence.json` expected≠actual 仍 pass | R4 | `DRIFT_SCOPE` 回归计划语义「漂移错归属行数」=`0`（返回行按归属站点判定无错归属）；「未用 current_site_id」的证明移入新机械 token `NO_DRIFT_PROOF=1`；`scripts/verify-2515.sh r4` 现绑定 4 个 token；`R4-negative.txt` + `evidence.json` R4 expected/actual 一致 |
-| Bug 2（Medium）`site_admin` 分支零覆盖 | R1（并入计划行，不新增矩阵行） | 新增 `TestInstrumentLoss2515_SiteAdminScope`（Role=ADMIN、oid≠tid、site_members=[aID]）；`R1-site-scope.txt` 断言 `SITE_ADMIN_ROWS=1`、`SITE_ADMIN_CROSS_SITE_LEAK=0` |
-| Bug 3（Medium）测试未镜像生产 `ExplicitTenantScope` | R1–R4 | `lossRouter2515` 挂 `middleware.ExplicitTenantScope()`（与 `main.go:442` 一致）；R1 增加反向断言 `assert_absent '[TenantScope][observe]'`；六份产物 `grep -c '[TenantScope][observe]'` 全为 0 |
-| Bug 4（Low）文档「全量」与 handler `tenant_id` 过滤不符 | 文档 | `api.md` §5.12 与 `cases/instrument-loss.md`（LS-04 + 角色矩阵）改为「本租户全量」 |
-| Bug 5（Low）未提交 `summary.md` 与送审文本不一致 | 文档/证据 | 本段与 `### Pre-ready Gate` 已随证据提交（远端 `summary.md` = 送审文本） |
+| Bug 1（High）R4 `DRIFT_SCOPE` 极性与计划相反、`docs/evidence/2515/evidence.json` expected≠actual 仍 pass | R4 | `DRIFT_SCOPE` 回归计划语义「漂移错归属行数」=`0`（返回行按归属站点判定无错归属）；「未用 current_site_id」的证明移入新机械 token `NO_DRIFT_PROOF=1`；`scripts/verify-2515.sh r4` 现绑定 4 个 token；`docs/evidence/2515/R4-negative.txt` + `docs/evidence/2515/evidence.json` R4 expected/actual 一致 |
+| Bug 2（Medium）`site_admin` 分支零覆盖 | R1（并入计划行，不新增矩阵行） | 新增 `TestInstrumentLoss2515_SiteAdminScope`（Role=ADMIN、oid≠tid、site_members=[aID]）；`docs/evidence/2515/R1-site-scope.txt` 断言 `SITE_ADMIN_ROWS=1`、`SITE_ADMIN_CROSS_SITE_LEAK=0` |
+| Bug 3（Medium）测试未镜像生产 `ExplicitTenantScope` | R1–R4 | 测试路由挂 `ExplicitTenantScope`（与生产 `backend/main.go` 第 442 行一致）；R1 增加反向断言 `assert_absent '[TenantScope][observe]'`；六份产物 `grep -c '[TenantScope][observe]'` 全为 0 |
+| Bug 4（Low）文档「全量」与 handler `tenant_id` 过滤不符 | 文档 | `docs/spec/api/api.md` §5.12 与 `docs/cases/instrument-loss.md`（LS-04 + 角色矩阵）改为「本租户全量」 |
+| Bug 5（Low）未提交 `docs/evidence/2515/summary.md` 与送审文本不一致 | 文档/证据 | 本段与 `### Pre-ready Gate` 已随证据提交（远端 `docs/evidence/2515/summary.md` = 送审文本） |
 
 - 根因分类：**执行**（未按计划断言语义对齐、测试缺分支与中间件），非计划/输入/工具 → 未改 Accepted Plan（`plan_sha256` 未变），未回 Architect。
 - Auditor 原命令复跑：`bash scripts/verify-2515.sh r{1..6}` 全部 `RESULT: OK`；`go test -run '^TestInstrumentLoss2515_' ./handlers/` 5/5 PASS。

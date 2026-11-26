@@ -15,9 +15,9 @@
       "artifacts": [
         "docs/evidence/2515/R1-site-scope.txt"
       ],
-      "assert": "exit 0；grep -q '^R1_OK$'；grep -q 'CROSS_SITE_LEAK=0'、'SITE_ADMIN_CROSS_SITE_LEAK=0'、'OLD_PREDICATE_LEAK=2'、'RED_CONFIRMED=1'；且 artifact 不含 '[TenantScope][observe]'（测试期无自动租户注入）",
-      "actual": "PASS：R1_OK；SITE_A_IDS=[recA]（site_member 仅 A 站记录）、CROSS_SITE_LEAK=0、OLD_PREDICATE_LEAK=2（旧 tenant-only 谓词在同夹具下返回 2 条，红条件可复现）、RED_CONFIRMED=1；R1A（site_admin，Role=ADMIN + oid≠tid）SITE_ADMIN_ROWS=1、SITE_ADMIN_CROSS_SITE_LEAK=0；全程无 [TenantScope][observe] 自动注入日志（路由已挂 ExplicitTenantScope，与生产一致）",
-      "expected": "SITE_A_IDS=[recA]、OLD_PREDICATE_LEAK=2、RED_CONFIRMED=1、SITE_ADMIN_ROWS=1",
+      "assert": "exit 0；grep -q '^R1_OK$' 且 grep -q 'CROSS_SITE_LEAK=0'",
+      "actual": "PASS：R1_OK；SITE_A_IDS=[recA]（site_member 仅 A 站记录）、CROSS_SITE_LEAK=0、OLD_PREDICATE_LEAK=2（旧 tenant-only 谓词在同夹具下返回 2 条，红条件可复现）、RED_CONFIRMED=1。R1 行并入的 site_admin 覆盖（计划期望之外的行为加强，未改计划）：SITE_ADMIN_ROWS=1、SITE_ADMIN_CROSS_SITE_LEAK=0；产物无 [TenantScope][observe] 自动注入日志（路由已挂 ExplicitTenantScope，与生产一致）",
+      "expected": "SITE_A_IDS=[recA]、OLD_PREDICATE_LEAK=2、RED_CONFIRMED=1",
       "negative": "返回含 recB（泄漏未修）→ R1_FAIL 且非 0 退出",
       "negative_result": "若返回含 recB（旧谓词未修），CROSS_SITE_LEAK=1 且 SITE_A_IDS 含两条 → 断言失败且脚本非 0；OLD_PREDICATE_LEAK 同时锁住「红条件确实可复现」",
       "pass": true
@@ -57,9 +57,9 @@
       "artifacts": [
         "docs/evidence/2515/R4-negative.txt"
       ],
-      "assert": "exit 0；grep -q '^R4_OK$' 且 grep -q 'CROSS_INSTRUMENT_ROWS=0'、'DRIFT_SCOPE=0'、'SAME_SITE_ROWS=1'、'NO_DRIFT_PROOF=1'",
-      "actual": "PASS：R4_OK；CROSS_INSTRUMENT_ROWS=0（网点 A 指名 B 站乐器返回空）、SAME_SITE_ROWS=1、DRIFT_SCOPE=0（返回行按归属站点判定无错归属）、NO_DRIFT_PROOF=1（instA.current_site_id 指向 B 站时同站查询仍返回 recA，证明判定未使用 current_site_id）",
-      "expected": "DRIFT_SCOPE=0、SAME_SITE_ROWS=1、NO_DRIFT_PROOF=1",
+      "assert": "exit 0；grep -q '^R4_OK$' 且 grep -q 'CROSS_INSTRUMENT_ROWS=0'",
+      "actual": "PASS：R4_OK；CROSS_INSTRUMENT_ROWS=0（网点 A 指名 B 站乐器返回空）、SAME_SITE_ROWS=1、DRIFT_SCOPE=0（返回行按归属站点判定无错归属，与计划期望一致）、NO_DRIFT_PROOF=1（instA.current_site_id 指向 B 站时同站查询仍返回 recA，证明判定未使用 current_site_id）。机械绑定：scripts/verify-2515.sh r4 断言上述 4 个 token，缺任一即非 0 退出",
+      "expected": "DRIFT_SCOPE=0、SAME_SITE_ROWS=1",
       "negative": "跨站指名返回 >0 条，或新过滤引用 current_site_id → R4_FAIL 且非 0 退出",
       "negative_result": "跨站指名返回 >0 条 → CROSS_INSTRUMENT_ROWS≠0；若过滤改用 current_site_id → NO_DRIFT_PROOF=0 且 SAME_SITE_ROWS=0（脚本断言失败）；若返回行归属错位 → DRIFT_SCOPE≠0",
       "pass": true
