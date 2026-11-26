@@ -488,6 +488,8 @@ var defaultMigrationArtifacts = []migrationArtifact{
 	{20261117001, "settlement_calculations", "supersedes", "结算冲正来源列（#2361）"},
 	// #2456：PC 后台 idle timeout 会话表（仅 PC 入口写入）。
 	{20261123001, "pc_sessions", "", "PC 会话 idle 超时表（#2456）"},
+	// #2543：确认会话持久化表（Owner 2026-11-26 裁定「确认会话可以建表」）。
+	{20261126002, "confirmation_sessions", "", "确认会话表（#2543）"},
 }
 
 // verifyArtifacts 纯逻辑（便于单测）：对 version ≥ a.Version 的工件断言存在。
@@ -727,7 +729,8 @@ func validateDatabaseSchema(db *gorm.DB) error {
 	// Full persistence-model list (#1716): every model with a table must be
 	// validated. Table-missing models below are NOT failures — they are either
 	// intentionally exempt (non-persisted / composite) or deprecated:
-	//   ConfirmationSession, Label — no table ever created (non-persisted)
+	//   Label — no table ever created (non-persisted)
+	// #2543: ConfirmationSession is persisted again (20261126002 migration).
 	for _, m := range modelsToValidate {
 		if err := validateModelColumns(db, m); err != nil {
 			return err

@@ -1,6 +1,0 @@
-# build=1.0.31045aed2 # commit=31045aed2ba7226629346cc1df6f61e1403df743 # dirty=false
-# R5 文档与注释口径纠正（api.md 不写 IAM + 模型非持久化 + 代码禁令注释）
-DOC_API_NO_IAM_ON_CONFIRM=1
-DOC_API_OWNER_PATHS=1
-MODEL_COMMENT_NONPERSISTED=1
-FORBIDDEN_IAM_COMMENT=1

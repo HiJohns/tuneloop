@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
@@ -93,7 +94,17 @@ func (h *ConfirmationSessionHandler) Create(c *gin.Context) {
 		ExpiresAt:      expiresAt,
 	}
 
-	if err := db.Create(&session).Error; err != nil {
+	// #2543：merchant_id / action_target_id 是 UUID 列，site_* 动作没有商户 id 时
+	// 空串会被 Postgres 拒绝（22P02 invalid input syntax for type uuid）。显式
+	// Omit 让这两个可选 UUID 落 NULL。
+	insert := db
+	if session.MerchantID == "" {
+		insert = insert.Omit("merchant_id")
+	}
+	if session.ActionTargetID == "" {
+		insert = insert.Omit("action_target_id")
+	}
+	if err := insert.Create(&session).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create session"})
 		return
 	}
@@ -106,6 +117,9 @@ func (h *ConfirmationSessionHandler) Create(c *gin.Context) {
 			"status":     session.Status,
 			"token":      session.Token,
 			"expires_at": session.ExpiresAt,
+			// #2543：iam_sub 是确认执行的 IAM 主体。创建会话时不强制已激活
+			// （激活可能晚于创建），但把就绪状态返回给调用方以便提前提示。
+			"iam_ready": user.IAMSub != "",
 		},
 	})
 }
@@ -201,6 +215,13 @@ func (h *ConfirmationSessionHandler) Confirm(c *gin.Context) {
 
 	// Execute the action
 	if err := h.executeAction(&session); err != nil {
+		// #2543 D3：执行失败必须让会话显式进入 failed（不得停留在 confirmed），
+		// 并把原始错误透传给调用方（禁止静默吞错）。
+		session.Status = "failed"
+		session.Message = err.Error()
+		if saveErr := db.Save(&session).Error; saveErr != nil {
+			log.Printf("[Confirm] failed to persist failed status for session %s: %v", session.ID, saveErr)
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to execute action: " + err.Error()})
 		return
 	}
@@ -355,15 +376,29 @@ func (h *ConfirmationSessionHandler) executeAction(session *models.ConfirmationS
 			if err := db.Where("id = ?", session.MerchantID).First(&merchant).Error; err != nil {
 				return fmt.Errorf("merchant not found: %s", session.MerchantID)
 			}
-			// #2543：本特性无持久化表（confirmation_sessions 在 db.go 豁免，目标环境
-			// 不存在该表），禁止在此新增 IAM 调用；
-			// 所有权与角色写入的唯一路径是商户创建/转让（merchant.go、merchant_member.go）。
-			//
-			// 历史缺陷（已删除）：曾把本地 users.id 当 IAM 主体传给
-			// BindUserToOrganization / SetUserCustomerPermissions；IAM 主体是
-			// users.iam_sub，对端按 iamUserID 查主体 → 404/400。
-			log.Printf("[Confirm] merchant_admin action is local-only (no IAM write) merchant=%s user=%s",
-				merchant.ID, session.UserID)
+			if merchant.OrgID == "" {
+				return nil
+			}
+			// #2543 D2/D3（Owner 2026-11-26「用户/组织/权限/角色一律以 IAM 为事实来源」）：
+			// IAM 主体一律 users.iam_sub；本地 users.id 只用于本地查询。
+			// iam_sub 为空 → 显式失败，且不得发任何 IAM 请求（禁止把本地 id 发给 IAM）。
+			if strings.TrimSpace(user.IAMSub) == "" {
+				return fmt.Errorf("账号尚未激活，无法绑定组织（iam_sub 为空，user=%s）", user.ID)
+			}
+			iamClient := services.NewIAMClient()
+			// #2540 D4（Owner 2026-11-26 裁定）：新建商户的管理员是商户的 OWNER。
+			// 旧写法字面量 "admin" 把创建者降为 ADMIN → 无法再用 POST /organizations
+			// 创建网点（beaconiam 该路由要求 PermissionOwner）。唯一权威映射 = toIAMRole。
+			if err := iamClient.BindUserToOrganization(user.IAMSub, merchant.OrgID, toIAMRole("merchant_admin"), ""); err != nil {
+				return fmt.Errorf("IAM bind failed: %w", err)
+			}
+			if t, ok := services.AllRoleTemplates["merchant_admin"]; ok && len(t.CusPermCodes) > 0 {
+				cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(t.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
+				if err := iamClient.SetUserCustomerPermissions(merchant.OrgID, user.IAMSub, cusPerm, cusPermExt); err != nil {
+					// 红线：不得静默吞错（权限写入失败会让商户管理员登不进去）。
+					return fmt.Errorf("IAM customer permissions failed: %w", err)
+				}
+			}
 		}
 		return nil
 

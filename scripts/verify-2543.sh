@@ -1,25 +1,35 @@
 #!/usr/bin/env bash
 # verify-2543.sh — Evidence Contract runner for #2543
-#   (确认执行主体域收敛：merchant_admin 分支不写 IAM)
+#   （确认会话建表 + IAM 主体改用 users.iam_sub；Owner 2026-11-26 裁定）
 #
 # Usage:
 #   bash scripts/verify-2543.sh r1 … r5
 #
-# Each row prints a provenance header, runs the row's commands, writes the
-# artifact under docs/evidence/2543/ and fails (exit 1) when any expected
-# assertion token is missing. Heavy commands (go build/test) go through
-# scripts/heavy-run.sh when available so the host lock is honoured per command.
+# Each row prints a provenance header plus the row's assertion tokens and exits
+# non-zero when any expected token is missing. Heavy commands (go build /
+# go test) go through scripts/heavy-run.sh so the host lock is honoured per
+# command.
+#
+# Capture a row into its artifact:
+#   bash scripts/verify-2543.sh r1 > docs/evidence/2543/R1-schema.txt
 set -uo pipefail
 
 ROW="${1:-}"
-ISSUE=2543
+case "$ROW" in
+  r1|r2|r3|r4|r5) ;;
+  *) echo "usage: $0 r1|r2|r3|r4|r5" >&2; exit 2 ;;
+esac
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-OUT="$ROOT/docs/evidence/$ISSUE"
 HEAVY_RUN="${HEAVY_RUN:-$HOME/.config/opencode/scripts/heavy-run.sh}"
 LOCK_DIR="${HEAVY_LOCK_DIR:-/tmp/opencode/locks}"
-
-mkdir -p "$OUT" "$ROOT/tmp"
+WORK_TMP="$ROOT/tmp/verify-2543"
+mkdir -p "$WORK_TMP"
 cd "$ROOT" || exit 2
+
+if ! command -v go >/dev/null 2>&1 && [ -x /usr/local/go/bin/go ]; then
+  export PATH="/usr/local/go/bin:$PATH"
+fi
 
 if [ -f "$ROOT/backend/.env" ]; then
   set -a
@@ -33,18 +43,27 @@ if [ -z "${POSTGRES_PASSWORD:-}" ]; then
   exit 2
 fi
 
+export GOCACHE="${GOCACHE:-$ROOT/tmp/gocache}"
+export TMPDIR="${TMPDIR:-$ROOT/tmp/gobuild}"
+mkdir -p "$GOCACHE" "$TMPDIR"
+
+MIGRATION="20261126002_confirmation_sessions"
+UP_SQL="$ROOT/backend/database/migrations/${MIGRATION}.up.sql"
+DOWN_SQL="$ROOT/backend/database/migrations/${MIGRATION}.down.sql"
+
 COMMIT="$(git rev-parse HEAD)"
 SHORT="$(git rev-parse --short HEAD)"
 BUILD="1.0.$SHORT"
-# Evidence artifacts are regenerated after the fix commit; their own churn must not
-# mark the tree dirty (they are committed separately as docs(evidence): issue-2543).
+# Evidence artifacts are regenerated after the fix commit; their own churn must
+# not mark the tree dirty (they are committed separately as docs(evidence)).
 DIRTY="false"
-if [ -n "$(git status --porcelain --untracked-files=no | grep -v 'docs/evidence/' || true)" ]; then
+if [ -n "$(git status --porcelain --untracked-files=no | grep -v -E '^.. docs/evidence/' || true)" ]; then
   DIRTY="true"
 fi
+echo "# build=$BUILD # commit=$COMMIT # dirty=$DIRTY"
+echo "GENERATED_AT_HEAD=$COMMIT"
 
-PROVENANCE="# build=$BUILD # commit=$COMMIT # dirty=$DIRTY"
-FAILURES=0
+fail() { echo "R${ROW#r}_FAIL: $*" >&2; exit 1; }
 
 heavy() {
   if [ -x "$HEAVY_RUN" ]; then
@@ -54,149 +73,117 @@ heavy() {
   fi
 }
 
-assert_grep() { # artifact token...
-  local artifact="$1"; shift
-  local missing=0
-  for token in "$@"; do
-    if ! grep -qF -- "$token" "$artifact"; then
-      echo "MISSING: $token (in ${artifact#$ROOT/})" >&2
-      missing=1
-      FAILURES=$((FAILURES + 1))
-    fi
-  done
-  if [ "$missing" = "0" ]; then
-    echo "ASSERT_OK: ${artifact#$ROOT/} ($# tokens)"
-  fi
-}
-
-go_test_row() { # artifact run-regex package...
-  local artifact="$1"; shift
-  local regex="$1"; shift
-  local pkgs=("$@")
-  {
-    echo "# CMD go test -count=1 -run '$regex' ${pkgs[*]}"
-    ( cd "$ROOT/backend" && heavy go test "${pkgs[@]}" -run "$regex" -count=1 -v )
-  } >>"$artifact" 2>&1
+# run_row_test PATTERN LOGFILE — run the targeted test (through the host lock)
+# and emit the row's assertion tokens.
+run_row_test() {
+  local pattern="$1" log="$2"
+  ( cd "$ROOT/backend" && heavy go test ./handlers -run "$pattern" -count=1 -v ) > "$log" 2>&1
   local rc=$?
-  echo "GO_TEST_RC=$rc" >>"$artifact"
-  if [ "$rc" != "0" ]; then
-    echo "GO_TEST_FAIL: $regex (${artifact#$ROOT/})" >&2
-    FAILURES=$((FAILURES + 1))
-  fi
+  grep -E '^ *[a-z_0-9]+_test\.go:[0-9]+: (TABLE_EXISTS|COLUMN_COUNT|TOKEN_UNIQUE|EXEMPT_REMOVED|DOWN_TABLE_EXISTS|CONFIRM_STATUS|BIND_USER_ARG|PERM_USER_ARG|ROLE|IAM_LOCAL_ID_SENT|IAM_CALLS|MESSAGE_HAS_ACTIVATE|IAM_READY_|SITE_MEMBER_)' "$log" \
+    | sed -E 's/^ *[a-z_0-9]+_test\.go:[0-9]+: //'
+  grep -E '^--- (PASS|FAIL)' "$log" || true
+  [ "$rc" = "0" ] || { tail -30 "$log"; fail "go test '$pattern' failed (see $log)"; }
 }
 
-row_r1() {
-  local a="$OUT/R1-no-iam-write.txt"
-  {
-    echo "$PROVENANCE"
-    echo "# R1 merchant_admin 动作零 IAM 写入：确认成功 + 用户激活 + 会话 confirmed"
-  } >"$a"
-  go_test_row "$a" 'TestExecuteAction_MerchantAdmin_NoIAMWrite_2543' ./handlers/
-  assert_grep "$a" 'CONFIRM_STATUS=200' 'SESSION_STATUS=confirmed' 'USER_STATUS=active' 'IAM_CALLS=0'
+assert_token() { # TOKEN — assert the row output (already echoed) contains it
+  local token="$1"
+  grep -Fq -- "$token" "$WORK_TMP/$ROW.out" || fail "missing assertion token '$token'"
 }
 
-row_r2() {
-  local a="$OUT/R2-subject-negative.txt"
-  local src="$ROOT/backend/handlers/confirmation_session.go"
-  {
-    echo "$PROVENANCE"
-    echo "# R2 负例：不得出现以本地 users.id 为主体的 IAM 请求（源码 + 运行时 0 调用）"
-  } >"$a"
-
-  go_test_row "$a" 'TestExecuteAction_MerchantAdmin_NoIAMWrite_2543' ./handlers/
-
-  local iam_refs bind_hits subject_hits=0
-  iam_refs=$(grep -c 'iamClient\.' "$src" || true)
-  bind_hits=$(grep -cE 'BindUserToOrganization\(|SetUserCustomerPermissions\(|UpdateUserRoleInOrg\(' "$src" || true)
-  if [ "$iam_refs" != "0" ] || [ "$bind_hits" != "0" ]; then
-    subject_hits=1
-  fi
-
-  {
-    echo "IAM_CLIENT_REFS=$iam_refs"
-    echo "BIND_SESSION_USERID_HITS=$bind_hits"
-    echo "LOCAL_ID_AS_IAM_SUBJECT=$subject_hits"
-  } >>"$a"
-
-  assert_grep "$a" 'LOCAL_ID_AS_IAM_SUBJECT=0' 'BIND_SESSION_USERID_HITS=0' 'IAM_CLIENT_REFS=0' 'IAM_CALLS=0'
-}
-
-row_r3() {
-  local a="$OUT/R3-site-branch-regression.txt"
-  {
-    echo "$PROVENANCE"
-    echo "# R3 site_manager/site_staff 回归：本地写 site_members、0 次 IAM 调用"
-  } >"$a"
-  go_test_row "$a" 'TestExecuteAction_SiteStaff_Regression_2543' ./handlers/
-  assert_grep "$a" 'SITE_MEMBER_CREATED=1' 'SITE_MEMBER_ROLE=Staff' 'IAM_CALLS=0'
-}
-
-row_r4() {
-  local a="$OUT/R4-build-regression.txt"
-  local build_rc regression_rc
-  {
-    echo "$PROVENANCE"
-    echo "# R4 go build ./... + 既有 ConfirmationSession 用例回归"
-  } >"$a"
-
-  ( cd "$ROOT/backend" && heavy go build ./... ) >>"$a" 2>&1
-  build_rc=$?
-  echo "BUILD_RC=$build_rc" >>"$a"
-
-  ( cd "$ROOT/backend" && heavy go test ./handlers/ -run 'ConfirmationSession' -count=1 ) >>"$a" 2>&1
-  regression_rc=$?
-  {
-    echo "REGRESSION_RC=$regression_rc"
-    if [ "$regression_rc" = "0" ] && [ "$build_rc" = "0" ]; then
-      echo "REGRESSION_PASS=1"
-    else
-      echo "REGRESSION_PASS=0"
-    fi
-  } >>"$a"
-
-  assert_grep "$a" 'BUILD_RC=0' 'REGRESSION_RC=0' 'REGRESSION_PASS=1'
-}
-
-row_r5() {
-  local a="$OUT/R5-doc-comment.txt"
-  local api_doc="$ROOT/docs/spec/api/api.md"
-  local model_doc="$ROOT/backend/models/models.go"
-  local src="$ROOT/backend/handlers/confirmation_session.go"
-
-  local doc_no_iam=0 doc_owner=0 model_comment=0 forbidden=0
-  grep -qF '审批确认路径不写 IAM（#2543）' "$api_doc" && doc_no_iam=1
-  grep -qF '商户管理员的 `OWNER` 绑定只发生在 `POST /api/merchants`（创建）与 `POST /api/merchants/:id/transfer-ownership`（转让）' "$api_doc" \
-    && doc_owner=1
-  grep -qF '非持久化（无迁移建表' "$model_doc" && model_comment=1
-  grep -qF '#2543：本特性无持久化表' "$src" && forbidden=1
-
-  {
-    echo "$PROVENANCE"
-    echo "# R5 文档与注释口径纠正（api.md 不写 IAM + 模型非持久化 + 代码禁令注释）"
-    echo "DOC_API_NO_IAM_ON_CONFIRM=$doc_no_iam"
-    echo "DOC_API_OWNER_PATHS=$doc_owner"
-    echo "MODEL_COMMENT_NONPERSISTED=$model_comment"
-    echo "FORBIDDEN_IAM_COMMENT=$forbidden"
-  } >"$a"
-
-  assert_grep "$a" 'DOC_API_NO_IAM_ON_CONFIRM=1' 'DOC_API_OWNER_PATHS=1' \
-    'MODEL_COMMENT_NONPERSISTED=1' 'FORBIDDEN_IAM_COMMENT=1'
+collect() { # writes stdout to the row buffer and echoes it
+  cat > "$WORK_TMP/$ROW.out"
+  cat "$WORK_TMP/$ROW.out"
 }
 
 case "$ROW" in
-  r1) row_r1 ;;
-  r2) row_r2 ;;
-  r3) row_r3 ;;
-  r4) row_r4 ;;
-  r5) row_r5 ;;
-  *)
-    echo "Usage: bash scripts/verify-2543.sh r1..r5" >&2
-    exit 2
+  r1)
+    {
+      echo "== R1 confirmation_sessions migration (up / columns / token unique / exemption removed / down) =="
+      [ -f "$UP_SQL" ] && [ -f "$DOWN_SQL" ] && echo "MIGRATION_PAIR=ok" || fail "migration up/down pair missing"
+      echo "MIGRATION_FILES=$(basename "$UP_SQL"),$(basename "$DOWN_SQL")"
+      run_row_test 'TestConfirmationSessionsMigration_2543' "$WORK_TMP/r1.log"
+      echo "COLUMN_COUNT_MIN=17"
+    } | collect
+    assert_token "MIGRATION_PAIR=ok"
+    assert_token "TABLE_EXISTS=1"
+    assert_token "COLUMN_COUNT="
+    assert_token "TOKEN_UNIQUE=1"
+    assert_token "EXEMPT_REMOVED=1"
+    assert_token "DOWN_TABLE_EXISTS=0"
     ;;
+
+  r2)
+    {
+      echo "== R2 merchant_admin confirmation uses users.iam_sub (role OWNER) =="
+      run_row_test 'TestExecuteAction_MerchantAdmin_UsesIAMSub_2543' "$WORK_TMP/r2.log"
+    } | collect
+    assert_token "BIND_USER_ARG=sub-2543-"
+    assert_token "PERM_USER_ARG=sub-2543-"
+    assert_token "ROLE=OWNER"
+    assert_token "IAM_LOCAL_ID_SENT=0"
+    assert_token "CONFIRM_STATUS=confirmed"
+    ;;
+
+  r3)
+    {
+      echo "== R3 empty iam_sub → explicit failure, zero IAM requests =="
+      run_row_test 'TestExecuteAction_MerchantAdmin_EmptyIAMSub_2543' "$WORK_TMP/r3.log"
+    } | collect
+    assert_token "CONFIRM_STATUS=failed"
+    assert_token "IAM_CALLS=0"
+    assert_token "MESSAGE_HAS_ACTIVATE=1"
+    ;;
+
+  r4)
+    {
+      echo "== R4 docs: fact-source / delete boundary / iam_ready / owner invariant =="
+      DOC_FACT_SOURCE=0
+      DOC_DELETE_SYSADMIN_ONLY=0
+      DOC_IAM_READY=0
+      DOC_OWNER_INVARIANT=0
+      grep -Fq 'IAM（beaconiam）为唯一事实来源' docs/topics/iam/iam-notes.md && DOC_FACT_SOURCE=1
+      if grep -Fq '只有**命名空间管理员（系统管理员）**可以真正删除用户' docs/topics/iam/iam-notes.md &&
+         grep -Fq '仅命名空间管理员（系统管理员）' docs/spec/permissions.md; then
+        DOC_DELETE_SYSADMIN_ONLY=1
+      fi
+      if grep -Fq '"iam_ready": true' docs/spec/api/api.md &&
+         grep -Fq '`iam_ready`' docs/spec/api/api.md; then
+        DOC_IAM_READY=1
+      fi
+      if grep -Fq '组织所有人不变量' docs/topics/iam/iam-notes.md &&
+         grep -Fq '必须 0' docs/topics/iam/iam-notes.md; then
+        DOC_OWNER_INVARIANT=1
+      fi
+      echo "DOC_FACT_SOURCE=$DOC_FACT_SOURCE"
+      echo "DOC_DELETE_SYSADMIN_ONLY=$DOC_DELETE_SYSADMIN_ONLY"
+      echo "DOC_IAM_READY=$DOC_IAM_READY"
+      echo "DOC_OWNER_INVARIANT=$DOC_OWNER_INVARIANT"
+    } | collect
+    assert_token "DOC_FACT_SOURCE=1"
+    assert_token "DOC_DELETE_SYSADMIN_ONLY=1"
+    assert_token "DOC_IAM_READY=1"
+    assert_token "DOC_OWNER_INVARIANT=1"
+    ;;
+
+  r5)
+    {
+      echo "== R5 build + targeted tests =="
+      ( cd "$ROOT/backend" && heavy go build ./... ) > "$WORK_TMP/r5-build.log" 2>&1
+      rc=$?
+      if [ "$rc" = "0" ]; then echo "GO_BUILD_OK=1"; else echo "GO_BUILD_OK=0"; tail -20 "$WORK_TMP/r5-build.log"; fi
+      ( cd "$ROOT/backend" && heavy go test ./handlers -run '2543' -count=1 ) > "$WORK_TMP/r5-test.log" 2>&1
+      rc2=$?
+      if [ "$rc2" = "0" ]; then echo "GO_TEST_OK=1"; else echo "GO_TEST_OK=0"; tail -40 "$WORK_TMP/r5-test.log"; fi
+      ( cd "$ROOT/backend" && heavy go test ./database -run 'Artifact' -count=1 ) > "$WORK_TMP/r5-artifacts.log" 2>&1
+      rc3=$?
+      if [ "$rc3" = "0" ]; then echo "GO_ARTIFACT_TESTS_OK=1"; else echo "GO_ARTIFACT_TESTS_OK=0"; tail -40 "$WORK_TMP/r5-artifacts.log"; fi
+      echo "GO_BUILD_RC=$rc GO_TEST_RC=$rc2 GO_ARTIFACT_RC=$rc3"
+    } | collect
+    assert_token "GO_BUILD_OK=1"
+    assert_token "GO_TEST_OK=1"
+    assert_token "GO_ARTIFACT_TESTS_OK=1"
+    ;;
+
 esac
 
-if [ "$FAILURES" != "0" ]; then
-  echo "RESULT: FAIL ($ROW, failures=$FAILURES)" >&2
-  exit 1
-fi
-echo "RESULT: PASS ($ROW)"
+exit 0

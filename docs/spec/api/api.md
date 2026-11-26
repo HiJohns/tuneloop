@@ -781,9 +781,38 @@ POST /api/setup/init
 
 
 ### 2.8 确认会话
-**架构变更**: 确认流程委托 IAM 管理。Tuneloop 本地 confirmation_sessions 仅用于状态跟踪，不再主动发送邮件/短信。
 
-### 2.8.1 查询确认会话
+**架构变更**: 确认流程委托 IAM 管理；`confirmation_sessions` 于 #2543（Owner 2026-11-26「确认会话可以建表」）起**持久化建表**（迁移 `20261126002_confirmation_sessions`），此前模型无表、创建/确认必然失败。
+
+**主体域（#2543 D2）**: 确认执行时凡需要 IAM 主体的动作（`merchant_admin`）**一律使用 `users.iam_sub`**；本地 `users.id` 只用于本地查询，禁止作为 IAM 主体发送。
+
+#### 2.8.0 创建确认会话
+
+```
+POST /api/confirmation-sessions
+```
+
+**请求体**:
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|:---:|------|
+| user_id | string | ✅ | 本地 `users.id`，必须命中当前租户的用户 |
+| confirm_type | string | ✅ | `email` / `phone` |
+| confirm_target | string | ✅ | 邮箱或手机号 |
+| merchant_id | string | — | `merchant_admin` 动作的商户 id（可为空，落 NULL） |
+| action_type | string | ✅ | `merchant_admin` / `site_manager` / `site_staff` |
+| action_target_id | string | — | 动作目标（如网点 id） |
+
+**响应**:
+```json
+{ "code": 20100, "data": { "id": "uuid", "user_id": "uuid", "status": "waiting", "token": "...", "expires_at": "...", "iam_ready": true } }
+```
+
+**新增字段**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `iam_ready` | bool | `users.iam_sub` 是否已就绪（`true` = 已激活，可执行需要 IAM 主体的动作）。创建时不强制已激活，仅提前提示 |
+
+#### 2.8.1 查询确认会话
 
 ```
 GET /api/confirmation-sessions/:id
@@ -817,6 +846,25 @@ GET /api/confirmation-sessions/:id
 |------|------|------|
 | iam_session_id | string | IAM 侧确认会话 ID |
 | callback_url | string | IAM 确认后的回调地址 |
+
+#### 2.8.2 确认执行
+
+```
+POST /api/confirmation-sessions/:id/confirm?token=...
+```
+
+- `merchant_admin`：以 `users.iam_sub` 为主体 `BindUserToOrganization(iamSub, merchant.OrgID, toIAMRole("merchant_admin")=OWNER)` + `SetUserCustomerPermissions`；
+- `site_manager` / `site_staff`：仅写本地 `site_members`，不调 IAM；
+- **`iam_sub` 为空**：会话 `status=failed`、`message` 含「账号尚未激活，无法绑定组织」，**0 次 IAM 请求**（HTTP 500/50000，错误原样返回）；
+- IAM 写入失败：会话 `status=failed`，错误原样返回（不静默吞错）。
+
+#### 2.8.3 拒绝
+
+```
+POST /api/confirmation-sessions/:id/reject  { "token": "..." }
+```
+
+会话置 `rejected`；已确认/已过期会话不受理。
 
 ## 三、白标化配置模块
 
@@ -6719,7 +6767,7 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 
 **IAM 关系角色（#2540 D4，Owner 2026-11-26 裁定）**: 商户管理员绑定商户组织的 **`OWNER`**（唯一权威映射 `toIAMRole("merchant_admin")`，见 10.18.7）。beaconiam 的 `POST /organizations`（建网点）、角色模板定义、命名空间操作用均要求 `PermissionOwner`，绑定 `ADMIN` 会使商户创建者**无法再创建网点**。
 
-> **审批确认路径不写 IAM（#2543）**：`ConfirmationSession`（`action_type=merchant_admin`）**不调用任何 IAM 接口**——`confirmation_sessions` 无持久化表（`backend/database/db.go` 豁免清单，目标环境不存在该表），该分支只做本地校验（用户存在/激活、商户存在），属 legacy 脚手架，**禁止在此新增 IAM 调用**。商户管理员的 `OWNER` 绑定只发生在 `POST /api/merchants`（创建）与 `POST /api/merchants/:id/transfer-ownership`（转让）。历史实现曾把本地 `users.id` 当作 IAM 主体传给 `BindUserToOrganization` / `SetUserCustomerPermissions`（IAM 主体应为 `users.iam_sub`），已删除。
+> **审批确认路径以 `iam_sub` 为主体（#2543 Rev.2，Owner 2026-11-26）**：`confirmation_sessions` 已持久化建表（迁移 `20261126002_confirmation_sessions`，`backend/database/db.go` 的「无表」豁免已移除）。`action_type=merchant_admin` 的确认执行**以 `users.iam_sub` 为 IAM 主体**调用 `BindUserToOrganization(iamSub, merchant.OrgID, OWNER)` + `SetUserCustomerPermissions`；`iam_sub` 为空时确认显式失败（`status=failed`，`message` 含「账号尚未激活，无法绑定组织」）且**不发任何 IAM 请求**。历史实现曾把本地 `users.id` 当作 IAM 主体（IAM 按 `iam_sub` 识别用户 → 404/400），已修正。
 
 #### 12.3.2 商户列表
 
