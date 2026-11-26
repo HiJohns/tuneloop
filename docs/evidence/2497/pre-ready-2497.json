@@ -1,16 +1,16 @@
 {
   "issue": 2497,
-  "overall": "PASS",
+  "overall": "FAIL",
   "plan": "docs/evidence/2497/plan.md",
-  "plan_sha256": "c45b1133e1597decb279727136747f56d2e044012c536ce2107ed5754d631f24",
-  "config_sha": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
+  "plan_sha256": "c62a18d2bd9b6d9ec4d0baed8f8d502230e685dd2647f6676ead571f97e948f7",
+  "config_sha": "6cb3026653419e312bbcdce26968323684882177",
   "provenance": {
-    "build": "1.0.63ede9c1",
-    "commit": "63ede9c18bd8917fb03e708fec801bc3753b247a",
+    "build": "1.0.5a695fef",
+    "commit": "5a695fefb262ba0e78ead79b4f28275c85229f50",
     "dirty": false
   },
   "summary": "tmp/work-summary-2497.md",
-  "timestamp": "20261126-122312",
+  "timestamp": "20261126-175420",
   "checks": [
     {
       "id": "P1",
@@ -20,32 +20,32 @@
     {
       "id": "P2",
       "status": "PASS",
-      "detail": "Work Summary covers all 6 matrix rows with PASS/N/A"
+      "detail": "Work Summary covers all 9 matrix rows with PASS/N/A"
     },
     {
       "id": "P3",
-      "status": "PASS",
-      "detail": "all referenced evidence paths exist and are durable"
+      "status": "FAIL",
+      "detail": "evidence paths do not exist: build=1.0.5a695fef error.message log.Printf"
     },
     {
       "id": "P4",
-      "status": "PASS",
-      "detail": "all 1 affected command(s) passed"
+      "status": "N/A",
+      "detail": "--dry-run: skipped 1 affected command(s)"
     },
     {
       "id": "P12",
       "status": "PASS",
-      "detail": "Evidence Contract complete: 6 row(s) match the plan and have durable artifacts"
+      "detail": "Evidence Contract complete: 9 row(s) match the plan and have durable artifacts"
     },
     {
       "id": "P14",
       "status": "PASS",
-      "detail": "artifact provenance matches evidence (8 artifacts)"
+      "detail": "artifact provenance matches evidence (9 artifacts)"
     },
     {
       "id": "P18",
       "status": "PASS",
-      "detail": "tooling_commit matches the running scripts (a017a25d46fec75ebb30fd9e19eb220c51fb166a)"
+      "detail": "tooling_commit matches the running scripts (6cb3026653419e312bbcdce26968323684882177)"
     },
     {
       "id": "P15",
@@ -64,8 +64,8 @@
     },
     {
       "id": "P5",
-      "status": "PASS",
-      "detail": "full gate clean worktree; HEAD failures are a subset of baseline (origin/develop); source head=run baseline=run"
+      "status": "N/A",
+      "detail": "--dry-run: skipped full gate (cd backend && go build ./... && go test ./... -count=1 -timeout 20m -p 1)"
     },
     {
       "id": "P6",
@@ -74,8 +74,8 @@
     },
     {
       "id": "P7",
-      "status": "PASS",
-      "detail": "contract three-way section present"
+      "status": "FAIL",
+      "detail": "contract-affecting change requires '### 契约三向核对' (Plan/API, docs, handler/frontend)"
     },
     {
       "id": "P8",
@@ -95,12 +95,12 @@
     {
       "id": "P11",
       "status": "PASS",
-      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /home/coder/worktrees/tuneloop/wt-2497; worktree guard: PASS isolated worktree=/home/coder/worktrees/tuneloop/wt-2497"
+      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /tmp/opencode/tuneloop/wt-2497; worktree guard: PASS isolated worktree=/tmp/opencode/tuneloop/wt-2497"
     },
     {
       "id": "P13",
-      "status": "PASS",
-      "detail": "fix commit and evidence artifacts are on origin/issue-2497"
+      "status": "FAIL",
+      "detail": "fix commit 5a695fefb262ba0e78ead79b4f28275c85229f50 is not on origin/issue-2497; push origin HEAD:issue-2497 first"
     }
   ]
 }
