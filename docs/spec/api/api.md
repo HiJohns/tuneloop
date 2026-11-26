@@ -29,6 +29,18 @@
 
 > **用户可见文案（#1675 / #2480 / #2504）**：后端 `message` 为机器可读标识（英文为主，**不得原样展示给用户**），前端统一由 `resolveErrorMessage` 解析（`frontend-mobile/src/services/errorMessages.js` / `frontend-pc/src/services/errorMessages.js`，层序 owner 为 `errorMessageResolution.mjs`）翻译为用户友好中文。五层回退：L1 `message_map` 精确匹配（高频错误，如 `order not found` → 「未找到订单」）→ L2 `human_message` 可读中文透传（含 CJK，优先于 code 家族，#2480）→ L3 `code_map` code 家族映射（如 40400 → 「未找到相关数据」、40303 → 「暂无权限访问该页面」）→ L4 `raw_message`（**已不可达**：含 CJK 的文案在 L2 已返回，本层仅保留层名以兼容历史断言/日志；#2504 D8）→ L5 调用点业务 fallback（ASCII 机器串不外溢）。完整错误码分类见 [`docs/archive/reports/backend_api_error_codes_report.md`](../../archive/reports/backend_api_error_codes_report.md)。新增后端错误消息时，如属用户可见高频错误，请同步补充 `ERROR_MESSAGE_MAP`；新增错误码请同时补 `ERROR_CODE_MAP`（PC + mobile，文案逐字一致）。
 
+**PC 客户端非 2xx 契约（#2563）**：本节定义**服务端**响应格式；客户端如何消费非 2xx 由 `frontend-pc/src/services/apiError.js`（唯一 owner，纯函数 `resolveHttpFailure`）决定，不得在页面内联解析：
+
+| HTTP 状态 | 客户端形态 | 说明 |
+|---|---|---|
+| `2xx` | 返回解析后的 body | 标准格式 `{ code, data, message }` 原样返回 |
+| `401` | 先走鉴权域（`40104`/`40105`/`40106`/`40107` + 刷新 + idle 超时） | **本域行为不变**，先于非 2xx 分支处理 |
+| `404` | 返回对象 `{ code: 40400, data: null, status: 404 }` | 历史契约保持不变 |
+| `409` | 返回对象 `{ code: 后端 code \|\| 40900, data, status: 409 }` | `40900` 等业务可纠正冲突由此可达 |
+| 其余非 2xx（`400` / `403` / `429` / `5xx`） | **抛出 `Error`（`name=ApiError`），并在 Error 上携带 `error.code` / `error.status` / `error.data`** | 文案仍由 `resolveErrorMessage` 解析；`code` 仅在后端给出有限数字时写入 |
+
+由此，业务可纠正冲突（`40002` / `40004` / `40005` / `40900`，白名单唯一 owner 为 `frontend-pc/src/utils/formConflict.js`）无论由 `409` 还是 `400` 送达，调用方都能在 **`catch`** 分支用 `isBusinessCorrectableConflict(err)` 判定并落到表单内持久提示（`FormConflictAlert`）。**禁止**把某个 4xx 私自改成「返回对象」形态绕过本契约——会让没有 `else` 分支的调用点变成静默成功。
+
 ### 1.4 时间戳契约（#1759）
 - 所有时间字段（`created_at` / `updated_at` / 各事件时间戳）为 **ISO8601 UTC**，JSON 序列化带 `Z` 后缀（如 `"2026-08-22T16:02:01Z"`）
 - DB 存储为 `timestamptz`（迁移 `20260824002_timestamptz`：存量北京数值 → 正确 UTC）；业务时区 = Asia/Shanghai（Go 启动时显式 `time.Local`）
