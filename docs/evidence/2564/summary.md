@@ -7,7 +7,7 @@
 - `frontend-pc/src/pages/admin/category/List.jsx`（`handleFormSubmit` 创建分支）
   - 创建成功后**仅顶级创建**自动选中新分类：`if (response.data?.id && !finalParentId)`。
   - 子分类创建（`finalParentId` = 父分类 id）保持父分类选中——新子分类随即出现在父的子分类列表。
-  - 修复前把 level-2 id 写入 `selectedParentId`：该 id 不在 `level1Categories`（`GET /api/categories` 只返回一级 + 嵌套 `sub_categories`）→ 右侧面板清空、`getParentCategoryName()` 返回空串、`handleEdit(level1Categories.find(...))` 收到 `undefined`（TypeError），且「创建子分类」会以该 level-2 id 再建一层不可见的孙级节点。
+  - 修复前把 level-2 id 写入 `selectedParentId`：该 id 不在 `level1Categories`（`GET /api/categories` 只返回一级 + 嵌套 `sub_categories`）→ 右侧面板清空、父分类名渲染为空串、点击「编辑」时传入 `undefined` 触发 TypeError，且「创建子分类」会以该 level-2 id 再建一层不可见的孙级节点。
 - `scripts/verify-2564.sh`
   - r2 新增可执行断言：`AUTOSELECT_TOPLEVEL_ONLY=1`、`CREATED_SUBCATEGORY_KEEPS_PARENT=1`、`GUARD_MUTATION_DETECTED=1`（变异负例：删掉 `&& !finalParentId` 后守卫断言必须归零）、`RED_NO_AUTOSELECT_GUARD=1`（红样无该守卫）。
   - 红样锚点改为「本 Issue 第一个页面 fix commit 的父提交」（`git log --grep="^fix(issue-2564" --reverse | head -1`），仍为动态推导；沿用 `git log -1 -- $SRC` 会在第二次 fix 后把红样前移到上一版绿样，红绿对照退化为「绿 vs 绿」。
@@ -64,7 +64,7 @@
 
 | 审计项 | 矩阵行 | 修复后证据 |
 |---|---|---|
-| 子分类创建成功后把 level-2 id 写入 `selectedParentId`（右侧面板清空 + 「编辑」TypeError + 可建不可见孙级） | R2 | `List.jsx:276-286` 加 `!finalParentId` 守卫；`AUTOSELECT_TOPLEVEL_ONLY=1`、`CREATED_SUBCATEGORY_KEEPS_PARENT=1`、`GUARD_MUTATION_DETECTED=1`、`RED_NO_AUTOSELECT_GUARD=1`（`docs/evidence/2564/R2-code-first.txt`） |
+| 子分类创建成功后把 level-2 id 写入 `selectedParentId`（右侧面板清空 + 「编辑」TypeError + 可建不可见孙级） | R2 | 创建分支增加 `!finalParentId` 守卫；`AUTOSELECT_TOPLEVEL_ONLY=1`、`CREATED_SUBCATEGORY_KEEPS_PARENT=1`、`GUARD_MUTATION_DETECTED=1`、`RED_NO_AUTOSELECT_GUARD=1`（`docs/evidence/2564/R2-code-first.txt`） |
 | R2 静态断言锁不住「选中目标是否合法」 | R2 | r2 新增守卫结构断言 + 变异负例（删守卫 → 断言归零） |
 | 全部证据行需在新 fix commit 之后重跑并重写 provenance | R1/R2/R3/R4 | 四份产物 provenance 均为 `commit=a30c6e250…`、`dirty=false` |
 
@@ -100,7 +100,7 @@
 | 变更点 | 状态 | 证据 |
 |---|---|---|
 | R1 持久提示接线（catch code-first + 共享件 + 改输入清空） | PASS | `docs/evidence/2564/R1-consumer-wiring.txt` |
-| R2 提交路径判码（create 接 20100 + update 失败不假成功 + 仅顶级创建自动选中）与红绿/变异对照 | PASS | `docs/evidence/2564/R2-code-first.txt` |
+| R2 提交路径判码（create 接 20100 + update 失败不假成功）与红绿对照 | PASS | `docs/evidence/2564/R2-code-first.txt`（含 `AUTOSELECT_TOPLEVEL_ONLY=1` / `CREATED_SUBCATEGORY_KEEPS_PARENT=1` / `GUARD_MUTATION_DETECTED=1` / `RED_NO_AUTOSELECT_GUARD=1`） |
 | R3 构建 + ESLint | PASS | `docs/evidence/2564/R3-build-lint.txt` |
 | R4 pre-ready gate（四源一致 + 证据完整 + P13 已推送） | PASS | `docs/evidence/2564/pre-ready-2564.json` |
 
