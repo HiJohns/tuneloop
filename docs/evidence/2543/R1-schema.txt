@@ -1,0 +1,12 @@
+# build=1.0.3bb850e86 # commit=3bb850e86b86c08108f24fd7e618176baf20add8 # dirty=false
+GENERATED_AT_HEAD=3bb850e86b86c08108f24fd7e618176baf20add8
+== R1 confirmation_sessions migration (up / columns / token unique / exemption removed / down) ==
+MIGRATION_PAIR=ok
+MIGRATION_FILES=20261126002_confirmation_sessions.up.sql,20261126002_confirmation_sessions.down.sql
+TABLE_EXISTS=1
+COLUMN_COUNT=18
+TOKEN_UNIQUE=1
+EXEMPT_REMOVED=1
+DOWN_TABLE_EXISTS=0
+--- PASS: TestConfirmationSessionsMigration_2543 (1.80s)
+COLUMN_COUNT_MIN=17

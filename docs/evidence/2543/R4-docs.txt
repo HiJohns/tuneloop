@@ -1,0 +1,7 @@
+# build=1.0.3bb850e86 # commit=3bb850e86b86c08108f24fd7e618176baf20add8 # dirty=false
+GENERATED_AT_HEAD=3bb850e86b86c08108f24fd7e618176baf20add8
+== R4 docs: fact-source / delete boundary / iam_ready / owner invariant ==
+DOC_FACT_SOURCE=1
+DOC_DELETE_SYSADMIN_ONLY=1
+DOC_IAM_READY=1
+DOC_OWNER_INVARIANT=1
