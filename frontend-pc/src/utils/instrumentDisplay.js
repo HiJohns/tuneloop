@@ -10,8 +10,11 @@
 //   - 图片：`thumbnail` → `poster` → `images[0]` → 内置 data-URI 占位；
 //   - 日租：`resolved_daily_rate`（pricing-v2 生效值，分）> 0 优先，
 //           回落 `base_daily_rate`（分）；两者皆无/≤0 → `-`；
-//   - 押金：`deposit` 为分，`null` → `-`（不伪造 0），显式 0 → `¥0.00`；
-//           `deposit_reduced` 非空时追加「（差额 ¥X）」。
+//   - 全额押金：`deposit` 为分，`null` → `-`（不伪造 0），显式 0 → `¥0.00`；
+//   - 差额押金：`deposit_reduced` 为分，`null`/缺失 → `未配置`，显式 0 → `¥0.00`
+//     （#2537 D5 与详情页同文案）；
+//   - 逾期租金：`overdue_daily_fee` 为分（列表新字段，与 pricing-v2 同链），
+//     `null`/≤0 → `-`。
 
 import { formatCents } from './money.js'
 
@@ -69,17 +72,26 @@ export function formatDailyRate(record) {
   return cents === null ? '-' : `¥${formatCents(cents)}`
 }
 
-/** 押金（分 → 元）；`null`/缺失返回 `-`，显式 0 显示 `¥0.00`。 */
-export function formatDeposit(record) {
+/** 全额押金（分 → 元）；`null`/缺失返回 `-`，显式 0 显示 `¥0.00`（#2537 D5）。 */
+export function formatDepositFull(record) {
   const raw = record?.deposit
   if (raw === null || raw === undefined || raw === '') return '-'
   const cents = Number(raw)
   if (!Number.isFinite(cents)) return '-'
-  const base = `¥${formatCents(cents)}`
+  return `¥${formatCents(cents)}`
+}
 
-  const reducedRaw = record?.deposit_reduced
-  if (reducedRaw === null || reducedRaw === undefined || reducedRaw === '') return base
-  const reducedCents = Number(reducedRaw)
-  if (!Number.isFinite(reducedCents)) return base
-  return `${base}（差额 ¥${formatCents(reducedCents)}）`
+/** 差额押金（分 → 元）；`null`/缺失返回 `未配置`，显式 0 显示 `¥0.00`（#2537 D5）。 */
+export function formatDepositReduced(record) {
+  const raw = record?.deposit_reduced
+  if (raw === null || raw === undefined || raw === '') return '未配置'
+  const cents = Number(raw)
+  if (!Number.isFinite(cents)) return '未配置'
+  return `¥${formatCents(cents)}`
+}
+
+/** 逾期租金（分 → 元）；`null`/缺失/≤0 返回 `-`（#2537 D4）。 */
+export function formatOverdueDailyFee(record) {
+  const cents = positiveCents(record?.overdue_daily_fee)
+  return cents === null ? '-' : `¥${formatCents(cents)}`
 }

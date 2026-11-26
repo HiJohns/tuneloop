@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Table, Button, Input, Space, Tag, Image, message, Popconfirm, Select, Modal, Form, InputNumber, Checkbox, Alert } from 'antd'
 import { Row, Col } from 'antd'
-import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, DollarOutlined, ImportOutlined, ExportOutlined, CloseCircleFilled } from '@ant-design/icons'
+import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined, DollarOutlined, ImportOutlined, ExportOutlined, CloseCircleFilled } from '@ant-design/icons'
 import { api, instrumentsApi, fetchBlob, pricingApi } from '../../../services/api'
 import { formatBeijingDate } from '../../../utils/date'
 import { resolveErrorMessage } from '../../../services/errorMessages'
@@ -14,11 +14,8 @@ import {
 } from '../../../utils/batchPricing'
 import InstrumentForm from './Form'
 import PermissionGate from '../../../components/PermissionGate'
-import { usePermission } from '../../../hooks/usePermission'
 import {
   INSTRUMENT_IMAGE_PLACEHOLDER,
-  formatDailyRate,
-  formatDeposit,
   instrumentImageSrc,
 } from '../../../utils/instrumentDisplay'
 
@@ -165,9 +162,6 @@ export default function InstrumentList() {
 
   const businessRole = localStorage.getItem('user_business_role') || ''
   const isSiteLevelRole = businessRole === 'site_admin' || businessRole === 'site_member'
-  // #2528 D4：价格列沿用既有管理级代理（与库存监控页同一判定），不新增权限码。
-  const { hasCusPerm } = usePermission()
-  const isManagerLike = hasCusPerm('instrument:delete')
 
   const baseColumns = [
     {
@@ -200,7 +194,20 @@ export default function InstrumentList() {
       dataIndex: 'sn',
       key: 'sn',
       width: 140,
-      render: (text, record) => <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{(text || record.sn) || '-'}</span>
+      // #2537 D6: 识别码即详情入口（不再有独立「查看」按钮）。
+      render: (text, record) => (
+        <Button
+          type="link"
+          size="small"
+          style={{ padding: 0, fontFamily: 'monospace', fontSize: 12 }}
+          onClick={(e) => {
+            e.stopPropagation()
+            navigate(`/instruments/detail/${record.id}`)
+          }}
+        >
+          {(text || record.sn) || '-'}
+        </Button>
+      )
     },
     {
       title: '分类',
@@ -246,22 +253,7 @@ export default function InstrumentList() {
         return <Tag color={config.color}>{config.text}</Tag>
       }
     },
-    // #2528: 标准日租金 / 押金列（与库存监控页、详情页同源；分→元）
-    ...(isManagerLike ? [{
-      title: '标准日租金',
-      dataIndex: 'resolved_daily_rate',
-      key: 'resolved_daily_rate',
-      width: 130,
-      align: 'right',
-      render: (_, record) => formatDailyRate(record)
-    }, {
-      title: '押金',
-      dataIndex: 'deposit',
-      key: 'deposit',
-      width: 150,
-      align: 'right',
-      render: (_, record) => formatDeposit(record)
-    }] : []),
+    // #2537 D2: 乐器列表不再显示标准日租金 / 押金（列口径归库存监控页）。
     {
       title: '操作',
       key: 'action',
@@ -292,9 +284,6 @@ export default function InstrumentList() {
               }}
             />
           </PermissionGate>
-          <Button type="link" icon={<EyeOutlined />} onClick={() => navigate(`/instruments/detail/${record.id}`)}>
-            查看
-          </Button>
           <PermissionGate code="instrument:delete">
             <Popconfirm
               title="确定要删除这个乐器吗？"
