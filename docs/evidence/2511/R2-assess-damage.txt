@@ -2,5 +2,5 @@
 == R2 AssessDamage fallback writes sites.id ==
 CURRENT_SITE_ID=aID
 NOT_ORG=1
---- PASS: TestAssessDamage2511_FallbackWritesSiteNotOrg (1.41s)
+--- PASS: TestAssessDamage2511_FallbackWritesSiteNotOrg (1.38s)
 R2_OK

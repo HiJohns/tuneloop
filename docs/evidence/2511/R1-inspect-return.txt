@@ -3,6 +3,6 @@
 CURRENT_SITE_ID=aID
 OLD_FALLBACK_IS_ORG=1
 RED_CONFIRMED=1
---- PASS: TestInspectReturn2511_FallbackWritesSiteNotOrg (1.33s)
+--- PASS: TestInspectReturn2511_FallbackWritesSiteNotOrg (1.42s)
 SITE_ID_IS=aID
 R1_OK

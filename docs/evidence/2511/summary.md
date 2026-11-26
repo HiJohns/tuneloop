@@ -12,7 +12,7 @@ Parent: #2509
 | 4 | 证据生成器 r1–r6 + gate（首行 provenance；r5 输出**只读**存量排查 SQL，不执行） | `scripts/verify-2511.sh` |
 | 5 | Core Update：ID 域口径补「instruments.current_site_id 合法来源」与反查规则 | `docs/cases/cases.md` |
 
-**Commit**：fix 220785f52 → evidence（本次）
+**Commit**：fix 220785f52 → evidence 49b5ece86 → tooling 0781b9ca8（证据 provenance 锚定 fix commit，见下）
 
 ## 验证层级
 
@@ -21,23 +21,26 @@ Parent: #2509
 
 ## Remote
 
-remote: origin/issue-2511@<evidence-commit>; fix=220785f52 pushed=yes; evidence=<evidence-commit> pushed=yes
+remote: origin/issue-2511@49b5ece86; fix=220785f52 pushed=yes; evidence=49b5ece86 pushed=yes
 
 ## 红绿实证
 
 **R1（回退写站点 ID）—— 缺陷版 FAIL（HTTP 500 + 外键违例）→ 修复版 PASS**
 
-缺陷版（fix commit 父提交 1bd6b3e5a，临时 worktree，仅拷入 R1/R2/R3 用例，接同一测试库）：
+缺陷版（fix commit 父提交 1bd6b3e5a 的 `warehouse.go` + 仅保留 R1/R2/R3 用例的同名测试文件，接同一测试库；本轮已重放）：
 
 ```
-=== RUN   TestInspectReturn2511_FallbackWritesSiteNotOrg
+ERROR: insert or update on table "instruments" violates foreign key constraint
+       "instruments_current_site_id_fkey" (SQLSTATE 23503)
+UPDATE "instruments" SET "current_site_id"='00000000-0000-4000-8000-2511a1b2c3d2', ...
+--- FAIL: TestInspectReturn2511_FallbackWritesSiteNotOrg (1.38s)
     warehouse_2511_test.go:135:
         	Error:      	Not equal:
         	            	expected: 200
         	            	actual  : 500
         	Messages:   	{"code":50000,"message":"failed to update instrument status: ERROR: insert or update on table \"instruments\" violates foreign key constraint \"instruments_current_site_id_fkey\" (SQLSTATE 23503)"}
---- FAIL: TestInspectReturn2511_FallbackWritesSiteNotOrg (1.46s)
-``
+FAIL	tuneloop-backend/handlers	2.310s
+```
 
 修复版（220785f52）：docs/evidence/2511/R1-inspect-return.txt → CURRENT_SITE_ID=aID、OLD_FALLBACK_IS_ORG=1（旧逻辑写 org 的取证标记）、RED_CONFIRMED=1、SITE_ID_IS=aID、R1_OK，且 `--- PASS`。
 
@@ -117,6 +120,8 @@ remote: origin/issue-2511@<evidence-commit>; fix=220785f52 pushed=yes; evidence=
 | R5 | 220785f52 | false | 文本级结构断言（写点清零 + 解析函数被两处调用 + 只读 SQL 文本） |
 | R6 | 220785f52 | false | 重命令经 heavy-run（host 锁）：`go build ./...` + 定向回归 |
 | R7 | 220785f52 | false | pre-ready gate（P12/P14 校验 evidence 与产物） |
+
+- `provenance 锚点`：`scripts/verify-2511.sh` 先前用 `git rev-parse HEAD` 取 build/commit，证据收尾提交后再重跑会把锚点漂到证据提交（与 evidence.json 的 fix commit 不一致 → P14 FAIL）。已改为锚定本单 fix commit（`FIX_COMMIT=` 可覆盖），并在 fix commit 之后重新生成 R1–R6；本轮已用真实重放复核红（旧代码 500/FK 违例）绿（修复版 R1–R6 全 OK）。
 
 - `p5 说明`：pre-ready 的 P5 在**洁净 worktree** 内运行（`git worktree add`），该目录没有机器本地 `backend/.env`，DB 相关用例在 HEAD 与 baseline 上表现一致，故 P5 结果为「HEAD 失败集 ⊆ baseline」或 WARN；后端权威验证由 affected-cmd（R6，真实 worktree）承担。
 - 无跨项目证据引用，故不需要额外的证据来源表与第三方审计汇总段。

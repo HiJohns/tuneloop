@@ -3,5 +3,5 @@
 CURRENT_SITE_ID=aID
 KEPT_ORIGINAL=1
 NO_CROSS_DOMAIN_WRITE=1
---- PASS: TestInspectReturn2511_UnresolvableKeepsValue (1.37s)
+--- PASS: TestInspectReturn2511_UnresolvableKeepsValue (1.32s)
 R3_OK
