@@ -1,0 +1,55 @@
+# build=1.0.3cef421b6 # commit=3cef421b688ac25003736e9722d7114bd34725f8 # dirty=false
+GENERATED_AT_HEAD=3cef421b688ac25003736e9722d7114bd34725f8
+# R15 actor 授权矩阵：4 条路由对 merchant_admin 放行（数据面收窄），平台专属写路由仍 403
+# build=1.0.3cef421b6 # commit=3cef421b688ac25003736e9722d7114bd34725f8 # dirty=false
+GENERATED_AT_HEAD=3cef421b688ac25003736e9722d7114bd34725f8
+# CMD go test -count=1 -run 'TestMerchantAdminActorAuthorization_2546' ./handlers/
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 at_ms=1795711840182 wait_ms=200
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 wait_ms=200
+[DEBUG] Loaded .env from: ../.env
+2026/11/26 16:50:46 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d sslmode=disable
+2026/11/26 16:50:47 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d
+2026/11/26 16:50:47 [DB] Connected to database 'tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d'
+=== RUN   TestMerchantAdminActorAuthorization_2546
+2026/11/26 16:50:47 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d sslmode=disable
+2026/11/26 16:50:47 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d
+2026/11/26 16:50:47 [DB] Connected to database 'tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d'
+
+2026/11/26 16:50:48 [32m/home/coder/worktrees/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[720.064ms] [33m[rows:0][35m TRUNCATE TABLE "merchant_pricing_configs", "properties", "roles", "pricing_templates", "membership_levels", "rebate_config", "schema_migrations", "coupons", "instrument_levels", "gift_policies", "membership_gift_ratios", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/26 16:50:48 [IAMClient] NewIAMClient: baseURL=http://opencode.linxdeep.com:5561, clientID=test-ns, namespace=test-ns
+
+2026/11/26 16:50:48 [31;1m/home/coder/worktrees/tuneloop/wt-2546/backend/handlers/merchant.go:150 [35;1mrecord not found
+[0m[33m[1.356ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE id = 'f79cc309-514c-4852-9999-c35f390dbb6d' AND org_id = '93394b41-aafd-41f7-b8e4-721c4d8ccc49' ORDER BY "merchants"."id" LIMIT 1
+2026/11/26 16:50:48 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:33281, clientID=test-ns, namespace=test-ns
+2026/11/26 16:50:48 [IAMClient] Transferred org 93394b41-aafd-41f7-b8e4-721c4d8ccc49 ownership to user f07eaf9d-1f65-4b35-8907-6efa2ebb5bfc (user token)
+    merchant_owner_entry_2546_test.go:129: MA_LIST_STATUS=200 MA_LIST_ROWS=1 MA_GET_OWN_STATUS=200 MA_GET_OTHER_STATUS=404 MA_MEMBERS_STATUS=200 MA_TRANSFER_STATUS=200 MA_CREATE_MERCHANT_STATUS=403 MA_UPDATE_MERCHANT_STATUS=403 MA_DELETE_MERCHANT_STATUS=403 MA_ADD_MEMBER_STATUS=403
+--- PASS: TestMerchantAdminActorAuthorization_2546 (1.36s)
+PASS
+ok  	tuneloop-backend/handlers	2.091s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795711848882 hold_ms=8700
+GO_TEST_RC=0
+# build=1.0.3cef421b6 # commit=3cef421b688ac25003736e9722d7114bd34725f8 # dirty=false
+GENERATED_AT_HEAD=3cef421b688ac25003736e9722d7114bd34725f8
+# CMD go test -count=1 -run 'TestRequireSysPermOrRole_2546' ./middleware/
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 at_ms=1795711849168 wait_ms=180
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 wait_ms=180
+[DEBUG] Loaded .env from: ../.env
+=== RUN   TestRequireSysPermOrRole_2546
+=== RUN   TestRequireSysPermOrRole_2546/sys_perm_命中即放行（既有平台管理员路径不变）
+    permissions_2546_test.go:42: MA_SYS_BIT_PASS=1 status=200
+=== RUN   TestRequireSysPermOrRole_2546/商户管理员无_tenant_位但命中_businessRole_→_放行
+    permissions_2546_test.go:50: MA_ROLE_PASS=1 status=200
+=== RUN   TestRequireSysPermOrRole_2546/其他业务角色仍_403/40303
+    permissions_2546_test.go:58: MA_ROLE_DENY_STATUS=403 MA_ROLE_DENY_CODE=40303
+=== RUN   TestRequireSysPermOrRole_2546/sys_perm==0_保持既有直通语义
+    permissions_2546_test.go:66: MA_ZERO_PASSTHROUGH=1 status=200
+--- PASS: TestRequireSysPermOrRole_2546 (0.00s)
+    --- PASS: TestRequireSysPermOrRole_2546/sys_perm_命中即放行（既有平台管理员路径不变） (0.00s)
+    --- PASS: TestRequireSysPermOrRole_2546/商户管理员无_tenant_位但命中_businessRole_→_放行 (0.00s)
+    --- PASS: TestRequireSysPermOrRole_2546/其他业务角色仍_403/40303 (0.00s)
+    --- PASS: TestRequireSysPermOrRole_2546/sys_perm==0_保持既有直通语义 (0.00s)
+PASS
+ok  	tuneloop-backend/middleware	0.020s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795711850898 hold_ms=1730
+GO_TEST_RC=0

@@ -1,0 +1,65 @@
+# build=1.0.3cef421b6 # commit=3cef421b688ac25003736e9722d7114bd34725f8 # dirty=false
+GENERATED_AT_HEAD=3cef421b688ac25003736e9722d7114bd34725f8
+# R16 商户管理员入口接线：checkPermission businessRoles + 菜单/路由 + 平台操作隐藏
+TAP version 13
+# Subtest: CHECKPERM_MA：商户管理员命中 businessRoles → 商户菜单/详情可进入
+ok 1 - CHECKPERM_MA：商户管理员命中 businessRoles → 商户菜单/详情可进入
+  ---
+  duration_ms: 1.57032
+  type: 'test'
+  ...
+# Subtest: CHECKPERM_PLATFORM：平台管理员仍有 sys_perm 位 → 商户菜单/详情可进入
+ok 2 - CHECKPERM_PLATFORM：平台管理员仍有 sys_perm 位 → 商户菜单/详情可进入
+  ---
+  duration_ms: 2.634904
+  type: 'test'
+  ...
+# Subtest: NEW_ROUTE_PLATFORM_ONLY：/merchants/new 对商户管理员仍拒绝
+ok 3 - NEW_ROUTE_PLATFORM_ONLY：/merchants/new 对商户管理员仍拒绝
+  ---
+  duration_ms: 0.487585
+  type: 'test'
+  ...
+# Subtest: 无 businessRole 命中且无 sys/cus 位 → 拒绝（不因新增字段而放行所有人）
+ok 4 - 无 businessRole 命中且无 sys/cus 位 → 拒绝（不因新增字段而放行所有人）
+  ---
+  duration_ms: 1.91268
+  type: 'test'
+  ...
+# Subtest: 既无 sys/cus 也无 businessRoles → 放行（既有语义不变）
+ok 5 - 既无 sys/cus 也无 businessRoles → 放行（既有语义不变）
+  ---
+  duration_ms: 0.439743
+  type: 'test'
+  ...
+# Subtest: requireAll 与 businessRoles 并存时，businessRoles 命中即放行（OR）
+ok 6 - requireAll 与 businessRoles 并存时，businessRoles 命中即放行（OR）
+  ---
+  duration_ms: 0.30171
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 181.355442
+
+/home/coder/worktrees/tuneloop/wt-2546/frontend-pc/src/pages/MerchantManagement.jsx
+  34:5  warning  'fetchMerchants' was used before it was defined                                                                    no-use-before-define
+  35:6  warning  React Hook useEffect has a missing dependency: 'fetchMerchants'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+✖ 2 problems (0 errors, 2 warnings)
+
+NODE_TEST_RC=0
+CHECKPERM_MA=1
+CHECKPERM_PLATFORM=1
+MENU_BUSINESS_ROLES=1
+ROUTE_BUSINESS_ROLES=1
+PROTECTED_ROUTE_USERINFO=1
+NEW_ROUTE_PLATFORM_ONLY=1
+PLATFORM_ACTIONS_HIDDEN=1
+FRONTEND_LINT_RC=0

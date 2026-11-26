@@ -1,7 +1,11 @@
-# build=1.0.ad53b408f # commit=ad53b408f44a3a5ed01666ffeeb1125294c3f17b # dirty=false
-# R11 契约文档落字（api/ui/database/cases）
+# build=1.0.3cef421b6 # commit=3cef421b688ac25003736e9722d7114bd34725f8 # dirty=false
+GENERATED_AT_HEAD=3cef421b688ac25003736e9722d7114bd34725f8
+# R11 契约文档落字（api/ui/database/cases/permissions）
 DOC_API_TRANSFER=1
 DOC_API_MEMBERS_OWNER=1
+DOC_API_BIT8=1
 DOC_UI_OWNER_TAB=1
+DOC_UI_MERCHANT_ADMIN_VIEW=1
 DOC_DB_ADMIN_UID=1
 DOC_CASE_PATH_ALIGNED=1
+DOC_PERM_MERCHANTS_SCOPED=1

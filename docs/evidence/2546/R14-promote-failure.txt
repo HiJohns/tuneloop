@@ -1,0 +1,33 @@
+# build=1.0.3cef421b6 # commit=3cef421b688ac25003736e9722d7114bd34725f8 # dirty=false
+GENERATED_AT_HEAD=3cef421b688ac25003736e9722d7114bd34725f8
+# R14 转让本地同步单事务：成员行更新失败 → 500/50000 + 整体回滚（无半同步）
+# build=1.0.3cef421b6 # commit=3cef421b688ac25003736e9722d7114bd34725f8 # dirty=false
+GENERATED_AT_HEAD=3cef421b688ac25003736e9722d7114bd34725f8
+# CMD go test -count=1 -run 'TestTransferOwnershipLocalSyncFailure_2546' ./handlers/
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 at_ms=1795711832528 wait_ms=970
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 wait_ms=970
+[DEBUG] Loaded .env from: ../.env
+2026/11/26 16:50:37 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d sslmode=disable
+2026/11/26 16:50:37 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d
+2026/11/26 16:50:37 [DB] Connected to database 'tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d'
+=== RUN   TestTransferOwnershipLocalSyncFailure_2546
+2026/11/26 16:50:38 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d sslmode=disable
+2026/11/26 16:50:38 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d
+2026/11/26 16:50:38 [DB] Connected to database 'tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d'
+
+2026/11/26 16:50:39 [32m/home/coder/worktrees/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[712.624ms] [33m[rows:0][35m TRUNCATE TABLE "merchant_pricing_configs", "properties", "roles", "pricing_templates", "membership_levels", "rebate_config", "schema_migrations", "coupons", "instrument_levels", "gift_policies", "membership_gift_ratios", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/26 16:50:39 [TenantScope][observe] auto-scope injected for table=merchant_members (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/26 16:50:39 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/26 16:50:39 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:46133, clientID=test-ns, namespace=test-ns
+2026/11/26 16:50:39 [IAMClient] Transferred org 86ff749f-f8b2-4c77-8cab-50440f7638cd ownership to user 32f9387f-9f80-4e63-a0d0-1155bcfb03ac (user token)
+2026/11/26 16:50:39 [MerchantTransferOwnership] ERROR: IAM transferred merchant cb5e810b-4068-4fa4-8271-4c974ac65ebc org 86ff749f-f8b2-4c77-8cab-50440f7638cd (previous owner 9fc0c4f6-75a3-4931-b1f4-e573f7ec47ce -> target user 68dd670a-6758-48f4-9d19-e2270ff351a8) but the local transaction rolled back: 目标成员业务角色提升失败: injected merchant_members update failure
+    merchant_ownership_2546_test.go:767: PROMOTE_FAIL_STATUS=500 PROMOTE_FAIL_CODE=50000 ADMIN_UID_UNCHANGED=1 ROLE_UNCHANGED=1 MSG_HAS_MANUAL_CHECK=1
+
+2026/11/26 16:50:39 [34;1m/home/coder/worktrees/tuneloop/wt-2546/backend/handlers/merchant_ownership_2546_test.go:748
+[0m[35m[warn] [0mremoving callback `test:inject_merchant_members_update_failure_2546` from /home/coder/worktrees/tuneloop/wt-2546/backend/handlers/merchant_ownership_2546_test.go:748
+--- PASS: TestTransferOwnershipLocalSyncFailure_2546 (1.35s)
+PASS
+ok  	tuneloop-backend/handlers	2.202s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795711839762 hold_ms=7234
+GO_TEST_RC=0

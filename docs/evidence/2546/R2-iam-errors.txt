@@ -1,65 +1,73 @@
-# build=1.0.ad53b408f # commit=ad53b408f44a3a5ed01666ffeeb1125294c3f17b # dirty=false
+# build=1.0.3cef421b6 # commit=3cef421b688ac25003736e9722d7114bd34725f8 # dirty=false
+GENERATED_AT_HEAD=3cef421b688ac25003736e9722d7114bd34725f8
 # R2 IAM 失败映射 403/404/409/400/5xx + 本地指针不变（不得吞成 200）
-# build=1.0.ad53b408f # commit=ad53b408f44a3a5ed01666ffeeb1125294c3f17b # dirty=false
+# build=1.0.3cef421b6 # commit=3cef421b688ac25003736e9722d7114bd34725f8 # dirty=false
+GENERATED_AT_HEAD=3cef421b688ac25003736e9722d7114bd34725f8
 # CMD go test -count=1 -run 'TestTransferOwnershipIAMErrorMapping_2546' ./handlers/
-[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795684782293 wait_ms=69
-[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=69
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 at_ms=1795711739983 wait_ms=411
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 wait_ms=411
 [DEBUG] Loaded .env from: ../.env
-2026/11/26 09:19:48 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c sslmode=disable
-2026/11/26 09:19:48 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c
-2026/11/26 09:19:48 [DB] Connected to database 'tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c'
+2026/11/26 16:49:06 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d sslmode=disable
+2026/11/26 16:49:07 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d
+2026/11/26 16:49:07 [DB] Connected to database 'tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d'
 === RUN   TestTransferOwnershipIAMErrorMapping_2546
 === RUN   TestTransferOwnershipIAMErrorMapping_2546/Forbidden
-2026/11/26 09:19:48 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c sslmode=disable
-2026/11/26 09:19:48 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c
-2026/11/26 09:19:48 [DB] Connected to database 'tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c'
+2026/11/26 16:49:07 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d sslmode=disable
+2026/11/26 16:49:07 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d
+2026/11/26 16:49:07 [DB] Connected to database 'tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d'
 
-2026/11/26 09:19:49 [32m/tmp/opencode/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[653.863ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
-2026/11/26 09:19:49 [TenantScope][observe] auto-scope injected for table=merchant_members (add explicit scope, then set ExplicitTenantScopeOnly)
-2026/11/26 09:19:49 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
-2026/11/26 09:19:49 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:45073, clientID=test-ns, namespace=test-ns
-    merchant_ownership_2546_test.go:393: IAM403_STATUS=403 IAM403_CODE=40303
+2026/11/26 16:49:08 [32m/home/coder/worktrees/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[723.595ms] [33m[rows:0][35m TRUNCATE TABLE "merchant_pricing_configs", "properties", "roles", "pricing_templates", "membership_levels", "rebate_config", "schema_migrations", "coupons", "instrument_levels", "gift_policies", "membership_gift_ratios", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/26 16:49:08 [TenantScope][observe] auto-scope injected for table=merchant_members (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/26 16:49:08 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/26 16:49:08 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:43397, clientID=test-ns, namespace=test-ns
+    merchant_ownership_2546_test.go:407: IAM403_STATUS=403 IAM403_CODE=40303
 === RUN   TestTransferOwnershipIAMErrorMapping_2546/Not_Found
 
-2026/11/26 09:19:50 [32m/tmp/opencode/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[580.799ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchant_members", "merchants", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
-2026/11/26 09:19:50 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:40979, clientID=test-ns, namespace=test-ns
-    merchant_ownership_2546_test.go:393: IAM404_STATUS=404 IAM404_CODE=40400
+2026/11/26 16:49:09 [32m/home/coder/worktrees/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[630.647ms] [33m[rows:0][35m TRUNCATE TABLE "merchants", "pricing_templates", "membership_levels", "merchant_members", "tenants", "users" RESTART IDENTITY CASCADE[0m
+2026/11/26 16:49:10 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:34039, clientID=test-ns, namespace=test-ns
+    merchant_ownership_2546_test.go:407: IAM404_STATUS=404 IAM404_CODE=40400
 === RUN   TestTransferOwnershipIAMErrorMapping_2546/Conflict
 
-2026/11/26 09:19:51 [32m/tmp/opencode/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[565.424ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchant_members", "merchants", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
-2026/11/26 09:19:51 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:33241, clientID=test-ns, namespace=test-ns
-    merchant_ownership_2546_test.go:393: IAM409_STATUS=409 IAM409_CODE=40900
+2026/11/26 16:49:10 [32m/home/coder/worktrees/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[577.506ms] [33m[rows:0][35m TRUNCATE TABLE "merchants", "pricing_templates", "membership_levels", "merchant_members", "tenants", "users" RESTART IDENTITY CASCADE[0m
+2026/11/26 16:49:11 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:37355, clientID=test-ns, namespace=test-ns
+    merchant_ownership_2546_test.go:407: IAM409_STATUS=409 IAM409_CODE=40900
 === RUN   TestTransferOwnershipIAMErrorMapping_2546/Bad_Request
 
-2026/11/26 09:19:52 [32m/tmp/opencode/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[590.965ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchant_members", "merchants", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
-2026/11/26 09:19:52 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:33363, clientID=test-ns, namespace=test-ns
-    merchant_ownership_2546_test.go:393: IAM400_STATUS=400 IAM400_CODE=40002
+2026/11/26 16:49:12 [32m/home/coder/worktrees/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[592.776ms] [33m[rows:0][35m TRUNCATE TABLE "merchants", "pricing_templates", "membership_levels", "merchant_members", "tenants", "users" RESTART IDENTITY CASCADE[0m
+2026/11/26 16:49:12 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:36397, clientID=test-ns, namespace=test-ns
+    merchant_ownership_2546_test.go:407: IAM400_STATUS=400 IAM400_CODE=40002
 === RUN   TestTransferOwnershipIAMErrorMapping_2546/Internal_Server_Error
 
-2026/11/26 09:19:52 [32m/tmp/opencode/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[542.857ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchant_members", "merchants", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
-2026/11/26 09:19:52 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:33071, clientID=test-ns, namespace=test-ns
-    merchant_ownership_2546_test.go:393: IAM500_STATUS=502 IAM500_CODE=50200
+2026/11/26 16:49:13 [32m/home/coder/worktrees/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[582.732ms] [33m[rows:0][35m TRUNCATE TABLE "merchants", "pricing_templates", "membership_levels", "merchant_members", "tenants", "users" RESTART IDENTITY CASCADE[0m
+2026/11/26 16:49:13 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:44511, clientID=test-ns, namespace=test-ns
+    merchant_ownership_2546_test.go:407: IAM500_STATUS=502 IAM500_CODE=50200
 === NAME  TestTransferOwnershipIAMErrorMapping_2546
-    merchant_ownership_2546_test.go:398: IAM403_STATUS=403 IAM403_CODE=40303 IAM404_STATUS=404 IAM404_CODE=40400 IAM409_STATUS=409 IAM409_CODE=40900 IAM400_CODE=40002 IAM500_STATUS=502 IAM500_CODE=50200 LOCAL_OWNER_UNCHANGED=1
---- PASS: TestTransferOwnershipIAMErrorMapping_2546 (4.09s)
-    --- PASS: TestTransferOwnershipIAMErrorMapping_2546/Forbidden (0.96s)
-    --- PASS: TestTransferOwnershipIAMErrorMapping_2546/Not_Found (0.78s)
-    --- PASS: TestTransferOwnershipIAMErrorMapping_2546/Conflict (0.81s)
-    --- PASS: TestTransferOwnershipIAMErrorMapping_2546/Bad_Request (0.82s)
-    --- PASS: TestTransferOwnershipIAMErrorMapping_2546/Internal_Server_Error (0.72s)
+    merchant_ownership_2546_test.go:412: IAM403_STATUS=403 IAM403_CODE=40303 IAM404_STATUS=404 IAM404_CODE=40400 IAM409_STATUS=409 IAM409_CODE=40900 IAM400_CODE=40002 IAM500_STATUS=502 IAM500_CODE=50200 LOCAL_OWNER_UNCHANGED=1
+--- PASS: TestTransferOwnershipIAMErrorMapping_2546 (5.84s)
+    --- PASS: TestTransferOwnershipIAMErrorMapping_2546/Forbidden (1.46s)
+    --- PASS: TestTransferOwnershipIAMErrorMapping_2546/Not_Found (1.19s)
+    --- PASS: TestTransferOwnershipIAMErrorMapping_2546/Conflict (1.03s)
+    --- PASS: TestTransferOwnershipIAMErrorMapping_2546/Bad_Request (1.12s)
+    --- PASS: TestTransferOwnershipIAMErrorMapping_2546/Internal_Server_Error (1.03s)
 PASS
-ok  	tuneloop-backend/handlers	5.044s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795684793135 hold_ms=10842
+ok  	tuneloop-backend/handlers	6.860s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795711753517 hold_ms=13534
 GO_TEST_RC=0
-# build=1.0.ad53b408f # commit=ad53b408f44a3a5ed01666ffeeb1125294c3f17b # dirty=false
+# build=1.0.3cef421b6 # commit=3cef421b688ac25003736e9722d7114bd34725f8 # dirty=false
+GENERATED_AT_HEAD=3cef421b688ac25003736e9722d7114bd34725f8
 # CMD go test -count=1 -run 'TestTransferOwnershipClientErrorMapping_2546' ./services/
-[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795684793249 wait_ms=75
-[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=75
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 at_ms=1795711753809 wait_ms=192
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 wait_ms=192
+# github.com/mattn/go-sqlite3
+sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
+sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+123133 |   zTail = strrchr(zName, '_');
+       |         ^
 [DEBUG] Loaded .env from: ../.env
 === RUN   TestTransferOwnershipClientErrorMapping_2546
 === RUN   TestTransferOwnershipClientErrorMapping_2546/Forbidden
@@ -79,6 +87,6 @@ GO_TEST_RC=0
     --- PASS: TestTransferOwnershipClientErrorMapping_2546/Bad_Request (0.00s)
     --- PASS: TestTransferOwnershipClientErrorMapping_2546/Internal_Server_Error (0.00s)
 PASS
-ok  	tuneloop-backend/services	0.020s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795684797932 hold_ms=4683
+ok  	tuneloop-backend/services	0.025s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795711757384 hold_ms=3575
 GO_TEST_RC=0

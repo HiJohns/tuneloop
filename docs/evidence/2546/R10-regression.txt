@@ -1,14 +1,20 @@
-# build=1.0.ad53b408f # commit=ad53b408f44a3a5ed01666ffeeb1125294c3f17b # dirty=false
+# build=1.0.3cef421b6 # commit=3cef421b688ac25003736e9722d7114bd34725f8 # dirty=false
+GENERATED_AT_HEAD=3cef421b688ac25003736e9722d7114bd34725f8
 # R10 go build ./... + 成员/商户用例定向回归
-[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795684892247 wait_ms=71
-[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=71
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795684899217 hold_ms=6970
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 at_ms=1795711893967 wait_ms=236
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 wait_ms=236
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795711908796 hold_ms=14829
 BUILD_RC=0
-[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795684899327 wait_ms=71
-[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=71
-ok  	tuneloop-backend/handlers	26.624s
-ok  	tuneloop-backend/services	0.026s
-ok  	tuneloop-backend/middleware	0.014s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795684931460 hold_ms=32133
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 at_ms=1795711909132 wait_ms=220
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 wait_ms=220
+# github.com/mattn/go-sqlite3
+sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
+sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+123133 |   zTail = strrchr(zName, '_');
+       |         ^
+ok  	tuneloop-backend/handlers	44.926s
+ok  	tuneloop-backend/services	0.061s
+ok  	tuneloop-backend/middleware	0.038s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795711961438 hold_ms=52306
 REGRESSION_RC=0
 REGRESSION_PASS=1
