@@ -25,6 +25,10 @@ export const INSTRUMENT_IMAGE_PLACEHOLDER =
       '</svg>'
   )
 
+// #2529: 通用别名（同一常量，不复制 data URI）。非乐器场景（身份证照片等）
+// 复用它即可，避免再引用未入库的静态占位文件。
+export const IMAGE_PLACEHOLDER = INSTRUMENT_IMAGE_PLACEHOLDER
+
 function firstImageFromImages(images) {
   if (Array.isArray(images)) {
     return typeof images[0] === 'string' ? images[0] : ''
