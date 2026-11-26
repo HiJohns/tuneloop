@@ -6717,7 +6717,9 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 - `40001`: 请求参数错误
 - `40900`: IAM 组织名称冲突
 
-**IAM 关系角色（#2540 D4，Owner 2026-11-26 裁定）**: 商户管理员绑定商户组织的 **`OWNER`**（唯一权威映射 `toIAMRole("merchant_admin")`，见 10.18.7）。审批确认路径（`ConfirmationSession`，`action_type=merchant_admin`）同样绑定 `OWNER`，不得使用字面量 `"admin"`/`"ADMIN"`：beaconiam 的 `POST /organizations`（建网点）、角色模板定义、命名空间操作用均要求 `PermissionOwner`，绑定 `ADMIN` 会使商户创建者**无法再创建网点**。
+**IAM 关系角色（#2540 D4，Owner 2026-11-26 裁定）**: 商户管理员绑定商户组织的 **`OWNER`**（唯一权威映射 `toIAMRole("merchant_admin")`，见 10.18.7）。beaconiam 的 `POST /organizations`（建网点）、角色模板定义、命名空间操作用均要求 `PermissionOwner`，绑定 `ADMIN` 会使商户创建者**无法再创建网点**。
+
+> **审批确认路径不写 IAM（#2543）**：`ConfirmationSession`（`action_type=merchant_admin`）**不调用任何 IAM 接口**——`confirmation_sessions` 无持久化表（`backend/database/db.go` 豁免清单，目标环境不存在该表），该分支只做本地校验（用户存在/激活、商户存在），属 legacy 脚手架，**禁止在此新增 IAM 调用**。商户管理员的 `OWNER` 绑定只发生在 `POST /api/merchants`（创建）与 `POST /api/merchants/:id/transfer-ownership`（转让）。历史实现曾把本地 `users.id` 当作 IAM 主体传给 `BindUserToOrganization` / `SetUserCustomerPermissions`（IAM 主体应为 `users.iam_sub`），已删除。
 
 #### 12.3.2 商户列表
 

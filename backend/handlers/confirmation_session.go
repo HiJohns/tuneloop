@@ -355,21 +355,15 @@ func (h *ConfirmationSessionHandler) executeAction(session *models.ConfirmationS
 			if err := db.Where("id = ?", session.MerchantID).First(&merchant).Error; err != nil {
 				return fmt.Errorf("merchant not found: %s", session.MerchantID)
 			}
-			if merchant.OrgID != "" {
-				iamClient := services.NewIAMClient()
-				// #2540 D4（Owner 2026-11-26 裁定）：新建商户的管理员是商户的 OWNER。
-				// 旧写法字面量 "admin" 把创建者降为 ADMIN → 无法再用 POST /organizations
-				// 创建网点（beaconiam 该路由要求 PermissionOwner）。唯一权威映射 = toIAMRole。
-				if err := iamClient.BindUserToOrganization(session.UserID, merchant.OrgID, toIAMRole("merchant_admin"), ""); err != nil {
-					return fmt.Errorf("IAM bind failed: %w", err)
-				}
-				if t, ok := services.AllRoleTemplates["merchant_admin"]; ok && len(t.CusPermCodes) > 0 {
-					cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(t.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
-					if err := iamClient.SetUserCustomerPermissions(merchant.OrgID, session.UserID, cusPerm, cusPermExt); err != nil {
-						log.Printf("[Confirm] SetUserCustomerPermissions failed: %v", err)
-					}
-				}
-			}
+			// #2543：本特性无持久化表（confirmation_sessions 在 db.go 豁免，目标环境
+			// 不存在该表），禁止在此新增 IAM 调用；
+			// 所有权与角色写入的唯一路径是商户创建/转让（merchant.go、merchant_member.go）。
+			//
+			// 历史缺陷（已删除）：曾把本地 users.id 当 IAM 主体传给
+			// BindUserToOrganization / SetUserCustomerPermissions；IAM 主体是
+			// users.iam_sub，对端按 iamUserID 查主体 → 404/400。
+			log.Printf("[Confirm] merchant_admin action is local-only (no IAM write) merchant=%s user=%s",
+				merchant.ID, session.UserID)
 		}
 		return nil
 

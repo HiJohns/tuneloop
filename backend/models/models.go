@@ -1166,7 +1166,10 @@ type MerchantMember struct {
 
 func (MerchantMember) TableName() string { return "merchant_members" }
 
-// ConfirmationSession handles user invitation confirmation flow
+// ConfirmationSession handles user invitation confirmation flow.
+//
+// 非持久化（无迁移建表；backend/database/db.go 的豁免清单）；`merchant_admin`
+// 动作不写 IAM（#2543：该分支只做本地校验，所有权写入只走商户创建/转让）。
 type ConfirmationSession struct {
 	ID             string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	TenantID       string     `gorm:"type:uuid;index;not null" json:"tenant_id"`
