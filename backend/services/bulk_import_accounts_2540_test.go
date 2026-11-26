@@ -12,8 +12,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -24,6 +22,8 @@ import (
 
 	"tuneloop-backend/database"
 	"tuneloop-backend/models"
+
+	"gorm.io/gorm"
 )
 
 type iamCall2540Svc struct {
@@ -106,53 +106,36 @@ func installFakeIAM2540Svc(t *testing.T) *fakeIAM2540Svc {
 	return f
 }
 
-// testDBName2540 让服务层测试连上共享测试模板库（handlers 包 TestMain 维护的
-// `tuneloop_test_template`）。服务层没有 TestMain，且不得自行 CREATE DATABASE，
-// 因此这里只读使用模板库 + 事务回滚（见 TestBulkImportIAMRole2540）。
-//
-// 结束必须还原 TUNELOOP_DB：本包没有 TestMain，泄漏的 env 会让后续用例的
-// InitDB 连到共享模板库并向其中写数据（污染其他节点的 clone 源）。
-func testDBName2540(t *testing.T) {
-	t.Helper()
-	prev, hadPrev := os.LookupEnv("TUNELOOP_DB")
-	if testDBNameRe2540.MatchString(strings.TrimSpace(prev)) {
-		return
-	}
-	for _, candidate := range []string{os.Getenv("TUNELOOP_TEST_DB"), "tuneloop_test_template"} {
-		candidate = strings.TrimSpace(candidate)
-		if candidate == "" || !testDBNameRe2540.MatchString(candidate) {
-			continue
-		}
-		require.NoError(t, os.Setenv("TUNELOOP_DB", candidate))
-		t.Cleanup(func() {
-			if hadPrev {
-				_ = os.Setenv("TUNELOOP_DB", prev)
-				return
-			}
-			_ = os.Unsetenv("TUNELOOP_DB")
-		})
-		return
-	}
-	t.Fatalf("no test database available: set TUNELOOP_DB/TUNELOOP_TEST_DB to tuneloop_test_* (#2540 R2 不得跳过)")
+// prevDB2540 安全读取当前全局 DB 句柄：未初始化时返回 nil（GetDB 会 panic）。
+func prevDB2540() (db *gorm.DB) {
+	defer func() { _ = recover() }()
+	return database.GetDB()
 }
-
-var testDBNameRe2540 = regexp.MustCompile(`^tuneloop_test(_[a-z0-9_]+)?$`)
 
 // TestBulkImportIAMRole2540：导入 site_member / site_admin / 空角色三行，
 // bind payload 的关系角色只允许 STAFF/ADMIN。
 //
-// 所有本地写入都在事务内并回滚：模板库是共享 fixture，本用例不留残留数据。
+// 本包没有 TestMain，因此不依赖共享模板库（handlers 的 TestMain 会并行重建
+// `tuneloop_test_template`，重建窗口内 `sites` 可能缺列 → 假失败）。这里连
+// 默认测试库，在事务内补齐所需 schema 并整体回滚：不与其他用例/节点争用共享
+// fixture，也不留残留数据；结束后还原原有全局 DB 句柄，避免污染后续用例。
 func TestBulkImportIAMRole2540(t *testing.T) {
-	testDBName2540(t)
+	prev := prevDB2540()
 	base, err := database.InitDB(database.LoadConfig())
 	require.NoError(t, err, "测试 Postgres 不可用（#2540 R2：不得跳过，skip 视为 FAIL）")
 	tx := base.Begin()
 	require.NoError(t, tx.Error)
 	database.SetDB(tx)
 	t.Cleanup(func() {
-		database.SetDB(base)
+		if prev != nil {
+			database.SetDB(prev)
+		} else {
+			database.SetDB(base)
+		}
 		_ = tx.Rollback().Error
 	})
+	// 默认测试库可能落后于模型（缺表/缺列）→ 事务内 AutoMigrate 补齐，随回滚撤销。
+	require.NoError(t, tx.AutoMigrate(&models.Tenant{}, &models.Site{}, &models.User{}))
 	// 导入路径用包级 GlobalPermissionRegistry 计算客户权限位；纯服务层测试没有 main
 	// 初始化，必须显式建立（否则 nil deref，不是业务缺陷）。
 	if GlobalPermissionRegistry == nil {
