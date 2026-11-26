@@ -1,18 +1,18 @@
-# build=1.0.f400652ff # commit=f400652ff7b383a06a1d7e5f49a03332b36d828f # dirty=false
+# build=1.0.511ef74db # commit=511ef74dbac7e98a2359c9ec75f7a1f09991a1e1 # dirty=false
 == R5 构建 + 定向测试 ==
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed at_ms=1795672778782 wait_ms=36476
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed wait_ms=36476
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795672792649 hold_ms=13867
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed at_ms=1795672807505 wait_ms=13274
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed wait_ms=13274
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed at_ms=1795676684421 wait_ms=3212
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed wait_ms=3212
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795676696377 hold_ms=11956
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed at_ms=1795676696921 wait_ms=230
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed wait_ms=230
 # github.com/mattn/go-sqlite3
 sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
 sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
 123133 |   zTail = strrchr(zName, '_');
        |         ^
-ok  	tuneloop-backend/handlers	3.114s
-ok  	tuneloop-backend/services	0.081s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795672822601 hold_ms=15096
+ok  	tuneloop-backend/handlers	5.108s
+ok  	tuneloop-backend/services	0.453s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795676718251 hold_ms=21330
 GO_TEST_OK=1
 BUILD_OK=1
 R5_OK
