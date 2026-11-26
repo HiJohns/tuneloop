@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "issue": 2592,
+  "build": "1.0.5310dee9",
+  "commit": "5310dee9443aae25de6317109ff8418f18acbf37",
+  "dirty": false,
+  "plan_sha256": "a88a7f8ae58e98d02cc88a3eb49040bc26eab9c93d9c7bb62a62df1236d9eec4",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2592 (branch issue-2592, base origin/develop b022a4890); Go build + Postgres test DB (127.0.0.1:15433/tuneloop_test_local); IAM stubbed by httptest (or a closed port for the unreachable case); no production calls",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2592.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2592/R1-scan.txt"
+      ],
+      "assert": "exit 0 且文件含 CJK_ERR_CONCAT=0 与 BASELINE_HITS=7 且无 MISSING_SITE=",
+      "actual": "PASS：CJK_ERR_CONCAT=0 / BASELINE_HITS=7 / BASELINE_SITES_COVERED=7/7 / SCANNED_FILES=421 / 无 MISSING_BASELINE_SITES / RESULT: PASS",
+      "expected": "PASS",
+      "negative": "交付树任一 \"message\": \"中文\"+x.Error() → CJK_ERR_CONCAT>=1 且 exit 1",
+      "negative_result": "预修复源码实测（git checkout origin/develop -- backend/handlers/merchant.go backend/handlers/merchant_member.go 后跑同一脚本）：CJK_ERR_CONCAT=7、BASELINE_SITES_COVERED=0/7、RESULT: FAIL（tmp/neg-r1.log）；恢复 fix commit 后 CJK_ERR_CONCAT=0 PASS —— 红绿可证",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2592.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2592/R2-forms.txt"
+      ],
+      "assert": "exit 0 且含 MSG_FIELD_CONCAT=0、MSG_SPRINTF_CONCAT=0、LIT_OWNER=5、LIT_VIEWER=1、LIT_TARGET=1、LIT_TRANSFER=3、LIT_SYNC=1",
+      "actual": "PASS：MSG_FIELD_CONCAT=0 / MSG_SPRINTF_CONCAT=0 / LIT_OWNER=5 / LIT_VIEWER=1 / LIT_TARGET=1 / LIT_TRANSFER=3 / LIT_SYNC=1 / LIT_SITES=11 / GIN_CONCAT_DETAILS=（空） / RESULT: PASS",
+      "expected": "PASS",
+      "negative": "任一 Message: fmt.Sprintf(\"中文…%v\", …) 残留或文案计数不等 → exit 1",
+      "negative_result": "同一预修复树：MSG_FIELD_CONCAT=3、MSG_SPRINTF_CONCAT=1、LIT_OWNER/VIEWER/TARGET/TRANSFER/SYNC 全为 0、LIT_SITES=0、RESULT: FAIL（tmp/neg-r2.log）；恢复后 5/1/1/3/1 且 RESULT: PASS",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2592.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2592/R3-logs.txt"
+      ],
+      "assert": "exit 0 且含 LOG_PER_SITE=11、LOST_DETAIL=0",
+      "actual": "PASS：LOG_PER_SITE=11 / SITE_TOTAL=11 / LOST_DETAIL=0（11 行 SITE … covered=1，含 merchant_member.go:926 的跨行 log 调用）/ RESULT: PASS",
+      "expected": "PASS",
+      "negative": "任一站点缺引用同一 error 的 log.Printf → LOST_DETAIL>=1 且 exit 1",
+      "negative_result": "同一预修复树：固定文案不存在 → LOG_PER_SITE=0、SITE_TOTAL=0、RESULT: FAIL；另有反向实测（脚本首版未识别跨行 log 调用）：LOG_PER_SITE=10、LOST_DETAIL=1、SITE backend/handlers/merchant_member.go:926 covered=0 → FAIL，说明该行不是橡皮章；修正为识别多行 log 调用后 11/11 PASS",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2592.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2592/R4-runtime.txt"
+      ],
+      "assert": "exit 0 且含 RUNTIME_SITES=9、LEAK=0、# fail 0，且无 --- FAIL 与 UUID_LEAK=1",
+      "actual": "PASS：RUNTIME_SITES=9 / RUNTIME_SITE_LIST=merchant.go:621,merchant_member.go:55,62,497,614,811,854,879,916 / LEAK=0 / UUID_LEAK=0 / UUID_SITE_MARKER=1 / # pass 10 / # fail 0 / 未冒充 DEFENSIVE_SITES=merchant.go:632 merchant_member.go:960 / RESULT: PASS",
+      "expected": "PASS",
+      "negative": "任一分支响应体含 sentinel2592 或 pq: 或 UUID → LEAK=1 且 exit 1",
+      "negative_result": "预修复源码实测（同一 checkout 回退两个 handler 后跑同一用例集）：9 个运行时用例全部 --- FAIL，例如 expected \"读取商户所有人信息失败，请稍后重试\" / actual \"解析商户所有人失败：查询 users.id=<uuid>: sentinel2592: injected db failure\"（tmp/red-2592.log）；恢复 fix commit 后 10 PASS / # fail 0 —— 红绿可证",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2592.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2592/R5-build.txt"
+      ],
+      "assert": "exit 0 且含 BUILD_OK=1",
+      "actual": "PASS：BUILD_OK=1 / BUILD_EXIT=0 / RESULT: PASS",
+      "expected": "PASS",
+      "negative": "编译失败 → BUILD_OK=0 且 exit 1",
+      "negative_result": "未单独构造编译失败输入：go build 失败时脚本走 BUILD_OK=0 + exit 1 分支（同一分支由 R1–R4 的失败路径实际执行验证）；fix commit 上编译烟测 exit 0",
+      "pass": true
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+# build=1.0.5310dee9 # commit=5310dee9443aae25de6317109ff8418f18acbf37 # dirty=false
+SCAN_SCOPE=backend/handlers/*.go（目录级，不硬编码文件清单）
+SCAN_RE="message":\s*"[^"]*[\x{4e00}-\x{9fff}][^"]*"\s*\+\s*[A-Za-z_][\w.]*\.Error\(\)
+BASELINE_REF=origin/develop
+BASELINE_HITS=7
+SCANNED_FILES=421
+BASELINE_SITES_COVERED=7/7（站点级：基线旧拼接行在交付树中不再出现）
+CJK_ERR_CONCAT=0
+RESULT: PASS
+

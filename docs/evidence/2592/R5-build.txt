@@ -1,0 +1,9 @@
+# build=1.0.5310dee9 # commit=5310dee9443aae25de6317109ff8418f18acbf37 # dirty=false
+BUILD_CMD=cd backend && go build ./...
+BUILD_EXIT=0
+BUILD_OK=1
+LOG_TAIL: [heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s107-p107-350703 at_ms=1795733254317 wait_ms=65
+LOG_TAIL: [heavy-lock] acquired scope=host slot=0 node=node-opencode-s107-p107-350703 wait_ms=65
+LOG_TAIL: [heavy-lock] released scope=host slot=0 rc=0 at_ms=1795733265727 hold_ms=11410
+RESULT: PASS
+

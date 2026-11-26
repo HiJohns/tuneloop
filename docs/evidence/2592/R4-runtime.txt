@@ -1,0 +1,35 @@
+# build=1.0.5310dee9 # commit=5310dee9443aae25de6317109ff8418f18acbf37 # dirty=false
+RUNTIME_CMD=cd backend && go test ./handlers -run 'Sanitized_2592|LocalSyncFailure_2546' -count=1 -v -timeout 10m
+TEST_DB_ENV=TUNELOOP_DB=tuneloop TUNELOOP_TEST_DB=tuneloop_test_local POSTGRES_HOST=127.0.0.1 POSTGRES_PORT=15433
+RUNTIME_EXIT=0
+RUNTIME_SITES=9（期望 9）
+RUNTIME_SITE_LIST=merchant.go:621,merchant_member.go:497,merchant_member.go:55,merchant_member.go:614,merchant_member.go:62,merchant_member.go:811,merchant_member.go:854,merchant_member.go:879,merchant_member.go:916
+DEFENSIVE_SITES=merchant.go:632 merchant_member.go:960
+LEAK=0
+UUID_LEAK=0
+UUID_SITE_MARKER=1
+# pass 10
+# fail 0
+--- runtime tail ---
+=== RUN   TestUpdateMerchantOwnerResolutionSanitized_2592
+--- PASS: TestUpdateMerchantOwnerResolutionSanitized_2592 (0.93s)
+=== RUN   TestListMembersOwnerResolutionSanitized_2592
+--- PASS: TestListMembersOwnerResolutionSanitized_2592 (0.69s)
+=== RUN   TestListMembersViewerResolutionSanitized_2592
+--- PASS: TestListMembersViewerResolutionSanitized_2592 (0.73s)
+=== RUN   TestUpdateMemberRoleOwnerResolutionSanitized_2592
+--- PASS: TestUpdateMemberRoleOwnerResolutionSanitized_2592 (0.81s)
+=== RUN   TestRemoveMemberOwnerResolutionSanitized_2592
+--- PASS: TestRemoveMemberOwnerResolutionSanitized_2592 (0.73s)
+=== RUN   TestTransferOwnershipOwnerResolutionSanitized_2592
+--- PASS: TestTransferOwnershipOwnerResolutionSanitized_2592 (0.76s)
+=== RUN   TestTransferOwnershipTargetLookupSanitized_2592
+--- PASS: TestTransferOwnershipTargetLookupSanitized_2592 (0.72s)
+=== RUN   TestTransferOwnershipIAMUnreachableSanitized_2592
+--- PASS: TestTransferOwnershipIAMUnreachableSanitized_2592 (0.71s)
+=== RUN   TestTransferOwnershipLocalSyncSanitized_2592
+--- PASS: TestTransferOwnershipLocalSyncSanitized_2592 (0.74s)
+=== RUN   TestTransferOwnershipLocalSyncFailure_2546
+--- PASS: TestTransferOwnershipLocalSyncFailure_2546 (0.76s)
+RESULT: PASS
+

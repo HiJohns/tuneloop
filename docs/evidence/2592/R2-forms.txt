@@ -1,0 +1,13 @@
+# build=1.0.5310dee9 # commit=5310dee9443aae25de6317109ff8418f18acbf37 # dirty=false
+SCAN_FILES=backend/handlers/merchant.go backend/handlers/merchant_member.go
+MSG_FIELD_CONCAT=0（Message: "中文"+x.Error()）
+MSG_SPRINTF_CONCAT=0（Message: fmt.Sprintf("中文…")）
+LIT_OWNER=5（期望 5）
+LIT_VIEWER=1（期望 1）
+LIT_TARGET=1（期望 1）
+LIT_TRANSFER=3（期望 3）
+LIT_SYNC=1（期望 1）
+LIT_SITES=11（期望 11）
+GIN_CONCAT_DETAILS=
+RESULT: PASS
+

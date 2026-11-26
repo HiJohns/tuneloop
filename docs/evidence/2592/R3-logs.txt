@@ -1,0 +1,18 @@
+# build=1.0.5310dee9 # commit=5310dee9443aae25de6317109ff8418f18acbf37 # dirty=false
+WINDOW=6（固定文案行上方 ≤6 行内的 log 调用）
+LOG_PER_SITE=11（期望 11）
+SITE_TOTAL=11
+LOST_DETAIL=0
+SITE backend/handlers/merchant.go:623 covered=1 log=622
+SITE backend/handlers/merchant.go:636 covered=1 log=635
+SITE backend/handlers/merchant_member.go:57 covered=1 log=56
+SITE backend/handlers/merchant_member.go:65 covered=1 log=64
+SITE backend/handlers/merchant_member.go:502 covered=1 log=501
+SITE backend/handlers/merchant_member.go:621 covered=1 log=620
+SITE backend/handlers/merchant_member.go:820 covered=1 log=816
+SITE backend/handlers/merchant_member.go:864 covered=1 log=860
+SITE backend/handlers/merchant_member.go:889 covered=1 log=885
+SITE backend/handlers/merchant_member.go:926 covered=1 log=921
+SITE backend/handlers/merchant_member.go:971 covered=1 log=970
+RESULT: PASS
+
