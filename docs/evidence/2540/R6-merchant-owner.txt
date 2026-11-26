@@ -1,10 +1,10 @@
-# build=1.0.12cc82cec # commit=12cc82cec5a4c798ea1a0216550a003bb2c2a5ca # dirty=false
-GENERATED_AT_HEAD=12cc82cec5a4c798ea1a0216550a003bb2c2a5ca
+# build=1.0.150ff8d85 # commit=150ff8d853d3941287e457f2bcaf72d320181ac3 # dirty=false
+GENERATED_AT_HEAD=150ff8d853d3941287e457f2bcaf72d320181ac3
 == R6 商户管理员确认：关系角色 OWNER ==
 BIND_ROLE=OWNER
 PERM_TEMPLATE=merchant_admin
 CUS_PERM_MATCH=1
 NON_OWNER_ROLE_COUNT=0
---- PASS: TestMerchantAdminConfirmBindsOwner2540 (0.02s)
+--- PASS: TestMerchantAdminConfirmBindsOwner2540 (0.03s)
 MERCHANT_LITERAL_ADMIN=0
 R6_OK

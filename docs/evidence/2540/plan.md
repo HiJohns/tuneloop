@@ -1,4 +1,4 @@
-## Accepted Plan — #2540 邻居收敛：`ActivateUser` / 批量导入改用 `toIAMRole`，激活权限模板跟随 `users.role`，商户管理员确认绑定 `OWNER`（Rev.2）
+## Accepted Plan — #2540 邻居收敛：`ActivateUser` / 批量导入改用 `toIAMRole`，激活权限模板跟随 `users.role`，商户管理员确认绑定 `OWNER`｜Rev.3
 
 > 来源：#2467（已并入 #2466 关闭）的邻居扫描。同类缺陷只修了 `UpdateUser` 网点分支，本单收敛剩余两处。
 
@@ -61,9 +61,9 @@
 | 激活 legacy 空角色 | 同上 | 同上 | `users.role=""` | backend | `BIND_ROLE=STAFF`、`PERM_TEMPLATE=site_member` | R1 |
 | 批量导入角色 | `backend/services/bulk_import_accounts.go` | 批量导入账号服务 | `acc.Role=site_member` / `site_admin` / 空 | backend | `BIND_ROLE ∈ {STAFF, ADMIN}`；`LEGACY_BUSINESS_ROLE=0` | R2 |
 | 非法业务角色清除（静态） | `backend/handlers/user_staff.go`、`backend/services/bulk_import_accounts.go` | grep | 修后源码 | backend | `GetBusinessRole_as_iam_role=0`（`BindUserToOrganization` 第三参数不再来自 `GetBusinessRole`） | R3 |
-| 商户管理员确认绑定 OWNER | `backend/handlers/confirmation_session.go` | 商户管理员审批确认流程（fake IAM） | `session.ActionType='merchant_admin'` | backend | `BIND_ROLE=OWNER`；随后用该账号 `POST /organizations` 不再 403（对端语义） | R6 |
+| 商户管理员确认绑定 OWNER | `backend/handlers/confirmation_session.go` | 商户管理员审批确认流程（fake IAM） | `session.ActionType='merchant_admin'` | backend | `BIND_ROLE=OWNER`、`PERM_TEMPLATE=merchant_admin`（对端后果「建网点需 `PermissionOwner`」见 `### OWNER vs ADMIN`，不属本行可执行期望） | R6 |
 | 文档同步 | `docs/spec/api/api.md` | grep | — | 文档 | 含 `toIAMRole` / `STAFF` 回落表述 | R4 |
-| 构建/测试 | backend | 定向测试 + `go build` | 修后工作树 | backend | 全绿 | R5 |
+| 构建/测试 | backend | 定向测试 + `go build` + 全量基线差异 | 修后工作树 | backend | `GO_TEST_OK=1`、`BUILD_OK=1`、`FULL_GATE_EXIT=1`（仓库根无 `go.mod` → pre-ready P5 判 N/A）、`FULL_GATE_NEW_FAILURES=0`（与 `origin/develop` 基线同集失败视为等价） | R5 |
 
 ### Input Truth & Tool Preflight
 
@@ -82,7 +82,7 @@
 | ID | 项 | 裁定 |
 |---|---|---|
 | D1 | `services.ToIAMRole` 为唯一映射实现，`handlers.toIAMRole` 变薄封装（避免跨包复制） | 本计划锁定 |
-| D2 | 激活时权限模板跟随 `users.role`（白名单内），空/非法 → `site_member`；不得再硬编码 | 本计划锁定（#2467 影响 2：site_admin 被降权） |
+| D2 | 激活时权限模板跟随 `users.role`（**员工级**白名单：`site_admin`/`site_member`/`merchant_staff`/`repair_technician`；**排除平台级 `namespace_admin`/`sys_admin` 与 `customer`**），空/非法 → `site_member` | 本计划锁定（Rev.3：平台模板 + 员工关系角色属语义混搭，收敛为员工级；存量 `users.role=namespace_admin` 行激活后权限面变窄，属有意取舍） |
 | D3 | 关系角色白名单 `{OWNER, ADMIN, STAFF, repair_technician}`，其它一律 `STAFF` | 本计划锁定 |
 | D4 | `confirmation_session.go:360` 商户管理员审批确认绑定 **`OWNER`**（`toIAMRole("merchant_admin")`），删除字面量 `"admin"` | **Owner 2026-11-26 裁定**：「新建商户的管理员应该是商户的 owner」 |
 | D5 | 存量已绑定为 `ADMIN`/`admin` 的商户管理员**不在本单回填**：只读扫描 + Owner 授权后执行 | 本计划锁定（另立 Ops 单） |
@@ -118,23 +118,23 @@
 
 | 行 | fixture | entry | artifact | assertions | negative |
 |---|---|---|---|---|---|
-| R1 | 三个本地用户（`role=site_member` / `site_admin` / `""`），均无 `iam_sub` | `POST /api/users/:id/activate`（fake IAM） | `docs/evidence/2540/R1-activate-role.txt` | `MEMBER_BIND_ROLE=STAFF`、`ADMIN_BIND_ROLE=ADMIN`、`ADMIN_PERM_TEMPLATE=site_admin`、`LEGACY_BIND_ROLE=STAFF`、`CUS_PERM_MATCH=1` | 出现 `user`/`organization_admin`/`tenant_admin` 或 site_admin 用 site_member 权限 → FAIL |
+| R1 | 三个本地用户（`role=site_member` / `site_admin` / `""`）+ 一个 `role=namespace_admin`（平台级），均无 `iam_sub` | `POST /api/users/:id/activate`（fake IAM） | `docs/evidence/2540/R1-activate-role.txt` | `MEMBER_BIND_ROLE=STAFF`、`ADMIN_BIND_ROLE=ADMIN`、`ADMIN_PERM_TEMPLATE=site_admin`、`MEMBER_ROLE_TEMPLATE=site_member`、`LEGACY_ROLE_TEMPLATE=site_member`、`PLATFORM_ROLE_TEMPLATE=site_member`、`ILLEGAL_TEMPLATE_COUNT=0`、`ROLE_TEMPLATE_MISMATCH=0`、`LEGACY_BIND_ROLE=STAFF`、`CUS_PERM_MATCH=1` | 出现 `user`/`organization_admin`/`tenant_admin`、site_admin 用 site_member 权限、或平台模板进入激活 → FAIL |
 | R2 | 批量导入 2 行（`site_member`、`site_admin`）+ 1 行空角色 | 导入服务（fake IAM） | `docs/evidence/2540/R2-bulk-import-role.txt` | `BIND_ROLES=STAFF,ADMIN`、`LEGACY_BIND_ROLE=STAFF`、`BUSINESS_ROLE_AS_IAM=0` | 任一 `role` 非白名单 → FAIL |
 | R3 | 修后 `backend` 源码 | grep | `docs/evidence/2540/R3-no-business-role-static.txt` | `BIND_WITH_BUSINESS_ROLE=0`、`HARDCODED_SITE_MEMBER=0` | 仍有 → FAIL |
 | R6 | 商户管理员确认会话（`ActionType=merchant_admin`，商户 org 已存在） | `bash scripts/verify-2540.sh r6` | `docs/evidence/2540/R6-merchant-owner.txt` | `BIND_ROLE=OWNER`、`PERM_TEMPLATE=merchant_admin` | 仍写 `admin`/`ADMIN` → FAIL |
-| R4 | `docs/spec/api/api.md` | grep | `docs/evidence/2540/R4-docs.txt` | `DOC_TOIAMROLE=1`、`DOC_STAFF_FALLBACK=1` | 缺项 → FAIL |
+| R4 | `docs/spec/api/api.md` | grep | `docs/evidence/2540/R4-docs.txt` | `DOC_TOIAMROLE=1`、`DOC_STAFF_FALLBACK=1`、`DOC_ROLE_TEMPLATE=1` | 缺项 → FAIL |
 | R5 | 修后工作树 | `bash scripts/verify-2540.sh r5` | `docs/evidence/2540/R5-build.txt` | `GO_TEST_OK=1`、`BUILD_OK=1` | 任一失败 → FAIL |
 
 ### Evidence Contract
 
 | 行 ID | 命令 | 产物 | 断言 | 期望 | 负例 | 责任人 |
 |---|---|---|---|---|---|---|
-| R1 | `bash scripts/verify-2540.sh r1` | `docs/evidence/2540/R1-activate-role.txt` | exit 0；含 `ADMIN_BIND_ROLE=ADMIN`、`LEGACY_BIND_ROLE=STAFF` | PASS | 非法角色 → FAIL | dev |
+| R1 | `bash scripts/verify-2540.sh r1` | `docs/evidence/2540/R1-activate-role.txt` | exit 0；含 `ADMIN_BIND_ROLE=ADMIN`、`LEGACY_BIND_ROLE=STAFF`、`PLATFORM_ROLE_TEMPLATE=site_member`、`ILLEGAL_TEMPLATE_COUNT=0` | PASS | 非法角色/平台模板进入 → FAIL | dev |
 | R2 | `bash scripts/verify-2540.sh r2` | `docs/evidence/2540/R2-bulk-import-role.txt` | exit 0；含 `BIND_ROLES=STAFF,ADMIN`、`BUSINESS_ROLE_AS_IAM=0` | PASS | 业务角色入 payload → FAIL | dev |
 | R3 | `bash scripts/verify-2540.sh r3` | `docs/evidence/2540/R3-no-business-role-static.txt` | exit 0；含 `BIND_WITH_BUSINESS_ROLE=0`、`HARDCODED_SITE_MEMBER=0` | PASS | 残留 → FAIL | dev |
 | R6 | `bash scripts/verify-2540.sh r6` | `docs/evidence/2540/R6-merchant-owner.txt` | exit 0；含 `BIND_ROLE=OWNER` | PASS | 仍为 ADMIN/admin → FAIL | dev |
-| R4 | `bash scripts/verify-2540.sh r4` | `docs/evidence/2540/R4-docs.txt` | exit 0；含 `DOC_TOIAMROLE=1` | PASS | 缺文档 → FAIL | dev |
-| R5 | `bash scripts/verify-2540.sh r5` | `docs/evidence/2540/R5-build.txt` | exit 0；含 `GO_TEST_OK=1`、`BUILD_OK=1` | PASS | 编译/测试失败 → FAIL | dev |
+| R4 | `bash scripts/verify-2540.sh r4` | `docs/evidence/2540/R4-docs.txt` | exit 0；含 `DOC_TOIAMROLE=1`、`DOC_ROLE_TEMPLATE=1` | PASS | 缺文档 → FAIL | dev |
+| R5 | `bash scripts/verify-2540.sh r5` | `docs/evidence/2540/R5-build.txt` | exit 0；含 `GO_TEST_OK=1`、`BUILD_OK=1`、`FULL_GATE_EXIT=1`、`FULL_GATE_NEW_FAILURES=0` | PASS | 新增失败 → FAIL | dev |
 
 ### Artifact Provenance
 

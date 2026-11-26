@@ -1,9 +1,13 @@
 {
   "schema_version": 1,
   "issue": 2540,
-  "build": "1.0.12cc82cec",
-  "commit": "12cc82cec5a4c798ea1a0216550a003bb2c2a5ca",
+  "build": "1.0.150ff8d",
+  "commit": "150ff8d853d3941287e457f2bcaf72d320181ac3",
   "dirty": false,
+  "plan_sha256": "c89ea38fd0eaa1f206dcbecc47ff01bbf59787ca22070ca085035b7cf2acc64e",
+  "fix_commits": [
+    "150ff8d853d3941287e457f2bcaf72d320181ac3"
+  ],
   "rows": [
     {
       "id": "R1",
@@ -12,11 +16,11 @@
       "artifacts": [
         "docs/evidence/2540/R1-activate-role.txt"
       ],
-      "assert": "exit 0；含 ADMIN_BIND_ROLE=ADMIN、LEGACY_BIND_ROLE=STAFF",
-      "actual": "MEMBER_BIND_ROLE=STAFF MEMBER_ROLE_TEMPLATE=site_member ADMIN_BIND_ROLE=ADMIN ADMIN_ROLE_TEMPLATE=site_admin LEGACY_BIND_ROLE=STAFF LEGACY_ROLE_TEMPLATE=site_member CUSTOMER_BIND_ROLE=STAFF CUSTOMER_ROLE_TEMPLATE=site_member UNKNOWN_BIND_ROLE=STAFF UNKNOWN_ROLE_TEMPLATE=site_member ILLEGAL_ROLE_COUNT=0 ILLEGAL_TEMPLATE_COUNT=0 ADMIN_PERM_TEMPLATE=site_admin PERM_TEMPLATE=site_member CUS_PERM_MATCH=1 ROLE_TEMPLATE_MISMATCH=0",
+      "assert": "exit 0；含 `ADMIN_BIND_ROLE=ADMIN`、`LEGACY_BIND_ROLE=STAFF`、`PLATFORM_ROLE_TEMPLATE=site_member`、`ILLEGAL_TEMPLATE_COUNT=0`",
+      "actual": "MEMBER_BIND_ROLE=STAFF MEMBER_ROLE_TEMPLATE=site_member ADMIN_BIND_ROLE=ADMIN ADMIN_ROLE_TEMPLATE=site_admin LEGACY_BIND_ROLE=STAFF LEGACY_ROLE_TEMPLATE=site_member CUSTOMER_BIND_ROLE=STAFF CUSTOMER_ROLE_TEMPLATE=site_member UNKNOWN_BIND_ROLE=STAFF UNKNOWN_ROLE_TEMPLATE=site_member PLATFORM_BIND_ROLE=STAFF PLATFORM_ROLE_TEMPLATE=site_member ILLEGAL_ROLE_COUNT=0 ILLEGAL_TEMPLATE_COUNT=0 ADMIN_PERM_TEMPLATE=site_admin PERM_TEMPLATE=site_member CUS_PERM_MATCH=1 ROLE_TEMPLATE_MISMATCH=0",
       "expected": "PASS",
-      "negative": "非法角色 / 未分配功能角色模板 → FAIL",
-      "negative_result": "缺陷版复跑（仅旧 handler，新测试）：5/5 子用例 FAIL — 'site_member: 激活必须分配一次功能角色模板（只写权限位不够）'（site_member/site_admin/legacy_empty/customer/unknown）；更早缺陷版调用点另见 ILLEGAL_ROLE_COUNT=5、site_admin 权限位等于 site_member 位图 → FAIL",
+      "negative": "非法角色/平台模板进入 → FAIL",
+      "negative_result": "缺陷版（2198e88b4 之前的 user_staff.go + 本轮新测试）：platform_namespace_admin 子用例 FAIL — '客户权限位必须来自模板 site_member（不得硬编码 site_member）' 与 '功能角色模板码必须等于权限位所用模板'；纯函数用例 resolveActivationRoleTemplate(namespace_admin / sys_admin / merchant_admin) 断言 FAIL。更早缺陷版另见 ILLEGAL_ROLE_COUNT=5、site_admin 权限位等于 site_member 位图 → FAIL",
       "pass": true
     },
     {
@@ -26,7 +30,7 @@
       "artifacts": [
         "docs/evidence/2540/R2-bulk-import-role.txt"
       ],
-      "assert": "exit 0；含 BIND_ROLES=STAFF,ADMIN、BUSINESS_ROLE_AS_IAM=0",
+      "assert": "exit 0；含 `BIND_ROLES=STAFF,ADMIN`、`BUSINESS_ROLE_AS_IAM=0`",
       "actual": "BIND_ROLES=STAFF,ADMIN LEGACY_BIND_ROLE=STAFF BUSINESS_ROLE_AS_IAM=0",
       "expected": "PASS",
       "negative": "业务角色入 payload → FAIL",
@@ -40,11 +44,11 @@
       "artifacts": [
         "docs/evidence/2540/R3-no-business-role-static.txt"
       ],
-      "assert": "exit 0；含 BIND_WITH_BUSINESS_ROLE=0、HARDCODED_SITE_MEMBER=0",
+      "assert": "exit 0；含 `BIND_WITH_BUSINESS_ROLE=0`、`HARDCODED_SITE_MEMBER=0`",
       "actual": "BIND_WITH_BUSINESS_ROLE=0 GETBUSINESSROLE_AS_IAMROLE=0 HARDCODED_SITE_MEMBER=0 SERVICE_TOIAMROLE=1 HANDLER_THIN_WRAPPER=1 NORMALIZE_WHITELIST=1",
       "expected": "PASS",
       "negative": "残留 → FAIL",
-      "negative_result": "修复前源码（HEAD~2）：GETBUSINESSROLE_AS_IAMROLE=2、HARDCODED_SITE_MEMBER=1 → FAIL",
+      "negative_result": "修复前源码（12cc82cec 之前）：GETBUSINESSROLE_AS_IAMROLE=2、HARDCODED_SITE_MEMBER=1 → FAIL",
       "pass": true
     },
     {
@@ -54,7 +58,7 @@
       "artifacts": [
         "docs/evidence/2540/R6-merchant-owner.txt"
       ],
-      "assert": "exit 0；含 BIND_ROLE=OWNER",
+      "assert": "exit 0；含 `BIND_ROLE=OWNER`",
       "actual": "BIND_ROLE=OWNER PERM_TEMPLATE=merchant_admin CUS_PERM_MATCH=1 NON_OWNER_ROLE_COUNT=0 MERCHANT_LITERAL_ADMIN=0",
       "expected": "PASS",
       "negative": "仍为 ADMIN/admin → FAIL",
@@ -68,11 +72,11 @@
       "artifacts": [
         "docs/evidence/2540/R4-docs.txt"
       ],
-      "assert": "exit 0；含 DOC_TOIAMROLE=1",
+      "assert": "exit 0；含 `DOC_TOIAMROLE=1`、`DOC_ROLE_TEMPLATE=1`",
       "actual": "DOC_TOIAMROLE=2 DOC_STAFF_FALLBACK=2 DOC_ACTIVATE_SECTION=1 DOC_MERCHANT_OWNER=1 DOC_ROLE_TEMPLATE=1",
       "expected": "PASS",
       "negative": "缺文档 → FAIL",
-      "negative_result": "文档未补 activate 小节 / 商户管理员 OWNER 口径 / 功能角色模板口径时，r4 报 “docs 缺 activate 口径小节”→“缺商户管理员绑定 OWNER 口径”→“缺「功能角色模板同样来自 roleTemplate」口径”→ FAIL",
+      "negative_result": "文档缺 activate 小节 / 商户管理员 OWNER / 功能角色模板口径时，r4 依次报 'docs 缺 activate 口径小节' → 'docs 缺商户管理员绑定 OWNER 口径' → 'docs 缺「功能角色模板同样来自 roleTemplate」口径' → FAIL",
       "pass": true
     },
     {
@@ -82,11 +86,11 @@
       "artifacts": [
         "docs/evidence/2540/R5-build.txt"
       ],
-      "assert": "exit 0；含 GO_TEST_OK=1、BUILD_OK=1",
-      "actual": "GO_TEST_OK=1 BUILD_OK=1",
+      "assert": "exit 0；含 `GO_TEST_OK=1`、`BUILD_OK=1`、`FULL_GATE_EXIT=1`、`FULL_GATE_NEW_FAILURES=0`",
+      "actual": "GO_TEST_OK=1 BUILD_OK=1 BASELINE_REF=origin/develop BASELINE_SHA=c37655eb0237a63571bbe95156a2336c2d6810a0 BASELINE_GATE_EXIT=1 FULL_GATE_EXIT=1 FULL_GATE_CURRENT_FAILURES=12 FULL_GATE_BASELINE_FAILURES=12 FULL_GATE_NEW_FAILURES=0",
       "expected": "PASS",
-      "negative": "编译/测试失败 → FAIL",
-      "negative_result": "编译或定向测试失败时 GO_TEST_OK=0/BUILD_OK=0 → r5 fail（不生成 R5_OK）",
+      "negative": "新增失败 → FAIL",
+      "negative_result": "定向测试或编译失败 → GO_TEST_OK=0/BUILD_OK=0；全量 gate 出现基线（origin/develop）之外的失败 → FULL_GATE_NEW_FAILURES>0，r5 直接 fail 且不输出 R5_OK",
       "pass": true
     }
   ]

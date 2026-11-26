@@ -1,8 +1,8 @@
-# build=1.0.12cc82cec # commit=12cc82cec5a4c798ea1a0216550a003bb2c2a5ca # dirty=false
-GENERATED_AT_HEAD=12cc82cec5a4c798ea1a0216550a003bb2c2a5ca
+# build=1.0.150ff8d85 # commit=150ff8d853d3941287e457f2bcaf72d320181ac3 # dirty=false
+GENERATED_AT_HEAD=150ff8d853d3941287e457f2bcaf72d320181ac3
 == R2 批量导入：关系角色映射 + 白名单兜底 ==
 BIND_ROLES=STAFF,ADMIN
 LEGACY_BIND_ROLE=STAFF
 BUSINESS_ROLE_AS_IAM=0
---- PASS: TestBulkImportIAMRole2540 (0.34s)
+--- PASS: TestBulkImportIAMRole2540 (0.55s)
 R2_OK
