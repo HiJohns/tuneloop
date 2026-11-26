@@ -27,7 +27,7 @@ remote: origin/issue-2511@49b5ece86; fix=220785f52 pushed=yes; evidence=49b5ece8
 
 **R1（回退写站点 ID）—— 缺陷版 FAIL（HTTP 500 + 外键违例）→ 修复版 PASS**
 
-缺陷版（fix commit 父提交 1bd6b3e5a 的 `warehouse.go` + 仅保留 R1/R2/R3 用例的同名测试文件，接同一测试库；本轮已重放）：
+缺陷版（fix commit 父提交 1bd6b3e5a 的 `backend/handlers/warehouse.go` + 仅保留 R1/R2/R3 用例的同名测试文件，接同一测试库；本轮已重放）：
 
 ```
 ERROR: insert or update on table "instruments" violates foreign key constraint
