@@ -1,4 +1,4 @@
-## Accepted Plan — #2567 扫码绑定=账户合并：C 废止 / A 继承组织身份 / 合并后设密码 / 写审计｜Rev.2
+## Accepted Plan — #2567 扫码绑定=账户合并：C 废止 / A 继承组织身份 / 合并后设密码 / 写审计｜Rev.3
 
 > 依据：Owner + Ken 2026-11-26 裁定（三条）。基线：`account_merge.go`（#2445）已实现合并与成员迁移，缺「缓存镜像 / 列表可见性 / 审计 / 确认页摘要 / 密码步骤时机」。
 
@@ -47,6 +47,7 @@
 - `docs/evidence/2567/R4-password-step.txt`
 - `docs/evidence/2567/R5-build.txt`
 - `docs/evidence/2567/R6-local-cleanup.txt`
+- `docs/evidence/2567/R7-audit-attribution.txt`
 
 ### Verification Matrix
 
@@ -54,10 +55,11 @@
 |---|---|---|---|---|---|---|
 | 合并后缓存镜像 | `account_merge.go` + `user_cache.go` | `POST /wechat-bind/confirm`（needs_merge 分支） | A 为纯顾客（USER/nil/nil）、C 为商户直属员工（merchant_members active） | backend（Postgres 测试库 + fake IAM） | `A_ROLE=merchant_staff`（或 C 的 role）、`A_TENANT=C 的 tenant_id`、`A_ORG=C 的商户 org`、`C_STATUS=obsolete`、`C_ROLE=USER` | R1 |
 | 成员列表可见性 | `user_staff.go` / `personnel.go` | `GET /api/staff`、`GET /api/admin/personnel` | 合并后同 actor 查询 | backend | `A_IN_LIST=1`、`C_IN_LIST=0`、`OBSOLETE_ROWS=0` | R2 |
-| 审计 | `account_merge.go` | 同上 | 合并成功 | backend | `AUDIT_ACTION=ACCOUNT_MERGE`、`AUDIT_HAS_FROM_TO=1`、`AUDIT_SOURCE=qr_bind` | R3 |
+| 审计 | `account_merge.go` | 同上 | 合并成功 | backend | `AUDIT_ACTION=ACCOUNT_MERGE`、`AUDIT_HAS_FROM_TO=1`、`AUDIT_SOURCE=qr_bind`、**`AUDIT_ORG_ID=NON_NIL`**（合并后组织归属写入审计） | R3 |
 | 密码步骤 | `Bind.jsx` + 后端能力探测 | 合并成功页 | ①A 无密码 ②A 已有密码 | PC/H5 | ①出现「设置密码 + 确认密码」 ②直接成功；`PASSWORD_FIELD=1`、`SKIP_WHEN_EXISTS=1` | R4 |
 | 构建/测试 | backend + frontend-mobile | 定向测试 + build + eslint | 修后树 | 双端 | 全绿 | R5 |
 | C 的本地待办/邀请关闭（Rev.2） | `account_merge.go` | 合并事务 | C 有 1 条 pending 邀请 + 1 条 waiting 确认会话 | backend | `LOCAL_INVITES_CLOSED>=1`、`CONFIRM_SESSIONS_CLOSED>=1`、`IAM_DB_TOUCHED=0` | R6 |
+| 审计组织归属 + legacy `iam_sub` 追溯（Rev.3，审计要求） | `account_merge.go` | 合并成功 | A 有 `iam_sub`、C 为 legacy（`iam_sub` 为空的历史行） | backend | `AUDIT_ORG_ID=NON_NIL`、`AUDIT_TO_IAM_SUB=NON_EMPTY`、`LEGACY_FROM_IAM_SUB_EMPTY=1`（允许空 but 审计留痕）、`RECONCILE_SOURCE=membership` | R7 |
 
 ### Evidence Types
 
@@ -96,10 +98,11 @@
 |---|---|---|---|---|---|
 | R1 | A=纯顾客（USER/nil/nil）；C=商户直属（merchant_members active，role=merchant_staff）；IAM 两侧已有 sub | `POST /wechat-bind/confirm` | `docs/evidence/2567/R1-merge-reconcile.txt` | `A_ROLE=merchant_staff`、`A_TENANT_NON_NIL=1`、`A_ORG=merchant_org`、`C_STATUS=obsolete`、`C_ROLE=USER`、`MEMBERSHIP_ROWS=1` | A 仍 `USER/nil/nil` 或成员行重复 → FAIL |
 | R2 | 同上 | `GET /api/staff` + `GET /api/admin/personnel` | `docs/evidence/2567/R2-list-visibility.txt` | `A_IN_LIST=1`、`C_IN_LIST=0`、`OBSOLETE_ROWS=0` | C 仍显示 / A 不可见 → FAIL |
-| R3 | 同上 | 合并成功 | `docs/evidence/2567/R3-audit.txt` | `AUDIT_ACTION=ACCOUNT_MERGE`、`AUDIT_HAS_FROM_TO=1`、`AUDIT_SOURCE=qr_bind` | 无审计行 → FAIL |
+| R3 | 同上 | 合并成功 | `docs/evidence/2567/R3-audit.txt` | `AUDIT_ACTION=ACCOUNT_MERGE`、`AUDIT_HAS_FROM_TO=1`、`AUDIT_SOURCE=qr_bind`、`AUDIT_ORG_ID=NON_NIL` | 无审计行，或审计缺 `org_id` → FAIL |
 | R4 | ①无密码 ②有密码 | `Bind.jsx` 静态接线 | `docs/evidence/2567/R4-password-step.txt` | `PASSWORD_FIELD=1`、`CONFIRM_FIELD=1`、`SKIP_WHEN_EXISTS=1`（`evidence_type: static`） | 有密码仍弹 / 无确认字段 → FAIL |
 | R5 | 修后树 | `bash scripts/verify-2567.sh r5` | `docs/evidence/2567/R5-build.txt` | `GO_TEST_OK=1`、`GO_BUILD_OK=1`、`MOBILE_BUILD_OK=1`、`ESLINT_OK=1` | 任一失败 → FAIL |
 | R6 | C 有 1 条 `staff_invites`(pending) + 1 条 `confirmation_sessions`(waiting) | `bash scripts/verify-2567.sh r6` | `docs/evidence/2567/R6-local-cleanup.txt` | `LOCAL_INVITES_CLOSED=1`、`CONFIRM_SESSIONS_CLOSED=1`、`IAM_DB_TOUCHED=0` | 仍为 pending/waiting，或出现直连 IAM 库的 SQL → FAIL |
+| R7 | A 有 `iam_sub`；C 为 legacy（`iam_sub` 为空） | `bash scripts/verify-2567.sh r7` | `docs/evidence/2567/R7-audit-attribution.txt` | `AUDIT_ORG_ID=NON_NIL`、`AUDIT_TO_IAM_SUB=NON_EMPTY`、`LEGACY_FROM_IAM_SUB_EMPTY=1`、`RECONCILE_SOURCE=membership` | 审计缺 org_id / 用 C 的空 iam_sub 覆盖 A → FAIL |
 
 ### Evidence Contract
 
@@ -107,10 +110,11 @@
 |---|---|---|---|---|---|---|
 | R1 | `bash scripts/verify-2567.sh r1` | `docs/evidence/2567/R1-merge-reconcile.txt` | exit 0；含 `C_STATUS=obsolete`、`MEMBERSHIP_ROWS=1` | PASS | 缓存未镜像 → FAIL | dev |
 | R2 | `bash scripts/verify-2567.sh r2` | `docs/evidence/2567/R2-list-visibility.txt` | exit 0；含 `A_IN_LIST=1`、`OBSOLETE_ROWS=0` | PASS | obsolete 可见 → FAIL | dev |
-| R3 | `bash scripts/verify-2567.sh r3` | `docs/evidence/2567/R3-audit.txt` | exit 0；含 `AUDIT_ACTION=ACCOUNT_MERGE` | PASS | 无审计 → FAIL | dev |
+| R3 | `bash scripts/verify-2567.sh r3` | `docs/evidence/2567/R3-audit.txt` | exit 0；含 `AUDIT_ACTION=ACCOUNT_MERGE`、`AUDIT_ORG_ID=NON_NIL` | PASS | 无审计或缺 org_id → FAIL | dev |
 | R4 | `bash scripts/verify-2567.sh r4` | `docs/evidence/2567/R4-password-step.txt` | exit 0；含 `PASSWORD_FIELD=1`、`SKIP_WHEN_EXISTS=1` | PASS | 无条件弹窗 → FAIL | dev |
 | R5 | `bash scripts/verify-2567.sh r5` | `docs/evidence/2567/R5-build.txt` | exit 0；含 `GO_TEST_OK=1`、`MOBILE_BUILD_OK=1` | PASS | 任一失败 → FAIL | dev |
 | R6 | `bash scripts/verify-2567.sh r6` | `docs/evidence/2567/R6-local-cleanup.txt` | exit 0；含 `LOCAL_INVITES_CLOSED=1`、`IAM_DB_TOUCHED=0` | PASS | 待办未关闭 → FAIL | dev |
+| R7 | `bash scripts/verify-2567.sh r7` | `docs/evidence/2567/R7-audit-attribution.txt` | exit 0；含 `AUDIT_ORG_ID=NON_NIL`、`LEGACY_FROM_IAM_SUB_EMPTY=1` | PASS | 审计缺 org_id → FAIL | dev |
 
 ### Artifact Provenance
 
@@ -122,6 +126,7 @@
   - `docs/evidence/2567/R4-password-step.txt`
   - `docs/evidence/2567/R5-build.txt`
   - `docs/evidence/2567/R6-local-cleanup.txt`
+  - `docs/evidence/2567/R7-audit-attribution.txt`
 - gate：`~/.config/opencode/scripts/pre-ready-check.sh 2567 --summary-file … --changed-files … --evidence-file docs/evidence/2567/evidence.json --report docs/evidence/2567/pre-ready-2567.json`；`evidence.json` 的 build 字段须匹配 evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 
 ### Dependencies
@@ -132,4 +137,5 @@
 
 - Size: M（2 处后端流程 + 1 个新收口函数 + 1 个客户端页面 + 3 份文档 + 5 条证据）
 - Confidence: high
+
 

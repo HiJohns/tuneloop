@@ -277,8 +277,94 @@ func TestAccountMergeWritesAudit_2567(t *testing.T) {
 	assert.Equal(t, env.x.ID, details["from_local"], "AUDIT_FROM_LOCAL")
 	assert.Equal(t, env.y.ID, details["to_local"], "AUDIT_TO_LOCAL")
 
-	t.Logf("AUDIT_ACTION=%s AUDIT_HAS_FROM_TO=%d AUDIT_SOURCE=%v AUDIT_RESOURCE=%s",
-		audit.Action, hasFromTo, details["source"], audit.ResourceType)
+	// Rev.3（Round 1 Audit Bug 1）：组织归属必须来自合并后的缓存，不是合并前的空值。
+	auditOrgID := 0
+	if details["org_id"] == env.tenantID && audit.OrgID != nil && *audit.OrgID == env.tenantID {
+		auditOrgID = 1
+	}
+	assert.Equal(t, 1, auditOrgID, "AUDIT_ORG_ID=NON_NIL")
+	assert.Equal(t, "membership", details["reconcile_source"], "RECONCILE_SOURCE")
+
+	t.Logf("AUDIT_ACTION=%s AUDIT_HAS_FROM_TO=%d AUDIT_SOURCE=%v AUDIT_RESOURCE=%s AUDIT_ORG_ID=%s RECONCILE_SOURCE=%v",
+		audit.Action, hasFromTo, details["source"], audit.ResourceType,
+		map[bool]string{true: "NON_NIL", false: "NIL"}[auditOrgID == 1], details["reconcile_source"])
+}
+
+// R7（Rev.3）：审计归属取合并后落库值；legacy 员工行（iam_sub 为空）的
+// from_iam_sub 按合并前的历史值留痕（空），且不得覆盖存活账户的 iam_sub。
+func TestAccountMergeAuditAttribution_2567(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+	if db == nil {
+		t.Skip("test database unavailable")
+	}
+	tenantID := uuid.NewString()
+	orgID := uuid.NewString()
+	siteID := uuid.NewString()
+	testfixtures.SeedTenantFK(t, db, tenantID)
+	require.NoError(t, db.Create(&models.Site{
+		ID: siteID, TenantID: tenantID, OrgID: orgID, Name: "归属测试网点", Type: "normal", Status: "active",
+	}).Error)
+	merchantID := uuid.NewString()
+	require.NoError(t, db.Create(&models.Merchant{
+		ID: merchantID, TenantID: tenantID, OrgID: tenantID, Name: "归属测试商户", Status: "active",
+		AdminUID: uuid.NewString(), Code: testfixtures.UniqueCode("m2567r7"),
+	}).Error)
+
+	// X = legacy 员工行：本地 iam_sub 为空，IAM sub 只存在于 users.id
+	// （findLocalUserByIAMSub 的 legacy 回退路径）。
+	legacySub := uuid.NewString()
+	x := models.User{
+		ID: legacySub, IAMSub: "", TenantID: tenantID, OrgID: tenantID,
+		Name: "legacy员工C", Username: "legacy-2567", Phone: "13900000701",
+		Role: "merchant_staff", Status: "active",
+	}
+	// Y = 存活顾客账户，已有自己的 iam_sub（合并后必须保持）。
+	toSub := "iam-Y-r7-2567"
+	y := models.User{
+		ID: uuid.NewString(), IAMSub: toSub, TenantID: zeroUUID, OrgID: zeroUUID,
+		Name: "顾客A", Username: "cust-2567-r7", Phone: "13900000702", Role: "USER", Status: "active",
+	}
+	require.NoError(t, db.Create(&x).Error)
+	require.NoError(t, db.Create(&y).Error)
+	require.NoError(t, db.Create(&models.MerchantMember{
+		ID: uuid.NewString(), TenantID: tenantID, MerchantID: merchantID, UserID: legacySub,
+		Role: "merchant_staff", Status: "active",
+	}).Error)
+
+	require.NoError(t, migrateMergedAccountLocal(db, legacySub, toSub))
+
+	var audits []models.AuditLog
+	require.NoError(t, db.Where("action = ?", "ACCOUNT_MERGE").Find(&audits).Error)
+	require.Len(t, audits, 1)
+	audit := audits[0]
+
+	var details map[string]interface{}
+	require.NotNil(t, audit.Details)
+	require.NoError(t, json.Unmarshal([]byte(*audit.Details), &details))
+
+	orgNonNil := 0
+	if audit.OrgID != nil && *audit.OrgID == tenantID && details["org_id"] == tenantID {
+		orgNonNil = 1
+	}
+	toSubOK := 0
+	if details["to_iam_sub"] == toSub && toSub != "" {
+		toSubOK = 1
+	}
+	legacyFromEmpty := 0
+	if details["from_iam_sub"] == "" {
+		legacyFromEmpty = 1
+	}
+
+	assert.Equal(t, 1, orgNonNil, "AUDIT_ORG_ID=NON_NIL")
+	assert.Equal(t, 1, toSubOK, "AUDIT_TO_IAM_SUB=NON_EMPTY")
+	assert.Equal(t, 1, legacyFromEmpty, "LEGACY_FROM_IAM_SUB_EMPTY")
+	assert.Equal(t, "membership", details["reconcile_source"], "RECONCILE_SOURCE")
+	assert.Equal(t, legacySub, details["from_local"], "LEGACY_TRACEABLE_BY_LOCAL_ID")
+
+	t.Logf("AUDIT_ORG_ID=%s AUDIT_TO_IAM_SUB=%s LEGACY_FROM_IAM_SUB_EMPTY=%d RECONCILE_SOURCE=%v FROM_LOCAL_TRACEABLE=%d",
+		map[bool]string{true: "NON_NIL", false: "NIL"}[orgNonNil == 1],
+		map[bool]string{true: "NON_EMPTY", false: "EMPTY"}[toSubOK == 1],
+		legacyFromEmpty, details["reconcile_source"], map[bool]int{true: 1, false: 0}[details["from_local"] == legacySub])
 }
 
 // R6：废止账户的本地待办/邀请被关闭（rejected / cancelled），不触碰 IAM 库。

@@ -312,12 +312,12 @@ H5 未捕获 JS 错误（`window.onerror` / `unhandledrejection`）上报，仅�
 3. tuneloop 同步本地员工表（`site_members` / `merchant_members` / `technician_profiles`）从 X 本地用户到 Y 本地用户；冲突行去重并合并角色；
 4. **#2567 缓存镜像**：同一事务内调用 `reconcileUserCache` 重算双方 `users.role/tenant_id/org_id` —— Y 继承组织身份（`merchant_members` 优先，其次 `site_members`+`sites`），X 回落顾客态（`USER` + nil UUID）；
 5. **#2567 本地待办关闭**：X 的 `staff_invites`（`status='pending'`）→ `rejected` + `reject_reason='account_merged'`；`confirmation_sessions`（`status='waiting'`）→ `cancelled`（表缺失时跳过并记日志）。**语义是「关闭」不是「转挂」**；IAM 侧 `user_task_queues` 属运维，tuneloop 不直连 IAM 库；
-6. **#2567 审计**：同一事务写 `audit_logs`（`action=ACCOUNT_MERGE`、`resource=user`、`resource_id`=X 本地 id、`details={from_local, from_iam_sub, to_local, to_iam_sub, org_id, source:"qr_bind"}`）；写入失败**整笔回滚**（合并留痕不得丢失）；
+6. **#2567 审计**：同一事务写 `audit_logs`（`action=ACCOUNT_MERGE`、`resource=user`、`resource_id`=X 本地 id、`details={from_local, from_iam_sub, to_local, to_iam_sub, org_id, source:"qr_bind", reconcile_source:"membership"}`）；写入失败**整笔回滚**（合并留痕不得丢失）。归属字段取**合并后已落库**的行（`reconcileUserCache` 只用 SQL 写回，内存结构体仍是合并前的空值 → 直接取会把 `org_id` 写成 nil UUID）；`from_iam_sub` 保留 X **合并前**的本地值（legacy 行为空，不拿回填值冒充历史）；
 7. token 状态置 `merged`，PC 轮询显示合并成功。
 
 **响应**：`200 / 20000` + `data: {merged:true, from_user_id, to_user_id, needs_credentials, suggested_username}`；本地同步失败时额外返回 `local_sync:false` + `warning`（不阻断 IAM 合并，由 `user.account_merged` 回调重试）。
 
-> **废止 ≠ 删除**：X 的 `users` 行保留（`status=obsolete`），任意时刻可按 `audit_logs.details.from_iam_sub` 反查「Y 吸收了哪个员工账号」。成员列表与人员管理三视图一律只列 `status IN ('active','pending')`（`obsolete`/`disabled`/`deleted` 不出现，`pending` 保留以兼容「待确认」行）。
+> **废止 ≠ 删除**：X 的 `users` 行保留（`status=obsolete`），任意时刻可按 `audit_logs.details.from_local`（恒有值）反查「Y 吸收了哪个员工账号」；`details.from_iam_sub` 对 legacy 行（合并前 `iam_sub` 为空）按历史值留痕，此时以 `from_local` 反查（legacy 行的 `users.id` 即其 IAM sub）。成员列表与人员管理三视图一律只列 `status IN ('active','pending')`（`obsolete`/`disabled`/`deleted` 不出现，`pending` 保留以兼容「待确认」行）。
 
 **IAM 内部端点**：`POST /api/v1/auth/wx-bind` 的 `needs_merge` 响应新增 `merge_ticket`；`POST /api/v1/auth/wx-merge-confirm` 凭 ticket 执行合并（单次消费）。
 | token 无效/已用/过期 | 400 | 40004 | — | — |

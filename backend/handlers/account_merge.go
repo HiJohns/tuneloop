@@ -106,6 +106,11 @@ func migrateMergedAccountLocal(db *gorm.DB, fromIAMSub, toIAMSub string) error {
 			return nil
 		}
 
+		// #2567 Rev.3（Round 1 Audit Bug 1）：X 的 iam_sub 必须按**合并前**的本地值留痕。
+		// Legacy 行的 iam_sub 为空，下面对它的回填只是为了让后续反查可用；审计若读回填后的
+		// 值就丢失了「这是一条 legacy 行」这一事实（反查仍靠 from_local）。
+		legacyFromIAMSub := fromUser.IAMSub
+
 		// Ensure both rows carry their IAM sub for future reverse lookups.
 		if fromUser.IAMSub == "" {
 			if err := tx.Model(&models.User{}).Where("id = ?", fromUser.ID).Update("iam_sub", fromIAMSub).Error; err != nil {
@@ -156,7 +161,19 @@ func migrateMergedAccountLocal(db *gorm.DB, fromIAMSub, toIAMSub string) error {
 			return err
 		}
 
-		if err := writeAccountMergeAudit(tx, fromUser, toUser, invites, sessions); err != nil {
+		// #2567 Rev.3（Round 1 Audit Bug 1）：审计归属必须取**合并后已落库**的行。
+		// reconcileUserCache 只用 SQL 写回，内存里的 fromUser/toUser 仍是合并前的值
+		// （A 为纯顾客 → nil/nil/USER），直接拿它们写审计会把 org_id 写成 nil UUID、
+		// to_iam_sub 写成空串，org 维度反查就断了。因此在这里重新读回两行。
+		var fromAfter, toAfter models.User
+		if err := tx.Where("id = ?", fromUser.ID).First(&fromAfter).Error; err != nil {
+			return fmt.Errorf("reload merged-away user %s: %w", fromUser.ID, err)
+		}
+		if err := tx.Where("id = ?", toUser.ID).First(&toAfter).Error; err != nil {
+			return fmt.Errorf("reload surviving user %s: %w", toUser.ID, err)
+		}
+
+		if err := writeAccountMergeAudit(tx, &fromAfter, &toAfter, legacyFromIAMSub, invites, sessions); err != nil {
 			return err
 		}
 
@@ -206,14 +223,26 @@ func closeMergedAccountLocalTodo(tx *gorm.DB, fromLocalID string) (int64, int64,
 //
 // Unlike the fire-and-forget writeAuditLog helper, a failure here fails the
 // merge: "who absorbed which staff account" must never be lost (#2567 D5).
-func writeAccountMergeAudit(tx *gorm.DB, fromUser, toUser *models.User, invites, sessions int64) error {
+//
+// fromUser/toUser must be the **post-merge persisted** rows: the cache triple is
+// written by reconcileUserCache via SQL, so callers reload before calling
+// (Rev.3 / Round 1 Audit Bug 1). legacyFromIAMSub keeps X's pre-merge local
+// iam_sub (empty for legacy rows) so the audit records history instead of the
+// backfilled value.
+func writeAccountMergeAudit(tx *gorm.DB, fromUser, toUser *models.User, legacyFromIAMSub string, invites, sessions int64) error {
+	// X's iam_sub as it was before the merge backfill: empty for legacy rows is
+	// the historical truth and must not be replaced by the backfilled value
+	// (traceability is preserved through from_local, which is always recorded).
+	fromSub := legacyFromIAMSub
 	details := map[string]interface{}{
-		"from_local":              fromUser.ID,
-		"from_iam_sub":            fromUser.IAMSub,
-		"to_local":                toUser.ID,
-		"to_iam_sub":              toUser.IAMSub,
-		"org_id":                  toUser.OrgID,
-		"source":                  "qr_bind",
+		"from_local":   fromUser.ID,
+		"from_iam_sub": fromSub,
+		"to_local":     toUser.ID,
+		"to_iam_sub":   toUser.IAMSub,
+		"org_id":       toUser.OrgID,
+		"source":       "qr_bind",
+		// 组织归属来自成员关系重算（reconcileUserCache），不是合并前的缓存列。
+		"reconcile_source":        "membership",
 		"invites_closed":          invites,
 		"confirm_sessions_closed": sessions,
 	}

@@ -7,6 +7,7 @@
 #   bash scripts/verify-2567.sh r4   # 合并确认页摘要 + 密码步骤接线（static）
 #   bash scripts/verify-2567.sh r5   # 构建/测试：go build + 定向 go test + weapp build + eslint
 #   bash scripts/verify-2567.sh r6   # C 的本地待办/邀请关闭（不触碰 IAM 库）
+#   bash scripts/verify-2567.sh r7   # 审计组织归属 + legacy iam_sub 追溯（Rev.3）
 #
 # Capture a row into its artifact:
 #   bash scripts/verify-2567.sh r1 > docs/evidence/2567/R1-merge-reconcile.txt
@@ -20,8 +21,8 @@ set -uo pipefail
 
 ROW="${1:-}"
 case "$ROW" in
-  r1|r2|r3|r4|r5|r6) ;;
-  *) echo "usage: $0 r1|r2|r3|r4|r5|r6" >&2; exit 2 ;;
+  r1|r2|r3|r4|r5|r6|r7) ;;
+  *) echo "usage: $0 r1|r2|r3|r4|r5|r6|r7" >&2; exit 2 ;;
 esac
 
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "not a git repository" >&2; exit 2; }
@@ -126,7 +127,9 @@ case "$ROW" in
       "AUDIT_ACTION=ACCOUNT_MERGE" \
       "AUDIT_HAS_FROM_TO=1" \
       "AUDIT_SOURCE=qr_bind" \
-      "AUDIT_RESOURCE=user"
+      "AUDIT_RESOURCE=user" \
+      "AUDIT_ORG_ID=NON_NIL" \
+      "RECONCILE_SOURCE=membership"
     echo "R3_OK"
     ;;
 
@@ -269,5 +272,15 @@ case "$ROW" in
     echo "IAM_SQL_HITS=${IAM_SQL_HITS}"
     [ "${IAM_SQL_HITS:-1}" -eq 0 ] || fail "backend 出现 user_task_queues 的非注释引用（跨库红线）"
     echo "R6_OK"
+    ;;
+
+  r7)
+    echo "== R7 审计组织归属 + legacy iam_sub 追溯（Rev.3） =="
+    run_go_case TestAccountMergeAuditAttribution_2567 \
+      "AUDIT_ORG_ID=NON_NIL" \
+      "AUDIT_TO_IAM_SUB=NON_EMPTY" \
+      "LEGACY_FROM_IAM_SUB_EMPTY=1" \
+      "RECONCILE_SOURCE=membership"
+    echo "R7_OK"
     ;;
 esac
