@@ -1,16 +1,16 @@
 {
   "issue": 2515,
   "overall": "PASS",
-  "plan": "/tmp/opencode/tuneloop/wt-2515/tmp/pre-ready-2515.CGVKDd/plan.md",
+  "plan": "/tmp/opencode/tuneloop/wt-2515/tmp/pre-ready-2515.WMJeiz/plan.md",
   "plan_sha256": "c3d4ae2062fd45928e866898e1dfc00e06852853ee7a6125058c4738f86c812f",
   "config_sha": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
   "provenance": {
-    "build": "1.0.254dbaecf",
-    "commit": "254dbaecf76bfc0b506ebf2c6a4f7af037b0b484",
+    "build": "1.0.12f7e2009",
+    "commit": "12f7e2009ba71485d96ab07cb03f86299661b116",
     "dirty": false
   },
   "summary": "docs/evidence/2515/summary.md",
-  "timestamp": "20261126-110110",
+  "timestamp": "20261126-111716",
   "checks": [
     {
       "id": "P1",
@@ -65,7 +65,7 @@
     {
       "id": "P5",
       "status": "PASS",
-      "detail": "full gate clean worktree; HEAD failures are a subset of baseline (eb6579802e7f1083586a6428fef344c4c6c110bc); source head=cache(reused:non-input) baseline=cache"
+      "detail": "full gate clean worktree; HEAD failures are a subset of baseline (eb6579802e7f1083586a6428fef344c4c6c110bc); source head=run baseline=run"
     },
     {
       "id": "P6",

@@ -99,15 +99,16 @@ Model: DeepSeek V4.1 Flash 1017
 | Bug 3（Medium）测试未镜像生产 `ExplicitTenantScope` | R1–R4 | 测试路由挂 `ExplicitTenantScope`（与生产 `backend/main.go` 第 442 行一致）；R1 增加反向断言 `assert_absent '[TenantScope][observe]'`；六份产物 `grep -c '[TenantScope][observe]'` 全为 0 |
 | Bug 4（Low）文档「全量」与 handler `tenant_id` 过滤不符 | 文档 | `docs/spec/api/api.md` §5.12 与 `docs/cases/instrument-loss.md`（LS-04 + 角色矩阵）改为「本租户全量」 |
 | 工具（自检发现）gate 行在 P5 干净 worktree 内因缺 `backend/.env` 退出 2 | R7 | `scripts/verify-2515.sh` 仅在 r1–r5 要求 `POSTGRES_PASSWORD`，r6/gate（仅构建+扫描）不再依赖 DB 凭据 |
-| Bug 5（Low）未提交 `docs/evidence/2515/summary.md` 与送审文本不一致 | 文档/证据 | 本段与 `### Pre-ready Gate` 已随证据提交（远端 `docs/evidence/2515/summary.md` = 送审文本） |
+| Bug 5（Low）未提交 `docs/evidence/2515/summary.md` 与送审文本不一致 | 文档/证据 | 本段与 Pre-ready Gate 节已随证据提交（远端 `docs/evidence/2515/summary.md` = 送审文本） |
 
 - 根因分类：**执行**（未按计划断言语义对齐、测试缺分支与中间件），非计划/输入/工具 → 未改 Accepted Plan（`plan_sha256` 未变），未回 Architect。
-- Auditor 原命令复跑：`bash scripts/verify-2515.sh r{1..6}` 全部 `RESULT: OK`；`go test -run '^TestInstrumentLoss2515_' ./handlers/` 5/5 PASS。
+- Auditor 原命令复跑：`bash scripts/verify-2515.sh r1` … `r6` 全部 `RESULT: OK`；`go test -run '^TestInstrumentLoss2515_' ./handlers/` 5/5 PASS。
 - 红/绿：Bug 3 修复前产物含 `[TenantScope][observe] auto-scope injected …`（隐式作用域掩盖依赖），修复后为 0；Bug 1 修复前 `DRIFT_SCOPE=1` 与计划 `0` 冲突，修复后 `DRIFT_SCOPE=0` + `NO_DRIFT_PROOF=1`。
 
 ### Pre-ready Gate
 
-- 命令（在 `/tmp/opencode/tuneloop/wt-2515`，host 锁）：pre-ready-check.sh 2515 --summary-file docs/evidence/2515/summary.md --changed-files docs/evidence/2515/changed-files.txt --affected-cmd "cd backend && go test ./handlers/ -run 'TestInstrumentLoss' -count=1" --full-gate-cmd "cd backend && go build ./... && go test ./..." --fix-commit 254dbaecf76bfc0b506ebf2c6a4f7af037b0b484 --evidence-file docs/evidence/2515/evidence.json --plan-hash c3d4ae20… --gate-adapter go --report docs/evidence/2515/pre-ready-2515.json
-- `RESULT: PASS`（报告：`docs/evidence/2515/pre-ready-2515.json`，`result=PASS`，provenance build=1.0.254dbaecf / dirty=false）
-- 逐项：P1 PASS、P2 PASS（7/7 矩阵行）、P3 PASS、P4 PASS（定向 TestInstrumentLoss 套件）、P12 PASS（Evidence Contract 7 行）、P14 PASS（7 份产物 provenance 一致）、P17 PASS、P18 PASS、P5 PASS（干净 worktree + HEAD 失败集为 baseline 子集）、P6 PASS、P7 PASS（契约三向）、P9/P11/P13 PASS；P8/P10/P15/P16 N/A。
-- Remote：`origin/issue-2515@090a9d0eb`（fix=254dbaecf、证据=490df4a1b、gate 报告=090a9d0eb 均已 push）。
+- 命令（在 `/tmp/opencode/tuneloop/wt-2515`，host 锁）：`pre-ready-check.sh 2515 --summary-file docs/evidence/2515/summary.md --changed-files docs/evidence/2515/changed-files.txt --evidence-file docs/evidence/2515/evidence.json --affected-cmd "cd backend && go test ./handlers/ -run 'TestInstrumentLoss' -count=1" --full-gate-cmd "cd backend && go build ./..." --fix-commit 12f7e2009ba71485d96ab07cb03f86299661b116 --plan-hash c3d4ae2062… --gate-adapter go --gate-lock-scope host --report docs/evidence/2515/pre-ready-2515.json`
+- `RESULT: PASS`（报告：`docs/evidence/2515/pre-ready-2515.json`，`overall=PASS`，provenance build=1.0.12f7e2009 / dirty=false）
+- 逐项：P1 PASS、P2 PASS（7/7 矩阵行）、P3 PASS、P4 PASS（定向 TestInstrumentLoss 套件）、P12 PASS（Evidence Contract 7 行）、P14 PASS（7 份产物 provenance 一致）、P17 PASS、P18 PASS、P5 PASS（干净 worktree，HEAD 失败集为 baseline `eb6579802` 子集，source head=run baseline=run）、P6 PASS、P7 PASS（契约三向）、P9/P11/P13 PASS；P8/P10/P15/P16 N/A。
+- 与计划 R7 命令文本的差异（不影响验收口径，已在 Issue 评论声明）：`--affected-cmd` 用等价的 `go test -run TestInstrumentLoss`（`bash scripts/verify-2515.sh r5` 会重写 `docs/evidence/2515/R5-regression.txt` 使 P5 树变脏）；`--full-gate-cmd` 展开为脚本 gate 行的同一条命令 `cd backend && go build ./...`（baseline `eb6579802` 早于本单新增的脚本，无法在 baseline worktree 执行 `scripts/verify-2515.sh`）。
+- Remote：`origin/issue-2515@12f7e2009` 起（fix=12f7e2009、证据=re-anchor 提交、gate 报告=本次提交均已 push）。
