@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "issue": 2587,
+  "build": "1.0.ca64129ec",
+  "commit": "ca64129eced42e0f8dfc1dda6b2b5f4097891bc5",
+  "dirty": false,
+  "plan_sha256": "f77041e39a523183fffa859dd918a0eb70a0dabdcbb118c44acb356ba292ed9e",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2587 (branch issue-2587, base origin/develop bf0233bbd); Postgres test DB 127.0.0.1:15433; real PermissionRegistry; gin in-process routes; Go 1.27.4; host heavy-lock via heavy-run.sh",
+  "tooling_commit": "acab7d27d28832d1ad366dd4c944ffb3e2ff9ca8",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2587.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2587/R1-read-endpoints-403.txt"
+      ],
+      "assert": "exit 0 且含 GO_TEST_EXIT=0 READ_ENDPOINTS=8 READ_ENDPOINTS_403=8 READ_ENDPOINTS_40305=8",
+      "actual": "PASS：GO_TEST_EXIT=0；READ_ENDPOINTS=8、READ_ENDPOINTS_403=8、READ_ENDPOINTS_40305=8（真实 PermissionRegistry；fixture seedExportFixture2578）",
+      "expected": "PASS（4 项 token 全为期望值）",
+      "negative": "任一端点无守卫返回数据、或 403 code ≠ 40305 → FAIL",
+      "negative_result": "任一端点无守卫返回 200 数据（READ_ENDPOINTS_403<8）、或 403 但 code≠40305 → R1_FAIL",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2587.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2587/R2-authorized-passthrough.txt"
+      ],
+      "assert": "exit 0 且含 GO_TEST_EXIT=0 AUTHORIZED_ENDPOINTS=8 AUTHORIZED_NOT_403=8 AUTHORIZED_NOT_5XX=8",
+      "actual": "PASS：GO_TEST_EXIT=0；AUTHORIZED_ENDPOINTS=8、AUTHORIZED_NOT_403=8、AUTHORIZED_NOT_5XX=8（read=1<<1 + media_upload=1<<15）",
+      "expected": "PASS（4 项 token 全为期望值）",
+      "negative": "合法角色被 403、或出现 5xx → FAIL",
+      "negative_result": "合法角色被误拒 403（AUTHORIZED_NOT_403<8）或出现 5xx（AUTHORIZED_NOT_5XX<8，说明守卫接线顺序/上下文丢失）→ R2_FAIL",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2587.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2587/R3-route-wiring.txt"
+      ],
+      "assert": "exit 0 且含 GO_TEST_EXIT=0 ROUTE_READ_GUARDED=7 ROUTE_UPLOAD_GUARDED=1 ROUTE_INSTRUMENT_READ_UNGUARDED=0 RED_PRE_FIX_UNGUARDED=8",
+      "actual": "PASS：GO_TEST_EXIT=0；ROUTE_READ_GUARDED=7、ROUTE_UPLOAD_GUARDED=1、ROUTE_INSTRUMENT_READ_UNGUARDED=0、RED_PRE_FIX_UNGUARDED=8",
+      "expected": "PASS（5 项 token 全为期望值）",
+      "negative": "无守卫残留、红样 ≠ 8 → FAIL",
+      "negative_result": "修后仍有残留无守卫端点（ROUTE_INSTRUMENT_READ_UNGUARDED>0）或 fix^ 红样≠8（红绿失效）；另断言读端点不得误挂 create/update/delete、photos/upload 不得挂 read",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2587.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2587/R4-build-lint.txt"
+      ],
+      "assert": "exit 0 且含 GO_BUILD_OK=1 GO_COMPILE_SMOKE_OK=1 GO_TEST_2587_OK=1",
+      "actual": "PASS：GO_BUILD_OK=1、GO_COMPILE_SMOKE_OK=1（go test ./... -run '^$'）、GO_TEST_2587_OK=1",
+      "expected": "PASS（3 项 token 全为期望值）",
+      "negative": "编译失败、定向测试失败 → FAIL",
+      "negative_result": "编译失败或定向测试失败 → 对应 *_OK=0 → R4_FAIL",
+      "pass": true
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+# build=1.0.ca64129ec # commit=ca64129eced42e0f8dfc1dda6b2b5f4097891bc5 # dirty=false
+GENERATED_AT_HEAD=ca64129eced42e0f8dfc1dda6b2b5f4097891bc5
+GO_BUILD_CMD=cd backend && go build ./...
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s107-p107-350703 at_ms=1795728971814 wait_ms=103
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s107-p107-350703 wait_ms=103
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795728985852 hold_ms=14038
+GO_BUILD_EXIT=0
+GO_COMPILE_SMOKE_CMD=cd backend && go test ./... -run '^$' -count=1
+?   	tuneloop-backend/tools/merge_duplicate_accounts	[no test files]
+?   	tuneloop-backend/tools/oss_smoke	[no test files]
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795729006345 hold_ms=20362
+GO_COMPILE_SMOKE_EXIT=0
+GO_TEST_2587_CMD=cd backend && go test ./handlers . -run 'TestInstrumentReadEndpointsPerm2587|TestAuthorizedPassthrough2587|TestInstrumentReadRoutes2587' -count=1
+ok  	tuneloop-backend/handlers	2.482s
+ok  	tuneloop-backend	0.023s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795729012931 hold_ms=6464
+GO_TEST_2587_EXIT=0
+GO_BUILD_OK=1
+GO_COMPILE_SMOKE_OK=1
+GO_TEST_2587_OK=1
+R4_OK

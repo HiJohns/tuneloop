@@ -1,0 +1,8 @@
+# build=1.0.ca64129ec # commit=ca64129eced42e0f8dfc1dda6b2b5f4097891bc5 # dirty=false
+GENERATED_AT_HEAD=ca64129eced42e0f8dfc1dda6b2b5f4097891bc5
+# 8 端点 × 有对应位（read=1<<1 + media_upload=1<<15）→ 非 403 且非 5xx
+GO_TEST_EXIT=0
+instrument_read_perm_2587_test.go:171: AUTHORIZED_ENDPOINTS=8
+instrument_read_perm_2587_test.go:172: AUTHORIZED_NOT_403=8
+instrument_read_perm_2587_test.go:173: AUTHORIZED_NOT_5XX=8
+R2_OK

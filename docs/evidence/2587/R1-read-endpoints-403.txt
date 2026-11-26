@@ -1,0 +1,8 @@
+# build=1.0.ca64129ec # commit=ca64129eced42e0f8dfc1dda6b2b5f4097891bc5 # dirty=false
+GENERATED_AT_HEAD=ca64129eced42e0f8dfc1dda6b2b5f4097891bc5
+# 8 端点 × 无对应位（CusPerm=1<<5）→ 403/40305
+GO_TEST_EXIT=0
+instrument_read_perm_2587_test.go:140: READ_ENDPOINTS=8
+instrument_read_perm_2587_test.go:141: READ_ENDPOINTS_403=8
+instrument_read_perm_2587_test.go:142: READ_ENDPOINTS_40305=8
+R1_OK
