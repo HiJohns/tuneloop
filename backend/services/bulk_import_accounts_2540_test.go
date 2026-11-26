@@ -109,9 +109,13 @@ func installFakeIAM2540Svc(t *testing.T) *fakeIAM2540Svc {
 // testDBName2540 让服务层测试连上共享测试模板库（handlers 包 TestMain 维护的
 // `tuneloop_test_template`）。服务层没有 TestMain，且不得自行 CREATE DATABASE，
 // 因此这里只读使用模板库 + 事务回滚（见 TestBulkImportIAMRole2540）。
+//
+// 结束必须还原 TUNELOOP_DB：本包没有 TestMain，泄漏的 env 会让后续用例的
+// InitDB 连到共享模板库并向其中写数据（污染其他节点的 clone 源）。
 func testDBName2540(t *testing.T) {
 	t.Helper()
-	if testDBNameRe2540.MatchString(strings.TrimSpace(os.Getenv("TUNELOOP_DB"))) {
+	prev, hadPrev := os.LookupEnv("TUNELOOP_DB")
+	if testDBNameRe2540.MatchString(strings.TrimSpace(prev)) {
 		return
 	}
 	for _, candidate := range []string{os.Getenv("TUNELOOP_TEST_DB"), "tuneloop_test_template"} {
@@ -120,6 +124,13 @@ func testDBName2540(t *testing.T) {
 			continue
 		}
 		require.NoError(t, os.Setenv("TUNELOOP_DB", candidate))
+		t.Cleanup(func() {
+			if hadPrev {
+				_ = os.Setenv("TUNELOOP_DB", prev)
+				return
+			}
+			_ = os.Unsetenv("TUNELOOP_DB")
+		})
 		return
 	}
 	t.Fatalf("no test database available: set TUNELOOP_DB/TUNELOOP_TEST_DB to tuneloop_test_* (#2540 R2 不得跳过)")
