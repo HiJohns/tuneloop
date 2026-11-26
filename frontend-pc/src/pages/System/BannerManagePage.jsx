@@ -124,6 +124,12 @@ export default function BannerManagePage() {
       fetchBanners();
     } catch (e) {
       if (e.errorFields) return;
+      // #2488 D7：传输层非 2xx 抛出的 ApiError 携带 `code`，业务可纠正冲突
+      // （如 HTTP 400 + 40002）必须进持久提示，不得退化成瞬时 toast。
+      if (isBusinessCorrectableConflict(e)) {
+        setFormConflict(conflictText(e, editingBanner ? '更新失败，请调整后重试' : '创建失败，请调整后重试'));
+        return;
+      }
       message.error('操作失败');
     }
   };

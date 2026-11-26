@@ -4,6 +4,20 @@ import { resolveErrorMessage } from './errorMessages'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
+// #2488 D7（传输层契约）：非 2xx 且非 404/409 的响应必须抛出携带 `code` 的错误，
+// 否则页面只能拿到格式化后的文案（`catch (e) { message.error(e.message) }`），
+// 无法按 #2480 rubric 区分「业务可纠正冲突（40002/40004/40005/40900）」与瞬时错误。
+// 404/409 的既有「返回对象」形状保持不变（调用方已按 `res.code` 判定）。
+export class ApiError extends Error {
+  constructor({ code, message, data, status }) {
+    super(message)
+    this.name = 'ApiError'
+    this.code = code
+    this.data = data
+    this.status = status
+  }
+}
+
 function getToken() {
   const localToken = localStorage.getItem('token')
   const expiry = localStorage.getItem('token_expiry')
@@ -349,7 +363,13 @@ async function request(endpoint, options = {}, retryCount = 0) {
       }
     }
     
-    throw new Error(resolveErrorMessage({ code: error.code, message: error.message }, '请求失败，请重试'))
+    // #2488 D7：保留 `code`/`data` 供页面按 rubric 分类（业务可纠正 → 持久提示）。
+    throw new ApiError({
+      code: error.code,
+      message: resolveErrorMessage({ code: error.code, message: error.message }, '请求失败，请重试'),
+      data: error.data,
+      status: response.status,
+    })
   }
 
   const data = await response.json()

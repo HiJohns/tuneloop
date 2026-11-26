@@ -23,6 +23,7 @@ case "$MODE" in
 esac
 
 REPO="$(git rev-parse --show-toplevel)"; cd "$REPO" || exit 2
+mkdir -p "$REPO/tmp"   # 干净 worktree 无 tmp/（.gitignore），日志重定向需要它
 ISSUE=2488
 OUT_DIR="${OUT_DIR:-$REPO/docs/evidence/$ISSUE}"; mkdir -p "$OUT_DIR"
 EVIDENCE_DIR="docs/evidence/$ISSUE"
@@ -43,6 +44,7 @@ BANNER_PAGE="frontend-pc/src/pages/System/BannerManagePage.jsx"
 MALLIMAGE_PAGE="frontend-pc/src/pages/System/MallImageManageCard.jsx"
 STOCK_PAGE="frontend-pc/src/pages/InstrumentStock.jsx"
 SHARED_FORM_CONFLICT="frontend-pc/src/utils/formConflict.js"
+API_JS="frontend-pc/src/services/api.js"
 
 require_tokens() {
   local log="$1"; shift
@@ -71,24 +73,33 @@ forbid_re() {
 # wiring_metrics <page> —— 单页接线度量（静态）
 wiring_metrics() {
   local page="$1"
-  local import_shared=0 alert=0 predicate=0 text=0 clears=0 local_codes=0
+  local import_shared=0 alert=0 predicate=0 text=0 clears=0 local_codes=0 api_error=0
   grep -q "from '.*components/FormConflictAlert'" "$page" && import_shared=1
   grep -q '<FormConflictAlert' "$page" && alert=1
   grep -q 'isBusinessCorrectableConflict(' "$page" && predicate=1
   grep -q 'conflictText(' "$page" && text=1
   clears=$(grep -cE "set[A-Za-z]*Conflict\(''\)" "$page" | tr -d ' ')
   grep -qE '\[[[:space:]]*40002|40004[[:space:]]*,[[:space:]]*40005' "$page" && local_codes=1
-  printf 'SHARED_IMPORT=%s\nPERSIST_ALERT=%s\nCODE_FIRST=%s\nCONFLICT_TEXT=%s\nCLEAR_CALLS=%s\nLOCAL_CODE_LIST=%s\n' \
-    "$import_shared" "$alert" "$predicate" "$text" "${clears:-0}" "$local_codes"
+  # #2488 D7（v4）：传输层必须把非 2xx 的 code 带到页面，否则 400+40002 不可达。
+  #   ① api.js 定义并抛出 ApiError{code,...}；② 页面 catch 用同一 rubric 判定。
+  if grep -q 'class ApiError' "$API_JS" \
+     && grep -q 'throw new ApiError' "$API_JS" \
+     && grep -qE 'isBusinessCorrectableConflict\(e\)' "$page"; then
+    api_error=1
+  fi
+  printf 'SHARED_IMPORT=%s\nPERSIST_ALERT=%s\nCODE_FIRST=%s\nCONFLICT_TEXT=%s\nCLEAR_CALLS=%s\nLOCAL_CODE_LIST=%s\nAPI_ERROR_CODE=%s\n' \
+    "$import_shared" "$alert" "$predicate" "$text" "${clears:-0}" "$local_codes" "$api_error"
 }
 
-page_row() { # mode name page fallback-token...
-  local name="$1" page="$2"
+page_row() { # name page [extra-required-token...]
+  local name="$1" page="$2"; shift 2
+  local -a extra=("$@")
   { printf '%s\n%s\n' "$PROV" "$TREE_LINE"
     wiring_metrics "$page"
     echo "PAGE=$page"
   } > "$LOG" 2>&1
   require_tokens "$LOG" 'SHARED_IMPORT=1' 'PERSIST_ALERT=1' 'CODE_FIRST=1' 'CONFLICT_TEXT=1' 'LOCAL_CODE_LIST=0' || RC=1
+  [ "${#extra[@]}" -gt 0 ] && { require_tokens "$LOG" "${extra[@]}" || RC=1; }
   local clears
   clears=$(sed -n 's/^CLEAR_CALLS=//p' "$LOG" | tail -1)
   [ "${clears:-0}" -ge 2 ] || { echo "ASSERT_FAIL: CLEAR_CALLS<2 (${clears:-0})" >&2; RC=1; }
@@ -114,15 +125,16 @@ case "$MODE" in
     scan_rows=$(sed -n 's/^SCAN_ROWS=//p' "$LOG" | tail -1)
     [ "${scan_rows:-0}" -gt 0 ] || { echo "ASSERT_FAIL: SCAN_ROWS<=0" >&2; RC=1; }
     ;;
-  r2) NAME="R2-banner.txt"; page_row r2 "$BANNER_PAGE" ;;
-  r3) NAME="R3-mall-image.txt"; page_row r3 "$MALLIMAGE_PAGE" ;;
+  r2) NAME="R2-banner.txt"; page_row r2 "$BANNER_PAGE" 'API_ERROR_CODE=1' ;;
+  r3) NAME="R3-mall-image.txt"; page_row r3 "$MALLIMAGE_PAGE" 'API_ERROR_CODE=1' ;;
   r4)
     NAME="R4-stock.txt"
     page_row r4 "$STOCK_PAGE"
-    # #2488：库存状态冲突（40005 状态不允许 / 40900 冲突）必须被判为业务可纠正并进持久提示
+    # #2488 D4（v4 修正）：库存冲突的真实可失败入口是 HTTP 409 + 40900（丢失登记/恢复），
+    # 不再使用不存在的 40005 fixture；同时断言传输层抛出的错误也被同一 rubric 接住。
     state_conflict=0
-    grep -q 'isBusinessCorrectableConflict(' "$STOCK_PAGE" \
-      && grep -q '40005' "$SHARED_FORM_CONFLICT" \
+    grep -q 'isBusinessCorrectableConflict(resp)' "$STOCK_PAGE" \
+      && grep -q 'isBusinessCorrectableConflict(e)' "$STOCK_PAGE" \
       && grep -q '40900' "$SHARED_FORM_CONFLICT" \
       && state_conflict=1
     { echo "STATE_CONFLICT=$state_conflict"; } >> "$LOG"
@@ -131,14 +143,15 @@ case "$MODE" in
   r5)
     NAME="R5-residual.txt"
     { printf '%s\n%s\n' "$PROV" "$TREE_LINE"
-      shared=0; local_dup=0; imports=0
+      shared=0; imports=0
       for p in "$BANNER_PAGE" "$MALLIMAGE_PAGE" "$STOCK_PAGE"; do
         grep -q '<FormConflictAlert' "$p" && shared=$((shared + 1))
         grep -q "from '.*components/FormConflictAlert'" "$p" && imports=$((imports + 1))
-        grep -q '<Alert' "$p" && local_dup=$((local_dup + 1))
       done
-      printf 'SHARED_REUSE=%s\nSHARED_IMPORTS=%s\nLOCAL_ALERT_DUP=%s\n' "$shared" "$imports" "$local_dup"
-      bash "$SCAN" 2>&1 | grep -E '^(BUSINESS_TOAST_RESIDUAL|LOCAL_CODE_LIST|UNCLASSIFIED_ROWS|SCAN_ROWS|CLASSIFIED_ROWS|READONLY|DB_WRITES)='
+      # LOCAL_ALERT_DUP 用扫描脚本的精确口径（只算「把冲突文案渲染进 antd Alert」的本地重复实现，
+      # 页面里与本 Issue 无关的说明性 Alert 不计入）。
+      printf 'SHARED_REUSE=%s\nSHARED_IMPORTS=%s\n' "$shared" "$imports"
+      bash "$SCAN" 2>&1 | grep -E '^(BUSINESS_TOAST_RESIDUAL|LOCAL_CODE_LIST|LOCAL_ALERT_DUP|UNCLASSIFIED_ROWS|SCAN_ROWS|CLASSIFIED_ROWS|READONLY|DB_WRITES)='
     } > "$LOG" 2>&1
     require_tokens "$LOG" 'SHARED_REUSE=3' 'SHARED_IMPORTS=3' 'LOCAL_ALERT_DUP=0' \
       'BUSINESS_TOAST_RESIDUAL=0' 'LOCAL_CODE_LIST=0' 'UNCLASSIFIED_ROWS=0' 'READONLY=1' 'DB_WRITES=0' || RC=1

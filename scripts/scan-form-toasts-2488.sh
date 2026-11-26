@@ -109,8 +109,11 @@ for rel in "${TARGETS[@]}"; do
             reason="form falls back to toast without reading code (needs per-page judgement)"
         fi
 
-        # ambiguous：同一上下文混有多个不同 code
-        codes_count="$(printf '%s\n' "$ctx" | grep -oE 'code[[:space:]]*===[[:space:]]*[0-9]+' | sort -u | wc -l | tr -d ' ')"
+        # ambiguous：同一上下文混有多个**不同的非成功** code
+        # （20000/20100 是成功码，不构成 tier 歧义）
+        codes_count="$(printf '%s\n' "$ctx" \
+            | grep -oE 'code[[:space:]]*===[[:space:]]*[0-9]+' \
+            | grep -oE '[0-9]+$' | grep -vE '^(20000|20100)$' | sort -u | wc -l | tr -d ' ')"
         [ "${codes_count:-0}" -gt 1 ] && AMBIGUOUS="${AMBIGUOUS}${rel}:${_line} "
 
         SCAN_ROWS=$((SCAN_ROWS + 1))
@@ -138,9 +141,23 @@ for rel in "${TARGETS[@]}"; do
     grep -qE '\[[[:space:]]*40002|40004[[:space:]]*,[[:space:]]*40005' "$file" && LOCAL_CODE_LIST=$((LOCAL_CODE_LIST + 1))
     CONVERTED_SITES=$((CONVERTED_SITES + $(grep -c 'isBusinessCorrectableConflict(' "$file")))
 done
+# LOCAL_ALERT_DUP = 页面**本地重复实现「冲突提示」**的文件数（=0 才合格）。
+# 只统计把冲突文案渲染进 antd Alert 的块（块内引用 Conflict / conflictText / formConflict）；
+# 页面里与本 Issue 无关的说明性 <Alert type="info">（如 #2514 在库存页加的批量设价说明）
+# 不计入——否则该项会变成「页面是否用过 antd Alert」的假阳性。
+local_alert_dup_in() {
+    awk '
+        /<Alert/ { inblock = 1; block = "" }
+        inblock { block = block $0 "\n" }
+        inblock && (/\/>/ || /<\/Alert>/) {
+            if (block ~ /Conflict|conflictText|formConflict/) { print "dup"; exit }
+            inblock = 0
+        }
+    ' "$1" | grep -q dup
+}
 LOCAL_ALERT_DUP=0
 for rel in "${TARGETS[@]}"; do
-    grep -q '<Alert' "$SRC_DIR/$rel" && LOCAL_ALERT_DUP=$((LOCAL_ALERT_DUP + 1))
+    local_alert_dup_in "$SRC_DIR/$rel" && LOCAL_ALERT_DUP=$((LOCAL_ALERT_DUP + 1))
 done
 AMBIGUOUS_TRIM="$(printf '%s' "$AMBIGUOUS" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
 

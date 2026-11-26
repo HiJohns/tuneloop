@@ -342,7 +342,12 @@ export default function InstrumentStock() {
         // #2488：状态冲突（如已在丢失/维修中）→ 持久提示。
         setLostConflict(conflictText(resp, '登记失败，请调整后重试'))
       } else message.error(resp.message || '登记失败')
-    } catch (e) { message.error(e.message || '登记失败') }
+    } catch (e) {
+      // #2488 D7：传输层抛出的 ApiError 携带 code，业务可纠正冲突进持久提示。
+      if (isBusinessCorrectableConflict(e)) {
+        setLostConflict(conflictText(e, '登记失败，请调整后重试'))
+      } else message.error(e.message || '登记失败')
+    }
     setSubmitting(false)
   }
 
@@ -368,7 +373,12 @@ export default function InstrumentStock() {
         // #2488：状态冲突（如未在丢失状态）→ 持久提示。
         setRestoreConflict(conflictText(resp, '恢复失败，请调整后重试'))
       } else message.error(resp.message || '恢复失败')
-    } catch (e) { message.error(e.message || '恢复失败') }
+    } catch (e) {
+      // #2488 D7：传输层抛出的 ApiError 携带 code，业务可纠正冲突进持久提示。
+      if (isBusinessCorrectableConflict(e)) {
+        setRestoreConflict(conflictText(e, '恢复失败，请调整后重试'))
+      } else message.error(e.message || '恢复失败')
+    }
     setSubmitting(false)
   }
 
