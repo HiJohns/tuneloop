@@ -24,8 +24,8 @@ set -uo pipefail
 
 MODE="${1:-}"
 case "$MODE" in
-  r1|r2|r3|r4|r5|r6|r7|r8|r9|r10|r11|r12|r13) ;;
-  *) echo "usage: $0 <r1..r13>" >&2; exit 2 ;;
+  r1|r2|r3|r4|r5|r6|r7|r8|r9|r10|r11|r12|r13|gate) ;;
+  *) echo "usage: $0 <r1..r13|gate>" >&2; exit 2 ;;
 esac
 
 REPO="$(git rev-parse --show-toplevel)"; cd "$REPO" || exit 2
@@ -88,6 +88,41 @@ require_tokens() { # file tokens...
     grep -Fq -- "$tok" "$f" || missing="$missing [$tok]"
   done
   if [ -n "$missing" ]; then echo "ASSERT_FAIL: missing tokens:$missing" >&2; RC=1; fi
+}
+
+# run_build_rows：R12 与 gate 共用（go build ./... + 定向 handler 测试 + npm build + eslint）。
+run_build_rows() {
+  ( cd "$REPO/backend" && heavy go build ./... ) > "$WORK/build.log" 2>&1
+  BUILD=$?
+  ( cd "$REPO/backend" && heavy go test ./handlers -run '2519|PricingOverdue' -count=1 -timeout 10m ) > "$WORK/gotest.log" 2>&1
+  GTEST=$?
+  ( cd "$REPO/frontend-pc" && heavy npm run build ) > "$WORK/npm.log" 2>&1
+  NPM=$?
+  ( cd "$REPO/frontend-pc" && heavy npx eslint src/utils/batchPricing.js src/pages/InstrumentStock.jsx src/pages/admin/instrument/List.jsx ) > "$WORK/eslint.log" 2>&1
+  LINT=$?
+  NO_UNDEF="$(grep -c 'no-undef' "$WORK/eslint.log" || true)"
+  # Contract tokens (Accepted Plan R12): GO_TEST_OK / BUILD_OK / NPM_BUILD_OK / ESLINT_OK.
+  OK_TEST=0; OK_BUILD=0; OK_NPM=0; OK_LINT=0
+  [ "$GTEST" = "0" ] && OK_TEST=1
+  [ "$BUILD" = "0" ] && OK_BUILD=1
+  [ "$NPM" = "0" ] && OK_NPM=1
+  [ "$LINT" = "0" ] && [ "$NO_UNDEF" = "0" ] && OK_LINT=1
+  {
+    echo "BUILD_EXIT=$BUILD"
+    echo "GO_TEST_EXIT=$GTEST"
+    echo "NPM_BUILD_EXIT=$NPM"
+    echo "ESLINT_EXIT=$LINT"
+    echo "ESLINT_NO_UNDEF=$NO_UNDEF"
+    echo "BUILD_OK=$OK_BUILD"
+    echo "GO_TEST_OK=$OK_TEST"
+    echo "NPM_BUILD_OK=$OK_NPM"
+    echo "ESLINT_OK=$OK_LINT"
+    tail -3 "$WORK/gotest.log"
+    tail -5 "$WORK/npm.log"
+    tail -10 "$WORK/eslint.log"
+  } >> "$LOG"
+  [ "$BUILD" = "0" ] && [ "$GTEST" = "0" ] && [ "$NPM" = "0" ] && [ "$LINT" = "0" ] && [ "$NO_UNDEF" = "0" ] || RC=1
+  require_tokens "$LOG" 'BUILD_OK=1' 'GO_TEST_OK=1' 'NPM_BUILD_OK=1' 'ESLINT_OK=1'
 }
 
 case "$MODE" in
@@ -236,37 +271,21 @@ r11)
   ;;
 r12)
   NAME="R12-build.txt"
-  ( cd "$REPO/backend" && heavy go build ./... ) > "$WORK/build.log" 2>&1
-  BUILD=$?
-  ( cd "$REPO/backend" && heavy go test ./handlers -run '2519|PricingOverdue' -count=1 -timeout 10m ) > "$WORK/gotest.log" 2>&1
-  GTEST=$?
-  ( cd "$REPO/frontend-pc" && heavy npm run build ) > "$WORK/npm.log" 2>&1
-  NPM=$?
-  ( cd "$REPO/frontend-pc" && heavy npx eslint src/utils/batchPricing.js src/pages/InstrumentStock.jsx src/pages/admin/instrument/List.jsx ) > "$WORK/eslint.log" 2>&1
-  LINT=$?
-  NO_UNDEF="$(grep -c 'no-undef' "$WORK/eslint.log" || true)"
-  # Contract tokens (Accepted Plan R12): GO_TEST_OK / BUILD_OK / NPM_BUILD_OK / ESLINT_OK.
-  OK_TEST=0; OK_BUILD=0; OK_NPM=0; OK_LINT=0
-  [ "$GTEST" = "0" ] && OK_TEST=1
-  [ "$BUILD" = "0" ] && OK_BUILD=1
-  [ "$NPM" = "0" ] && OK_NPM=1
-  [ "$LINT" = "0" ] && [ "$NO_UNDEF" = "0" ] && OK_LINT=1
-  {
-    echo "BUILD_EXIT=$BUILD"
-    echo "GO_TEST_EXIT=$GTEST"
-    echo "NPM_BUILD_EXIT=$NPM"
-    echo "ESLINT_EXIT=$LINT"
-    echo "ESLINT_NO_UNDEF=$NO_UNDEF"
-    echo "BUILD_OK=$OK_BUILD"
-    echo "GO_TEST_OK=$OK_TEST"
-    echo "NPM_BUILD_OK=$OK_NPM"
-    echo "ESLINT_OK=$OK_LINT"
-    tail -3 "$WORK/gotest.log"
-    tail -5 "$WORK/npm.log"
-    tail -10 "$WORK/eslint.log"
-  } >> "$LOG"
-  [ "$BUILD" = "0" ] && [ "$GTEST" = "0" ] && [ "$NPM" = "0" ] && [ "$LINT" = "0" ] && [ "$NO_UNDEF" = "0" ] || RC=1
-  require_tokens "$LOG" 'BUILD_OK=1' 'GO_TEST_OK=1' 'NPM_BUILD_OK=1' 'ESLINT_OK=1'
+  run_build_rows
+  ;;
+gate)
+  # --full-gate-cmd 入口：pre-ready 会在**干净 worktree** 里执行本命令（无 node_modules）。
+  # 先装前端依赖（node_modules 被 gitignore），再跑与 R12 同口径的构建/测试/lint。
+  NAME="R12-build.txt"
+  if [ ! -d "$REPO/frontend-pc/node_modules" ]; then
+    echo "GATE_NPM_CI=1" >> "$LOG"
+    ( cd "$REPO/frontend-pc" && heavy npm ci --prefer-offline --no-audit --no-fund ) >> "$LOG" 2>&1 || RC=1
+  else
+    echo "GATE_NPM_CI=0" >> "$LOG"
+  fi
+  if [ "$RC" = "0" ]; then
+    run_build_rows
+  fi
   ;;
 esac
 
