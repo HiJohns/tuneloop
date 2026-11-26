@@ -1,7 +1,7 @@
 {
   "issue": 2543,
-  "overall": "FAIL",
-  "plan": "/home/coder/worktrees/tuneloop/wt-2543/tmp/pre-ready-2543.hRwPNZ/plan.md",
+  "overall": "PASS",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2543/tmp/pre-ready-2543.3ux0li/plan.md",
   "plan_sha256": "b7892888961821b3b58de4b577392b78985a79cefe8d9e1fa33c981a5a5fe891",
   "config_sha": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
   "provenance": {
@@ -10,7 +10,7 @@
     "dirty": false
   },
   "summary": "tmp/work-summary-2543.md",
-  "timestamp": "20261126-161444",
+  "timestamp": "20261126-161529",
   "checks": [
     {
       "id": "P1",
@@ -64,8 +64,8 @@
     },
     {
       "id": "P5",
-      "status": "FAIL",
-      "detail": "working tree is dirty or has untracked files (only tmp/ and --allow-file are allowed):  docs/evidence/2543/pre-ready-2543.json"
+      "status": "PASS",
+      "detail": "full gate clean worktree; HEAD failures are a subset of baseline (eb6579802e7f1083586a6428fef344c4c6c110bc); source head=cache(reused:non-input) baseline=cache"
     },
     {
       "id": "P6",
