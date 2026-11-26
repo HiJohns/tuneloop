@@ -92,8 +92,8 @@ Commit：
   P6（4 个改动文件均在计划 Files 内）、P7（契约三向核对）、P12（Evidence Contract 7 行与 Rev.2 逐字一致、每行 `pass=true`）、
   P13（fix `b67d95af4` 与证据提交在 `origin/issue-2512`）、P14（7 个 artifact provenance 与 bundle 一致）、
   P17（plan 快照 = Accepted Plan Rev.2，sha `ef7db582abc1`）；P5 = N/A（子任务，全量门禁归父任务 #2509）、
-  P15/P16/P8/P9/P10 = N/A（无 batch gate reference / UI 行 / panel / session / aiaudit）。
-- 首轮 round-1 的 R7 断言 Bug 2（`.result` 键不存在）已按 Rev.2 改为 `.overall`，本轮一次通过。
+  P15/P16/P8/P9/P10 = N/A（无 batch gate reference / UI 行 / panel / 会话类证据 / 审计工具引用）。
+- 首轮 round-1 的 R7 断言 Bug 2（.result 键不存在）已按 Rev.2 改为 .overall，本轮一次通过。
 
 ### Evidence Contract（7/7 PASS）
 

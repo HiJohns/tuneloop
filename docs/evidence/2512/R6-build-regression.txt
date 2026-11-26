@@ -1,5 +1,5 @@
 # build=1.0.b67d95af # commit=b67d95af40c50eca38a8d95f6531367a7710aadb # dirty=false
-GENERATED_AT_HEAD=b67d95af40c50eca38a8d95f6531367a7710aadb
+GENERATED_AT_HEAD=ba2f582dba3e5614f0c2abed0fa59fd937153183
 BUILD_CMD=cd backend && go build ./...
 BUILD_RC=0
 REG_CMD=cd backend && go test ./handlers -run 'CreateOrder|BatchCreateOrder' -count=1
@@ -8,7 +8,7 @@ NESTED_LOCK_REFS=0
 --- build tail ---
 
 --- regression tail ---
-ok  	tuneloop-backend/handlers	18.565s
+ok  	tuneloop-backend/handlers	19.723s
 R6_OK
 RESULT: PASS
 
