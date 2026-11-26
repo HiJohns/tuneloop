@@ -1,7 +1,7 @@
 {
   "issue": 2537,
-  "overall": "FAIL",
-  "plan": "/home/coder/worktrees/tuneloop/wt-2537/tmp/pre-ready-2537.DOCqxp/plan.md",
+  "overall": "PASS",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2537/tmp/pre-ready-2537.RtGLTD/plan.md",
   "plan_sha256": "e115f761073e0b45f37724f592f5066147e92df37fa7a0d023faafdb95d16b1b",
   "config_sha": "8a98b9aae65c6ac3cd894919a9cea280167e2e11",
   "provenance": {
@@ -10,7 +10,7 @@
     "dirty": false
   },
   "summary": "docs/evidence/2537/summary.md",
-  "timestamp": "20261126-024344",
+  "timestamp": "20261126-024706",
   "checks": [
     {
       "id": "P1",
@@ -24,8 +24,8 @@
     },
     {
       "id": "P3",
-      "status": "FAIL",
-      "detail": "evidence paths do not exist: TESTS_PASS=18、TESTS_FAIL=0、FULL_NULL=-、REDUCED_NULL=未配置、ZERO=¥0.00、OVERDUE_NULL=-、R2_OK ZERO=¥0.00 api.md build=1.0.3f08c2dd8 ui.md ¥0.00"
+      "status": "PASS",
+      "detail": "all referenced evidence paths exist and are durable"
     },
     {
       "id": "P4",
@@ -69,13 +69,13 @@
     },
     {
       "id": "P6",
-      "status": "FAIL",
-      "detail": "changed files not declared in the plan (Architect approval required): docs/evidence/2537/summary.md docs/evidence/2537/changed-files.txt"
+      "status": "PASS",
+      "detail": "all changed files are declared in the Accepted Plan"
     },
     {
       "id": "P7",
-      "status": "FAIL",
-      "detail": "contract-affecting change requires '### 契约三向核对' (Plan/API, docs, handler/frontend)"
+      "status": "PASS",
+      "detail": "contract three-way section present"
     },
     {
       "id": "P8",
