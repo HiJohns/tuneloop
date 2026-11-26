@@ -1567,7 +1567,7 @@ API 来源：
 
 ### 2.20.1 PC 乐器管理（乐器列表 + 库存监控，两独立页）
 
-> **#2212 撤销 #2043/#2101 的错误菜单合并**，恢复两个独立页：「**乐器列表**」`/instruments/list`（渲染 `List.jsx`，乐器档案新增/编辑/导入/导出/设价/排序）与「**库存监控**」`/site/stock`（渲染 `InstrumentStock.jsx`，**透传 `?status=`**，Dashboard 链接不得破坏；工具栏含 导出/批量导入/批量设价/批量删除，按 cusPerm 门控）。
+> **#2212 撤销 #2043/#2101 的错误菜单合并**，恢复两个独立页：「**乐器列表**」`/instruments/list`（渲染 `List.jsx`，乐器档案新增/编辑/导入/导出/设价/排序）与「**库存监控**」`/site/stock`（渲染 `InstrumentStock.jsx`，**透传 `?status=`**，Dashboard 链接不得破坏；工具栏含 导出/批量导入/批量设价/批量删除 + **筛选（识别码/分类/状态/清空筛选，#2577）**，按 cusPerm 门控）。
 
 - **列表列（#2537 两页列口径区分）**：
   - **乐器列表** `/instruments/list`（`List.jsx`）：图片 / 识别码 / 分类 / 乐器分级 / 加入时间 / 网点 / 状态 / 操作（**无**标准日租金、**无**押金列；价格口径归库存监控页）
@@ -1584,6 +1584,15 @@ API 来源：
 - **操作门控**：按 cusPerm **不渲染**无权限按钮
   - `update`：编辑 / 丢失 / 恢复；`delete`：删除 / 批量删除；`RequireRole`：批量设价
 - **状态范围按角色（服务端）**：员工默认 可用/在租/维护；管理员增量 下架/已出售/丢失——实现为服务端 `exclude_status=lost,archived,sold`（非管理员），客户端不再过滤
+- **筛选（#2577）**：工具栏（仅「库存」视图渲染，权限门控与既有按钮一致）新增 **识别码搜索 / 分类筛选 / 状态筛选 / 清空筛选**
+  - **URL 即筛选唯一来源**：读取 `?status=`（兼容读 `?stock_status=`）→ 状态；`?sn=` → 识别码；`?category_id=` → 分类；写回**只用 `status`**（`stock_status` 仅为兼容读别名）。Dashboard 深链 `?status=rented` / `?status=available` 仍生效，控件回显
+  - **识别码**：`Input.Search`（回车 / 点搜索 / 清空触发），不做输入即搜
+  - **分类**：选项取 `GET /instruments/filter-options` 的 `categories`（与乐器列表同源），服务端按后代分类展开
+  - **状态词表**：`available=待租`、`rented=在租`、`maintenance=维修中`、`reserved=已预订`、`shipping=配送中`、`lost=已丢失`、`archived=已下架`、`sold=已售出`；未知值原样展示
+  - **非管理级状态选项**剔除 丢失/已下架/已售出；若 URL 显式带入这些状态（管理级深链），下拉保留该值、请求叠加 `stock_status` 并**不**追加 `exclude_status`（否则恒为 0 行）
+  - **筛选变化**（搜索/分类/状态/清空）→ 回第 1 页 + 清空行选择（批量设价/删除只作用当前可见选中行）
+  - **首屏 loading** 走 `Table loading`（不整页 `Spin`），筛选时不卸载工具栏（输入框不失焦）
+
 - **服务端分页（#2140）**：Table 改服务端 `page`/`pageSize`，`total` 取后端 `data.total`；状态筛选服务端化（`?status=` → 查询 `stock_status`）；移除 `pageSize:200` 硬编码与客户端 `filteredAssets` 过滤
 - **字段可见性**：标准日租金 / 押金 → 管理员/商户管理员可见（代理 `hasCusPerm('instrument:delete')`），员工隐藏
 - **详情/编辑**：统一「资产卡片」组件（两旧详情路径收敛，兼容重定向）
