@@ -655,22 +655,22 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 			case errors.Is(iamErr, services.ErrIAMForbidden):
 				c.JSON(http.StatusForbidden, gin.H{
 					"code":    40301,
-					"message": "IAM 拒绝修改组织名（权限不足）: " + iamErr.Error(),
+					"message": "IAM 拒绝修改组织名（权限不足）",
 				})
 			case errors.Is(iamErr, services.ErrIAMOrgNotFound):
 				c.JSON(http.StatusNotFound, gin.H{
 					"code":    40400,
-					"message": "IAM 组织不存在（org_id 失效）: " + iamErr.Error(),
+					"message": "IAM 组织不存在（org_id 失效）",
 				})
 			case errors.Is(iamErr, services.ErrIAMOrgNameConflict):
 				c.JSON(http.StatusConflict, gin.H{
 					"code":    40900,
-					"message": "网点名已存在（IAM 组织名冲突）: " + iamErr.Error(),
+					"message": "网点名已存在（IAM 组织名冲突）",
 				})
 			default:
 				c.JSON(http.StatusBadGateway, gin.H{
 					"code":    50000,
-					"message": "IAM 更新组织名失败: " + iamErr.Error(),
+					"message": "IAM 更新组织名失败，请稍后重试",
 				})
 			}
 			// IAM 失败 → 不写本地（D3）。
@@ -698,9 +698,11 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 	if result.Error != nil {
 		if nameChanged {
 			// IAM 已改名、本地失败：显式告知可重试（重试走同名分支补本地，D4）。
+			// #2497：改名已生效但本地写入失败，detail 只进日志。
+			log.Printf("[UpdateSite] local sync after IAM rename failed site=%s: %v", siteID, result.Error)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"code":    50000,
-				"message": "IAM 已改名，本地同步失败，请重试: " + result.Error.Error(),
+				"message": "IAM 已改名，本地同步失败，请重试",
 			})
 			return
 		}

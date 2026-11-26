@@ -293,7 +293,7 @@ func (h *WechatBindHandler) MergeBind(c *gin.Context) {
 	result, mergeErr := services.NewIAMService().WxMergeByTicket(req.MergeTicket)
 	if mergeErr != nil {
 		log.Printf("[MergeBind] IAM wx-merge-confirm failed for token=%s: %v", req.Token, mergeErr)
-		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "账户合并失败: " + mergeErr.Error()})
+		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "账户合并失败，请稍后重试"})
 		return
 	}
 	if result.FromUserID != user.IAMSub {

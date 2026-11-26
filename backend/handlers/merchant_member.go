@@ -445,13 +445,13 @@ func (h *MerchantMemberHandler) UpdateMemberRole(c *gin.Context) {
 		if normalizedRole == "merchant_admin" {
 			if bindErr := iamClient.BindUserToOrganizationWithToken(userToken, iamUser.IAMSub, anchor, iamRole, middleware.GetUserID(c.Request.Context())); bindErr != nil {
 				log.Printf("[MerchantUpdateRole] BindUser failed for %s: %v", iamUser.IAMSub, bindErr)
-				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "更新成员角色失败（IAM）：" + bindErr.Error()})
+				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "更新成员角色失败，请稍后重试"})
 				return
 			}
 		} else {
 			if demoteErr := iamClient.UpdateUserRoleInOrgWithToken(userToken, anchor, iamUser.IAMSub, iamRole); demoteErr != nil {
 				log.Printf("[MerchantUpdateRole] UpdateRole failed for %s: %v", iamUser.IAMSub, demoteErr)
-				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "更新成员角色失败（IAM）：" + demoteErr.Error()})
+				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "更新成员角色失败，请稍后重试"})
 				return
 			}
 		}
@@ -460,14 +460,14 @@ func (h *MerchantMemberHandler) UpdateMemberRole(c *gin.Context) {
 		templates, err := iamClient.ListRoleTemplates(nsID)
 		if err != nil {
 			log.Printf("[MerchantUpdateRole] ListRoleTemplates failed: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "更新成员角色失败（IAM 角色模板查询）：" + err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "更新成员角色失败，请稍后再试"})
 			return
 		}
 		for _, t := range templates {
 			if t.Code == templateCode {
 				if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, iamUser.IAMSub, anchor, t.Code); err != nil {
 					log.Printf("[MerchantUpdateRole] AssignRoleTemplate failed: %v", err)
-					c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "更新成员角色失败（IAM 角色模板分配）：" + err.Error()})
+					c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "更新成员角色失败，请稍后再试"})
 					return
 				}
 				break
@@ -551,7 +551,8 @@ func (h *MerchantMemberHandler) RemoveMember(c *gin.Context) {
 	memberToken := services.ExtractUserToken(c)
 	iamSub := resolveIAMSub(db, userID)
 	if err := iamClient.UnbindUserFromOrganizationWithToken(memberToken, iamSub, anchor, operatorID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "解除成员失败（IAM）：" + err.Error()})
+		log.Printf("[MerchantMemberRemove] IAM unbind failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "解除成员失败，请稍后再试"})
 		return
 	}
 

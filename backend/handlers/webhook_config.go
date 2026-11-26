@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 
 	"tuneloop-backend/database"
@@ -106,7 +107,8 @@ func TestMerchantWebhook(c *gin.Context) {
 		return
 	}
 	if err := services.SendTestWebhook(cfg.URL); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "测试发送失败: " + err.Error()})
+		log.Printf("[WebhookConfig] send test webhook failed: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "测试发送失败，请检查 Webhook 配置"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "测试消息已发送"})
@@ -131,7 +133,8 @@ func TestPlatformWebhook(c *gin.Context) {
 		return
 	}
 	if err := services.SendTestWebhook(cfg.WebhookURL); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "测试发送失败: " + err.Error()})
+		log.Printf("[WebhookConfig] send test webhook failed: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "测试发送失败，请检查 Webhook 配置"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "测试消息已发送"})

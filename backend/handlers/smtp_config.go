@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"net/mail"
 	"strings"
@@ -30,7 +31,8 @@ func GetSMTPConfig(c *gin.Context) {
 	var s models.SystemSetting
 	if err := db.Where("tenant_id = ? AND setting_key = ?", services.WarningConfigTenantID, services.SMTPConfigKey).First(&s).Error; err == nil && strings.TrimSpace(s.SettingValue) != "" {
 		if err := json.Unmarshal([]byte(s.SettingValue), &rec); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "SMTP 配置解析失败: " + err.Error()})
+			log.Printf("[SMTPConfig] parse stored config failed: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "SMTP 配置读取失败，请联系管理员"})
 			return
 		}
 		found = true
@@ -112,7 +114,8 @@ func TestSMTPConfig(c *gin.Context) {
 		"这是一封 SMTP 配置测试邮件。\n\n如果你收到它，说明邮件通道工作正常。\n",
 	)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "测试发送失败: " + err.Error()})
+		log.Printf("[SMTPConfig] send test mail failed: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "测试邮件发送失败，请检查 SMTP 配置"})
 		return
 	}
 	ctx := c.Request.Context()

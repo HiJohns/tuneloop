@@ -1,0 +1,16 @@
+# build=1.0.5a695fef # commit=5a695fefb262ba0e78ead79b4f28275c85229f50 # dirty=false
+FULL_SUITE_CMD=cd backend && go test ./... -count=1 -timeout 20m -p 1（包串行：规避 handlers run-库 DROP 与 services scratch 用例的库名冲突）
+TEST_DB_ENV=TUNELOOP_DB=tuneloop TUNELOOP_TEST_DB=tuneloop_test_local POSTGRES_HOST=127.0.0.1 POSTGRES_PORT=15433
+FULL_SUITE_EXIT=0
+FAIL_COUNT=0
+PANIC_COUNT=0
+LOG_TAIL: ok  	tuneloop-backend/services	9.677s
+LOG_TAIL: ok  	tuneloop-backend/services/tencentcloud	0.004s
+LOG_TAIL: ok  	tuneloop-backend/services/wechatpay	0.058s
+LOG_TAIL: ?   	tuneloop-backend/testutil	[no test files]
+LOG_TAIL: ?   	tuneloop-backend/tools/backfill_transit_site_orgs	[no test files]
+LOG_TAIL: ?   	tuneloop-backend/tools/merge_duplicate_accounts	[no test files]
+LOG_TAIL: ?   	tuneloop-backend/tools/oss_smoke	[no test files]
+LOG_TAIL: [heavy-lock] released scope=host slot=0 rc=0 at_ms=1795715325164 hold_ms=850346
+RESULT: PASS
+

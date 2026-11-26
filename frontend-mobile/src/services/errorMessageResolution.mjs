@@ -41,6 +41,14 @@ export function resolveErrorCore(result, options = {}) {
   if (!result) return { text: fallback, layer: 'fallback' }
   const { code, message } = result
   if (hasMessage(message) && messageMap[message]) return { text: messageMap[message], layer: 'message_map' }
+  // #2497：5xx（code >= 50000）的中文串是后端内部诊断（中文前缀 + err.Error() 拼接），
+  // 不得作为 human_message 透传给用户；有 code 家族文案走 code_map，否则走 fallback。
+  const numericCode = Number(code)
+  const isServerError = Number.isFinite(numericCode) && numericCode >= 50000
+  if (isServerError && hasMessage(message) && isHumanReadableMessage(message)) {
+    const mapped = codeMap[code] || codeMap[numericCode]
+    return mapped ? { text: mapped, layer: 'code_map' } : { text: fallback, layer: 'fallback' }
+  }
   if (isHumanReadableMessage(message)) return { text: message, layer: 'human_message' }
   if (code && codeMap[code]) return { text: codeMap[code], layer: 'code_map' }
   // #2504 D8：L4 raw_message 返回分支已删除（不可达：含 CJK 的文案在 L2 已返回）。
