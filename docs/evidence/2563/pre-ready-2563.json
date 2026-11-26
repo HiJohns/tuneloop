@@ -1,8 +1,8 @@
 {
   "issue": 2563,
   "overall": "PASS",
-  "plan": "/home/coder/worktrees/tuneloop/wt-2563/tmp/pre-ready-2563.fLFf3c/plan.md",
-  "plan_sha256": "975dcebfac55e9413cf1556f69a7567bd7e3d3e150f4950b506a2b0e8c405281",
+  "plan": "/tmp/opencode/tuneloop/wt-2563/tmp/pre-ready-2563.yUkDCr/plan.md",
+  "plan_sha256": "829f87e5ef2cd3c53d4c70539fa72787a9ab02bcd897b2f2708efebb734deb66",
   "config_sha": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
   "provenance": {
     "build": "1.0.16faa351d",
@@ -10,7 +10,7 @@
     "dirty": false
   },
   "summary": "docs/evidence/2563/summary.md",
-  "timestamp": "20261126-141836",
+  "timestamp": "20261126-150543",
   "checks": [
     {
       "id": "P1",
@@ -95,7 +95,7 @@
     {
       "id": "P11",
       "status": "PASS",
-      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /home/coder/worktrees/tuneloop/wt-2563; worktree guard: PASS isolated worktree=/home/coder/worktrees/tuneloop/wt-2563"
+      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /tmp/opencode/tuneloop/wt-2563; worktree guard: PASS isolated worktree=/tmp/opencode/tuneloop/wt-2563"
     },
     {
       "id": "P13",
