@@ -1,54 +1,60 @@
-# build=1.0.a98106a26 # commit=a98106a2600b8cc72a35a404769eb358624bcd35 # dirty=false
-# tree=a98106a2600b8cc72a35a404769eb358624bcd35
+# build=1.0.5ad54551d # commit=5ad54551d4acfba3e7b7105b1e8d9722e5e6e751 # dirty=false
+# tree=5ad54551d4acfba3e7b7105b1e8d9722e5e6e751
 SCAN_CMD=bash scripts/scan-form-toasts-2488.sh
-pages/System/BannerManagePage.jsx:26	fn=fetchBanners	reads_code=1	tier=defer:tier2	reason=form falls back to toast without reading code (needs per-page judgement)
-pages/System/BannerManagePage.jsx:29	fn=fetchBanners	reads_code=1	tier=keep:instant	reason=catch-all fallback (network/unknown)
-pages/System/BannerManagePage.jsx:58	fn=handleDelete	reads_code=1	tier=defer:tier2	reason=form falls back to toast without reading code (needs per-page judgement)
-pages/System/BannerManagePage.jsx:61	fn=handleDelete	reads_code=1	tier=keep:instant	reason=catch-all fallback (network/unknown)
-pages/System/BannerManagePage.jsx:76	fn=handleMoveUp	reads_code=0	tier=keep:instant	reason=catch-all fallback (network/unknown)
-pages/System/BannerManagePage.jsx:90	fn=handleMoveDown	reads_code=0	tier=keep:instant	reason=catch-all fallback (network/unknown)
-pages/System/BannerManagePage.jsx:106	fn=handleSubmit	reads_code=1	tier=business-persisted	reason=business branch routed to FormConflictAlert; this toast is the non-business fallback
-pages/System/BannerManagePage.jsx:118	fn=handleSubmit	reads_code=1	tier=business-persisted	reason=business branch routed to FormConflictAlert; this toast is the non-business fallback
-pages/System/BannerManagePage.jsx:133	fn=handleSubmit	reads_code=1	tier=business-persisted	reason=business branch routed to FormConflictAlert; this toast is the non-business fallback
-pages/System/BannerManagePage.jsx:158	fn=handleSubmit	reads_code=1	tier=keep:instant	reason=catch-all fallback (network/unknown)
-pages/System/BannerManagePage.jsx:210	fn=handleSubmit	reads_code=0	tier=keep:instant	reason=server message without a business-correctable code
-pages/System/MallImageManageCard.jsx:26	fn=fetchImages	reads_code=1	tier=defer:tier2	reason=form falls back to toast without reading code (needs per-page judgement)
-pages/System/MallImageManageCard.jsx:29	fn=fetchImages	reads_code=1	tier=keep:instant	reason=catch-all fallback (network/unknown)
-pages/System/MallImageManageCard.jsx:58	fn=handleDelete	reads_code=1	tier=defer:tier2	reason=form falls back to toast without reading code (needs per-page judgement)
-pages/System/MallImageManageCard.jsx:61	fn=handleDelete	reads_code=1	tier=keep:instant	reason=catch-all fallback (network/unknown)
-pages/System/MallImageManageCard.jsx:76	fn=handleMoveUp	reads_code=0	tier=keep:instant	reason=catch-all fallback (network/unknown)
-pages/System/MallImageManageCard.jsx:90	fn=handleMoveDown	reads_code=0	tier=keep:instant	reason=catch-all fallback (network/unknown)
-pages/System/MallImageManageCard.jsx:106	fn=handleSubmit	reads_code=1	tier=business-persisted	reason=business branch routed to FormConflictAlert; this toast is the non-business fallback
-pages/System/MallImageManageCard.jsx:118	fn=handleSubmit	reads_code=1	tier=business-persisted	reason=business branch routed to FormConflictAlert; this toast is the non-business fallback
-pages/System/MallImageManageCard.jsx:133	fn=handleSubmit	reads_code=1	tier=business-persisted	reason=business branch routed to FormConflictAlert; this toast is the non-business fallback
-pages/System/MallImageManageCard.jsx:159	fn=handleSubmit	reads_code=1	tier=keep:instant	reason=catch-all fallback (network/unknown)
-pages/System/MallImageManageCard.jsx:210	fn=handleSubmit	reads_code=0	tier=keep:instant	reason=server message without a business-correctable code
-pages/InstrumentStock.jsx:200	fn=handleDeleteInstrument	reads_code=1	tier=keep:instant	reason=load / delete / transport feedback
-pages/InstrumentStock.jsx:203	fn=handleDeleteInstrument	reads_code=1	tier=keep:instant	reason=load / delete / transport feedback
-pages/InstrumentStock.jsx:216	fn=handleBatchPrice	reads_code=0	tier=defer:tier2	reason=form falls back to toast without reading code (needs per-page judgement)
-pages/InstrumentStock.jsx:226	fn=handleBatchPrice	reads_code=1	tier=business-persisted	reason=business branch routed to FormConflictAlert; this toast is the non-business fallback
-pages/InstrumentStock.jsx:237	fn=handleBatchPrice	reads_code=0	tier=keep:instant	reason=client-side validation feedback
-pages/InstrumentStock.jsx:258	fn=handleExport	reads_code=0	tier=keep:instant	reason=catch-all fallback (network/unknown)
-pages/InstrumentStock.jsx:282	fn=batchDelete	reads_code=1	tier=keep:instant	reason=load / delete / transport feedback
-pages/InstrumentStock.jsx:285	fn=batchDelete	reads_code=1	tier=keep:instant	reason=load / delete / transport feedback
-pages/InstrumentStock.jsx:344	fn=submitLost	reads_code=1	tier=business-persisted	reason=business branch routed to FormConflictAlert; this toast is the non-business fallback
-pages/InstrumentStock.jsx:349	fn=submitLost	reads_code=1	tier=business-persisted	reason=business branch routed to FormConflictAlert; this toast is the non-business fallback
-pages/InstrumentStock.jsx:375	fn=submitRestore	reads_code=1	tier=business-persisted	reason=business branch routed to FormConflictAlert; this toast is the non-business fallback
-pages/InstrumentStock.jsx:380	fn=submitRestore	reads_code=1	tier=business-persisted	reason=business branch routed to FormConflictAlert; this toast is the non-business fallback
+pages/System/BannerManagePage.jsx:26	fn=fetchBanners	reads_code=1	reachable=yes	tier=keep:instant	reason=list/delete/transport feedback (no business-correctable code)
+pages/System/BannerManagePage.jsx:29	fn=fetchBanners	reads_code=1	reachable=yes	tier=keep:instant	reason=list/delete/transport feedback (no business-correctable code)
+pages/System/BannerManagePage.jsx:58	fn=handleDelete	reads_code=1	reachable=yes	tier=keep:instant	reason=list/delete/transport feedback (no business-correctable code)
+pages/System/BannerManagePage.jsx:61	fn=handleDelete	reads_code=1	reachable=yes	tier=keep:instant	reason=list/delete/transport feedback (no business-correctable code)
+pages/System/BannerManagePage.jsx:76	fn=handleMoveUp	reads_code=0	reachable=yes	tier=keep:instant	reason=transport/network fallback in catch
+pages/System/BannerManagePage.jsx:90	fn=handleMoveDown	reads_code=0	reachable=yes	tier=keep:instant	reason=transport/network fallback in catch
+pages/System/BannerManagePage.jsx:106	fn=handleSubmit	reads_code=1	reachable=yes	tier=business-persisted	reason=rubric branch routed to FormConflictAlert; this toast is the non-business branch
+pages/System/BannerManagePage.jsx:118	fn=handleSubmit	reads_code=1	reachable=yes	tier=business-persisted	reason=rubric branch routed to FormConflictAlert; this toast is the non-business branch
+pages/System/BannerManagePage.jsx:135	fn=handleSubmit	reads_code=1	reachable=yes	tier=business-persisted	reason=rubric branch routed to FormConflictAlert; this toast is the non-business branch
+pages/System/BannerManagePage.jsx:160	fn=inline:onClick	reads_code=1	reachable=yes	tier=keep:instant	reason=transport/network fallback in catch
+pages/System/BannerManagePage.jsx:216	fn=inline:onError	reads_code=0	reachable=yes	tier=keep:instant	reason=server message passthrough without a business-correctable code
+pages/System/MallImageManageCard.jsx:26	fn=fetchImages	reads_code=1	reachable=yes	tier=keep:instant	reason=list/delete/transport feedback (no business-correctable code)
+pages/System/MallImageManageCard.jsx:29	fn=fetchImages	reads_code=1	reachable=yes	tier=keep:instant	reason=list/delete/transport feedback (no business-correctable code)
+pages/System/MallImageManageCard.jsx:58	fn=handleDelete	reads_code=1	reachable=yes	tier=keep:instant	reason=list/delete/transport feedback (no business-correctable code)
+pages/System/MallImageManageCard.jsx:61	fn=handleDelete	reads_code=1	reachable=yes	tier=keep:instant	reason=list/delete/transport feedback (no business-correctable code)
+pages/System/MallImageManageCard.jsx:76	fn=handleMoveUp	reads_code=0	reachable=yes	tier=keep:instant	reason=transport/network fallback in catch
+pages/System/MallImageManageCard.jsx:90	fn=handleMoveDown	reads_code=0	reachable=yes	tier=keep:instant	reason=transport/network fallback in catch
+pages/System/MallImageManageCard.jsx:106	fn=handleSubmit	reads_code=1	reachable=yes	tier=business-persisted	reason=rubric branch routed to FormConflictAlert; this toast is the non-business branch
+pages/System/MallImageManageCard.jsx:118	fn=handleSubmit	reads_code=1	reachable=yes	tier=business-persisted	reason=rubric branch routed to FormConflictAlert; this toast is the non-business branch
+pages/System/MallImageManageCard.jsx:135	fn=handleSubmit	reads_code=1	reachable=yes	tier=business-persisted	reason=rubric branch routed to FormConflictAlert; this toast is the non-business branch
+pages/System/MallImageManageCard.jsx:161	fn=inline:onClick	reads_code=1	reachable=yes	tier=keep:instant	reason=transport/network fallback in catch
+pages/System/MallImageManageCard.jsx:216	fn=inline:onError	reads_code=0	reachable=yes	tier=keep:instant	reason=server message passthrough without a business-correctable code
+pages/InstrumentStock.jsx:200	fn=handleDeleteInstrument	reads_code=1	reachable=yes	tier=keep:instant	reason=list/delete/transport feedback (no business-correctable code)
+pages/InstrumentStock.jsx:203	fn=handleDeleteInstrument	reads_code=1	reachable=yes	tier=keep:instant	reason=list/delete/transport feedback (no business-correctable code)
+pages/InstrumentStock.jsx:216	fn=handleBatchPrice	reads_code=1	reachable=yes	tier=keep:instant	reason=client-side validation / payload precheck feedback
+pages/InstrumentStock.jsx:226	fn=handleBatchPrice	reads_code=1	reachable=yes	tier=business-persisted	reason=rubric branch routed to FormConflictAlert; this toast is the non-business branch
+pages/InstrumentStock.jsx:244	fn=handleBatchPrice	reads_code=1	reachable=yes	tier=business-persisted	reason=rubric branch routed to FormConflictAlert; this toast is the non-business branch
+pages/InstrumentStock.jsx:267	fn=handleExport	reads_code=0	reachable=yes	tier=keep:instant	reason=list/delete/transport feedback (no business-correctable code)
+pages/InstrumentStock.jsx:291	fn=inline:onOk	reads_code=1	reachable=yes	tier=keep:instant	reason=list/delete/transport feedback (no business-correctable code)
+pages/InstrumentStock.jsx:294	fn=inline:onOk	reads_code=1	reachable=yes	tier=keep:instant	reason=list/delete/transport feedback (no business-correctable code)
+pages/InstrumentStock.jsx:353	fn=submitLost	reads_code=1	reachable=yes	tier=business-persisted	reason=rubric branch routed to FormConflictAlert; this toast is the non-business branch
+pages/InstrumentStock.jsx:358	fn=submitLost	reads_code=1	reachable=yes	tier=business-persisted	reason=rubric branch routed to FormConflictAlert; this toast is the non-business branch
+pages/InstrumentStock.jsx:384	fn=submitRestore	reads_code=1	reachable=yes	tier=business-persisted	reason=rubric branch routed to FormConflictAlert; this toast is the non-business branch
+pages/InstrumentStock.jsx:389	fn=submitRestore	reads_code=1	reachable=yes	tier=business-persisted	reason=rubric branch routed to FormConflictAlert; this toast is the non-business branch
 SCAN_ROWS=34
 CLASSIFIED_ROWS=34
 UNCLASSIFIED_ROWS=0
 FILES=3
 SHARED_REUSE=3
-CONVERTED_SITES=11
-KEEP_ROWS=18
-PERSISTED_ROWS=11
-DEFER_ROWS=5
+CONVERTED_SITES=12
+KEEP_ROWS=22
+PERSISTED_ROWS=12
+DEFER_ROWS=0
+RESIDUAL_CODE_SITES=0
+RESIDUAL_PREDICATE_SITES=0
 BUSINESS_TOAST_RESIDUAL=0
+RESIDUAL_PREDICATE_SPLIT=1
+REACHABLE_ROWS=34
+UNREACHABLE_ROWS=0
+UNREACHABLE_CLAIMED=0
 LOCAL_CODE_LIST=0
 LOCAL_ALERT_DUP=0
 AMBIGUOUS=
 READONLY=1
 DB_WRITES=0
-RESULT: PASS (scan rows=34 classified=34 residual=0)
+RESULT: PASS (scan rows=34 classified=34 residual=0 reachable=34)
 SCAN_EXIT=0

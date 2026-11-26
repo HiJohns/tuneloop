@@ -1,4 +1,4 @@
-## Accepted Plan — #2488 v4（内容/展示类页面 + **传输层 ApiError** + 真实契约 fixture）
+## Accepted Plan — #2488 v4（内容/展示类页面 + **传输层 ApiError** + 真实契约 fixture）｜Rev.5
 
 > **v4 说明（采纳审计 O1）**：① `### Files` 增补 **`frontend-pc/src/services/api.js`**（传输层）与 `docs/evidence/2488/plan.md`；② 新增 **D7 `ApiError{code,message,data}`** 契约——非 2xx（除 404/409 的既有对象返回）抛出携带 `code` 的错误，否则 banner/mall 的 `HTTP 400 + 40002` 永远无法被页面判定（R2/R3 不可达）；③ R2/R3 fixture 改为**真实契约**（`HTTP 400 + 40002`），R4 改为 `HTTP 409 + 40900`（丢失登记），**删除不存在的 `40005` fixture**；④ `/instruments/batch/price` 路由错误移出本单 → **#2514**。
 
@@ -30,11 +30,11 @@
 
 | 变更点 | 文件/组件 | 入口/路由 | 触发状态 | 目标平台 | 期望结果 | 证据（命令/日志/截图） |
 |---|---|---|---|---|---|---|
-| R1 判定表（只读） | `scripts/scan-form-toasts-2488.sh` | `bash scripts/scan-form-toasts-2488.sh` | 修后树 | PC | 3 文件每个 `message.error(` 1 行含 tier/reason；`UNCLASSIFIED=0`、`READONLY=1` | R1 |
-| R2 轮播配置页 | `frontend-pc/src/pages/System/BannerManagePage.jsx`（+ `services/api.js`） | 轮播新增/编辑保存 | **HTTP 400 + 40002**（经 ApiError 携带 code） | PC | 命中 rubric → 持久提示；`CODE_FIRST=1`、`API_ERROR_CODE=1` | R2 |
-| R3 商城图片页 | `frontend-pc/src/pages/System/MallImageManageCard.jsx`（+ `services/api.js`） | 商城图片保存/上传 | **HTTP 400 + 40002** | PC | 同上；`API_ERROR_CODE=1` | R3 |
-| R4 库存操作页 | `frontend-pc/src/pages/InstrumentStock.jsx` | 丢失登记/库存冲突 | **HTTP 409 + 40900** | PC | 同上；冲突不得被误判为瞬时（`STATE_CONFLICT=1`）；`/instruments/batch/price` 路由问题移至 #2514，不在本行断言 | R4 |
-| R5 共享件复用与残留 | 3 文件 + `frontend-pc/src/components/FormConflictAlert.jsx` | `bash scripts/verify-2488.sh r5` | 修后树 | PC | `SHARED_REUSE=3`、`LOCAL_ALERT_DUP=0`、`LOCAL_CODE_LIST=0`、`BUSINESS_TOAST_RESIDUAL=0` | R5 |
+| R1 判定表（只读）+ **可达性列**（`evidence_type: static`，Owner 豁免见 D5） | `scripts/scan-form-toasts-2488.sh` | `bash scripts/scan-form-toasts-2488.sh` | 修后树 | PC | 3 文件每个 `message.error(` 1 行含 tier/reason **且 `reachable=` 列（该错误路径是否由页面真实控件触发：`yes/no`）**；`UNCLASSIFIED=0`、`READONLY=1`、`UNREACHABLE_CLAIMED=0` | R1 |
+| R2 轮播配置页 | `frontend-pc/src/pages/System/BannerManagePage.jsx`（+ `services/api.js`） | 轮播新增/编辑保存 | **HTTP 400 + 40002**（经 ApiError 携带 code） | PC | 命中 rubric → 持久提示；`CODE_FIRST=1`、`API_ERROR_CODE=1`、`CATCH_MESSAGE=1`（catch 分支保留服务端 message 原文）、`CLEAR_FIELDS=1`（成功/切换行时清空上次持久提示） | R2 |
+| R3 商城图片页 | `frontend-pc/src/pages/System/MallImageManageCard.jsx`（+ `services/api.js`） | 商城图片保存/上传 | **HTTP 400 + 40002** | PC | 同上；`API_ERROR_CODE=1`、`CATCH_MESSAGE=1`、`CLEAR_FIELDS=1` | R3 |
+| R4 库存操作页 | `frontend-pc/src/pages/InstrumentStock.jsx` | 丢失登记/库存冲突 | **HTTP 409 + 40900** | PC | 同上；冲突不得被误判为瞬时（`STATE_CONFLICT=1`）、`CLEAR_FIELDS=1`；`/instruments/batch/price` 路由问题移至 #2514，不在本行断言 | R4 |
+| R5 共享件复用与残留 | 3 文件 + `frontend-pc/src/components/FormConflictAlert.jsx` | `bash scripts/verify-2488.sh r5` | 修后树 | PC | `SHARED_REUSE=3`、`LOCAL_ALERT_DUP=0`、`LOCAL_CODE_LIST=0`、`BUSINESS_TOAST_RESIDUAL=0`、`RESIDUAL_INJECT=1`（向 3 文件注入一条旧式 `message.error` 后，探针必须报 `BUSINESS_TOAST_RESIDUAL=1`，证明探针可证伪）、`RESIDUAL_PREDICATE_SPLIT=1`（rubric 分类与 toast 残留两类谓词分开） | R5 |
 | R6 构建与 lint | `frontend-pc` | `cd frontend-pc && npm run build` + `npx eslint` 改动文件 | 修后树 | PC | `PC_BUILD=0`、`LINT_EXIT=0` | R6 |
 | R7 gate 四源 + 全量 PC 构建（子任务直跑） | `docs/evidence/2488/pre-ready-2488.json`、`docs/evidence/2488/plan.md`、`scripts/verify-2488.sh` | `bash scripts/verify-2488.sh r7`（内部直接 `cd frontend-pc && npm run build` 并记录退出码）+ `plan-source.sh --issue 2488` | 修后树（干净）；子任务 P5 按 harness 为 N/A | PC | `GATE_RESULT=PASS`、`PLAN_SOURCE=PASS`、`FULL_GATE_DIRECT_EXIT=0`；P5 的 N/A 由 D6 承接 | R7 |
 
@@ -82,8 +82,8 @@
 | 行 | fixture | entry | artifact | assertions | negative |
 |---|---|---|---|---|---|
 | R1 | 修后 3 文件 + 扫描脚本 | `bash scripts/scan-form-toasts-2488.sh` | `docs/evidence/2488/R1-inventory.txt` | 每处 1 行；`UNCLASSIFIED=0`；`READONLY=1` | 未分类 → FAIL |
-| R2 | fake `HTTP 400 + {code:40002}`（轮播参数/重名） | 轮播保存 | `docs/evidence/2488/R2-banner.txt` | `PERSIST_ALERT=1`、`CODE_FIRST=1`、`API_ERROR_CODE=1` | 仍 toast 或拿不到 code → FAIL |
-| R3 | fake `40004`（重复图片配置） | 商城图片保存 | `docs/evidence/2488/R3-mall-image.txt` | 同上 | 同上 → FAIL |
+| R2 | fake `HTTP 400 + {code:40002}`（轮播参数/重名） | 轮播保存 | `docs/evidence/2488/R2-banner.txt` | `PERSIST_ALERT=1`、`CODE_FIRST=1`、`API_ERROR_CODE=1`、`CATCH_MESSAGE=1`、`CLEAR_FIELDS=1` | 仍 toast、拿不到 code、丢失服务端 message 或未清空旧提示 → FAIL |
+| R3 | fake `40004`（重复图片配置） | 商城图片保存 | `docs/evidence/2488/R3-mall-image.txt` | `PERSIST_ALERT=1`、`CODE_FIRST=1`、`API_ERROR_CODE=1`、`CATCH_MESSAGE=1`、`CLEAR_FIELDS=1` | 同上 → FAIL |
 | R4 | fake `HTTP 409 + {code:40900}`（丢失登记/冲突） | 库存操作 | `docs/evidence/2488/R4-stock.txt` | `PERSIST_ALERT=1`、`STATE_CONFLICT=1` | 409 仍 toast → FAIL |
 | R5 | 修后源码 | `bash scripts/verify-2488.sh r5` | `docs/evidence/2488/R5-residual.txt` | `SHARED_REUSE=3`、`LOCAL_ALERT_DUP=0`、`BUSINESS_TOAST_RESIDUAL=0` | 残留 ≥1 → FAIL |
 | R6 | 修后 `frontend-pc` | `npm run build` + `npx eslint` | `docs/evidence/2488/R6-build-lint.txt` | `PC_BUILD=0`、`LINT_EXIT=0` | 任一非 0 → FAIL |
@@ -168,6 +168,7 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 - **部署侧**：预生产截图回评由 `[Ops-Followup of #2488]` 承载。
 
 *Model: DeepSeek V4.1 Flash 1017*
+
 
 
 
