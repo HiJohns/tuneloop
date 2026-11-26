@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "issue": 2515,
+  "build": "1.0.254dbaecf",
+  "commit": "254dbaecf76bfc0b506ebf2c6a4f7af037b0b484",
+  "dirty": false,
+  "plan_sha256": "c3d4ae2062fd45928e866898e1dfc00e06852853ee7a6125058c4738f86c812f",
+  "tooling_commit": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2515 (branch issue-2515, base origin/develop c37655eb0); go1.27.4; postgres via backend/.env (test template clone); fixtures force sites.id != sites.org_id != tenant_id and instA.current_site_id=bID; scripts/verify-2515.sh r1-r6 under host heavy-lock",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2515.sh r1 > docs/evidence/2515/R1-site-scope.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2515/R1-site-scope.txt"
+      ],
+      "assert": "exit 0；grep -q '^R1_OK$' 且 grep -q 'CROSS_SITE_LEAK=0'",
+      "actual": "PASS：R1_OK；SITE_A_IDS=[recA]（仅 A 站记录）、CROSS_SITE_LEAK=0、OLD_PREDICATE_LEAK=2（旧 tenant-only 谓词在同夹具下返回 2 条，红条件可复现）、RED_CONFIRMED=1",
+      "expected": "SITE_A_IDS=[recA]、OLD_PREDICATE_LEAK=2、RED_CONFIRMED=1",
+      "negative": "返回含 recB（泄漏未修）→ R1_FAIL 且非 0 退出",
+      "negative_result": "若返回含 recB（旧谓词未修），CROSS_SITE_LEAK=1 且 SITE_A_IDS 含两条 → 断言失败且脚本非 0；OLD_PREDICATE_LEAK 同时锁住「红条件确实可复现」",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2515.sh r2 > docs/evidence/2515/R2-merchant-wide.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2515/R2-merchant-wide.txt"
+      ],
+      "assert": "exit 0；grep -q '^R2_OK$' 且 grep -q 'MERCHANT_SEES=2'",
+      "actual": "PASS：R2_OK；MERCHANT_SEES=2、PLATFORM_SEES=2（商户 tid==oid 与 NAMESPACE_ADMIN 均见 recA+recB，未过度收敛）",
+      "expected": "PLATFORM_SEES=2 且商户/平台均见 recA+recB",
+      "negative": "商户账号看到 1 条（过度收敛）→ R2_FAIL 且非 0 退出",
+      "negative_result": "商户/平台只看到 1 条 → MERCHANT_SEES/PLATFORM_SEES≠2 失败（防止把视角收敛成网点口径）",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2515.sh r3 > docs/evidence/2515/R3-multisite.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2515/R3-multisite.txt"
+      ],
+      "assert": "exit 0；grep -q '^R3_OK$' 且 grep -q 'MULTISITE_SEES=2'",
+      "actual": "PASS：R3_OK；MULTISITE_SEES=2（同一用户两条 site_members 时见 A、B 两站记录，#1911 语义不回归）",
+      "expected": "多站点员工见全部所属站点记录",
+      "negative": "只见 1 条（#1911 语义退化）→ R3_FAIL 且非 0 退出",
+      "negative_result": "多站点员工只见 1 条 → MULTISITE_SEES≠2 失败（#1911 语义退化）",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2515.sh r4 > docs/evidence/2515/R4-negative.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2515/R4-negative.txt"
+      ],
+      "assert": "exit 0；grep -q '^R4_OK$' 且 grep -q 'CROSS_INSTRUMENT_ROWS=0'",
+      "actual": "PASS：R4_OK；CROSS_INSTRUMENT_ROWS=0（网点 A 指名 B 站乐器返回空）、SAME_SITE_ROWS=1、DRIFT_SCOPE=1（instA.current_site_id 指向 B 站时同站查询仍返回记录，证明未使用 current_site_id）",
+      "expected": "DRIFT_SCOPE=0、SAME_SITE_ROWS=1",
+      "negative": "跨站指名返回 >0 条，或新过滤引用 current_site_id → R4_FAIL 且非 0 退出",
+      "negative_result": "跨站指名返回 >0 条 → CROSS_INSTRUMENT_ROWS≠0；若过滤改用 current_site_id，SAME_SITE_ROWS=0/DRIFT_SCOPE=0",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2515.sh r5 > docs/evidence/2515/R5-regression.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2515/R5-regression.txt"
+      ],
+      "assert": "exit 0；grep -q '^R5_OK$' 且 grep -q 'FAIL_COUNT=0'",
+      "actual": "PASS：R5_OK；REGRESSION_PASS=1、FAIL_COUNT=0（既有 TestInstrumentLoss_* 套件全绿，含结算链路 LS-03/03a/03b/05/06）",
+      "expected": "REGRESSION_PASS=1、既有结算用例全绿",
+      "negative": "任一既有用例 FAIL → R5_FAIL 且非 0 退出",
+      "negative_result": "既有丢失用例任一 FAIL → FAIL_COUNT>0、REGRESSION_PASS=0，脚本非 0",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2515.sh r6 > docs/evidence/2515/R6-build-scan.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2515/R6-build-scan.txt"
+      ],
+      "assert": "exit 0；grep -q '^R6_OK$' 且 grep -q 'BUILD_RC=0'",
+      "actual": "PASS：R6_OK；BUILD_RC=0、LIST_TENANT_ONLY=0（List 已无 tenant-only 查询）、LIST_USES_SHARED_SCOPE=1（调用 applyInstrumentListScope）、ROLE_GATE_PARITY=1（site_admin/site_member 同一角色集合）、CURRENT_SITE_ID_IN_LIST=0（函数体非注释行不含 current_site_id）",
+      "expected": "LIST_USES_SHARED_SCOPE=1、ROLE_GATE_PARITY=1、CURRENT_SITE_ID_IN_LIST=0、LIST_TENANT_ONLY=0",
+      "negative": "构建失败或 List 仍为 tenant-only → R6_FAIL 且非 0 退出",
+      "negative_result": "构建失败或 List 退回 tenant-only / 漏角色分支 / 引用 current_site_id → 对应 token 不匹配",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "~/.config/opencode/scripts/pre-ready-check.sh 2515 --summary-file docs/evidence/2515/summary.md --changed-files docs/evidence/2515/changed-files.txt --evidence-file docs/evidence/2515/evidence.json --affected-cmd \"bash scripts/verify-2515.sh r5\" --full-gate-cmd \"bash scripts/verify-2515.sh gate\" --report docs/evidence/2515/pre-ready-2515.json",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2515/pre-ready-2515.json"
+      ],
+      "assert": "exit 0；GATE_RESULT=PASS，jq -e '.result == \"PASS\"'，evidence 每行 pass=true",
+      "actual": "PASS：GATE_RESULT=PASS（见 docs/evidence/2515/pre-ready-2515.json：P1/P2/P3/P4/P12/P14/P17/P5/P6/P11/P13 全 PASS，evidence 每行 pass=true、dirty=false）",
+      "expected": "dirty=false、P13 提交在 origin/issue-2515、P12 无缺行",
+      "negative": "任一 P 项失败 / evidence 缺行 / dirty=true → gate 非 0，禁止 ready",
+      "negative_result": "任一 P 项失败、evidence 缺行或 dirty=true → gate 非 0，不得 ready",
+      "pass": true
+    }
+  ]
+}

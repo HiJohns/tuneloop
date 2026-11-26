@@ -1,0 +1,6 @@
+backend/handlers/instrument_loss.go
+backend/handlers/instrument_loss_2515_test.go
+docs/cases/instrument-loss.md
+docs/evidence/2515/plan.md
+docs/spec/api/api.md
+scripts/verify-2515.sh

@@ -1,0 +1,11 @@
+# build=1.0.254dbaecf # commit=254dbaecf76bfc0b506ebf2c6a4f7af037b0b484 # dirty=false
+# R6 go build ./... + List 同类扫描
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795690710421 wait_ms=72
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=72
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795690727134 hold_ms=16713
+BUILD_RC=0
+LIST_TENANT_ONLY=0
+LIST_USES_SHARED_SCOPE=1
+ROLE_GATE_PARITY=1
+CURRENT_SITE_ID_IN_LIST=0
+R6_OK

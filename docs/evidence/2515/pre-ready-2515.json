@@ -1,0 +1,106 @@
+{
+  "issue": 2515,
+  "overall": "FAIL",
+  "plan": "/tmp/opencode/tuneloop/wt-2515/tmp/pre-ready-2515.jI7syn/plan.md",
+  "plan_sha256": "c3d4ae2062fd45928e866898e1dfc00e06852853ee7a6125058c4738f86c812f",
+  "config_sha": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
+  "provenance": {
+    "build": "1.0.a5980e4fe",
+    "commit": "a5980e4fe195555b968e9c97278e0290bf7d3302",
+    "dirty": false
+  },
+  "summary": "docs/evidence/2515/summary.md",
+  "timestamp": "20261126-105548",
+  "checks": [
+    {
+      "id": "P1",
+      "status": "PASS",
+      "detail": "plan has Verification Matrix / Input Truth & Tool Preflight / Decision Lock / Out of Scope"
+    },
+    {
+      "id": "P2",
+      "status": "PASS",
+      "detail": "Work Summary covers all 7 matrix rows with PASS/N/A"
+    },
+    {
+      "id": "P3",
+      "status": "FAIL",
+      "detail": "evidence paths do not exist: docs/evidence/2515/pre-ready-2515.json instA.current_site_id instrument_loss.go instruments.site_id"
+    },
+    {
+      "id": "P4",
+      "status": "PASS",
+      "detail": "all 1 affected command(s) passed"
+    },
+    {
+      "id": "P12",
+      "status": "FAIL",
+      "detail": "R7: artifact not found: docs/evidence/2515/pre-ready-2515.json"
+    },
+    {
+      "id": "P14",
+      "status": "FAIL",
+      "detail": "provenance mismatch build: artifact=1.0.52620d9db evidence=1.0.a5980e4fe (docs/evidence/2515/R5-regression.txt)"
+    },
+    {
+      "id": "P18",
+      "status": "PASS",
+      "detail": "tooling_commit matches the running scripts (a017a25d46fec75ebb30fd9e19eb220c51fb166a)"
+    },
+    {
+      "id": "P15",
+      "status": "N/A",
+      "detail": "no batch gate reference in the plan"
+    },
+    {
+      "id": "P16",
+      "status": "N/A",
+      "detail": "no UI render rows in the plan"
+    },
+    {
+      "id": "P17",
+      "status": "PASS",
+      "detail": "plan snapshot and Accepted Plan comment match the gated plan"
+    },
+    {
+      "id": "P5",
+      "status": "N/A",
+      "detail": "skipped: P12/P14/P15/P16 static checks failed (static checks run first)"
+    },
+    {
+      "id": "P6",
+      "status": "PASS",
+      "detail": "all changed files are declared in the Accepted Plan"
+    },
+    {
+      "id": "P7",
+      "status": "PASS",
+      "detail": "contract three-way section present"
+    },
+    {
+      "id": "P8",
+      "status": "N/A",
+      "detail": "no panel/clarify files changed"
+    },
+    {
+      "id": "P9",
+      "status": "PASS",
+      "detail": "build provenance verified for 1 version(s)"
+    },
+    {
+      "id": "P10",
+      "status": "N/A",
+      "detail": "no aiaudit reference"
+    },
+    {
+      "id": "P11",
+      "status": "PASS",
+      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /tmp/opencode/tuneloop/wt-2515; worktree guard: PASS isolated worktree=/tmp/opencode/tuneloop/wt-2515"
+    },
+    {
+      "id": "P13",
+      "status": "FAIL",
+      "detail": "artifacts not on origin/issue-2515: docs/evidence/2515/pre-ready-2515.json"
+    }
+  ]
+}
