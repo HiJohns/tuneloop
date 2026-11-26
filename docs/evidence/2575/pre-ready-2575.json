@@ -1,0 +1,106 @@
+{
+  "issue": 2575,
+  "overall": "FAIL",
+  "plan": "docs/evidence/2575/plan.md",
+  "plan_sha256": "d087bfc25c7d713d1fafd59cb1ef2745cb6177672498f5b78fa6d5a24a366f29",
+  "config_sha": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
+  "provenance": {
+    "build": "1.0.bc778f5e3",
+    "commit": "bc778f5e33f4e5f7c9adb3f0e27ce4c9531fab88",
+    "dirty": false
+  },
+  "summary": "docs/evidence/2575/summary.md",
+  "timestamp": "20261126-184956",
+  "checks": [
+    {
+      "id": "P1",
+      "status": "PASS",
+      "detail": "plan has Verification Matrix / Input Truth & Tool Preflight / Decision Lock / Out of Scope"
+    },
+    {
+      "id": "P2",
+      "status": "PASS",
+      "detail": "Work Summary covers all 4 matrix rows with PASS/N/A"
+    },
+    {
+      "id": "P3",
+      "status": "FAIL",
+      "detail": "evidence paths do not exist: db.Save(&session)"
+    },
+    {
+      "id": "P4",
+      "status": "WARN",
+      "detail": "no --affected-cmd supplied; affected-package tests were not run"
+    },
+    {
+      "id": "P12",
+      "status": "PASS",
+      "detail": "Evidence Contract complete: 4 row(s) match the plan and have durable artifacts"
+    },
+    {
+      "id": "P14",
+      "status": "PASS",
+      "detail": "artifact provenance matches evidence (4 artifacts)"
+    },
+    {
+      "id": "P18",
+      "status": "WARN",
+      "detail": "tooling_commit missing (legacy bundle); config_sha=a017a25d46fec75ebb30fd9e19eb220c51fb166a"
+    },
+    {
+      "id": "P15",
+      "status": "N/A",
+      "detail": "no batch gate reference in the plan"
+    },
+    {
+      "id": "P16",
+      "status": "N/A",
+      "detail": "no UI render rows in the plan"
+    },
+    {
+      "id": "P17",
+      "status": "PASS",
+      "detail": "plan snapshot and Accepted Plan comment match the gated plan"
+    },
+    {
+      "id": "P5",
+      "status": "N/A",
+      "detail": "full gate explicitly skipped with recorded reason"
+    },
+    {
+      "id": "P6",
+      "status": "PASS",
+      "detail": "all changed files are declared in the Accepted Plan"
+    },
+    {
+      "id": "P7",
+      "status": "FAIL",
+      "detail": "contract-affecting change requires '### 契约三向核对' (Plan/API, docs, handler/frontend)"
+    },
+    {
+      "id": "P8",
+      "status": "N/A",
+      "detail": "no panel/clarify files changed"
+    },
+    {
+      "id": "P9",
+      "status": "N/A",
+      "detail": "no session/build_version/aiaudit/.rpt/.dat evidence referenced"
+    },
+    {
+      "id": "P10",
+      "status": "N/A",
+      "detail": "no aiaudit reference"
+    },
+    {
+      "id": "P11",
+      "status": "PASS",
+      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /home/coder/worktrees/tuneloop/wt-2575; worktree guard: PASS isolated worktree=/home/coder/worktrees/tuneloop/wt-2575"
+    },
+    {
+      "id": "P13",
+      "status": "FAIL",
+      "detail": "remote ref not found: origin/issue-2575"
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+backend/handlers/confirmation_session.go
+backend/handlers/confirmation_session_reject_2575_test.go
+docs/spec/api/api.md
+scripts/verify-2575.sh

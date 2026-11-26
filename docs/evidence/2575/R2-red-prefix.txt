@@ -1,0 +1,115 @@
+# build=1.0.bc778f5e3 # commit=bc778f5e33f4e5f7c9adb3f0e27ce4c9531fab88 # dirty=true
+# note: red run — backend/handlers/confirmation_session.go restored from bc778f5e3^ (pre-fix) for this run only; fix commit untouched.
+# cmd: go test ./handlers -run "TestRejectConfirmationSession_2575|TestIAMCallbackReject_2575" -count=1 -v
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 at_ms=1795718890924 wait_ms=235
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 wait_ms=235
+[WARNING] No .env file found in common paths
+2026/11/26 18:48:26 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/26 18:48:27 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/26 18:48:28 [DB] Connected to database 'tuneloop_test_local'
+=== RUN   TestRejectConfirmationSession_2575
+=== RUN   TestRejectConfirmationSession_2575/waiting_stays_rejectable
+    confirmation_session_reject_2575_test.go:148: CASE_WAITING=20000
+    confirmation_session_reject_2575_test.go:149: CASE_WAITING_STATUS=rejected
+=== RUN   TestRejectConfirmationSession_2575/confirmed_is_not_rejectable
+    confirmation_session_reject_2575_test.go:157: 
+        	Error Trace:	/home/coder/worktrees/tuneloop/wt-2575/backend/handlers/confirmation_session_reject_2575_test.go:157
+        	Error:      	Not equal: 
+        	            	expected: 409
+        	            	actual  : 200
+        	Test:       	TestRejectConfirmationSession_2575/confirmed_is_not_rejectable
+=== RUN   TestRejectConfirmationSession_2575/expired_is_rejected_with_40002
+    confirmation_session_reject_2575_test.go:172: 
+        	Error Trace:	/home/coder/worktrees/tuneloop/wt-2575/backend/handlers/confirmation_session_reject_2575_test.go:172
+        	Error:      	Not equal: 
+        	            	expected: 400
+        	            	actual  : 200
+        	Test:       	TestRejectConfirmationSession_2575/expired_is_rejected_with_40002
+=== RUN   TestRejectConfirmationSession_2575/rejected_is_idempotent
+    confirmation_session_reject_2575_test.go:193: CASE_REJECTED_IDEMPOTENT=1
+=== RUN   TestRejectConfirmationSession_2575/failed_is_not_rejectable
+    confirmation_session_reject_2575_test.go:201: 
+        	Error Trace:	/home/coder/worktrees/tuneloop/wt-2575/backend/handlers/confirmation_session_reject_2575_test.go:201
+        	Error:      	Not equal: 
+        	            	expected: 409
+        	            	actual  : 200
+        	Test:       	TestRejectConfirmationSession_2575/failed_is_not_rejectable
+=== RUN   TestRejectConfirmationSession_2575/wrong_token_is_404
+
+2026/11/26 18:48:28 [31;1m/home/coder/worktrees/tuneloop/wt-2575/backend/handlers/confirmation_session.go:234 [35;1mrecord not found
+[0m[33m[0.651ms] [34;1m[rows:0][0m SELECT * FROM "confirmation_sessions" WHERE id = '8310953d-c3c9-4095-9dda-228db7e6c2be' AND tenant_id = '11111111-1111-1111-1111-111111111111' AND token = 'token-does-not-match' ORDER BY "confirmation_sessions"."id" LIMIT 1
+    confirmation_session_reject_2575_test.go:219: CASE_BAD_TOKEN=404
+=== RUN   TestRejectConfirmationSession_2575/no_action_executed_for_guarded_sessions
+    confirmation_session_reject_2575_test.go:236: NO_ACTION_EXECUTED=1
+--- FAIL: TestRejectConfirmationSession_2575 (0.08s)
+    --- PASS: TestRejectConfirmationSession_2575/waiting_stays_rejectable (0.02s)
+    --- FAIL: TestRejectConfirmationSession_2575/confirmed_is_not_rejectable (0.01s)
+    --- FAIL: TestRejectConfirmationSession_2575/expired_is_rejected_with_40002 (0.01s)
+    --- PASS: TestRejectConfirmationSession_2575/rejected_is_idempotent (0.01s)
+    --- FAIL: TestRejectConfirmationSession_2575/failed_is_not_rejectable (0.01s)
+    --- PASS: TestRejectConfirmationSession_2575/wrong_token_is_404 (0.01s)
+    --- PASS: TestRejectConfirmationSession_2575/no_action_executed_for_guarded_sessions (0.00s)
+=== RUN   TestIAMCallbackReject_2575
+=== RUN   TestIAMCallbackReject_2575/confirmed_session_is_not_flipped
+2026/11/26 18:48:28 [IAMCallback] Received callback: session=89a67842-cfa0-4f51-bde9-7064e0afcb2d, result=reject, confirm_type=
+2026/11/26 18:48:28 [IAMCallback] Session 89a67842-cfa0-4f51-bde9-7064e0afcb2d rejected
+    confirmation_session_reject_2575_test.go:250: 
+        	Error Trace:	/home/coder/worktrees/tuneloop/wt-2575/backend/handlers/confirmation_session_reject_2575_test.go:250
+        	Error:      	"/confirmation-result?status=rejected&action=site_staff" does not contain "status=error"
+        	Test:       	TestIAMCallbackReject_2575/confirmed_session_is_not_flipped
+    confirmation_session_reject_2575_test.go:251: 
+        	Error Trace:	/home/coder/worktrees/tuneloop/wt-2575/backend/handlers/confirmation_session_reject_2575_test.go:251
+        	Error:      	"/confirmation-result?status=rejected&action=site_staff" does not contain "message=already_confirmed"
+        	Test:       	TestIAMCallbackReject_2575/confirmed_session_is_not_flipped
+    confirmation_session_reject_2575_test.go:254: 
+        	Error Trace:	/home/coder/worktrees/tuneloop/wt-2575/backend/handlers/confirmation_session_reject_2575_test.go:254
+        	Error:      	Not equal: 
+        	            	expected: "confirmed"
+        	            	actual  : "rejected"
+        	            	
+        	            	Diff:
+        	            	--- Expected
+        	            	+++ Actual
+        	            	@@ -1 +1 @@
+        	            	-confirmed
+        	            	+rejected
+        	Test:       	TestIAMCallbackReject_2575/confirmed_session_is_not_flipped
+    confirmation_session_reject_2575_test.go:255: CB_CONFIRMED=already_confirmed
+    confirmation_session_reject_2575_test.go:256: CB_CONFIRMED_STATUS=rejected
+=== RUN   TestIAMCallbackReject_2575/waiting_session_is_rejected
+2026/11/26 18:48:28 [IAMCallback] Received callback: session=76444e33-fcf5-47fd-9111-64054b5e02b5, result=reject, confirm_type=
+2026/11/26 18:48:28 [IAMCallback] Session 76444e33-fcf5-47fd-9111-64054b5e02b5 rejected
+    confirmation_session_reject_2575_test.go:268: CB_WAITING_STATUS=rejected
+=== RUN   TestIAMCallbackReject_2575/failed_session_is_not_rejectable
+2026/11/26 18:48:28 [IAMCallback] Received callback: session=927e8e6a-0b23-4897-8a8b-7ae95944c29d, result=reject, confirm_type=
+2026/11/26 18:48:28 [IAMCallback] Session 927e8e6a-0b23-4897-8a8b-7ae95944c29d rejected
+    confirmation_session_reject_2575_test.go:276: 
+        	Error Trace:	/home/coder/worktrees/tuneloop/wt-2575/backend/handlers/confirmation_session_reject_2575_test.go:276
+        	Error:      	"/confirmation-result?status=rejected&action=site_staff" does not contain "message=not_rejectable"
+        	Test:       	TestIAMCallbackReject_2575/failed_session_is_not_rejectable
+    confirmation_session_reject_2575_test.go:279: 
+        	Error Trace:	/home/coder/worktrees/tuneloop/wt-2575/backend/handlers/confirmation_session_reject_2575_test.go:279
+        	Error:      	Not equal: 
+        	            	expected: "failed"
+        	            	actual  : "rejected"
+        	            	
+        	            	Diff:
+        	            	--- Expected
+        	            	+++ Actual
+        	            	@@ -1 +1 @@
+        	            	-failed
+        	            	+rejected
+        	Test:       	TestIAMCallbackReject_2575/failed_session_is_not_rejectable
+    confirmation_session_reject_2575_test.go:280: 
+        	Error Trace:	/home/coder/worktrees/tuneloop/wt-2575/backend/handlers/confirmation_session_reject_2575_test.go:280
+        	Error:      	Should be true
+        	Test:       	TestIAMCallbackReject_2575/failed_session_is_not_rejectable
+    confirmation_session_reject_2575_test.go:281: CB_FAILED=not_rejectable
+--- FAIL: TestIAMCallbackReject_2575 (0.05s)
+    --- FAIL: TestIAMCallbackReject_2575/confirmed_session_is_not_flipped (0.01s)
+    --- PASS: TestIAMCallbackReject_2575/waiting_session_is_rejected (0.01s)
+    --- FAIL: TestIAMCallbackReject_2575/failed_session_is_not_rejectable (0.01s)
+FAIL
+FAIL	tuneloop-backend/handlers	1.672s
+FAIL
+[heavy-lock] released scope=host slot=0 rc=1 at_ms=1795718908717 hold_ms=17793
