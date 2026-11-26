@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # #2540 verification harness — one subcommand per Evidence Contract row.
 #
-#   bash scripts/verify-2540.sh r1   # 激活：关系角色 + 权限模板同源（site_member/site_admin/legacy/customer/unknown）
+#   bash scripts/verify-2540.sh r1   # 激活：关系角色 + 权限模板同源（site_member/site_admin/legacy/customer/unknown/platform）
 #   bash scripts/verify-2540.sh r2   # 批量导入：关系角色经映射 + 白名单兜底
 #   bash scripts/verify-2540.sh r3   # 静态：不得再把业务角色当 IAM 关系角色 / 不得硬编码 site_member 模板
 #   bash scripts/verify-2540.sh r4   # 文档：activate + 批量导入 + 商户管理员 OWNER 口径
-#   bash scripts/verify-2540.sh r5   # 构建 + 定向测试
+#   bash scripts/verify-2540.sh r5   # 构建 + 定向测试 + 全量基线差异（Rev.3 / 审计 Bug 2）
 #   bash scripts/verify-2540.sh r6   # 商户管理员确认：绑定 OWNER
 #
 # Capture a row into its artifact:
@@ -67,7 +67,7 @@ run_row() { # package test-name expected-token...
   # 必须在本层检查 rc：函数内 fail 的 stderr 会随重定向落入临时文件而丢失。
   ( cd backend && heavy go test "$pkg" -run "${name}" -count=1 -v ) > "$out" 2>&1
   local rc=$?
-  grep -E '^(MEMBER_|ADMIN_|LEGACY_|CUSTOMER_|UNKNOWN_|ILLEGAL_|PERM_|CUS_|BIND_|BUSINESS_|NON_|ROLE_TEMPLATE_)' "$out" || true
+  grep -E '^(MEMBER_|ADMIN_|LEGACY_|CUSTOMER_|UNKNOWN_|PLATFORM_|ILLEGAL_|PERM_|CUS_|BIND_|BUSINESS_|NON_|ROLE_TEMPLATE_)' "$out" || true
   grep -E '^--- (PASS|FAIL)' "$out" || true
   if [ "$rc" -ne 0 ]; then
     echo "--- go test output (tail) ---"
@@ -99,6 +99,8 @@ case "$ROW" in
       "LEGACY_ROLE_TEMPLATE=site_member" \
       "CUSTOMER_BIND_ROLE=STAFF" \
       "UNKNOWN_BIND_ROLE=STAFF" \
+      "PLATFORM_BIND_ROLE=STAFF" \
+      "PLATFORM_ROLE_TEMPLATE=site_member" \
       "ILLEGAL_ROLE_COUNT=0" \
       "ILLEGAL_TEMPLATE_COUNT=0" \
       "ADMIN_PERM_TEMPLATE=site_admin" \
@@ -167,7 +169,7 @@ case "$ROW" in
     [ -f "$DOC" ] || fail "missing $DOC"
     DOC_TOIAMROLE=$(grep -c 'ToIAMRole' "$DOC" || true)
     DOC_STAFF_FALLBACK=$(grep -c 'NormalizeIAMRelationRole' "$DOC" || true)
-    DOC_ACTIVATE_SECTION=$(grep -c '^#### 10.18.6 激活员工' "$DOC" || true)
+    DOC_ACTIVATE_SECTION=$(grep -cE '^#### 10\.18\.[0-9]+ 激活员工' "$DOC" || true)
     DOC_MERCHANT_OWNER=$(grep -c '商户管理员.*OWNER' "$DOC" || true)
     DOC_ROLE_TEMPLATE=$(grep -c '功能角色模板 | 同样来自' "$DOC" || true)
     echo "DOC_TOIAMROLE=${DOC_TOIAMROLE}"
@@ -184,7 +186,7 @@ case "$ROW" in
     ;;
 
   r5)
-    echo "== R5 构建 + 定向测试 =="
+    echo "== R5 构建 + 定向测试 + 全量基线差异 =="
     BUILD_OUT="$(mktemp)"
     ( cd backend && heavy go build ./... ) > "$BUILD_OUT" 2>&1
     BUILD_RC=$?
@@ -207,6 +209,61 @@ case "$ROW" in
     echo "BUILD_OK=${BUILD_OK}"
     [ "$BUILD_OK" = "1" ] || fail "go build ./... 失败"
     [ "$GO_TEST_OK" = "1" ] || fail "定向测试失败"
+
+    # Rev.3 / 审计 Bug 2：仓库根无 go.mod → pre-ready P5 判 N/A；本行改用
+    # 「全量 go test ./... 相对基线（origin/develop）的失败集差异」证明未引入新增失败。
+    # 基线里同集失败属测试集群环境耦合（缺迁移/共享库），不属本单范围。
+    BASELINE_REF="${BASELINE_REF:-origin/develop}"
+    BASELINE_DIR="$ROOT/tmp/full-gate-baseline"
+    cleanup_baseline() {
+      if git -C "$ROOT" worktree list --porcelain | grep -qx "worktree ${BASELINE_DIR}"; then
+        git -C "$ROOT" worktree remove --force "$BASELINE_DIR" >/dev/null 2>&1 || true
+      fi
+      rm -rf "$BASELINE_DIR"
+    }
+    trap cleanup_baseline EXIT
+    cleanup_baseline
+    git -C "$ROOT" worktree add --detach "$BASELINE_DIR" "$BASELINE_REF" >/dev/null 2>&1 \
+      || fail "无法创建基线 worktree（${BASELINE_REF}）；用 BASELINE_REF=<ref> 覆盖"
+    BASELINE_SHA="$(git -C "$ROOT" rev-parse "${BASELINE_REF}^{commit}")"
+
+    # go test -json：按 (package, test) 归一化失败身份，避免只数条数。
+    extract_failures() {
+      grep '^{' "$1" | jq -r 'select(.Action == "fail") | "\(.Package)::\(.Test // "PKG")"' | LC_ALL=C sort -u
+    }
+
+    FULL_GATE_OUT="$(mktemp)"
+    ( cd backend && heavy go test -json ./... -count=1 ) > "$FULL_GATE_OUT" 2>&1
+    FULL_GATE_EXIT=$?
+    CURRENT_FAILURES="$(mktemp)"
+    extract_failures "$FULL_GATE_OUT" > "$CURRENT_FAILURES"
+
+    BASE_GATE_OUT="$(mktemp)"
+    ( cd "$BASELINE_DIR/backend" && heavy go test -json ./... -count=1 ) > "$BASE_GATE_OUT" 2>&1
+    BASELINE_GATE_EXIT=$?
+    BASELINE_FAILURES="$(mktemp)"
+    extract_failures "$BASE_GATE_OUT" > "$BASELINE_FAILURES"
+
+    NEW_FAILURES="$(mktemp)"
+    LC_ALL=C comm -13 "$BASELINE_FAILURES" "$CURRENT_FAILURES" > "$NEW_FAILURES"
+    NEW_COUNT="$(wc -l < "$NEW_FAILURES" | tr -d ' ')"
+
+    echo "BASELINE_REF=${BASELINE_REF}"
+    echo "BASELINE_SHA=${BASELINE_SHA}"
+    echo "BASELINE_GATE_EXIT=${BASELINE_GATE_EXIT}"
+    echo "FULL_GATE_EXIT=${FULL_GATE_EXIT}"
+    echo "FULL_GATE_CURRENT_FAILURES=$(wc -l < "$CURRENT_FAILURES" | tr -d ' ')"
+    echo "FULL_GATE_BASELINE_FAILURES=$(wc -l < "$BASELINE_FAILURES" | tr -d ' ')"
+    echo "FULL_GATE_NEW_FAILURES=${NEW_COUNT}"
+    if [ -s "$NEW_FAILURES" ]; then
+      echo "--- 新增失败（基线中没有，本单引入） ---"
+      cat "$NEW_FAILURES"
+    fi
+    rm -f "$FULL_GATE_OUT" "$BASE_GATE_OUT" "$CURRENT_FAILURES" "$BASELINE_FAILURES" "$NEW_FAILURES"
+
+    # 计划 R5 登记 FULL_GATE_EXIT=1（既有环境耦合失败）；全绿使该口径失真 → 回 Architect。
+    [ "$FULL_GATE_EXIT" = "1" ] || fail "全量 gate 退出码与计划登记值不一致（计划 FULL_GATE_EXIT=1，实际 ${FULL_GATE_EXIT}）→ 回 Architect 更新 R5"
+    [ "$NEW_COUNT" = "0" ] || fail "全量 gate 出现 ${NEW_COUNT} 个基线中不存在的失败（见上）"
     echo "R5_OK"
     ;;
 

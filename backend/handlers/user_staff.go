@@ -602,17 +602,26 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	})
 }
 
-// resolveActivationRoleTemplate 返回激活时使用的业务角色模板码：
-// 仅采用**员工**角色模板（`services.AllRoleTemplates` 命中且不是 `customer`）；
-// 空/非法/客户 → "site_member"（legacy 兜底）。
+// activationRoleTemplates 是激活路径允许采纳的**员工级**角色模板（#2540 D2 / Rev.3）。
 //
-// 纯函数，便于脱 DB 单测（#2540）。
+// 员工激活产出的 IAM 关系角色只有 OWNER/ADMIN/STAFF/repair_technician 四种语义，
+// 因此模板必须同属员工层：平台级模板（`namespace_admin` / `sys_admin`）、商户级
+// （`merchant_admin`）与顾客（`customer`）不参与员工激活——把平台模板与员工关系
+// 角色混搭会让权限面与组织位置不一致。白名单是 `services.AllRoleTemplates` 的
+// 真子集，未知码同样落空。
+var activationRoleTemplates = map[string]struct{}{
+	"site_admin":        {},
+	"site_member":       {},
+	"merchant_staff":    {},
+	"repair_technician": {},
+}
+
+// resolveActivationRoleTemplate 返回激活时使用的业务角色模板码：
+// 仅采用**员工级**白名单内的模板；空/非法/平台级/商户级/客户 → "site_member"
+// （legacy 兜底）。纯函数，便于脱 DB 单测（#2540）。
 func resolveActivationRoleTemplate(userRole string) string {
 	role := strings.TrimSpace(userRole)
-	if role == "" || role == "customer" {
-		return "site_member"
-	}
-	if _, ok := services.AllRoleTemplates[role]; ok {
+	if _, ok := activationRoleTemplates[role]; ok {
 		return role
 	}
 	return "site_member"

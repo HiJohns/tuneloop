@@ -258,6 +258,8 @@ func TestActivateUser2540_RoleMapping(t *testing.T) {
 		// customer 不是员工模板（激活只针对员工行）→ legacy 兜底 site_member。
 		{"customer", "customer", services.IAMRoleStaff, "site_member", "CUSTOMER_BIND_ROLE=STAFF", "CUSTOMER_ROLE_TEMPLATE"},
 		{"unknown", "tenant_admin", services.IAMRoleStaff, "site_member", "UNKNOWN_BIND_ROLE=STAFF", "UNKNOWN_ROLE_TEMPLATE"},
+		// Rev.3 D2：平台级模板不得进入员工激活（否则平台模板与员工关系角色语义混搭）。
+		{"platform_namespace_admin", "namespace_admin", services.IAMRoleStaff, "site_member", "PLATFORM_BIND_ROLE=STAFF", "PLATFORM_ROLE_TEMPLATE"},
 	}
 
 	for _, tc := range cases {
@@ -327,10 +329,10 @@ func TestActivateUser2540_RoleMapping(t *testing.T) {
 	fmt.Printf("PERM_TEMPLATE=site_member\n")
 	fmt.Printf("CUS_PERM_MATCH=1\n")
 
-	// 模板分配与权限位逐条同源（顺序：site_member、site_admin、legacy、customer、unknown）。
+	// 模板分配与权限位逐条同源（顺序：site_member、site_admin、legacy、customer、unknown、platform）。
 	assigns := f.assignCalls()
-	require.Len(t, assigns, 5)
-	wantTemplates := []string{"site_member", "site_admin", "site_member", "site_member", "site_member"}
+	require.Len(t, assigns, 6)
+	wantTemplates := []string{"site_member", "site_admin", "site_member", "site_member", "site_member", "site_member"}
 	mismatch := 0
 	for i, wantCode := range wantTemplates {
 		if assigns[i].TemplateCode != wantCode {
@@ -341,18 +343,22 @@ func TestActivateUser2540_RoleMapping(t *testing.T) {
 	assert.Zero(t, mismatch, "功能角色模板必须逐条等于权限位所用模板")
 }
 
-// 纯函数：激活角色模板解析（空/非法/顾客 → legacy site_member）。
+// 纯函数：激活角色模板解析（空/非法/平台级/商户级/顾客 → legacy site_member）。
 func TestResolveActivationRoleTemplate2540(t *testing.T) {
 	cases := map[string]string{
+		// 员工级白名单（Rev.3 D2）。
 		"site_member":       "site_member",
 		"site_admin":        "site_admin",
-		"merchant_admin":    "merchant_admin",
 		"merchant_staff":    "merchant_staff",
 		"repair_technician": "repair_technician",
-		"":                  "site_member",
-		"customer":          "site_member",
-		"tenant_admin":      "site_member",
-		"user":              "site_member",
+		// 平台级 / 商户级 / 顾客 / 空 / 未知 → legacy 兜底（不把非员工模板带进员工激活）。
+		"namespace_admin": "site_member",
+		"sys_admin":       "site_member",
+		"merchant_admin":  "site_member",
+		"customer":        "site_member",
+		"":                "site_member",
+		"tenant_admin":    "site_member",
+		"user":            "site_member",
 	}
 	for in, want := range cases {
 		assert.Equal(t, want, resolveActivationRoleTemplate(in), "resolveActivationRoleTemplate(%q)", in)
