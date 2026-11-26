@@ -135,6 +135,22 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | 删除 / 批量删除 | `instrument:delete` | |
 | 批量设价 | `RequireRole(ADMIN/OWNER/site_admin)` | 管理员专属 |
 | 导出 / 批量导入 | `instrument:read` / `instrument:create` | |
+
+**乐器数据进/出 端点-权限对照（#2586，权威口径）**
+
+| 端点 | 方法 | 所需 cus_perm |
+|------|------|---------------|
+| `/api/instruments`（列表） | GET | `instrument:read` |
+| `/api/instruments/export` | GET | `instrument:read` |
+| `/api/instruments/import` | POST | `instrument:create` |
+| `/api/instruments/import/template` | GET | `instrument:create` |
+| `/api/instruments/batch-import/template` | GET | `instrument:create` |
+| `/api/instruments/batch-import` | POST | `instrument:create` |
+| `/api/instruments/batch-import/preview` | POST | `instrument:create` |
+
+> 守卫统一挂在路由层（`backend/main.go`），handler 内不复制判定（单一 owner）。`cus_perm = 0`（legacy JWT）
+> 沿用既有 pass-through；`system_admin` / `platform_staff` 由 #1964 放行。乐器**只读子端点**
+> （`filter-options` / `check` / `:id/photos/latest` / `:id/media` / `:id/activity-log` / `:id/pricing` 等）的守卫另立 #2587。
 | 字段「估值」可见 | 管理员 / 商户管理员 | 员工隐藏 |
 | 状态范围可见增量（下架/已出售/丢失） | 管理员 | 员工默认 可用/在租/维护 |
 

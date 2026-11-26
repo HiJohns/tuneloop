@@ -618,12 +618,16 @@ export default function InstrumentList() {
         </Space>
         
         <Space>
-          <Button
-            icon={<ImportOutlined />}
-            onClick={() => navigate('/instruments/batch-import')}
-          >
-            导入
-          </Button>
+          {/* #2586：后端 POST /instruments/batch-import 需要 instrument:create；
+              入口按钮同口径门控，避免「按钮可见 → 点进去全 403」的死路（D6）。 */}
+          <PermissionGate code="instrument:create">
+            <Button
+              icon={<ImportOutlined />}
+              onClick={() => navigate('/instruments/batch-import')}
+            >
+              导入
+            </Button>
+          </PermissionGate>
           <PermissionGate code="instrument:create">
             <Button
               type="primary"

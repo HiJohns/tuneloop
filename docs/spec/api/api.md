@@ -1680,6 +1680,8 @@ GET /api/confirmation-sessions/:id
 
 **接口**: `POST /api/instruments/import`
 
+**权限**: `instrument:create`（cus_perm；无该位 → `403/40305`，见 #2586）
+
 **Content-Type**: `multipart/form-data`
 
 **表单字段**:
@@ -1751,6 +1753,8 @@ curl -X POST http://localhost:5554/api/instruments/import \  -H "Authorization: 
 
 **接口**: `GET /api/instruments/export`
 
+**权限**: `instrument:read`（cus_perm；无该位 → `403/40305`，与列表同口径，见 #2586）
+
 **查询参数**:
 - `category`: 分类筛选 (可选，按分类**名称**等值；旧参数，保留兼容)
 - `status`: 状态筛选 (可选；与 `stock_status` 同义，二者任一即可)
@@ -1783,6 +1787,12 @@ Content-Disposition: attachment; filename="instruments_1234567890.xlsx"
 **错误响应**:
 ```json
 {
+  "code": 40305,
+  "message": "insufficient customer permission"
+}
+```
+```json
+{
   "code": 40006,
   "message": "Export failed: no instruments found with given filters"
 }
@@ -1807,6 +1817,8 @@ Content-Disposition: attachment; filename="instruments_1234567890.xlsx"
 #### 5.8.3 下载导入模板
 
 **接口**: `GET /api/instruments/import/template`
+
+**权限**: `instrument:create`（导入流程子步骤；`/api/instruments/batch-import/template` 同口径，见 #2586）
 
 **请求示例**:
 ```bash

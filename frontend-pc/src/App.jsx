@@ -768,7 +768,7 @@ function onMenuClick(e) {
              <Route path="/instruments/list/add" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
              <Route path="/instruments/list/edit/:id" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
               <Route path="/instruments/detail/:id" element={<ProtectedRoute><InstrumentDetail /></ProtectedRoute>} />
-               <Route path="/instruments/batch-import" element={<ProtectedRoute><BatchImport /></ProtectedRoute>} />
+               <Route path="/instruments/batch-import" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:create'] }}><BatchImport /></ProtectedRoute>} />
                 <Route path="/instruments/:id/edit" element={<ProtectedRoute><InstrumentForm /></ProtectedRoute>} />
                 <Route path="/instruments/properties" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['attribute:manage'] }}><PropertyList /></ProtectedRoute>} />
                 <Route path="/organization/sites/bulk-import" element={<ProtectedRoute requiredPermission={{ sysPermBits: [12] }}><SiteBulkImport /></ProtectedRoute>} />
