@@ -1,0 +1,15 @@
+# build=1.0.63ede9c1 # commit=63ede9c18bd8917fb03e708fec801bc3753b247a # dirty=false
+FULL_SUITE_CMD=cd backend && go test ./... -count=1 -timeout 20m
+FULL_SUITE_EXIT=0
+FAIL_COUNT=0
+PANIC_COUNT=0
+LOG_TAIL: ok  	tuneloop-backend/service	0.017s
+LOG_TAIL: ok  	tuneloop-backend/services	2.185s
+LOG_TAIL: ok  	tuneloop-backend/services/tencentcloud	0.014s
+LOG_TAIL: ok  	tuneloop-backend/services/wechatpay	0.061s
+LOG_TAIL: ?   	tuneloop-backend/testutil	[no test files]
+LOG_TAIL: ?   	tuneloop-backend/tools/merge_duplicate_accounts	[no test files]
+LOG_TAIL: ?   	tuneloop-backend/tools/oss_smoke	[no test files]
+LOG_TAIL: [heavy-lock] released scope=host slot=0 rc=0 at_ms=1795694290224 hold_ms=676908
+RESULT: PASS
+

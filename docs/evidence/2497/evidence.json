@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
   "issue": 2497,
-  "build": "1.0.b41983e3",
-  "commit": "b41983e329cfae1a1175d371e42f1c7af218451b",
+  "build": "1.0.63ede9c1",
+  "commit": "63ede9c18bd8917fb03e708fec801bc3753b247a",
   "dirty": false,
-  "plan_sha256": "0408876224045a441e2018c6a3ee08f0e8aafd89229bf72319b34d4b982d0eaa",
-  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2497 (branch issue-2497, base origin/develop b6c6d3c41 with #2480 merged); backend go build + frontend-pc eslint/build; node --test for PC/mobile resolvers; no real IAM/production calls",
+  "plan_sha256": "c45b1133e1597decb279727136747f56d2e044012c536ce2107ed5754d631f24",
+  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2497 (branch issue-2497, base origin/develop); backend go build + full go test suite; frontend-pc eslint + npm run build; node --test dual-side resolver cases; no real IAM/production calls",
   "rows": [
     {
       "id": "R1",
@@ -15,10 +15,10 @@
         "docs/evidence/2497/R1-scan.txt"
       ],
       "assert": "exit 0；含 CJK_ERR_CONCAT=0",
-      "actual": "PASS：CJK_ERR_CONCAT=0、BASELINE_FILES=12、SCANNED_FILES=12（正则 \"message\": \"<CJK>\" + err.Error()）",
+      "actual": "PASS：CJK_ERR_CONCAT=0；目录级扫描 backend/handlers/*.go 共 SCANNED_FILES=405；基线 origin/develop 为 BASELINE_FILES=15 / BASELINE_HITS=32（D5 下限 15 文件），BASELINE_SET_COVERED=1",
       "expected": "PASS",
       "negative": "任一命中 → FAIL",
-      "negative_result": "修复前同口径扫描 CJK_ERR_CONCAT=22（12 文件）；修复后 0",
+      "negative_result": "origin/develop 同口径 15 文件 / 32 处命中；本轮返工前分支树残留 9 处（site.go×5、merchant_member.go×2、member_invite_2114.go、wechat_bind.go）→ 命中即 FAIL，目录级扫描保证新增文件也纳入判定",
       "pass": true
     },
     {
@@ -29,10 +29,10 @@
         "docs/evidence/2497/R2-logs.txt"
       ],
       "assert": "exit 0；含 LOG_PRESENT>=22 与 LOST_DETAIL=0",
-      "actual": "PASS：LOG_PRESENT=71（12 文件中 log.Printf 带 err 的调用）、LOST_DETAIL=0（无 message 仍拼接 err.Error()）",
+      "actual": "PASS：LOG_PER_SITE=32 / BASELINE_SITES=32（逐点断言，每处基线拼接点在当前树都有引用同一 error 的 log 调用）；LOST_DETAIL=0；LOG_PRESENT=375",
       "expected": "PASS",
       "negative": "缺日志 → FAIL",
-      "negative_result": "LOG_PRESENT=71 ≥ 22，LOST_DETAIL=0",
+      "negative_result": "LOST_DETAIL 由逐点覆盖计算，不由 CJK_ERR_CONCAT 推导；任一点无 log 引用同一 error → LOST_DETAIL>0 → FAIL",
       "pass": true
     },
     {
@@ -43,10 +43,10 @@
         "docs/evidence/2497/R3-5xx-guard.txt"
       ],
       "assert": "exit 0；含 LEAK=0",
-      "actual": "PASS：{code:50000,message:'标记删除失败：pq: duplicate key ...'} → PC_TEXT=服务器开小差了，请稍后再试 / PC_LAYER=code_map / MOBILE 同 / LEAK=0",
+      "actual": "PASS：{code:50000,message:'标记删除失败：pq: duplicate key …'} → PC_TEXT=服务器开小差了，请稍后再试 / PC_LAYER=code_map / MOBILE_TEXT 同 / LEAK=0",
       "expected": "PASS",
       "negative": "回显内部串 → FAIL",
-      "negative_result": "回退前端 5xx 守卫后同一 fixture：PC_LAYER=human_message、PC_TEXT 含 `pq: duplicate key ...`、LEAK=1 → FAIL；恢复后 PASS",
+      "negative_result": "回退前端 5xx 守卫后同一 fixture → PC_LAYER=human_message、文本含 `pq: duplicate key …`、LEAK=1 → FAIL；恢复后 PASS",
       "pass": true
     },
     {
@@ -60,7 +60,7 @@
       "actual": "PASS：{code:40900,message:'网点名称已存在'} → PC_TEXT=网点名称已存在 / PC_LAYER=human_message / MOBILE 同；业务码中文仍透传（#2480 不回退）",
       "expected": "PASS",
       "negative": "被替换 → FAIL",
-      "negative_result": "PASSTHROUGH=1，未被 code map 遮蔽",
+      "negative_result": "若人类文案被 code map 遮蔽则 PASSTHROUGH=0 → FAIL；实测 PASSTHROUGH=1",
       "pass": true
     },
     {
@@ -71,10 +71,10 @@
         "docs/evidence/2497/R5-parity.txt"
       ],
       "assert": "exit 0；含 PARITY=1",
-      "actual": "PASS：scripts/check-error-message-parity-2480.mjs → PARITY=1 / CASES=10 / DIFFS=0（PC 与 mobile 核心层序一致）",
+      "actual": "PASS：平价脚本 PARITY=1 / CASES=12 / DIFFS=0；5xx 双端 node --test PARITY_5XX_PASS=5 / FAIL=0 / PARITY_5XX_CASES=5；MOBILE_PROD_PATH=1",
       "expected": "PASS",
       "negative": "不一致 → FAIL",
-      "negative_result": "DIFFS=0",
+      "negative_result": "平价脚本全部 fixture < 50000 时对新守卫零覆盖（Round 1 Bug 4）→ 本行改为同时要求 ≥1 条 5xx 双端用例与 mobile 生产路径断言，缺失即 FAIL；实测 DIFFS=0、FAIL=0",
       "pass": true
     },
     {
@@ -85,10 +85,24 @@
         "docs/evidence/2497/R6-build.txt"
       ],
       "assert": "exit 0；含 BUILD_OK 与 ESLINT_OK 与 NPM_BUILD_OK",
-      "actual": "PASS：go build ./... exit 0；frontend-pc eslint（errorMessages.js + 新测试）exit 0；npm run build exit 0",
+      "actual": "PASS：go build ./... BUILD_EXIT=0；frontend-pc eslint ESLINT_EXIT=0；npm run build NPM_BUILD_EXIT=0；MOBILE_CHOKEPOINT_CALLS=1 / MOBILE_RAW_THROW=0 / MOBILE_SYNTAX_OK=1",
       "expected": "PASS",
       "negative": "任一失败 → FAIL",
-      "negative_result": "BUILD_EXIT=0 / ESLINT_EXIT=0 / NPM_BUILD_EXIT=0",
+      "negative_result": "任一 exit≠0，或 mobile api.js 仍原样抛 error.message（MOBILE_RAW_THROW=1）、或未调用 resolveErrorMessage → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2497.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2497/R7-gotest.txt"
+      ],
+      "assert": "exit 0；含 FULL_SUITE_EXIT=0 与 FAIL_COUNT=0 与 PANIC_COUNT=0",
+      "actual": "PASS：cd backend && go test ./... -count=1 -timeout 20m → FULL_SUITE_EXIT=0 / FAIL_COUNT=0 / PANIC_COUNT=0（独立 Issue，无 Parent，按 Verification Tiers 跑全量）",
+      "expected": "PASS",
+      "negative": "任一失败 → FAIL",
+      "negative_result": "任一包失败或 panic → FAIL_COUNT/PANIC_COUNT>0 → FAIL；实测全 0",
       "pass": true
     }
   ]

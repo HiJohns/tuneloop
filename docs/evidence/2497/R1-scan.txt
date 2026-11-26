@@ -1,7 +1,13 @@
-# build=1.0.b41983e3 # commit=b41983e329cfae1a1175d371e42f1c7af218451b # dirty=false
-SCAN_RE="message":\s*"[^"]*[\x{4e00}-\x{9fff}][^"]*"\s*\+\s*err\.Error\(\)
+# build=1.0.63ede9c1 # commit=63ede9c18bd8917fb03e708fec801bc3753b247a # dirty=false
+SCAN_SCOPE=backend/handlers/*.go（目录级，不硬编码文件清单）
+SCAN_RE="message":\s*"[^"]*[\x{4e00}-\x{9fff}][^"]*"\s*\+\s*[A-Za-z_][\w.]*\.Error\(\)
+BASELINE_REF=origin/develop
+BASELINE_FILES=15
+BASELINE_HITS=32
+D5_BASELINE_FILES_MIN=15
+SCANNED_FILES=405
+BASELINE_SET_COVERED=1
+BASELINE_FILE_SET=backend/handlers/invoice.go,backend/handlers/member_invite_2114.go,backend/handlers/merchant.go,backend/handlers/merchant_invoice.go,backend/handlers/merchant_member.go,backend/handlers/payscore_handler.go,backend/handlers/registration_session.go,backend/handlers/site.go,backend/handlers/site_member.go,backend/handlers/smtp_config.go,backend/handlers/transit_site_admin.go,backend/handlers/user_management.go,backend/handlers/user_staff.go,backend/handlers/webhook_config.go,backend/handlers/wechat_bind.go
 CJK_ERR_CONCAT=0
-BASELINE_FILES=12
-SCANNED_FILES=12
 RESULT: PASS
 
