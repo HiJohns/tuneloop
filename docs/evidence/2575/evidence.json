@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2575,
-  "build": "1.0.bc778f5e3",
-  "commit": "bc778f5e33f4e5f7c9adb3f0e27ce4c9531fab88",
+  "build": "1.0.061e06682",
+  "commit": "061e06682bb7644ca976f677ebe899c3f0eae2a9",
   "dirty": false,
   "plan_sha256": "d087bfc25c7d713d1fafd59cb1ef2745cb6177672498f5b78fa6d5a24a366f29",
   "environment": "isolated worktree wt-2575 (branch issue-2575, base origin/develop); backend go build + Postgres test DB (127.0.0.1:15433/tuneloop_test_local); no production calls",
@@ -15,10 +15,10 @@
         "docs/evidence/2575/R1-reject-guards.txt"
       ],
       "assert": "exit 0；grep -q '^R1_OK$'；grep -q 'GREEN_CAS_PREDICATE=1'；grep -q 'NO_SAVE_IN_REJECT_PATHS=1'",
-      "actual": "PASS：R1_OK / RED_NO_EXPIRY_GUARD=1 / RED_NO_STATUS_GUARD=1 / RED_CALLBACK_NO_GUARD=1 / GREEN_EXPIRY_GUARD=1 / GREEN_CONFIRMED_40901=1 / GREEN_IDEMPOTENT_REJECTED=1 / GREEN_CAS_PREDICATE=1 / GREEN_SINGLE_WRITE_POINT=1 / GREEN_POSTCHECK_REREAD=1 / GREEN_CALLBACK_CLASSIFY=1 / CAS_PREDICATES=2 / NO_SAVE_IN_REJECT_PATHS=1（修前 FIX^ 与修后 FIX 两版函数体切片对照）",
+      "actual": "PASS：R1_OK / RED_NO_EXPIRY_GUARD=1 / RED_NO_STATUS_GUARD=1 / RED_CALLBACK_NO_GUARD=1 / GREEN_EXPIRY_GUARD=1 / GREEN_CONFIRMED_40901=1 / GREEN_IDEMPOTENT_REJECTED=1 / GREEN_CAS_PREDICATE=1 / GREEN_SINGLE_WRITE_POINT=1 / GREEN_POSTCHECK_REREAD=1 / GREEN_CALLBACK_CLASSIFY=1 / CAS_PREDICATES=2 / NO_SAVE_IN_REJECT_PATHS=1（修前 FIX^ 与修后 FIX 两版函数体切片对照）（红样切片锚点 = 本单**首个** fix commit bc778f5e3 的父提交，由 `git log --grep '^fix(issue-2575)' --reverse | head -1` 派生；产物 provenance 仍记最新 fix commit 061e06682，避免审计后续 fix commit 成为最新 `fix(issue-2575)` 时红样被静默变绿）",
       "expected": "RED_NO_EXPIRY_GUARD=1、RED_NO_STATUS_GUARD=1、RED_CALLBACK_NO_GUARD=1、GREEN_EXPIRY_GUARD=1、GREEN_CONFIRMED_40901=1、GREEN_IDEMPOTENT_REJECTED=1、GREEN_SINGLE_WRITE_POINT=1、GREEN_POSTCHECK_REREAD=1、GREEN_CALLBACK_CLASSIFY=1、CAS_PREDICATES=2",
       "negative": "修后 reject 路径仍含 db.Save、无 CAS 谓词、或回调分支缺分类 → R1_FAIL 非 0 退出",
-      "negative_result": "红样实测：脚本对 `git show FIX^:backend/handlers/confirmation_session.go` 的 Reject/回调 reject 函数体切片判定为无守卫（RED_NO_EXPIRY_GUARD=1、RED_NO_STATUS_GUARD=1、RED_CALLBACK_NO_GUARD=1），即同一组断言在缺陷版上不成立；修复版上 GREEN_CAS_PREDICATE=1 / GREEN_SINGLE_WRITE_POINT=1 / NO_SAVE_IN_REJECT_PATHS=1 才成立，负例（残留 db.Save 或无 CAS 谓词）会令 grep 断言为 0 并以 R1_FAIL 非 0 退出。",
+      "negative_result": "红样实测：脚本对 `git show FIX^:backend/handlers/confirmation_session.go` 的 Reject/回调 reject 函数体切片判定为无守卫（RED_NO_EXPIRY_GUARD=1、RED_NO_STATUS_GUARD=1、RED_CALLBACK_NO_GUARD=1），即同一组断言在缺陷版上不成立；修复版上 GREEN_CAS_PREDICATE=1 / GREEN_SINGLE_WRITE_POINT=1 / NO_SAVE_IN_REJECT_PATHS=1 才成立，负例（残留 db.Save 或无 CAS 谓词）会令 grep 断言为 0 并以 R1_FAIL 非 0 退出。 锚点派生方式（Round 1 修复）：红样取自本单首个 fix commit 的父提交，而非 `FIX^`——否则审计后续 fix commit 会让 `FIX^` 指向已带守卫的版本，红样断言会静默全部变绿。",
       "pass": true
     },
     {
@@ -29,7 +29,7 @@
         "docs/evidence/2575/R2-reject-behavior.txt"
       ],
       "assert": "exit 0；grep -q '^R2_OK$'；grep -q 'BUILD_EXIT=0'；grep -q 'CASE_CONFIRMED=40901'；grep -q 'NO_ACTION_EXECUTED=1'",
-      "actual": "PASS：BUILD_EXIT=0 / TEST_EXIT=0 / CASE_WAITING=20000 / CASE_WAITING_STATUS=rejected / CASE_CONFIRMED=40901 / CASE_CONFIRMED_STATUS=confirmed / CASE_EXPIRED=40002 / CASE_EXPIRED_STATUS=waiting / CASE_REJECTED_IDEMPOTENT=1 / CASE_FAILED=40901 / CASE_BAD_TOKEN=404 / CB_CONFIRMED=already_confirmed / CB_CONFIRMED_STATUS=confirmed / CB_WAITING_STATUS=rejected / CB_FAILED=not_rejectable / NO_ACTION_EXECUTED=1（8 用例全 PASS）",
+      "actual": "PASS：BUILD_EXIT=0 / TEST_EXIT=0 / CASE_WAITING=20000 / CASE_WAITING_STATUS=rejected / CASE_CONFIRMED=40901 / CASE_CONFIRMED_STATUS=confirmed / CASE_EXPIRED=40002 / CASE_EXPIRED_STATUS=waiting / CASE_REJECTED_IDEMPOTENT=1 / CASE_FAILED=40901 / CASE_BAD_TOKEN=404 / CB_CONFIRMED=already_confirmed / CB_CONFIRMED_STATUS=confirmed / CB_WAITING_STATUS=rejected / CB_FAILED=not_rejectable / NO_ACTION_EXECUTED=1（8 用例全 PASS）（NO_ACTION_EXECUTED=1 现由 require.* 守护，断言失败即中止，标记不再无条件打印 —— Round 1 审计 Bug 2）",
       "expected": "8 用例全跑（CASE_* 5 例 + CB_* 3 例）；CASE_CONFIRMED_STATUS=confirmed、CASE_EXPIRED_STATUS=waiting、CASE_WAITING_STATUS=rejected、CASE_REJECTED_IDEMPOTENT=1、CASE_BAD_TOKEN=404",
       "negative": "任一守卫缺失导致状态被改写 / 动作被执行 / 用例 FAIL → R2_FAIL 非 0 退出",
       "negative_result": "红样实测（docs/evidence/2575/R2-red-prefix.txt）：把 handler 临时还原为 bc778f5e3^ 后同一批用例 FAIL —— CB_CONFIRMED_STATUS 期望 confirmed 实际 rejected、CB_FAILED 期望 not_rejectable 实际被改写、confirmed/expired handler 用例断言失败（9 条 Error）；恢复修复版后同批 8/8 PASS，证明断言确实作用于变更路径（守卫分支）。",
@@ -43,10 +43,10 @@
         "docs/evidence/2575/R3-doc-contract.txt"
       ],
       "assert": "exit 0；grep -q '^R3_OK$'；grep -q 'DOC_NO_ROLLBACK=1'；grep -q 'DOC_CONFIRMED_40901=1'",
-      "actual": "PASS：DOC_282=1 / DOC_283=1 / DOC_EXPIRED_40002=1 / DOC_CONFIRMED_40901=1 / DOC_IDEMPOTENT_REJECTED=1 / DOC_NO_ROLLBACK=1 / DOC_CALLBACK_ALREADY_CONFIRMED=1 / DOC_CALLBACK_NOT_REJECTABLE=1",
+      "actual": "PASS：DOC_282=1 / DOC_283=1 / DOC_EXPIRED_40002=1 / DOC_CONFIRMED_40901=1 / DOC_IDEMPOTENT_REJECTED=1 / DOC_NO_ROLLBACK=1 / DOC_CALLBACK_ALREADY_CONFIRMED=1 / DOC_CALLBACK_NOT_REJECTABLE=1 / DEFERRAL_ISSUE=#2576 / DEFERRAL_REF=1 / DEFERRAL_ISSUE_OPEN=1 / DEFERRAL_ISSUE_MATCH=1（Round 1 审计 Bug 1：§2.8.2 的 deferral 必须指向 OPEN 且语义匹配的跟踪 Issue）",
       "expected": "DOC_282=1、DOC_283=1、DOC_EXPIRED_40002=1、DOC_IDEMPOTENT_REJECTED=1、DOC_CALLBACK_ALREADY_CONFIRMED=1、DOC_CALLBACK_NOT_REJECTABLE=1",
       "negative": "文档缺 §2.8.3、缺 40901/40002、或缺「不回收已执行 IAM 写入」→ R3_FAIL 非 0 退出",
-      "negative_result": "§2.8.3 在修复前完全缺失（analyze 期实测 `grep -c '2\\.8\\.3' docs/spec/api/api.md` → 0），同一组 grep 断言在改动前为 0 并以 R3_FAIL 非 0 退出；缺「不回收」语句或缺 40901/40002 行同样会 FAIL。",
+      "negative_result": "§2.8.3 在修复前完全缺失（analyze 期实测 `grep -c '2\\.8\\.3' docs/spec/api/api.md` → 0），同一组断言在改动前为 0 并以 R3_FAIL 非 0 退出。新增 deferral 断言的三组红样（docs/evidence/2575/R3-red-deferral.txt，每次临时改 api.md 后逐字还原）：① 引用 CLOSED #2543 → DEFERRAL_ISSUE_OPEN=0、R3_RED_RC=1；② 引用 OPEN 但不相关 #2542 → DEFERRAL_ISSUE_MATCH=0、R3_RED_RC=1；③ 删除引用（「见 #2543」）→ DEFERRAL_REF=0、R3_RED_RC=1；④ 缺「不回收」语句或缺 40901/40002 行同样 FAIL。",
       "pass": true
     },
     {

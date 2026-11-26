@@ -6,11 +6,28 @@
 |---|---|
 | backend/handlers/confirmation_session.go | Reject 的唯一写入点改为条件 UPDATE：`WHERE id=? AND tenant_id=? AND token=? AND status='waiting' AND expires_at > now`；`RowsAffected=0` 只重读分类（过期 400/40002、rejected 幂等 200/20000、confirmed 与其它 409/40901），删除原先的 db.Save(&session)；IAMConfirmationCallback 的 `case "reject"` 同一口径（`status='waiting'` 条件更新，未命中只重定向 already_confirmed / not_rejectable / 幂等 rejected） |
 | backend/handlers/confirmation_session_reject_2575_test.go | 新增 8 个用例：handler 5 个状态 + 错 token + 无动作执行断言；回调 confirmed / waiting / failed 三例（复用同包 setupConfirmationSessionTest） |
-| docs/spec/api/api.md | 新增 `### 2.8.2 确认执行`（Confirm 既有语义）与 `### 2.8.3 拒绝`（守卫顺序、HTTP/code、回调分类、rejected 不回收已执行 IAM / 本地写入） |
-| scripts/verify-2575.sh | 证据生成器（r1 结构红绿 / r2 行为用例 + go build ./... / r3 文档契约），产物首行写 provenance |
+| docs/spec/api/api.md | 新增 `### 2.8.2 确认执行`（Confirm 既有语义）与 `### 2.8.3 拒绝`（守卫顺序、HTTP/code、回调分类、rejected 不回收已执行 IAM / 本地写入）；§2.8.2 的 confirm 侧缺口 deferral 指向在册跟踪 Issue #2576 |
+| scripts/verify-2575.sh | 证据生成器（r1 结构红绿 / r2 行为用例 + go build ./... / r3 文档契约 + deferral 引用有效性），产物首行写 provenance |
 
-- fix commit：bc778f5e3
+- fix commit：bc778f5e3（Round 1 原始修复）+ 061e06682（Round 1 审计修复）
 - 证据 commit：见下 Remote 行
+
+## Round 1 审计修复（审计项 → 矩阵行 → 证据）
+
+| 审计项 | 严重度 | 根因分类 | 修复 | 证据 |
+|---|---|---|---|---|
+| **Bug 1** §2.8.2 的 deferral 指向已 CLOSED 的 #2543 与不相关的 #2542 ——「deferral 未落盘」 | 阻断 | 验收未覆盖（R3 原断言只查字符串，不查引用有效性） | ① 新建跟踪 Issue **#2576**（`bug` + `status:todo`，标题「确认会话 Confirm 缺 status 守卫」，正文含现象/触发/后果/期望/正负例/证据要求，回链 #2575 / #2543 / #2542）；② api.md §2.8.2 改为 `跟踪 Issue：#2576`；③ `verify-2575.sh r3` 新增 4 项断言（`DEFERRAL_ISSUE` / `DEFERRAL_REF` / `DEFERRAL_ISSUE_OPEN` / `DEFERRAL_ISSUE_MATCH`） | `R3-doc-contract.txt`：`DEFERRAL_ISSUE=#2576`、`DEFERRAL_REF=1`、`DEFERRAL_ISSUE_OPEN=1`、`DEFERRAL_ISSUE_MATCH=1`、`R3_OK`；红样 `R3-red-deferral.txt`（三组，均 `R3_RED_RC=1`） |
+| **Bug 2**（Low）`NO_ACTION_EXECUTED=1` 是无条件打印而非断言 | Low | 执行 | 改 `require.Greater` / `require.Zero`，标记仅在断言通过后打印 | `R2-reject-behavior.txt`（`TEST_EXIT=0`、`NO_ACTION_EXECUTED=1`、`R2_OK`） |
+| **Bug 3**（Low）回调 `case "reject"` 内 `result` 遮蔽外层回调 `result` 查询参数 | Low | 执行 | 条件更新句柄改名 `upd`（`upd.Error` / `upd.RowsAffected`） | `R1-reject-guards.txt`（`GREEN_CALLBACK_CLASSIFY=1`）；`R2` 回调 3 例 PASS |
+| **Bug 4**（Low，不阻断）`40002` 前端文案为「信息不完整」 | Low | 无调用方 | 不改（`FRONT_CALLERS=0`，D7 口径）；若出现调用方另立 Issue | 计划 D7 已锁 |
+| 审计建议的 **R5**（deferral 引用有效性矩阵行） | — | — | **不新增独立合同行**：Accepted Plan 属 Architect owner，fixreview 不自增验收行；该断言以 **R3 同一命令**（命令字符串保持逐字一致，无 P12 command drift）的附加断言落地，并配独立红样 | 同上 `R3-doc-contract.txt` / `R3-red-deferral.txt` |
+
+> deferral 断言的红绿实证（`docs/evidence/2575/R3-red-deferral.txt`，每次临时改 api.md 后逐字还原，`git diff` 为空）：
+> - 引用 CLOSED #2543 → `DEFERRAL_ISSUE_OPEN=0`、`R3_RED_RC=1`；
+> - 引用 OPEN 但不相关 #2542 → `DEFERRAL_ISSUE_MATCH=0`、`R3_RED_RC=1`；
+> - 删除引用（「见 #2543」）→ `DEFERRAL_REF=0`、`R3_RED_RC=1`。
+> - 绿：`跟踪 Issue：#2576` → 四项全 1、`R3_OK`。
+
 
 ## 验证层级（Issue #70 / #2651）
 
@@ -51,7 +68,7 @@
 |---|---|---|
 | R1 reject 守卫结构 + 条件更新唯一写入口（红绿对照） | PASS | docs/evidence/2575/R1-reject-guards.txt（R1_OK、CAS_PREDICATES=2、NO_SAVE_IN_REJECT_PATHS=1） |
 | R2 行为用例（5 handler + 3 回调）+ 编译 | PASS | docs/evidence/2575/R2-reject-behavior.txt（BUILD_EXIT=0、TEST_EXIT=0、CASE_ 与 CB_ 全标记、NO_ACTION_EXECUTED=1）；红跑 docs/evidence/2575/R2-red-prefix.txt |
-| R3 api.md §2.8.2 / §2.8.3 契约与实现一致 | PASS | docs/evidence/2575/R3-doc-contract.txt（DOC_282=1、DOC_283=1、DOC_NO_ROLLBACK=1 等 8 项） |
+| R3 api.md §2.8.2 / §2.8.3 契约与实现一致 | PASS | docs/evidence/2575/R3-doc-contract.txt（DOC_282=1、DOC_283=1、DOC_NO_ROLLBACK=1 等 8 项 + DEFERRAL_ISSUE=#2576 / DEFERRAL_REF=1 / DEFERRAL_ISSUE_OPEN=1 / DEFERRAL_ISSUE_MATCH=1）；红样 docs/evidence/2575/R3-red-deferral.txt |
 | R4 pre-ready gate（四源一致 + 证据完整 + P13 已推送） | PASS | docs/evidence/2575/pre-ready-2575.json（GATE_RESULT=PASS；报告顶层字段为 overall=PASS；P5=N/A 且记录原因；P12 四行齐全；P13 origin/issue-2575） |
 
 ## Pre-ready gate
@@ -74,7 +91,7 @@
 ## Dependency Order / 验收规则
 
 - 依赖：无（#2543 已 done 关闭；work_deps.sh 2575 返回 PROCEED）。
-- 本单未修改任何验收工具/规则（pre-ready-check.sh 与 evidence-artifacts.sh 及 matrix_parser.sh 均未改动）；只新增本单证据生成器 scripts/verify-2575.sh。
+- 本单未修改任何验收工具/规则（pre-ready-check.sh 与 evidence-artifacts.sh 及 matrix_parser.sh 均未改动）；只新增本单证据生成器 scripts/verify-2575.sh。该生成器在本轮（Round 1 审计修复）只**强化**断言、未放宽任何既有断言：红样锚点由 `FIX^` 改为「本单首个 fix commit 的父提交」（确保后续 fix commit 不会把红样静默变绿），r3 增 deferral 引用有效性断言。
 - 语义翻转核对：既有 TestIAMIntegration_ConfirmationCallback_Reject（fixture status=waiting）同批 PASS，未翻转；仓库内无「confirmed / 已过期会话可被 reject」的正向断言。
 
 ## 同类路径对称扫描

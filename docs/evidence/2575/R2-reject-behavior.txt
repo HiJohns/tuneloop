@@ -1,8 +1,8 @@
-# build=1.0.bc778f5e3 # commit=bc778f5e33f4e5f7c9adb3f0e27ce4c9531fab88 # dirty=false
+# build=1.0.061e06682 # commit=061e06682bb7644ca976f677ebe899c3f0eae2a9 # dirty=false
 === go build ./... ===
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 at_ms=1795718496593 wait_ms=1301
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 wait_ms=1301
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795718521809 hold_ms=25216
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s84-p84-d92b62 at_ms=1795720876222 wait_ms=163806
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s84-p84-d92b62 wait_ms=163806
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795720898321 hold_ms=22099
 BUILD_EXIT=0
 === go test (reject behavior) ===
 === RUN   TestRejectConfirmationSession_2575
@@ -13,14 +13,14 @@ BUILD_EXIT=0
 === RUN   TestRejectConfirmationSession_2575/failed_is_not_rejectable
 === RUN   TestRejectConfirmationSession_2575/wrong_token_is_404
 === RUN   TestRejectConfirmationSession_2575/no_action_executed_for_guarded_sessions
---- PASS: TestRejectConfirmationSession_2575 (0.14s)
+--- PASS: TestRejectConfirmationSession_2575 (0.09s)
 === RUN   TestIAMCallbackReject_2575
 === RUN   TestIAMCallbackReject_2575/confirmed_session_is_not_flipped
 === RUN   TestIAMCallbackReject_2575/waiting_session_is_rejected
 === RUN   TestIAMCallbackReject_2575/failed_session_is_not_rejectable
---- PASS: TestIAMCallbackReject_2575 (0.05s)
+--- PASS: TestIAMCallbackReject_2575 (0.03s)
 PASS
-ok  	tuneloop-backend/handlers	2.476s
+ok  	tuneloop-backend/handlers	0.978s
 CASE_BAD_TOKEN=404
 CASE_CONFIRMED=40901
 CASE_CONFIRMED_STATUS=confirmed

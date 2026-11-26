@@ -1,0 +1,32 @@
+# build=1.0.061e06682 # commit=061e06682bb7644ca976f677ebe899c3f0eae2a9 # dirty=false
+# NOTE: temporary contract mutations for negative proof; api.md restored byte-identically afterwards (git diff empty for the file).
+
+=== red closed ===
+DEFERRAL_ISSUE=#2543
+DEFERRAL_REF=1
+DEFERRAL_ISSUE_OPEN=0
+DEFERRAL_ISSUE_MATCH=0
+ASSERT_FAIL: api.md §2.8.2 deferral cites #2543, which is not OPEN (unregistered deferral)
+ASSERT_FAIL: api.md §2.8.2 deferral cites #2543, whose title does not match the confirm-side guard gap
+VERIFY_FAILED (r3)
+R3_RED_RC=1
+
+=== red unrelated ===
+DEFERRAL_ISSUE=#2542
+DEFERRAL_REF=1
+DEFERRAL_ISSUE_OPEN=1
+DEFERRAL_ISSUE_MATCH=0
+ASSERT_FAIL: api.md §2.8.2 deferral cites #2542, whose title does not match the confirm-side guard gap
+VERIFY_FAILED (r3)
+R3_RED_RC=1
+
+=== red none ===
+DEFERRAL_ISSUE=#none
+DEFERRAL_REF=0
+DEFERRAL_ISSUE_OPEN=0
+DEFERRAL_ISSUE_MATCH=0
+ASSERT_FAIL: api.md §2.8.2 deferral does not cite a separate tracking Issue (跟踪 Issue：#N)
+ASSERT_FAIL: api.md §2.8.2 deferral cites #none, which is not OPEN (unregistered deferral)
+ASSERT_FAIL: api.md §2.8.2 deferral cites #none, whose title does not match the confirm-side guard gap
+VERIFY_FAILED (r3)
+R3_RED_RC=1
