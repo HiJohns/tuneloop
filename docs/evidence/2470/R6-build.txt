@@ -1,0 +1,13 @@
+# build=1.0.5daa8f17 # commit=5daa8f17d2ce949aaf344ba8ce6bd06b4b5b516a # dirty=false
+# tree=5daa8f17d2ce949aaf344ba8ce6bd06b4b5b516a
+BUILD_CMD=cd backend && go build ./...
+BUILD_EXIT=0
+BUILD_OK
+GO_TEST_CMD=go test ./services ./handlers -run '2470|2364' -count=1 -timeout 15m
+GO_TEST_EXIT=0
+GO_TEST_OK
+NPM_BUILD_CMD=cd frontend-pc && npm run build
+NPM_BUILD_EXIT=0
+NPM_BUILD_OK
+NPM_TAIL: ✓ built in 30.02s
+NPM_TAIL: [heavy-lock] released scope=host slot=0 rc=0 at_ms=1795732533168 hold_ms=32752

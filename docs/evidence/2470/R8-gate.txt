@@ -1,0 +1,20 @@
+# build=1.0.5daa8f17 # commit=5daa8f17d2ce949aaf344ba8ce6bd06b4b5b516a # dirty=false
+# tree=5daa8f17d2ce949aaf344ba8ce6bd06b4b5b516a
+BASELINE_REF=origin/develop
+BASELINE_SHA=2ce72b62c300d69ca49276f6e9480480a6fbe04d
+BASELINE_GATE_EXIT=1
+FULL_GATE_CMD=cd backend && go test -json ./... -count=1 -timeout 20m -p 1
+FULL_GATE_EXIT=1
+FULL_GATE_CURRENT_FAILURES=8
+FULL_GATE_BASELINE_FAILURES=8
+FULL_GATE_NEW_FAILURES=0
+BASELINE_FAIL_COUNT=8
+PANIC_COUNT=0
+BASELINE_FAIL: tuneloop-backend/database::PKG
+BASELINE_FAIL: tuneloop-backend/database::TestValidateModelColumns_MissingTableFails
+BASELINE_FAIL: tuneloop-backend/services::PKG
+BASELINE_FAIL: tuneloop-backend/services::TestCheckAndUpgradeLevel_Aggregation
+BASELINE_FAIL: tuneloop-backend/services::TestCheckAndUpgradeLevel_DefaultsBlock
+BASELINE_FAIL: tuneloop-backend/services::TestReminderIdempotent
+BASELINE_FAIL: tuneloop-backend/services::TestReminderNotification_TargetsAdmins
+BASELINE_FAIL: tuneloop-backend/services::TestReminderScan_FiltersOverduePending

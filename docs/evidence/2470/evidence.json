@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "issue": 2470,
+  "build": "1.0.5daa8f17",
+  "commit": "5daa8f17d2ce949aaf344ba8ce6bd06b4b5b516a",
+  "dirty": false,
+  "plan_sha256": "cc4aa7775116c68767ce90e2884aaf8518c844084bd385fd597e5981c4b8855c",
+  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2470 (branch issue-2470, base origin/develop@2ce72b62c); backend go build + targeted go test (fake IAM httptest + real Gin routes on local test DB) + full go test -json ./... -p 1 on HEAD and on an origin/develop baseline worktree; frontend-pc npm run build; no production IAM calls; HEAD=5daa8f17d2ce949aaf344ba8ce6bd06b4b5b516a",
+  "tooling_commit": "17d6543870675e1d8070740c7ba3e08ab908adf7",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2470.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2470/R1-client-orphans.txt"
+      ],
+      "assert": "exit 0；含 PATH=/api/v1/users/orphans 与 UNSUPPORTED=0",
+      "actual": "PASS：fake IAM 命中新端点 → PATH=/api/v1/users/orphans、MIN_AGE=60、UNSUPPORTED=0（GO_TEST_EXIT=0）；解析出 1 条无关系孤儿",
+      "expected": "PASS",
+      "negative": "走旧路径 → FAIL",
+      "negative_result": "若客户端未走 /api/v1/users/orphans（PATH 不符）、min_age_minute≠60，或 Unsupported 被置 true（错误地回退到关系过滤列表）→ 断言失败，R1 非 0 退出。",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2470.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2470/R2-client-fallback.txt"
+      ],
+      "assert": "exit 0；含 UNSUPPORTED=1 与 FALLBACK=1",
+      "actual": "PASS：fake IAM 404 与「缺 users 字段」两种协议场景均回退 → UNSUPPORTED=1、FALLBACK=1、LOG_FALLBACK=1（日志含 fallback to scoped pending list）；未返回空列表",
+      "expected": "PASS",
+      "negative": "未回退 → FAIL",
+      "negative_result": "若 404/协议缺字段时未回退（UNSUPPORTED=0）、或回退后不置 FALLBACK、或无 fallback 日志，或把协议错误当作合法空列表返回 → R2 FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2470.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2470/R3-panel-visibility.txt"
+      ],
+      "assert": "exit 0；含 LIST_HAS_NOREL=1 与 LIST_EXCLUDES_LOCAL=1",
+      "actual": "PASS：测试 DB + 真实路由下，无关系 pending 孤儿（65 分钟）出现在 data.list（LIST_HAS_NOREL=1），本地已有 users 行者被排除（LIST_EXCLUDES_LOCAL=1）",
+      "expected": "PASS",
+      "negative": "缺失 → FAIL",
+      "negative_result": "若 data.list 不含该无关系孤儿（修复前行为：列表恒空）→ LIST_HAS_NOREL=0 → FAIL；若本地已登记用户被当作孤儿列出 → LIST_EXCLUDES_LOCAL=0 → FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2470.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2470/R4-fallback-flag.txt"
+      ],
+      "assert": "exit 0；含 FALLBACK_FLAG=1",
+      "actual": "PASS：回退场景响应 fallback_unsupported=true（FALLBACK_FLAG=1），endpoint=pending；PC 页面接线静态断言 PAGE_HINT=1（evidence_type: static，Owner 豁免：文案接线层，浏览器走查走 ops follow-up）",
+      "expected": "PASS",
+      "negative": "无标记 → FAIL",
+      "negative_result": "若回退时响应不带 fallback_unsupported=true（静默降级，用户误以为扫描是全量的），或页面文案接线被删除 → R4 FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2470.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2470/R5-filter-semantics.txt"
+      ],
+      "assert": "exit 0；含 EXCLUDED_ALL=3",
+      "actual": "PASS：三条负例（本地 users 已有该 iam_sub / org_id 非空 / 仅 30 分钟）全部被排除（EXCLUDED_ALL=3），四条判定语义未变（D4）",
+      "expected": "PASS",
+      "negative": "任一被列出 → FAIL",
+      "negative_result": "若三条负例中任意一条出现在 list（EXCLUDED_ALL<3）→ 判定语义被放宽 → R5 FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2470.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2470/R7-purge.txt"
+      ],
+      "assert": "exit 0；含 PURGED=1 与 NOT_ORPHAN=0",
+      "actual": "PASS：无关系 pending 孤儿经 POST /api/admin/iam-orphans/purge 清理成功（PURGED=1）；回退路径对「不在旧列表」的 ID 实时复算四条判定，未出现 not an orphan 拒绝（NOT_ORPHAN=0、NOT_ORPHAN_ERRORS=0）",
+      "expected": "PASS",
+      "negative": "清理被拒 → FAIL",
+      "negative_result": "若 List 能看到但 Purge 拒绝（not an orphan）→ 即 v1 的计划缺口回归 → R7 FAIL；若本地已登记用户被误删（refuse to purge 缺失）→ 同样 FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2470.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2470/R6-build.txt"
+      ],
+      "assert": "exit 0；含 BUILD_OK 与 GO_TEST_OK 与 NPM_BUILD_OK",
+      "actual": "PASS：cd backend && go build ./... → BUILD_OK；定向 go test ./services ./handlers -run '2470|2364' → GO_TEST_OK；cd frontend-pc && npm run build → NPM_BUILD_OK（✓ built in 36.18s）",
+      "expected": "PASS",
+      "negative": "任一失败 → FAIL",
+      "negative_result": "若 go build、定向 go test 或 PC npm run build 任一非 0 → 对应 OK 标记缺失 → R6 FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash scripts/verify-2470.sh r8",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2470/R8-gate.txt"
+      ],
+      "assert": "exit 0；含 FULL_GATE_NEW_FAILURES=0、PANIC_COUNT=0、BASELINE_FAIL_COUNT=",
+      "actual": "PASS：HEAD（5daa8f17d）与基线 origin/develop@2ce72b62c 各跑一次 go test -json ./... -p 1；FULL_GATE_CURRENT_FAILURES=8、FULL_GATE_BASELINE_FAILURES=8、FULL_GATE_NEW_FAILURES=0、PANIC_COUNT=0、BASELINE_FAIL_COUNT=8。8 条基线失败全部是测试库缺表（instrument_levels / merchant_members）的环境耦合，两棵树完全一致；Rev.3 登记的 3 条（user_staff_rollback_2309）已在 develop 修复，故实测计数由 3 变为 8（同类环境耦合，非本单引入）",
+      "expected": "PASS",
+      "negative": "新增失败 → FAIL",
+      "negative_result": "若 HEAD 出现基线中不存在的失败身份（FULL_GATE_NEW_FAILURES>0）、或任一树出现 panic（PANIC_COUNT>0）→ R8 FAIL；基线自身失败不阻断（Rev.3 基线差异口径）。",
+      "pass": true
+    },
+    {
+      "id": "R9",
+      "command": "bash scripts/verify-2470.sh r9",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2470/R9-docs.txt"
+      ],
+      "assert": "exit 0；含 DOC_TOKENS=3",
+      "actual": "PASS：DOC_TOKENS=3（users/orphans / fallback_unsupported / scanned_pending 在两篇文档中至少各出现一次）；api.md 含 GET /api/admin/iam-orphans 小节（DOC_API_SECTION=1）、iam-notes 含「IAM 孤儿查询端点」小节（DOC_NOTES_SECTION=1）",
+      "expected": "PASS",
+      "negative": "缺项 → FAIL",
+      "negative_result": "若三枚关键令牌任一缺失（DOC_TOKENS<3）、或 api.md 缺端点小节、或 iam-notes 缺上游契约小节 → R9 FAIL。",
+      "pass": true
+    }
+  ]
+}
