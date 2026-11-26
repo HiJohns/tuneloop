@@ -47,6 +47,9 @@ export POSTGRES_PORT="${POSTGRES_PORT:-15433}"
 export POSTGRES_USER="${POSTGRES_USER:-tuneloop_user}"
 export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-trust}"
 export TUNELOOP_TEST_DB="${TUNELOOP_TEST_DB:-tuneloop_test_local}"
+# 服务层测试直连 database.LoadConfig()（读 TUNELOOP_DB）；本地 .env 可能指向未创建的库名，
+# 这里显式钉住测试库，使 R7 在其他节点/干净克隆上同样可复现（不依赖本地 .env 状态）。
+export TUNELOOP_DB="${TUNELOOP_DB:-tuneloop}"
 export TMPDIR="${TMPDIR:-$REPO_ROOT/tmp/gobuild}"
 export GOCACHE="${GOCACHE:-$REPO_ROOT/tmp/gocache}"
 mkdir -p "$TMPDIR" "$GOCACHE"
@@ -443,6 +446,7 @@ r7)
     [ -n "$fails" ] || fails=0
     [ -n "$panics" ] || panics=0
     body="FULL_SUITE_CMD=cd backend && go test ./... -count=1 -timeout 20m"$'\n'
+    body+="TEST_DB_ENV=TUNELOOP_DB=$TUNELOOP_DB POSTGRES_HOST=$POSTGRES_HOST POSTGRES_PORT=$POSTGRES_PORT"$'\n'
     body+="FULL_SUITE_EXIT=$full_exit"$'\n'
     body+="FAIL_COUNT=$fails"$'\n'
     body+="PANIC_COUNT=$panics"$'\n'
