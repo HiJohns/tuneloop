@@ -1744,10 +1744,19 @@ curl -X POST http://localhost:5554/api/instruments/import \  -H "Authorization: 
 **接口**: `GET /api/instruments/export`
 
 **查询参数**:
-- `category`: 分类筛选 (可选)
-- `status`: 状态筛选 (可选)
+- `category`: 分类筛选 (可选，按分类**名称**等值；旧参数，保留兼容)
+- `status`: 状态筛选 (可选；与 `stock_status` 同义，二者任一即可)
+- `stock_status`: 状态筛选别名（#2578 D6，库存监控页写 `status`，Dashboard/存货页写 `stock_status`）
+- `sn`: 识别码模糊匹配（#2578，与 `GET /api/instruments?sn=` 同口径）
+- `category_id`: 分类筛选，**服务端展开后代分类**（#2578，与 `GET /api/instruments?category_id=` 同一实现 `getDescendantCategoryIDs`）
+- `exclude_status`: 排除状态，逗号分隔，服务端按 `stock_status NOT IN (...)` 过滤（#2578，非管理级默认排除 `lost,archived,sold`）
 - `search_text`: 搜索文本，匹配name或brand (可选)
-- `fields`: 导出字段，逗号分隔 (可选，默认全部)
+- `fields`: 导出字段，逗号分隔 (可选，默认全部；有效值含 `sn`→「识别码」、`category_name`→「分类名称」)
+
+> **注（#2578 可见性与过滤口径）**：导出与列表 `GET /api/instruments` 使用**同一套**过滤与可见性语义——
+> 可见性由 `applyInstrumentListScope` 注入（网点员工/维修师傅只看所属网点，其余按 `ApplyOrgScope`），
+> 分类按后代展开，状态支持 `status`/`stock_status` 双读 + `exclude_status` 排除；
+> `fields` 支持 `sn`（识别码）与 `category_name`（分类名称）。0 行结果仍返回 `400/40006`（不改为 200 空文件）。
 
 **请求示例**:
 ```bash

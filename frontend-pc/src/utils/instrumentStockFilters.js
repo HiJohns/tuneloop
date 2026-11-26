@@ -111,3 +111,23 @@ export function stockStatusOptions({ statuses, isManagerLike, current } = {}) {
   push(current)
   return options
 }
+
+// #2578：导出参数与列表同口径（识别码 / 后代分类 / 状态 / 非管理级排除）。
+// D3：字段固定 `sn,category_name,status`（价格类字段归 #2579）；D5′：显式状态优先，
+// 与 buildStockListParams 复用同一 HIDDEN_STOCK_STATUSES 判定，禁止第二套规则。
+export const STOCK_EXPORT_FIELDS = 'sn,category_name,status'
+
+export function buildStockExportParams(options) {
+  const { filters, isManagerLike } = options || {}
+  const current = filters || {}
+  const params = {}
+  if (current.sn) params.sn = current.sn
+  if (current.categoryId) params.category_id = current.categoryId
+  if (current.status) params.status = current.status
+  const explicitHidden = HIDDEN_STOCK_STATUSES.includes(current.status)
+  if (!isManagerLike && !explicitHidden) {
+    params.exclude_status = HIDDEN_STOCK_STATUSES.join(',')
+  }
+  params.fields = STOCK_EXPORT_FIELDS
+  return params
+}

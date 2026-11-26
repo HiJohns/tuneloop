@@ -1593,6 +1593,11 @@ API 来源：
   - **筛选变化**（搜索/分类/状态/清空）→ 回第 1 页 + 清空行选择（批量设价/删除只作用当前可见选中行）
   - **首屏 loading** 走 `Table loading`（不整页 `Spin`），筛选时不卸载工具栏（输入框不失焦）
 
+- **导出（#2578）**：工具栏「导出 Excel」**跟随当前筛选**（识别码 / 分类（含后代）/ 状态 / 可见性范围），
+  请求 `GET /api/instruments/export`（参数 `sn` / `category_id` / `status` / `exclude_status` / `fields=sn,category_name,status`），
+  统一走 `fetchBlob`（带 Bearer、空参剔除）；产物为 `.xlsx`，文件名 `instruments_export_<date>.xlsx`（与乐器列表一致）。
+  非管理级仍按服务端 `exclude_status=lost,archived,sold` 排除隐藏状态；显式选择这些状态时不叠加排除。
+
 - **服务端分页（#2140）**：Table 改服务端 `page`/`pageSize`，`total` 取后端 `data.total`；状态筛选服务端化（`?status=` → 查询 `stock_status`）；移除 `pageSize:200` 硬编码与客户端 `filteredAssets` 过滤
 - **字段可见性**：标准日租金 / 押金 → 管理员/商户管理员可见（代理 `hasCusPerm('instrument:delete')`），员工隐藏
 - **详情/编辑**：统一「资产卡片」组件（两旧详情路径收敛，兼容重定向）

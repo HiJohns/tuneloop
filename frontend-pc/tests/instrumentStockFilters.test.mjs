@@ -10,7 +10,9 @@ import assert from 'node:assert/strict'
 
 import {
   HIDDEN_STOCK_STATUSES,
+  STOCK_EXPORT_FIELDS,
   applyFilterPatch,
+  buildStockExportParams,
   buildStockFilterQuery,
   buildStockListParams,
   readStockFilters,
@@ -201,4 +203,58 @@ test('stockStatusOptions 当前值已存在时不重复追加', () => {
 test('stockStatusOptions 空输入不抛错', () => {
   assert.deepEqual(stockStatusOptions(), [])
   assert.deepEqual(stockStatusOptions({ statuses: null }), [])
+})
+
+// ---------------------------------------------------------------------------
+// #2578：导出参数与列表同口径（识别码 / 后代分类 / 状态 / 非管理级排除 / 字段清单）
+// ---------------------------------------------------------------------------
+
+test('buildStockExportParams 空筛选：仅字段清单 + 非管理级排除', () => {
+  const exported = buildStockExportParams({ filters: { sn: '', categoryId: '', status: '' }, isManagerLike: false })
+  console.log(`EXPORT_EXCLUDE_NONMGR=${exported.exclude_status}`)
+  console.log(`EXPORT_FIELDS=${exported.fields}`)
+  assert.equal(exported.sn, undefined)
+  assert.equal(exported.category_id, undefined)
+  assert.equal(exported.status, undefined)
+  assert.equal(exported.exclude_status, 'lost,archived,sold')
+  assert.equal(exported.fields, 'sn,category_name,status')
+  assert.equal(STOCK_EXPORT_FIELDS, 'sn,category_name,status')
+})
+
+test('buildStockExportParams 透传 sn / category_id / status（与列表同参数名）', () => {
+  const exported = buildStockExportParams({
+    filters: { sn: 'CVZ-104', categoryId: 'c1', status: 'available' },
+    isManagerLike: false,
+  })
+  console.log(`EXPORT_SN=${exported.sn}`)
+  console.log(`EXPORT_CATEGORY=${exported.category_id}`)
+  console.log(`EXPORT_STATUS=${exported.status}`)
+  assert.equal(exported.sn, 'CVZ-104')
+  assert.equal(exported.category_id, 'c1')
+  assert.equal(exported.status, 'available')
+  assert.equal(exported.exclude_status, 'lost,archived,sold')
+})
+
+test('buildStockExportParams 显式 lost 不叠加 exclude_status（D5 同规则）', () => {
+  const nonMgr = buildStockExportParams({ filters: { status: 'lost' }, isManagerLike: false })
+  const mgr = buildStockExportParams({ filters: { status: 'lost' }, isManagerLike: true })
+  console.log(`EXPORT_EXCLUDE_WITH_STATUS=${nonMgr.exclude_status === undefined ? '' : nonMgr.exclude_status}`)
+  console.log(`EXPORT_EXPLICIT_LOST=${nonMgr.status}`)
+  assert.equal(nonMgr.status, 'lost')
+  assert.equal(nonMgr.exclude_status, undefined)
+  assert.equal(mgr.exclude_status, undefined)
+  assert.equal(HIDDEN_STOCK_STATUSES.includes('lost'), true)
+})
+
+test('buildStockExportParams 管理级不追加排除（visible 集与列表一致）', () => {
+  const exported = buildStockExportParams({ filters: { sn: 'X' }, isManagerLike: true })
+  console.log(`EXPORT_EXCLUDE_MGR=${exported.exclude_status === undefined ? '' : exported.exclude_status}`)
+  assert.equal(exported.exclude_status, undefined)
+  assert.equal(exported.sn, 'X')
+})
+
+test('buildStockExportParams 空输入不抛错', () => {
+  assert.equal(buildStockExportParams().fields, 'sn,category_name,status')
+  assert.equal(buildStockExportParams({}).fields, 'sn,category_name,status')
+  assert.equal(buildStockExportParams(null).fields, 'sn,category_name,status')
 })
