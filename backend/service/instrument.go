@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"tuneloop-backend/models"
@@ -34,6 +35,49 @@ var headerMap = map[string]string{
 }
 
 var requiredFields = []string{"category_name"}
+
+// #2579 D10：导出字段白名单 = headerMap 的键（**有数据源**的字段）。handler 用它在导出前拒绝未知字段，
+// 不得以 200 + 空列掩盖（如已移除的 brand/model/monthly_rate/stock）。
+func ExportFieldNames() []string {
+	names := make([]string, 0, len(headerMap))
+	for name := range headerMap {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
+}
+
+// IsExportField 判断字段是否在导出白名单内（订单无关，纯字段契约）。
+func IsExportField(field string) bool {
+	_, ok := headerMap[field]
+	return ok
+}
+
+// priceExportFields 是需要 instrument:delete 才能导出的价格列（#2579 D9：导出字段 ⊆ 列表可见字段）。
+var priceExportFields = []string{"daily_rate", "deposit", "overdue_daily_fee"}
+
+// IsPriceExportField 判断字段是否为价格列。
+func IsPriceExportField(field string) bool {
+	for _, f := range priceExportFields {
+		if f == field {
+			return true
+		}
+	}
+	return false
+}
+
+// TrimPriceExportFields 返回去掉价格列后的字段列表（保持原顺序）；调用方据权限决定是否裁剪。
+func TrimPriceExportFields(fields []string) []string {
+	kept := make([]string, 0, len(fields))
+	for _, f := range fields {
+		if IsPriceExportField(f) {
+			continue
+		}
+		kept = append(kept, f)
+	}
+	return kept
+}
+
 
 var validLevels = map[string]bool{
 	"entry":  true,

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"runtime"
@@ -20,6 +21,27 @@ func getMemoryUsage() uint64 {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	return m.Alloc / 1024 / 1024
+}
+
+// canSeeExportPriceFields 判断调用方是否可导出价格列（daily_rate / deposit / overdue_daily_fee）。
+//
+// #2579 D9：导出字段 ⊆ 列表可见字段。放行语义与 middleware.RequireCusPerm 保持一致（这是字段级裁剪，
+// 不是访问门）：系统级角色（系统管理员 / 平台员工）放行、注册表未登记该位（mock / 旧版本）放行、
+// cus_perm = 0（legacy JWT）放行；其余必须持有 instrument:delete 位。
+func canSeeExportPriceFields(ctx context.Context) bool {
+	switch middleware.GetBusinessRole(ctx) {
+	case middleware.BusinessRoleSystemAdmin, middleware.BusinessRolePlatformStaff:
+		return true
+	}
+	bit := middleware.PermissionRegistry.GetCusPermBit("instrument:delete")
+	if bit < 0 {
+		return true
+	}
+	cusPerm := middleware.GetCusPerm(ctx)
+	if cusPerm == 0 {
+		return true
+	}
+	return cusPerm&(1<<bit) != 0
 }
 
 // ImportInstruments handles Excel file upload and import with performance monitoring
@@ -210,6 +232,37 @@ func ExportInstruments(c *gin.Context) {
 		for i := range opts.Fields {
 			opts.Fields[i] = strings.TrimSpace(opts.Fields[i])
 		}
+	}
+
+	// #2579 D10：未知字段必须显式拒绝（不得 200 + 空列）。白名单 = 有数据源字段（service.headerMap）。
+	if len(opts.Fields) > 0 {
+		kept := make([]string, 0, len(opts.Fields))
+		invalidFields := make([]string, 0)
+		for _, field := range opts.Fields {
+			if field == "" {
+				continue
+			}
+			if !service.IsExportField(field) {
+				invalidFields = append(invalidFields, field)
+				continue
+			}
+			kept = append(kept, field)
+		}
+		if len(invalidFields) > 0 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40002,
+				"message": "invalid fields: " + strings.Join(invalidFields, ","),
+				"data":    gin.H{"invalid_fields": invalidFields},
+			})
+			return
+		}
+		opts.Fields = kept
+	}
+
+	// #2579 D9：导出字段 ⊆ 列表可见字段 —— 无 instrument:delete 时价格三列不得导出
+	//（前端选择器同样裁剪；后端二次裁剪，不依赖前端传入）。
+	if len(opts.Fields) > 0 && !canSeeExportPriceFields(ctx) {
+		opts.Fields = service.TrimPriceExportFields(opts.Fields)
 	}
 
 	// #2579 D1/D2：金额列走列表/定价同一条链（instrumentListPriceFields），

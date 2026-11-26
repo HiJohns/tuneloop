@@ -13,13 +13,16 @@ package handlers
 
 import (
 	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"tuneloop-backend/handlers/testfixtures"
+	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 	"tuneloop-backend/testutil"
 
 	"github.com/gin-gonic/gin"
@@ -175,4 +178,134 @@ func TestExportFieldValues2579(t *testing.T) {
 	require.Equal(t, "大提琴", a["category_name"])
 	require.Equal(t, "available", a["status"])
 
+}
+
+// exportResponse2579 以指定 actor 调用导出入口，返回原始响应（供 R6/R7 复用）。
+func exportResponse2579(t *testing.T, actor testutil.TestActor, query string) *httptest.ResponseRecorder {
+	t.Helper()
+	gin.SetMode(gin.TestMode)
+	db := testfixtures.GetTestDB(t)
+	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Request = c.Request.WithContext(actor.InjectContext(c.Request.Context()))
+		c.Set("db", db)
+		c.Next()
+	})
+	r.GET("/api/instruments/export", ExportInstruments)
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/api/instruments/export"+query, nil))
+	return w
+}
+
+// exportHeaders2579 解析导出表头（R7 角色裁剪用）。
+func exportHeaders2579(t *testing.T, actor testutil.TestActor, query string) []string {
+	t.Helper()
+	w := exportResponse2579(t, actor, query)
+	require.Equal(t, http.StatusOK, w.Code, "导出必须 200; body=%s", w.Body.String())
+	f, err := excelize.OpenReader(bytes.NewReader(w.Body.Bytes()))
+	require.NoError(t, err)
+	defer func() { _ = f.Close() }()
+	sheet := f.GetSheetName(f.GetActiveSheetIndex())
+	matrix, err := f.GetRows(sheet)
+	require.NoError(t, err)
+	require.NotEmpty(t, matrix, "导出必须含表头")
+	return matrix[0]
+}
+
+// TestExportUnknownFields2579 覆盖 #2579 D10 / Owner 裁决 2：未知 fields → 400/40002（不得 200 空列）。
+func TestExportUnknownFields2579(t *testing.T) {
+	testfixtures.SetupTestDB(t)
+	tenantID := seedExportFields2579(t)
+
+	actor := testutil.TestActor{TenantID: tenantID, UserID: uuid.NewString(), Role: "ADMIN"}
+	w := exportResponse2579(t, actor, "?fields=brand")
+
+	var body struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+		Data    struct {
+			InvalidFields []string `json:"invalid_fields"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body), "错误响应必须是 JSON: %s", w.Body.String())
+
+	noFile := 1
+	if strings.HasPrefix(w.Header().Get("Content-Type"), "application/octet-stream") || bytes.HasPrefix(w.Body.Bytes(), []byte("PK")) {
+		noFile = 0
+	}
+
+	t.Logf("STATUS=%d", w.Code)
+	t.Logf("CODE=%d", body.Code)
+	t.Logf("INVALID_FIELDS=%s", strings.Join(body.Data.InvalidFields, ","))
+	t.Logf("NO_FILE_BODY=%d", noFile)
+
+	require.Equal(t, http.StatusBadRequest, w.Code, "未知字段必须是 400")
+	require.Equal(t, 40002, body.Code, "未知字段错误码必须是 40002")
+	require.Contains(t, body.Message, "brand")
+	require.Equal(t, []string{"brand"}, body.Data.InvalidFields)
+	require.Equal(t, 1, noFile, "400 响应不得携带 xlsx 文件体")
+}
+
+// TestExportRoleFields2579 覆盖 #2579 D9 / Owner 裁决 1：导出字段 ⊆ 列表可见字段
+// —— 无 instrument:delete（员工）时价格三列必须被后端裁掉；有该权限（管理员）时保留。
+func TestExportRoleFields2579(t *testing.T) {
+	testfixtures.SetupTestDB(t)
+	tenantID := seedExportFields2579(t)
+
+	// 真实权限注册表（默认 mock 的 GetCusPermBit 恒 -1 会直通，测不出裁剪）。
+	prevRegistry := middleware.PermissionRegistry
+	middleware.PermissionRegistry = services.NewPermissionRegistry()
+	defer func() { middleware.PermissionRegistry = prevRegistry }()
+
+	readBit := middleware.PermissionRegistry.GetCusPermBit("instrument:read")
+	deleteBit := middleware.PermissionRegistry.GetCusPermBit("instrument:delete")
+	require.GreaterOrEqual(t, readBit, 0)
+	require.GreaterOrEqual(t, deleteBit, 0)
+
+	staff := testutil.TestActor{
+		TenantID: tenantID,
+		UserID:   uuid.NewString(),
+		Role:     "STAFF",
+		CusPerm:  1 << readBit,
+	}
+	admin := testutil.TestActor{
+		TenantID: tenantID,
+		UserID:   uuid.NewString(),
+		Role:     "ADMIN",
+		CusPerm:  (1 << readBit) | (1 << deleteBit),
+	}
+
+	const allFields = "?fields=" + exportFields2580
+	staffHeaders := exportHeaders2579(t, staff, allFields)
+	adminHeaders := exportHeaders2579(t, admin, allFields)
+
+	hasPrice := func(headers []string) bool {
+		for _, h := range headers {
+			if h == "日租金" || h == "押金" || h == "逾期租金" {
+				return true
+			}
+		}
+		return false
+	}
+	staffExcludes := 0
+	if !hasPrice(staffHeaders) {
+		staffExcludes = 1
+	}
+	adminIncludes := 0
+	if hasPrice(adminHeaders) {
+		adminIncludes = 1
+	}
+
+	t.Logf("STAFF_FIELDS_EXCLUDE_PRICE=%d", staffExcludes)
+	t.Logf("ADMIN_FIELDS_INCLUDE_PRICE=%d", adminIncludes)
+	t.Logf("STAFF_HEADERS=%s", strings.Join(staffHeaders, "|"))
+	t.Logf("ADMIN_HEADERS=%s", strings.Join(adminHeaders, "|"))
+
+	require.Equal(t, 1, staffExcludes, "无 instrument:delete 的账号不得导出价格列")
+	require.Equal(t, 1, adminIncludes, "有 instrument:delete 的账号必须仍能导出价格列")
+	// 非价格列不受影响（内部字段仍完整）
+	require.Contains(t, staffHeaders, "识别码")
+	require.Contains(t, staffHeaders, "分类名称")
+	require.Contains(t, staffHeaders, "状态")
 }
