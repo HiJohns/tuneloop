@@ -306,6 +306,12 @@ export default function SiteManagement() {
     } catch (err) {
       if (err.errorFields) return
       Logger.error('SITE', 'handleSubmit error:', err)
+      // #2563：HTTP 400 的业务可纠正冲突（如 40002 重名）在传输层以 Error 抛出并带 code，
+      // 这里用共享 rubric 判定后落到表单内持久提示；其余错误保持瞬时 toast。
+      if (isBusinessCorrectableConflict(err)) {
+        setFormConflict(conflictText(err, '请修改后重新提交'))
+        return
+      }
       message.error('操作失败: ' + err.message)
     } finally {
       setSaving(false)
