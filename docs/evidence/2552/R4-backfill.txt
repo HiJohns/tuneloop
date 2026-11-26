@@ -11,8 +11,8 @@ SECOND_APPLY_UPDATED=0
 SECOND_APPLY_CREATED=0
 MEMBERS_REBIND=1
 MEMBERS_BIND_CALLS=1
---- PASS: TestTransitBackfill2552_DryRunApplyIdempotentMembers (0.28s)
+--- PASS: TestTransitBackfill2552_DryRunApplyIdempotentMembers (0.41s)
 IAM_FAILURE_EXPLICIT=1
 IAM_FAILURE_UNTOUCHED=1
---- PASS: TestTransitBackfill2552_IAMFailureExplicit (0.16s)
+--- PASS: TestTransitBackfill2552_IAMFailureExplicit (0.24s)
 R4_OK

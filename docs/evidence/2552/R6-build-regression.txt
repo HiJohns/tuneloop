@@ -1,42 +1,42 @@
 # build=1.0.7ca438baa # commit=7ca438baa7818a25198ef77fa10911d311920b96 # dirty=false
 == R6 构建 + gofmt + 定向回归 ==
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed at_ms=1795684097983 wait_ms=165
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed wait_ms=165
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795684106760 hold_ms=8777
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed at_ms=1795684670104 wait_ms=195
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed wait_ms=195
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795684684257 hold_ms=14153
 --- PASS: TestPersonnel2065_MerchantView (0.80s)
 --- PASS: TestPersonnel2065_SiteView (0.70s)
 --- PASS: TestPersonnel2065_SystemView (0.70s)
---- PASS: TestPersonnel2065_CustomerDenied (0.72s)
---- PASS: TestPersonnel2065_MerchantSearchAndSiteFilter (0.42s)
---- PASS: TestStaffDetail2526_ZeroTenantMember (0.42s)
---- PASS: TestStaffDetail2526_SiteAdmin (0.52s)
---- PASS: TestStaffDetail2526_SystemAdmin (0.70s)
---- PASS: TestStaffDetail2526_IsolationNegative (0.71s)
---- PASS: TestStaffDetail2526_ListDetailParity (0.71s)
---- PASS: TestPersonnel2508_IDDomainRootCause (0.70s)
---- PASS: TestPersonnel2508_SiteView (0.70s)
---- PASS: TestPersonnel2508_CrossOrgIsolation (0.71s)
---- PASS: TestPersonnel2508_OldKeyingGone (0.70s)
---- PASS: TestPersonnel2508_MultiSiteFilter (0.72s)
---- PASS: TestPersonnelTransitPredicate2552 (0.68s)
---- PASS: TestPersonnelTransitPredicate2552_WithTenantClaim (0.63s)
---- PASS: TestPersonnelTransitPredicate2552_NoOrgRule (0.65s)
---- PASS: TestTransitOps_TransitSiteScoped (0.68s)
---- PASS: TestTransitSiteMemberRoleFailFast_2461 (0.77s)
+--- PASS: TestPersonnel2065_CustomerDenied (0.70s)
+--- PASS: TestPersonnel2065_MerchantSearchAndSiteFilter (0.78s)
+--- PASS: TestStaffDetail2526_ZeroTenantMember (0.75s)
+--- PASS: TestStaffDetail2526_SiteAdmin (0.73s)
+--- PASS: TestStaffDetail2526_SystemAdmin (0.74s)
+--- PASS: TestStaffDetail2526_IsolationNegative (0.75s)
+--- PASS: TestStaffDetail2526_ListDetailParity (0.76s)
+--- PASS: TestPersonnel2508_IDDomainRootCause (0.73s)
+--- PASS: TestPersonnel2508_SiteView (0.71s)
+--- PASS: TestPersonnel2508_CrossOrgIsolation (0.73s)
+--- PASS: TestPersonnel2508_OldKeyingGone (0.71s)
+--- PASS: TestPersonnel2508_MultiSiteFilter (0.70s)
+--- PASS: TestPersonnelTransitPredicate2552 (0.67s)
+--- PASS: TestPersonnelTransitPredicate2552_WithTenantClaim (0.65s)
+--- PASS: TestPersonnelTransitPredicate2552_NoOrgRule (0.63s)
+--- PASS: TestTransitOps_TransitSiteScoped (0.65s)
+--- PASS: TestTransitSiteMemberRoleFailFast_2461 (0.70s)
 --- PASS: TestTransitRoute_DBCreation (0.00s)
---- PASS: TestTransitMemberScope2552_RepeatedAddKeepsSingleRow (0.72s)
---- PASS: TestTransitMemberScope2552_NewUserTenantIsLocal (0.78s)
---- PASS: TestTransitSiteCreate2552_Contract (0.63s)
---- PASS: TestTransitSiteCreate2552_PrimaryUnresolved (0.64s)
---- PASS: TestTransitSiteCreate2552_OrphanCompensated (0.70s)
+--- PASS: TestTransitMemberScope2552_RepeatedAddKeepsSingleRow (0.63s)
+--- PASS: TestTransitMemberScope2552_NewUserTenantIsLocal (0.62s)
+--- PASS: TestTransitSiteCreate2552_Contract (0.61s)
+--- PASS: TestTransitSiteCreate2552_PrimaryUnresolved (0.61s)
+--- PASS: TestTransitSiteCreate2552_OrphanCompensated (0.64s)
 --- PASS: TestListControlledSitesExcludesTransit (0.59s)
---- PASS: TestCreateAdminTransitSiteValidation (0.60s)
---- PASS: TestTransitSiteMemberRoleRestriction (0.60s)
---- PASS: TestTransitSiteMemberIAMSync (0.66s)
---- PASS: TestTransitSiteMemberRoleTemplateErrorReported (0.63s)
+--- PASS: TestCreateAdminTransitSiteValidation (0.61s)
+--- PASS: TestTransitSiteMemberRoleRestriction (0.61s)
+--- PASS: TestTransitSiteMemberIAMSync (0.65s)
+--- PASS: TestTransitSiteMemberRoleTemplateErrorReported (0.62s)
 PASS
-ok  	tuneloop-backend/handlers	20.716s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795684132218 hold_ms=24987
+ok  	tuneloop-backend/handlers	21.335s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795684711353 hold_ms=26629
 BUILD_RC=0
 GOFMT_DIFF=0
 REGRESSION_RC=0

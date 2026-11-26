@@ -5,14 +5,14 @@ CREATE_PARENT_IS_NAMESPACE=1
 CREATE_NO_ADMIN_INFO=1
 DUPLICATE_NAME_409=1
 NO_SITE_ON_EMPTY_TENANT=1
---- PASS: TestTransitSiteCreate2552_Contract (0.85s)
+--- PASS: TestTransitSiteCreate2552_Contract (0.82s)
 PRIMARY_ORG_UNRESOLVED=50000
 PRIMARY_ORG_CASE primaries=0 status=500
 PRIMARY_ORG_UNRESOLVED=50000
 PRIMARY_ORG_CASE primaries=2 status=500
---- PASS: TestTransitSiteCreate2552_PrimaryUnresolved (0.62s)
+--- PASS: TestTransitSiteCreate2552_PrimaryUnresolved (0.64s)
 ORPHAN_ORG_COMPENSATED=1
 SITE_ROWS_ON_FAILURE=0
 CREATE_STATUS=500
---- PASS: TestTransitSiteCreate2552_OrphanCompensated (0.62s)
+--- PASS: TestTransitSiteCreate2552_OrphanCompensated (0.66s)
 R3_OK

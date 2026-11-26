@@ -6,8 +6,8 @@ MEMBER_ROWS=1
 MEMBER_TENANT_IS_LOCAL_TENANT=1
 MEMBER_IAM_ORG_IS_SITE_ORG=1
 NO_DUPLICATE_MEMBER_ROW=1
---- PASS: TestTransitMemberScope2552_RepeatedAddKeepsSingleRow (0.79s)
+--- PASS: TestTransitMemberScope2552_RepeatedAddKeepsSingleRow (0.75s)
 USER_TENANT_IS_LOCAL_TENANT=1
 USER_ORG_IS_SITE_ORG=1
---- PASS: TestTransitMemberScope2552_NewUserTenantIsLocal (0.65s)
+--- PASS: TestTransitMemberScope2552_NewUserTenantIsLocal (0.62s)
 R1_OK
