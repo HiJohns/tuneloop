@@ -830,6 +830,54 @@ GET /api/confirmation-sessions/:id
 | iam_session_id | string | IAM 侧确认会话 ID |
 | callback_url | string | IAM 确认后的回调地址 |
 
+### 2.8.2 确认执行
+
+```
+POST /api/confirmation-sessions/:id/confirm?token=<token>
+```
+
+**守卫顺序与响应（与实现逐句一致）**：
+
+| 会话状态（按判定顺序） | HTTP | code | message | 是否写状态 / 执行动作 |
+|---|---|---|---|---|
+| `now > expires_at` | 400 | `40002` | `confirmation link has expired` | 不写、不执行 |
+| `status = confirmed` | 200 | `20000` | `already confirmed` | 不写、不执行（幂等） |
+| 其它（含 `waiting`） | 200 | `20000` | `successfully confirmed and action executed` | 写 `status=confirmed` + `confirmed_at`，随后执行动作 |
+| `id`/`token` 不匹配 | 404 | `40400` | `invalid session or token` | 不写、不执行 |
+
+> 本段只记录 `Confirm` 的**既有**行为（#2575 不改 `Confirm`）；`rejected` 会话被 `Confirm` 改写属已知缺口，见 #2543 / #2542。
+
+### 2.8.3 拒绝
+
+```
+POST /api/confirmation-sessions/:id/reject
+{"token": "<token>"}
+```
+
+**语义（#2575 D1/D2/D3）**：只有 `status = waiting` 且未过期的会话可以翻转为 `rejected`。唯一写入点是条件更新 `WHERE id=? AND tenant_id=? AND token=? AND status='waiting' AND expires_at > now`，`RowsAffected=0` 时**只重新读取分类，绝不写状态**。
+
+| 会话状态（按判定顺序） | HTTP | code | message | 是否写状态 |
+|---|---|---|---|---|
+| `now > expires_at` | 400 | `40002` | `confirmation link has expired` | 不写（过期优先于状态判定） |
+| `status = rejected` | 200 | `20000` | `already rejected` | 不写（幂等） |
+| `status = confirmed` | 409 | `40901` | `session already confirmed` | 不写（动作已执行，禁止改写） |
+| `status = failed` / `expired` / 未知 / 空 | 409 | `40901` | `session is not rejectable` | 不写 |
+| `status = waiting` 且未过期 | 200 | `20000` | `successfully rejected` | 写 `status=rejected` |
+| `id`/`token` 不匹配 | 404 | `40400` | `invalid session or token` | 不写 |
+
+**IAM 回调分支** `GET /api/iam/confirmation-callback?session=<id>&result=reject`：与上面同一条件更新（`status='waiting'`）。回调**不校验** `expires_at`（IAM 是确认事实权威，且 reject 不执行动作）；`RowsAffected=0` 时只重定向、不写状态：
+
+| 重读后的状态 | 重定向 |
+|---|---|
+| `waiting`（更新成功） | `/confirmation-result?status=rejected&action=<action_type>` |
+| `rejected` | `/confirmation-result?status=rejected&action=<action_type>`（幂等） |
+| `confirmed` | `/confirmation-result?status=error&message=already_confirmed` |
+| 其它（`failed` / `expired` / 未知 / 空） | `/confirmation-result?status=error&message=not_rejectable` |
+
+**不回收已执行写入（D6）**：`rejected` 只是会话状态标签，**不回收**已执行的 IAM `BindUserToOrganization` / `SetUserCustomerPermissions`，也不回收本地 `site_members` 写入。撤销授权必须走 IAM 显式解绑（`DELETE /organizations/:oid/users/:uid` 等），不属于本接口语义。
+
+**错误码**：`40002`（链接已过期）与 `40901`（会话状态冲突）均为仓库既有码，PC / mobile 的 `ERROR_CODE_MAP` 已含对应文案，本接口不新增错误码。
+
 ## 三、白标化配置模块
 
 ### 3.0 客户端能力配置

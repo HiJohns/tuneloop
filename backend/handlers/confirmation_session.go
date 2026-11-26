@@ -229,7 +229,8 @@ func (h *ConfirmationSessionHandler) Reject(c *gin.Context) {
 
 	db := database.GetDB().WithContext(ctx)
 
-	// Verify session exists and matches token
+	// Verify session exists and matches token (404 only; the guard below decides
+	// whether the write is allowed).
 	var session models.ConfirmationSession
 	if err := db.Where("id = ? AND tenant_id = ? AND token = ?", id, tenantID, req.Token).First(&session).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -240,17 +241,55 @@ func (h *ConfirmationSessionHandler) Reject(c *gin.Context) {
 		return
 	}
 
-	// Update status to rejected
-	session.Status = "rejected"
-	if err := db.Save(&session).Error; err != nil {
+	// #2575 D8: the only write point is a conditional UPDATE. It is the guard and
+	// the write in one statement, so a concurrent Confirm cannot interleave with a
+	// read-decide-write window (the old code could flip a confirmed session back
+	// to rejected after the action had already run).
+	now := time.Now()
+	result := db.Model(&models.ConfirmationSession{}).
+		Where("id = ? AND tenant_id = ? AND token = ? AND status = ? AND expires_at > ?",
+			id, tenantID, req.Token, "waiting", now).
+		Updates(map[string]interface{}{"status": "rejected"})
+	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to reject session"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"code":    20000,
-		"message": "successfully rejected",
-	})
+	if result.RowsAffected == 1 {
+		c.JSON(http.StatusOK, gin.H{
+			"code":    20000,
+			"message": "successfully rejected",
+		})
+		return
+	}
+
+	// RowsAffected == 0 means the guard rejected the write. Never write here:
+	// re-read only to classify the response (expired → 40002, then status).
+	var current models.ConfirmationSession
+	if err := db.Where("id = ? AND tenant_id = ? AND token = ?", id, tenantID, req.Token).First(&current).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "invalid session or token"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to verify session"})
+		}
+		return
+	}
+
+	// D2: expiry is checked first so the response matches Confirm's semantics.
+	if now.After(current.ExpiresAt) {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "confirmation link has expired"})
+		return
+	}
+
+	switch current.Status {
+	case "rejected":
+		c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "already rejected"})
+	case "confirmed":
+		c.JSON(http.StatusConflict, gin.H{"code": 40901, "message": "session already confirmed"})
+	default:
+		// failed / expired / unknown / empty: never rewrite (D4).
+		c.JSON(http.StatusConflict, gin.H{"code": 40901, "message": "session is not rejectable"})
+	}
 }
 
 // generateSecureToken generates a cryptographically secure random token of specified length
@@ -311,9 +350,42 @@ func (h *ConfirmationSessionHandler) IAMConfirmationCallback(c *gin.Context) {
 		c.Redirect(http.StatusFound, "/confirmation-result?status=success&action="+session.ActionType)
 
 	case "reject":
-		session.Status = "rejected"
-		session.Message = "Rejected by user via IAM callback"
-		db.Save(&session)
+		// #2575 D5/D8: same conditional-update guard as Reject. `expires_at` is not
+		// checked here (IAM is the authority on the confirmation fact and reject
+		// executes no action), but a confirmed/failed session must never be flipped.
+		result := db.Model(&models.ConfirmationSession{}).
+			Where("id = ? AND status = ?", session.ID, "waiting").
+			Updates(map[string]interface{}{
+				"status":  "rejected",
+				"message": "Rejected by user via IAM callback",
+			})
+		if result.Error != nil {
+			log.Printf("[IAMCallback] Failed to reject session: %v", result.Error)
+			c.Redirect(http.StatusFound, "/confirmation-result?status=error&message=save_failed")
+			return
+		}
+
+		if result.RowsAffected == 0 {
+			// Classify without writing (D8); status may have moved in another path.
+			var current models.ConfirmationSession
+			if err := db.Where("id = ?", session.ID).First(&current).Error; err != nil {
+				log.Printf("[IAMCallback] Failed to reload session: %v", err)
+				c.Redirect(http.StatusFound, "/confirmation-result?status=error&message=session_not_found")
+				return
+			}
+			switch current.Status {
+			case "rejected":
+				log.Printf("[IAMCallback] Session %s already rejected (idempotent)", sessionID)
+				c.Redirect(http.StatusFound, "/confirmation-result?status=rejected&action="+current.ActionType)
+			case "confirmed":
+				log.Printf("[IAMCallback] Session %s already confirmed; reject ignored", sessionID)
+				c.Redirect(http.StatusFound, "/confirmation-result?status=error&message=already_confirmed")
+			default:
+				log.Printf("[IAMCallback] Session %s is not rejectable (status=%s)", sessionID, current.Status)
+				c.Redirect(http.StatusFound, "/confirmation-result?status=error&message=not_rejectable")
+			}
+			return
+		}
 
 		log.Printf("[IAMCallback] Session %s rejected", sessionID)
 		c.Redirect(http.StatusFound, "/confirmation-result?status=rejected&action="+session.ActionType)
