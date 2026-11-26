@@ -1,9 +1,9 @@
-# build=1.0.ed7e1316f # commit=ed7e1316fd9df165518290464d23183bfe5bd2c4 # dirty=false
-GENERATED_AT_HEAD=ed7e1316fd9df165518290464d23183bfe5bd2c4
+# build=1.0.690c61722 # commit=690c61722ae9a52e4e0099f8f198a84bea4d8369 # dirty=false
+GENERATED_AT_HEAD=690c61722ae9a52e4e0099f8f198a84bea4d8369
 == R2 merchant_admin confirmation uses users.iam_sub (role OWNER) ==
 CONFIRM_STATUS=confirmed
-BIND_USER_ARG=sub-2543-9da20f04
-PERM_USER_ARG=sub-2543-9da20f04
+BIND_USER_ARG=sub-2543-76af7e52
+PERM_USER_ARG=sub-2543-76af7e52
 ROLE=OWNER
 IAM_LOCAL_ID_SENT=0
---- PASS: TestExecuteAction_MerchantAdmin_UsesIAMSub_2543 (1.25s)
+--- PASS: TestExecuteAction_MerchantAdmin_UsesIAMSub_2543 (1.32s)

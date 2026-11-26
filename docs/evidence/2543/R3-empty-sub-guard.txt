@@ -1,7 +1,7 @@
-# build=1.0.ed7e1316f # commit=ed7e1316fd9df165518290464d23183bfe5bd2c4 # dirty=false
-GENERATED_AT_HEAD=ed7e1316fd9df165518290464d23183bfe5bd2c4
+# build=1.0.690c61722 # commit=690c61722ae9a52e4e0099f8f198a84bea4d8369 # dirty=false
+GENERATED_AT_HEAD=690c61722ae9a52e4e0099f8f198a84bea4d8369
 == R3 empty iam_sub → explicit failure, zero IAM requests ==
 CONFIRM_STATUS=failed
 IAM_CALLS=0
 MESSAGE_HAS_ACTIVATE=1
---- PASS: TestExecuteAction_MerchantAdmin_EmptyIAMSub_2543 (1.19s)
+--- PASS: TestExecuteAction_MerchantAdmin_EmptyIAMSub_2543 (1.29s)

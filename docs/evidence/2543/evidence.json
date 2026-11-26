@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2543,
-  "build": "1.0.ed7e1316f",
-  "commit": "ed7e1316fd9df165518290464d23183bfe5bd2c4",
+  "build": "1.0.690c61722",
+  "commit": "690c61722ae9a52e4e0099f8f198a84bea4d8369",
   "dirty": false,
   "plan_sha256": "b7892888961821b3b58de4b577392b78985a79cefe8d9e1fa33c981a5a5fe891",
   "tooling_commit": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
@@ -16,10 +16,10 @@
         "docs/evidence/2543/R1-schema.txt"
       ],
       "assert": "exit 0；含 TABLE_EXISTS=1、EXEMPT_REMOVED=1",
-      "actual": "PASS：TABLE_EXISTS=1 / EXEMPT_REMOVED=1（另附 COLUMN_COUNT=18、TOKEN_UNIQUE=1、DOWN_TABLE_EXISTS=0、MIGRATION_PAIR=ok）；up→down→up 往返在同一用例内完成，18 列与 models.ConfirmationSession 一一对应",
+      "actual": "PASS：TABLE_EXISTS=1 / EXEMPT_REMOVED=1（计划合同字面，未改口径）；本轮另加行为断言 MISSING_TABLE_ERR=1 —— 用例 DROP TABLE 后要求 database.ValidateModelColumnsForTest(&models.ConfirmationSession{}) 返回 error（豁免真正移除），up 迁移建表后要求返回 nil（防假阳性）；另附 COLUMN_COUNT=18、TOKEN_UNIQUE=1、DOWN_TABLE_EXISTS=0、MIGRATION_PAIR=ok；EXEMPT_REMOVED 由「注释字符串消失」改为「源码不含 case \"confirmation_sessions\"」",
       "expected": "PASS",
       "negative": "表缺失 → FAIL",
-      "negative_result": "红：在 HEAD^（Rev.1，无迁移文件且 db.go 仍豁免 ConfirmationSession）上跑同一用例 → 读取 ../database/migrations/20261126002_confirmation_sessions.up.sql 失败，--- FAIL: TestConfirmationSessionsMigration_2543（tmp/red-2543-r1.log，RED_RC=1）。绿：恢复本单迁移 + db.go 后同用例 PASS（本 artifact）",
+      "negative_result": "红①（审计 Bug 1 缺陷版）：把 confirmation_sessions 重新加回 nonPersistedTables → Error: An error is expected but got nil. / missing confirmation_sessions table must be a hard validation error (no exemption)，--- FAIL: TestConfirmationSessionsMigration_2543（tmp/red-r1-2543-bug1.log，RED_RC=1）。红②（HEAD^ = 5c28d480f 审计驳回版）：R1_FAIL: missing assertion token TABLE_EXISTS=1。绿：移除豁免后的本 artifact MISSING_TABLE_ERR=1 / TABLE_EXISTS=1 / EXEMPT_REMOVED=1",
       "pass": true
     },
     {
@@ -72,7 +72,7 @@
         "docs/evidence/2543/R5-build.txt"
       ],
       "assert": "exit 0；含 GO_TEST_OK=1、MIGRATION_ROUNDTRIP=1",
-      "actual": "PASS：GO_TEST_OK=1 / MIGRATION_ROUNDTRIP=1（另附 GO_BUILD_OK=1、GO_ARTIFACT_TESTS_OK=1）；go test ./handlers -run 2543 五个用例全绿，go test ./database -run Artifact 覆盖新增 20261126002 → confirmation_sessions 工件断言，迁移 up/down 往返复跑通过",
+      "actual": "PASS：GO_TEST_OK=1 / MIGRATION_ROUNDTRIP=1（另附 GO_BUILD_OK=1、BUILD_OK=1、GO_ARTIFACT_TESTS_OK=1）；go test ./handlers -run 2543 六个用例全绿（含新的表缺失负例），go test ./database -run Artifact 覆盖 20261126002 → confirmation_sessions 工件断言，迁移 up/down 往返复跑通过；BUILD_OK=1 为对齐 Accepted Plan G0 R5 字面量（审计 Bug 3）",
       "expected": "PASS",
       "negative": "任一失败 → FAIL",
       "negative_result": "红：新增迁移未登记 defaultMigrationArtifacts 时 database 工件测试失败；迁移 down 缺省时 R1 DOWN_TABLE_EXISTS=0 断言失败（见 R1 negative）。绿：本 artifact 四个 token 均为 1",
