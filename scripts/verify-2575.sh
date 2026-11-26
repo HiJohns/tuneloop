@@ -6,6 +6,7 @@
 #   r1  reject 守卫结构 + 条件更新唯一写入口（红绿对照） → R1-reject-guards.txt
 #   r2  行为用例（5 handler + 3 回调）+ go build           → R2-reject-behavior.txt
 #   r3  api.md §2.8.2 / §2.8.3 契约与实现一致              → R3-doc-contract.txt
+#       （含 §2.8.2 deferral 引用有效性：必须指向 OPEN 且语义匹配的跟踪 Issue）
 #
 # 用法（合同命令自带 stdout 重定向到 docs/evidence/2575/）：
 #   bash scripts/verify-2575.sh r1 > docs/evidence/2575/R1-reject-guards.txt
@@ -53,10 +54,18 @@ heavy() {
   if [ -x "$HEAVY_RUN" ]; then bash "$HEAVY_RUN" --timeout 1800 -- "$@"; else "$@"; fi
 }
 
-REJECT_BODY_OLD="$(git show "$FIX_SHA^:backend/handlers/confirmation_session.go" 2>/dev/null \
+# Red sample anchor: the FIRST fix commit of this Issue. Deriving the pre-fix
+# revision from `$FIX_SHA^` would compare against an already-guarded revision as
+# soon as a later audit-follow-up commit becomes the newest `fix(issue-2575)`
+# commit, silently turning the red assertions green. Provenance (first printed
+# line) still carries the latest fix commit.
+RED_BASE="$(git log --format=%H --grep='^fix(issue-2575)' --reverse 2>/dev/null | head -1)"
+[ -n "$RED_BASE" ] || RED_BASE="$FIX_SHA"
+
+REJECT_BODY_OLD="$(git show "$RED_BASE^:backend/handlers/confirmation_session.go" 2>/dev/null \
   | sed -n '/^func (h \*ConfirmationSessionHandler) Reject(/,/^}/p')"
 REJECT_BODY_NEW="$(sed -n '/^func (h \*ConfirmationSessionHandler) Reject(/,/^}/p' backend/handlers/confirmation_session.go)"
-CALLBACK_OLD="$(git show "$FIX_SHA^:backend/handlers/confirmation_session.go" 2>/dev/null \
+CALLBACK_OLD="$(git show "$RED_BASE^:backend/handlers/confirmation_session.go" 2>/dev/null \
   | sed -n '/case "reject":/,/case "failed":/p')"
 CALLBACK_NEW="$(sed -n '/case "reject":/,/case "failed":/p' backend/handlers/confirmation_session.go)"
 
@@ -179,6 +188,30 @@ r3)
   DOC_CALLBACK_ALREADY_CONFIRMED="$(has 'already_confirmed')"
   DOC_CALLBACK_NOT_REJECTABLE="$(has 'not_rejectable')"
 
+  # Round 1 audit Bug 1: a deferral declared in the contract must cite an OPEN,
+  # semantically matching tracking Issue. Citing a closed issue (#2543) or an
+  # unrelated one (#2542) is an unregistered deferral.
+  DEFERRAL_LINE="$(grep -n '本段只记录' "$DOC" | head -1 | cut -d: -f2-)"
+  DEFERRAL_ISSUE="$(printf '%s\n' "$DEFERRAL_LINE" | sed -n 's/.*跟踪 Issue：*#\([0-9][0-9]*\).*/\1/p')"
+  DEFERRAL_REF=0
+  DEFERRAL_ISSUE_OPEN=0
+  DEFERRAL_ISSUE_MATCH=0
+  if [ -n "$DEFERRAL_ISSUE" ] && [ "$DEFERRAL_ISSUE" != "$ISSUE" ]; then
+    DEFERRAL_REF=1
+    DEFERRAL_STATE="$(gh issue view "$DEFERRAL_ISSUE" --repo HiJohns/tuneloop \
+      --json state --jq '.state' 2>/dev/null)"
+    DEFERRAL_TITLE="$(gh issue view "$DEFERRAL_ISSUE" --repo HiJohns/tuneloop \
+      --json title --jq '.title' 2>/dev/null)"
+    [ "$DEFERRAL_STATE" = "OPEN" ] && DEFERRAL_ISSUE_OPEN=1
+    case "$DEFERRAL_TITLE" in
+      *Confirm*|*confirm*)
+        case "$DEFERRAL_TITLE" in
+          *守卫*|*guard*) DEFERRAL_ISSUE_MATCH=1 ;;
+        esac
+        ;;
+    esac
+  fi
+
   echo "DOC_282=$DOC_282"
   echo "DOC_283=$DOC_283"
   echo "DOC_EXPIRED_40002=$DOC_EXPIRED_40002"
@@ -187,6 +220,10 @@ r3)
   echo "DOC_NO_ROLLBACK=$DOC_NO_ROLLBACK"
   echo "DOC_CALLBACK_ALREADY_CONFIRMED=$DOC_CALLBACK_ALREADY_CONFIRMED"
   echo "DOC_CALLBACK_NOT_REJECTABLE=$DOC_CALLBACK_NOT_REJECTABLE"
+  echo "DEFERRAL_ISSUE=#${DEFERRAL_ISSUE:-none}"
+  echo "DEFERRAL_REF=$DEFERRAL_REF"
+  echo "DEFERRAL_ISSUE_OPEN=$DEFERRAL_ISSUE_OPEN"
+  echo "DEFERRAL_ISSUE_MATCH=$DEFERRAL_ISSUE_MATCH"
 
   [ "$DOC_282" = "1" ] || fail "api.md missing §2.8.2"
   [ "$DOC_283" = "1" ] || fail "api.md missing §2.8.3"
@@ -196,6 +233,9 @@ r3)
   [ "$DOC_NO_ROLLBACK" = "1" ] || fail "api.md missing the 'no rollback of executed writes' statement"
   [ "$DOC_CALLBACK_ALREADY_CONFIRMED" = "1" ] || fail "api.md missing the callback already_confirmed redirect"
   [ "$DOC_CALLBACK_NOT_REJECTABLE" = "1" ] || fail "api.md missing the callback not_rejectable redirect"
+  [ "$DEFERRAL_REF" = "1" ] || fail "api.md §2.8.2 deferral does not cite a separate tracking Issue (跟踪 Issue：#N)"
+  [ "$DEFERRAL_ISSUE_OPEN" = "1" ] || fail "api.md §2.8.2 deferral cites #${DEFERRAL_ISSUE:-none}, which is not OPEN (unregistered deferral)"
+  [ "$DEFERRAL_ISSUE_MATCH" = "1" ] || fail "api.md §2.8.2 deferral cites #${DEFERRAL_ISSUE:-none}, whose title does not match the confirm-side guard gap"
   [ "$RC" = "0" ] && echo "R3_OK"
   ;;
 esac

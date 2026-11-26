@@ -353,19 +353,19 @@ func (h *ConfirmationSessionHandler) IAMConfirmationCallback(c *gin.Context) {
 		// #2575 D5/D8: same conditional-update guard as Reject. `expires_at` is not
 		// checked here (IAM is the authority on the confirmation fact and reject
 		// executes no action), but a confirmed/failed session must never be flipped.
-		result := db.Model(&models.ConfirmationSession{}).
+		upd := db.Model(&models.ConfirmationSession{}).
 			Where("id = ? AND status = ?", session.ID, "waiting").
 			Updates(map[string]interface{}{
 				"status":  "rejected",
 				"message": "Rejected by user via IAM callback",
 			})
-		if result.Error != nil {
-			log.Printf("[IAMCallback] Failed to reject session: %v", result.Error)
+		if upd.Error != nil {
+			log.Printf("[IAMCallback] Failed to reject session: %v", upd.Error)
 			c.Redirect(http.StatusFound, "/confirmation-result?status=error&message=save_failed")
 			return
 		}
 
-		if result.RowsAffected == 0 {
+		if upd.RowsAffected == 0 {
 			// Classify without writing (D8); status may have moved in another path.
 			var current models.ConfirmationSession
 			if err := db.Where("id = ?", session.ID).First(&current).Error; err != nil {

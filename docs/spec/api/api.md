@@ -845,7 +845,7 @@ POST /api/confirmation-sessions/:id/confirm?token=<token>
 | 其它（含 `waiting`） | 200 | `20000` | `successfully confirmed and action executed` | 写 `status=confirmed` + `confirmed_at`，随后执行动作 |
 | `id`/`token` 不匹配 | 404 | `40400` | `invalid session or token` | 不写、不执行 |
 
-> 本段只记录 `Confirm` 的**既有**行为（#2575 不改 `Confirm`）；`rejected` 会话被 `Confirm` 改写属已知缺口，见 #2543 / #2542。
+> 本段只记录 `Confirm` 的**既有**行为（#2575 不改 `Confirm`）；`rejected` / `expired` 会话被 `Confirm` 改写并执行动作属已知缺口，跟踪 Issue：#2576。
 
 ### 2.8.3 拒绝
 

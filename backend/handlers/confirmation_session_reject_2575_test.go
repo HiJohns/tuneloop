@@ -231,8 +231,11 @@ func TestRejectConfirmationSession_2575(t *testing.T) {
 			Where("site_id = ?", reject2575Site).
 			Count(&members).Error)
 
-		assert.Greater(t, pendingUsers, int64(0))
-		assert.Zero(t, members)
+		// Fatal (not assert.*) so the marker below only prints once both checks
+		// actually hold — the marker must carry the assertion, not merely decorate
+		// a non-fatal failure (Round 1 audit Bug 2).
+		require.Greater(t, pendingUsers, int64(0))
+		require.Zero(t, members)
 		t.Logf("NO_ACTION_EXECUTED=1")
 	})
 }
