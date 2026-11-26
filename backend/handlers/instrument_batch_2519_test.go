@@ -219,3 +219,73 @@ func TestUpdateInstrumentStatusRoute_2519(t *testing.T) {
 	require.Equal(t, http.StatusOK, w.Code)
 	require.EqualValues(t, 20000, resp.Code)
 }
+
+// R15（Rev.7 审计 B2）：前端批量按钮实际提交的取值必须与后端白名单一致。
+// 上架 → available、下架 → archived；两者都要真实落库且 failed 为空。
+func TestBatchUpdateInstrumentStatus_UiStatuses_2519(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+	testutil.SetDB(t, db)
+	tenantID := uuid.New().String()
+	idA := seedInstrument2519(t, db, tenantID, "UI-2519-UP", "archived")
+	idB := seedInstrument2519(t, db, tenantID, "UI-2519-DOWN", "available")
+
+	actor := testutil.TestActor{TenantID: tenantID, OrgID: tenantID, UserID: uuid.New().String(), Role: "ADMIN"}
+	r := batchRouter2519(actor, -1)
+
+	up := serveBatchStatus2519(t, r, map[string]interface{}{"ids": []string{idA}, "status": "available"})
+	down := serveBatchStatus2519(t, r, map[string]interface{}{"ids": []string{idB}, "status": "archived"})
+
+	var rowA, rowB models.Instrument
+	require.NoError(t, db.Where("id = ?", idA).First(&rowA).Error)
+	require.NoError(t, db.Where("id = ?", idB).First(&rowB).Error)
+	changed := flag2519(rowA.StockStatus == "available") + flag2519(rowB.StockStatus == "archived")
+
+	fmt.Printf("R15 UI_STATUS_VALUES=available,archived UPDATED=%d FAILED=%d DB_CHANGED=%d\n",
+		up.Data.Updated+down.Data.Updated, len(up.Data.Failed)+len(down.Data.Failed), changed)
+	require.EqualValues(t, 20000, up.Code)
+	require.EqualValues(t, 20000, down.Code)
+	require.Equal(t, 1, up.Data.Updated)
+	require.Equal(t, 1, down.Data.Updated)
+	require.Equal(t, 0, len(up.Data.Failed)+len(down.Data.Failed))
+	require.Equal(t, 2, changed)
+
+	fmt.Printf("BATCH_UPDATED=%d BATCH_FAILED=%d\n", up.Data.Updated+down.Data.Updated, len(up.Data.Failed)+len(down.Data.Failed))
+}
+
+// R17（Rev.7 审计 B3）：非法 status / 空 id / 重复 id 均逐项进 failed[]，
+// 但整体仍是 HTTP 200 + code=20000（文档口径 D13），不静默丢弃。
+func TestBatchUpdateInstrumentStatus_FailedReasons_2519(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+	testutil.SetDB(t, db)
+	tenantID := uuid.New().String()
+	id := seedInstrument2519(t, db, tenantID, "REASON-2519", "available")
+
+	actor := testutil.TestActor{TenantID: tenantID, OrgID: tenantID, UserID: uuid.New().String(), Role: "ADMIN"}
+	r := batchRouter2519(actor, -1)
+
+	invalid := serveBatchStatus2519(t, r, map[string]interface{}{"ids": []string{id}, "status": "active"})
+	badIDs := serveBatchStatus2519(t, r, map[string]interface{}{"ids": []string{"", id, id}, "status": "archived"})
+
+	reasons := map[string]bool{}
+	for _, item := range invalid.Data.Failed {
+		reasons[item.Reason] = true
+	}
+	for _, item := range badIDs.Data.Failed {
+		reasons[item.Reason] = true
+	}
+
+	var row models.Instrument
+	require.NoError(t, db.Where("id = ?", id).First(&row).Error)
+
+	fmt.Printf("R17 API_INVALID_STATUS_IN_FAILED=%d FAILED_REASONS=%d DB_STATUS=%s\n",
+		flag2519(reasons["invalid_status"]), len(reasons), row.StockStatus)
+	require.Equal(t, http.StatusOK, invalid.status)
+	require.EqualValues(t, 20000, invalid.Code)
+	require.Equal(t, 1, len(invalid.Data.Failed))
+	require.Equal(t, "invalid_status", invalid.Data.Failed[0].Reason)
+	require.True(t, reasons["invalid_id"], "empty id must be reported as invalid_id")
+	require.True(t, reasons["duplicate_id"], "duplicate id must be reported as duplicate_id")
+	// 非法状态请求不得改写任何行；后续请求只处理首次出现的 id。
+	require.Equal(t, "archived", row.StockStatus)
+	require.Equal(t, 1, badIDs.Data.Updated)
+}

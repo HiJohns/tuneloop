@@ -1528,6 +1528,7 @@ GET /api/confirmation-sessions/:id
   - `deposit`（押金，元，允许 0 = 显式零押金；写 `deposit` 列 + `pricing.deposit` 元值）
 - **显式设置优先**：写入权威位置的同时删除 `pricing_overrides` 中的同名键，避免历史 override 屏蔽新值。
 - 旧的 `overrides` 入参**已废弃**：不消费；只传 `overrides` 的条目按 `no_fields` 进 `failed[]`。
+- 详情页「价格设定 → 逾期日费」也走本端点（显式 `overdue_daily_fee`），不再使用 `overrides`（#2519 Rev.7）。
 
 **响应**:
 ```json
@@ -1574,7 +1575,10 @@ GET /api/confirmation-sessions/:id
 }
 ```
 - 单条不存在或跨租户 → `failed[]` 的 `reason=not_found_or_forbidden`（不泄漏其它租户的存在性）。
-- 非法 `status` → 全局 `400 40003`；`ids` 为空或超过 500 → `400 40002`。
+- 非法 `status` **不整体报错**：HTTP 200 / `code=20000`，逐项进 `failed[]{ "reason": "invalid_status" }`（#2519 Rev.7 D13，与实现一致）。
+- `failed[]` reason 全集（5 个，机器可读）：`invalid_status` / `not_found_or_forbidden` / `invalid_id` / `duplicate_id` / `update_failed`。
+  - `invalid_id`：id 为空串；`duplicate_id`：同一请求内重复 id（只处理首次，其余显式上报）。
+- `ids` 为空或超过 500 → `400 40002`。
 
 ---
 

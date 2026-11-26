@@ -407,8 +407,17 @@ export default function InstrumentStock() {
                 <Switch checkedChildren="改" unCheckedChildren="不改" />
               </Form.Item>
               <span style={{ width: 88 }}>{field.label}</span>
-              <Form.Item name={[field.key, 'value']} noStyle>
-                <InputNumber style={{ flex: 1 }} min={0} placeholder={field.unit} />
+              <Form.Item noStyle shouldUpdate>
+                {({ getFieldValue }) => (
+                  <Form.Item name={[field.key, 'value']} noStyle>
+                    <InputNumber
+                      style={{ flex: 1 }}
+                      min={0}
+                      placeholder={field.unit}
+                      disabled={!getFieldValue([field.key, 'enabled'])}
+                    />
+                  </Form.Item>
+                )}
               </Form.Item>
             </div>
           ))}

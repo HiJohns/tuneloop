@@ -538,29 +538,27 @@ export default function InstrumentList() {
           <div className="flex items-center">
             <span className="mr-4">已选择 <span className="font-bold">{selectedRowKeys.length}</span> 项</span>
             <Space>
-              {false && <>
-               <Button
-                 size="small"
-                 icon={<ArrowUpOutlined />}
-                 onClick={() => batchChangeStatus('active')}
-               >
-                 批量上架
-               </Button>
-               <Button
-                 size="small"
-                 icon={<ArrowDownOutlined />}
-                 onClick={() => batchChangeStatus('inactive')}
-               >
-                 批量下架
-               </Button>
-               <Button
-                 size="small"
-                 icon={<DollarOutlined />}
-                 onClick={showBatchPriceModal}
-               >
-                 批量改价
-               </Button>
-              </>}
+              <Button
+                size="small"
+                icon={<ArrowUpOutlined />}
+                onClick={() => batchChangeStatus('available')}
+              >
+                批量上架
+              </Button>
+              <Button
+                size="small"
+                icon={<ArrowDownOutlined />}
+                onClick={() => batchChangeStatus('archived')}
+              >
+                批量下架
+              </Button>
+              <Button
+                size="small"
+                icon={<DollarOutlined />}
+                onClick={showBatchPriceModal}
+              >
+                批量改价
+              </Button>
               <Button
                 size="small"
                 danger
@@ -691,8 +689,17 @@ export default function InstrumentList() {
                 <Switch checkedChildren="改" unCheckedChildren="不改" />
               </Form.Item>
               <span style={{ width: 88 }}>{field.label}</span>
-              <Form.Item name={[field.key, 'value']} noStyle>
-                <InputNumber style={{ flex: 1 }} min={0} placeholder={field.unit} />
+              <Form.Item noStyle shouldUpdate>
+                {({ getFieldValue }) => (
+                  <Form.Item name={[field.key, 'value']} noStyle>
+                    <InputNumber
+                      style={{ flex: 1 }}
+                      min={0}
+                      placeholder={field.unit}
+                      disabled={!getFieldValue([field.key, 'enabled'])}
+                    />
+                  </Form.Item>
+                )}
               </Form.Item>
             </div>
           ))}

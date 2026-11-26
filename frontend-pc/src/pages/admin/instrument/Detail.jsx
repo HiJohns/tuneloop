@@ -474,8 +474,6 @@ export default function InstrumentDetail() {
                         <Button type="primary" loading={savingPricing} onClick={async () => {
                           setSavingPricing(true)
                           try {
-                            const overrides = {}
-                            if (editValues.overdue_daily_fee != null) overrides.overdue_daily_fee = editValues.overdue_daily_fee
                             if (editValues.deposit_reduced_enabled && editValues.deposit != null && Number(editValues.deposit_reduced) > Number(editValues.deposit)) {
                               message.error('差额押金不能大于全额押金')
                               setSavingPricing(false)
@@ -491,14 +489,20 @@ export default function InstrumentDetail() {
                               setSavingPricing(false)
                               return
                             }
+                            // #2519 Rev.7（审计 B1）：批量设价只认显式字段，旧 `overrides`
+                            // 已被后端丢弃（会「提示成功但未落库」）。逾期日费必须显式提交。
+                            const pricingItem = { id }
+                            if (editValues.base_daily_rate) pricingItem.base_daily_rate = editValues.base_daily_rate
+                            if (editValues.overdue_daily_fee != null) pricingItem.overdue_daily_fee = editValues.overdue_daily_fee
                             const res = await api.put('/instruments/batch-pricing', {
-                              items: [{
-                                id,
-                                base_daily_rate: editValues.base_daily_rate || undefined,
-                                overrides: Object.keys(overrides).length > 0 ? overrides : undefined,
-                              }],
+                              items: [pricingItem],
                             })
-                            if (res.code === 20000) {
+                            const failed = Array.isArray(res?.data?.failed) ? res.data.failed : []
+                            if (res.code === 20000 && failed.length > 0) {
+                              // #2519 D3：逐条失败必须对用户可见，不得报「价格已更新」。
+                              const reasons = failed.map((item) => item?.reason || 'unknown').join('，')
+                              message.error(`价格未保存（${reasons}）`)
+                            } else if (res.code === 20000) {
                               message.success('价格已更新')
                               setEditingPricing(false)
                               // #2047: 刷新 pricingV2 独立于保存 try/catch——保存成功即成功，

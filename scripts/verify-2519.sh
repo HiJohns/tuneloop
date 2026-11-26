@@ -16,16 +16,20 @@
 #   r11 API 文档同步                 → docs/evidence/2519/R11-docs.txt
 #   r12 构建 + 定向测试              → docs/evidence/2519/R12-build.txt
 #   r13 legacy overrides 拒绝        → docs/evidence/2519/R13-legacy-overrides.txt
+#   r14 全量后端 gate（Rev.7 B5）     → docs/evidence/2519/R14-full-gate.txt
+#   r15 UI 状态取值契约（Rev.7 B2）   → docs/evidence/2519/R15-ui-status-contract.txt
+#   r16 详情页逾期日费（Rev.7 B1）    → docs/evidence/2519/R16-detail-overdue.txt
+#   r17 非法 status 契约（Rev.7 B3）  → docs/evidence/2519/R17-invalid-status-contract.txt
 #
-# 用法：bash scripts/verify-2519.sh <r1..r13>
+# 用法：bash scripts/verify-2519.sh <r1..r17>
 # 产物首行 provenance：`# build=1.0.<fix短码> # commit=<sha> # dirty=<bool>`
 # =============================================================================
 set -uo pipefail
 
 MODE="${1:-}"
 case "$MODE" in
-  r1|r2|r3|r4|r5|r6|r7|r8|r9|r10|r11|r12|r13|gate) ;;
-  *) echo "usage: $0 <r1..r13|gate>" >&2; exit 2 ;;
+  r1|r2|r3|r4|r5|r6|r7|r8|r9|r10|r11|r12|r13|r14|r15|r16|r17|gate) ;;
+  *) echo "usage: $0 <r1..r17|gate>" >&2; exit 2 ;;
 esac
 
 REPO="$(git rev-parse --show-toplevel)"; cd "$REPO" || exit 2
@@ -98,7 +102,7 @@ run_build_rows() {
   GTEST=$?
   ( cd "$REPO/frontend-pc" && heavy npm run build ) > "$WORK/npm.log" 2>&1
   NPM=$?
-  ( cd "$REPO/frontend-pc" && heavy npx eslint src/utils/batchPricing.js src/pages/InstrumentStock.jsx src/pages/admin/instrument/List.jsx ) > "$WORK/eslint.log" 2>&1
+  ( cd "$REPO/frontend-pc" && heavy npx eslint src/utils/batchPricing.js src/pages/InstrumentStock.jsx src/pages/admin/instrument/List.jsx src/pages/admin/instrument/Detail.jsx ) > "$WORK/eslint.log" 2>&1
   LINT=$?
   NO_UNDEF="$(grep -c 'no-undef' "$WORK/eslint.log" || true)"
   # Contract tokens (Accepted Plan R12): GO_TEST_OK / BUILD_OK / NPM_BUILD_OK / ESLINT_OK.
@@ -273,6 +277,103 @@ r12)
   NAME="R12-build.txt"
   run_build_rows
   ;;
+
+r14)
+  NAME="R14-full-gate.txt"
+  # Rev.7 审计 B5：独立 Issue 必须跑全量后端 gate（不能只用 -run 过滤）。
+  ( cd "$REPO/backend" && heavy go test ./... -count=1 -timeout 20m ) > "$WORK/full.log" 2>&1
+  FULL_RC=$?
+  FAIL_COUNT="$(grep -cE '^(--- FAIL|FAIL[[:space:]])' "$WORK/full.log" || true)"
+  # 计划点名的既有用例必须确实被执行（证明 -run 过滤没有把它排除）。
+  ( cd "$REPO/backend" && heavy go test ./handlers -run '^TestInstrumentsLeftovers' -count=1 -v -timeout 10m ) > "$WORK/leftovers.log" 2>&1
+  LEFTOVERS_RC=$?
+  LEFTOVERS_RAN=0
+  grep -q '^--- PASS: TestInstrumentsLeftovers' "$WORK/leftovers.log" && LEFTOVERS_RAN=1
+  FULL_OK=0
+  [ "$FULL_RC" = "0" ] && [ "$FAIL_COUNT" = "0" ] && FULL_OK=1
+  {
+    echo "GO_TEST_FULL_OK=$FULL_OK"
+    echo "GO_TEST_FULL_EXIT=$FULL_RC"
+    echo "FAIL_COUNT=$FAIL_COUNT"
+    echo "LEFTOVERS_RAN=$LEFTOVERS_RAN"
+    echo "LEFTOVERS_EXIT=$LEFTOVERS_RC"
+    grep -E '^--- (PASS|FAIL): TestInstrumentsLeftovers' "$WORK/leftovers.log" || true
+    grep -E '^FAIL[[:space:]]' "$WORK/full.log" | head -20 || true
+    tail -3 "$WORK/full.log"
+  } >> "$LOG"
+  [ "$FULL_OK" = "1" ] || RC=1
+  [ "$LEFTOVERS_RAN" = "1" ] || RC=1
+  require_tokens "$LOG" 'GO_TEST_FULL_OK=1' 'FAIL_COUNT=0' 'LEFTOVERS_RAN=1' 'TestInstrumentsLeftovers'
+  ;;
+r15)
+  NAME="R15-ui-status-contract.txt"
+  # Rev.7 审计 B2：前端真实提交值必须 ∈ 后端白名单，且隐藏块必须解除。
+  LIST="$REPO/frontend-pc/src/pages/admin/instrument/List.jsx"
+  UI_STATUS_VALUES=""
+  UP=0; DOWN=0
+  grep -qF "batchChangeStatus('available')" "$LIST" && UP=1
+  grep -qF "batchChangeStatus('archived')" "$LIST" && DOWN=1
+  [ "$UP" = "1" ] && [ "$DOWN" = "1" ] && UI_STATUS_VALUES="available,archived"
+  UI_HIDDEN_BLOCK="$(grep -cF '{false &&' "$LIST" || true)"
+  LEGACY_UI_VALUES="$(grep -cE "batchChangeStatus\('(active|inactive)'\)" "$LIST" || true)"
+  run_go_row "$WORK/go.log" '^TestBatchUpdateInstrumentStatus_UiStatuses_2519$'
+  T=$?
+  grep -E 'R15 UI_STATUS_VALUES=|^BATCH_UPDATED=' "$WORK/go.log" >> "$LOG"
+  echo "GO_TEST_EXIT=$T" >> "$LOG"
+  echo "UI_STATUS_VALUES=$UI_STATUS_VALUES" >> "$LOG"
+  echo "UI_HIDDEN_BLOCK=$UI_HIDDEN_BLOCK" >> "$LOG"
+  echo "LEGACY_UI_VALUES=$LEGACY_UI_VALUES" >> "$LOG"
+  [ "$T" = "0" ] || RC=1
+  [ "$UI_HIDDEN_BLOCK" = "0" ] || RC=1
+  [ "$LEGACY_UI_VALUES" = "0" ] || RC=1
+  require_tokens "$LOG" 'UI_STATUS_VALUES=available,archived' 'UI_HIDDEN_BLOCK=0' 'BATCH_UPDATED=2' 'BATCH_FAILED=0'
+  ;;
+r16)
+  NAME="R16-detail-overdue.txt"
+  # Rev.7 审计 B1：详情页不得再传 overrides（后端已不消费），且必须消费 failed[]。
+  DETAIL="$REPO/frontend-pc/src/pages/admin/instrument/Detail.jsx"
+  DETAIL_SENDS_OVERRIDES="$(grep -cE 'overrides\s*:|overrides\.overdue_daily_fee' "$DETAIL" || true)"
+  DETAIL_EXPLICIT="$(grep -cF 'overdue_daily_fee: editValues.overdue_daily_fee' "$DETAIL" || true)"
+  FAILED_CONSUMED=0
+  grep -qF 'res?.data?.failed' "$DETAIL" && FAILED_CONSUMED=1
+  run_go_row "$WORK/go.log" '^TestBatchSetInstrumentPricing_ExplicitOverdue_2519$'
+  T=$?
+  grep -E 'R6 STATUS=' "$WORK/go.log" >> "$LOG"
+  echo "GO_TEST_EXIT=$T" >> "$LOG"
+  echo "DETAIL_SENDS_OVERRIDES=$DETAIL_SENDS_OVERRIDES" >> "$LOG"
+  echo "DETAIL_EXPLICIT_OVERDUE=$DETAIL_EXPLICIT" >> "$LOG"
+  echo "FAILED_CONSUMED=$FAILED_CONSUMED" >> "$LOG"
+  PRICING_OVERDUE_UPDATED=0
+  grep -q 'PRICING_OVERDUE=120' "$WORK/go.log" && [ "$T" = "0" ] && PRICING_OVERDUE_UPDATED=1
+  echo "PRICING_OVERDUE_UPDATED=$PRICING_OVERDUE_UPDATED" >> "$LOG"
+  [ "$T" = "0" ] || RC=1
+  [ "$DETAIL_SENDS_OVERRIDES" = "0" ] || RC=1
+  [ "$DETAIL_EXPLICIT" -ge 1 ] || RC=1
+  [ "$FAILED_CONSUMED" = "1" ] || RC=1
+  require_tokens "$LOG" 'DETAIL_SENDS_OVERRIDES=0' 'PRICING_OVERDUE_UPDATED=1' 'FAILED_CONSUMED=1'
+  ;;
+r17)
+  NAME="R17-invalid-status-contract.txt"
+  # Rev.7 审计 B3：文档与实现一致（HTTP 200 + 逐项 failed[]{invalid_status}），reason 全集列全。
+  DOC="$REPO/docs/spec/api/api.md"
+  DOC_REASONS=0
+  for tok in 'invalid_status' 'not_found_or_forbidden' 'invalid_id' 'duplicate_id' 'update_failed'; do
+    grep -q -- "$tok" "$DOC" && DOC_REASONS=$((DOC_REASONS + 1))
+  done
+  DOC_INVALID_AS_GLOBAL=0
+  grep -q '非法 `status` → 全局 `400 40003`' "$DOC" && DOC_INVALID_AS_GLOBAL=1
+  run_go_row "$WORK/go.log" '^TestBatchUpdateInstrumentStatus_FailedReasons_2519$'
+  T=$?
+  grep -E 'R17 API_INVALID_STATUS_IN_FAILED=' "$WORK/go.log" >> "$LOG"
+  echo "GO_TEST_EXIT=$T" >> "$LOG"
+  echo "DOC_FAILED_REASONS=$DOC_REASONS" >> "$LOG"
+  echo "DOC_INVALID_AS_GLOBAL=$DOC_INVALID_AS_GLOBAL" >> "$LOG"
+  [ "$T" = "0" ] || RC=1
+  [ "$DOC_REASONS" = "5" ] || RC=1
+  [ "$DOC_INVALID_AS_GLOBAL" = "0" ] || RC=1
+  require_tokens "$LOG" 'DOC_FAILED_REASONS=5' 'API_INVALID_STATUS_IN_FAILED=1'
+  ;;
+
 gate)
   # --full-gate-cmd 入口：pre-ready 会在**干净 worktree** 里执行本命令（无 node_modules）。
   # 先装前端依赖（node_modules 被 gitignore），再跑与 R12 同口径的构建/测试/lint。

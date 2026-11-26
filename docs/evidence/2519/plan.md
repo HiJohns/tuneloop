@@ -1,4 +1,4 @@
-## Accepted Plan — #2519（Rev.5：批量设价改为「日租金 / 逾期日租金 / 押金」逐项开关 + 押金双写 + 显式设置优先 + `overrides` 入参废弃）｜Rev.6
+## Accepted Plan — #2519（Rev.5：批量设价改为「日租金 / 逾期日租金 / 押金」逐项开关 + 押金双写 + 显式设置优先 + `overrides` 入参废弃）｜Rev.6｜Rev.7
 
 > 取代 Rev.3。Rev.3 的 D6（押金只写 `pricing.deposit`）经预生产实测证伪（见下），UI 的「价格类型 + 操作」选择器也被 Owner 判定为无意义，改为**三项各带开关**。
 
@@ -54,6 +54,11 @@
 6. **`docs/spec/api/api.md`**
    新增 `PUT /instruments/batch/status`（权限/状态集/`failed[]`）；`batch-pricing` 改为三字段可选 + 单位 + 「开关关闭即不改动」+ 显式设置会清理同名 `pricing_overrides` + `failed[]`。
 
+7. **既有调用方收敛（Rev.7，审计 B1）**：`frontend-pc/src/pages/admin/instrument/Detail.jsx` 的「价格设定」仍以 `overrides.overdue_daily_fee` 调 `batch-pricing` → 新后端（D11）不消费 `overrides`，会「提示成功但未落库」。改为显式 `overdue_daily_fee`，并消费 `failed[]`。
+8. **批量上/下架真实可达（Rev.7，审计 B2）**：`List.jsx` 三条批量按钮被 `{false && <>…</>}` 整块隐藏；解除隐藏，取值对齐后端白名单：**上架 → `available`、下架 → `archived`**。
+9. **计划项落地（Rev.7，审计 B4）**：①抽出 `mergePricingFields` 薄封装；②`Switch` 关闭时 `InputNumber` 必须 `disabled`。
+10. **契约与审计（Rev.7，审计 B3 + 观察项）**：`docs/spec/api/api.md` 非法 `status` 改为与实现一致（HTTP 200 + 逐项 `failed[]{reason:"invalid_status"}`，并补 `reason` 全集）；`middleware/audit_logger.go` 登记 `PUT /api/instruments/batch/status`（HIGH）。
+
 ### Files
 
 - `backend/handlers/instrument.go`
@@ -64,6 +69,8 @@
 - `frontend-pc/src/utils/batchPricing.js`
 - `frontend-pc/src/pages/InstrumentStock.jsx`
 - `frontend-pc/src/pages/admin/instrument/List.jsx`
+- `frontend-pc/src/pages/admin/instrument/Detail.jsx`
+- `backend/middleware/audit_logger.go`
 - `frontend-pc/tests/batchPricingToggles.test.mjs`（新增）
 - `frontend-pc/tests/batchPricing.test.mjs`（改写：三段式 → 三开关模型）
 - `docs/spec/api/api.md`
@@ -81,6 +88,10 @@
 - `docs/evidence/2519/R11-docs.txt`
 - `docs/evidence/2519/R12-build.txt`
 - `docs/evidence/2519/R13-legacy-overrides.txt`
+- `docs/evidence/2519/R14-full-gate.txt`
+- `docs/evidence/2519/R15-ui-status-contract.txt`
+- `docs/evidence/2519/R16-detail-overdue.txt`
+- `docs/evidence/2519/R17-invalid-status-contract.txt`
 - `docs/evidence/2519/evidence.json`
 
 ### 语义变更（被翻转的既有断言）
@@ -111,6 +122,10 @@
 | 前端接线收敛（静态） | `InstrumentStock.jsx`、`admin/instrument/List.jsx` | grep | — | PC | 命中 `price_type`/`operator` 选择器 = 0；调用 `batch/status` = 1；两页均只用 `BATCH_PRICE_FIELDS` | R10 |
 | 文档同步 | `docs/spec/api/api.md` | grep | — | 文档 | 含 `batch/status`、三字段、`failed` 表述 | R11 |
 | 构建与测试 | `backend` + `frontend-pc` | 定向测试 + `go build` + `npm run build` + eslint | — | 双端 | 全绿 | R12 |
+| 全量后端 gate（Rev.7，审计 B5） | `backend` | `go test ./...` | 修后工作树 | 后端 | `GO_TEST_FULL_OK=1`、`FAIL_COUNT=0`、含 `TestInstrumentsLeftovers_*` | R14 |
+| 批量上/下架真实入口（Rev.7，审计 B2） | `frontend-pc/src/pages/admin/instrument/List.jsx` | 抓取按钮提交的 `status` 字面值 → 后端 | 修后树 | PC + 后端 | `UI_STATUS_VALUES=available,archived`、`UI_HIDDEN_BLOCK=0`、`BATCH_UPDATED=N`、`BATCH_FAILED=0` | R15 |
+| 详情页逾期日费（Rev.7，审计 B1） | `frontend-pc/src/pages/admin/instrument/Detail.jsx` | 改「逾期日费」→ `PUT /instruments/batch-pricing` | 显式 `overdue_daily_fee` | PC + 后端 | `DETAIL_SENDS_OVERRIDES=0`、`PRICING_OVERDUE_UPDATED=1`、`FAILED_CONSUMED=1` | R16 |
+| 非法 status 契约（Rev.7，审计 B3） | `docs/spec/api/api.md` + `backend/handlers/instrument.go` | 提交非法状态 | 修后树 | 文档 + 后端 | `DOC_FAILED_REASONS=5`、`API_INVALID_STATUS_IN_FAILED=1` | R17 |
 
 ### Input Truth & Tool Preflight
 
@@ -141,6 +156,8 @@
 | D9 | 逾期费与日租金关系 | 不自动联动（用户可分别设置）；批量改日租金不再隐式改逾期费 |
 | D10 | 前端证据口径 | 前端只做「纯逻辑测试（`node --test`）+ 静态接线核对」（`evidence_type: static`）；交互渲染不在本单证据范围 |
 | D11 | `overrides` 入参 | **废弃**：批量设价只认三个显式字段；legacy `overrides` 不消费，落 `failed[]`（`no_fields`）。`pricing_overrides` 机制保留，入口为 `PUT /inventory/rent-setting/batch` |
+| D12 | 前端状态取值契约：上架 = `available`、下架 = `archived`（不引入 `active/inactive`） | 本计划锁定（Rev.7，采纳审计 B2 方案 a） |
+| D13 | 非法 `status` 响应形态以逐项 `failed[]{invalid_status}` + HTTP 200 为准，`api.md` 随实现改 | 本计划锁定（Rev.7，采纳审计 B3） |
 
 ### Out of Scope
 
@@ -164,6 +181,10 @@
 | R7 | `deposit=100`；另一台 `deposit=0` | 同上 | `docs/evidence/2519/R7-deposit.txt` | `DEPOSIT_COL=10000`、`PRICING_DEPOSIT=100`、`OVERRIDE_DEPOSIT_REMOVED=1`、`ZERO_CASE_COL=0`、`ZERO_CASE_TIER=zero` | 只写 JSONB（列不变）→ FAIL |
 | R8 | 一条三字段全开 + 一条不存在 id | 同上 | `docs/evidence/2519/R8-multi-field.txt` | `UPDATED=1`、`FAILED=1`、`BASE=5000`、`OVERDUE=120`、`DEPOSIT=10000` | 任一项未生效 → FAIL |
 | R13 | 只传 `overrides`（legacy） | `PUT /instruments/batch-pricing` | `docs/evidence/2519/R13-legacy-overrides.txt` | `UPDATED=0`、`FAILED=1`、`FAILED_REASON=no_fields`、`OVERRIDES_STORED=0`、`PRICING_V2_OVERDUE=0` | 仍消费 `overrides`（定价变化或 `updated=1`）→ FAIL |
+| R14 | 修后 `backend` | `bash scripts/verify-2519.sh r14` | `docs/evidence/2519/R14-full-gate.txt` | `GO_TEST_FULL_OK=1`、`FAIL_COUNT=0`、含 `TestInstrumentsLeftovers` | 任一失败 → FAIL |
+| R15 | `List.jsx` 批量按钮（解除隐藏后） | `bash scripts/verify-2519.sh r15` | `docs/evidence/2519/R15-ui-status-contract.txt` | `UI_STATUS_VALUES=available,archived`、`UI_HIDDEN_BLOCK=0`、`BATCH_FAILED=0` | 仍隐藏或提交 `active/inactive` → FAIL |
+| R16 | 详情页价格面板「逾期日费」 | `bash scripts/verify-2519.sh r16` | `docs/evidence/2519/R16-detail-overdue.txt` | `DETAIL_SENDS_OVERRIDES=0`、`PRICING_OVERDUE_UPDATED=1`、`FAILED_CONSUMED=1` | 仍传 overrides / 未消费 failed[] → FAIL |
+| R17 | `api.md` + 非法状态请求 | `bash scripts/verify-2519.sh r17` | `docs/evidence/2519/R17-invalid-status-contract.txt` | `DOC_FAILED_REASONS=5`、`API_INVALID_STATUS_IN_FAILED=1` | 文档与实现不一致 → FAIL |
 | R9 | 开关模型纯函数 | `node --test frontend-pc/tests/batchPricingToggles.test.mjs` | `docs/evidence/2519/R9-toggles.txt` | `TESTS_PASS>=6`、`LEGACY_TEST_REWRITTEN=1`、`ONLY_ENABLED_SUBMITTED=1`、`ALL_OFF_ERROR=1`、`DEPOSIT_ZERO_OK=1` | 全关可提交 / 提交关闭项 → FAIL |
 | R10 | 修后前端两文件 | grep | `docs/evidence/2519/R10-frontend-wiring.txt` | `LEGACY_SELECTORS=0`、`BATCH_STATUS_CALL=1`、`FIELDS_CONST=3` | 仍含选择器或手写 payload → FAIL |
 | R11 | `docs/spec/api/api.md` | grep | `docs/evidence/2519/R11-docs.txt` | `DOC_TOKENS=4`（`batch/status`、`deposit`、`overdue_daily_fee`、`failed`） | 缺任一 → FAIL |
@@ -182,6 +203,10 @@
 | R7 | `bash scripts/verify-2519.sh r7` | docs/evidence/2519/R7-deposit.txt | exit 0；含 `DEPOSIT_COL=10000`、`ZERO_CASE_TIER=zero` | PASS | 只写 JSONB → FAIL | dev |
 | R8 | `bash scripts/verify-2519.sh r8` | docs/evidence/2519/R8-multi-field.txt | exit 0；含 `UPDATED=1`、`FAILED=1` | PASS | 项未生效 → FAIL | dev |
 | R13 | `bash scripts/verify-2519.sh r13` | docs/evidence/2519/R13-legacy-overrides.txt | exit 0；含 `FAILED_REASON=no_fields`、`PRICING_V2_OVERDUE=0` | PASS | 仍消费 overrides → FAIL | dev |
+| R14 | `bash scripts/verify-2519.sh r14` | docs/evidence/2519/R14-full-gate.txt | exit 0；含 `GO_TEST_FULL_OK=1`、`FAIL_COUNT=0` | PASS | 任一失败 → FAIL | dev |
+| R15 | `bash scripts/verify-2519.sh r15` | docs/evidence/2519/R15-ui-status-contract.txt | exit 0；含 `UI_STATUS_VALUES=available,archived`、`UI_HIDDEN_BLOCK=0` | PASS | 隐藏块残留 / 值不符 → FAIL | dev |
+| R16 | `bash scripts/verify-2519.sh r16` | docs/evidence/2519/R16-detail-overdue.txt | exit 0；含 `DETAIL_SENDS_OVERRIDES=0`、`PRICING_OVERDUE_UPDATED=1` | PASS | 仍传 overrides → FAIL | dev |
+| R17 | `bash scripts/verify-2519.sh r17` | docs/evidence/2519/R17-invalid-status-contract.txt | exit 0；含 `DOC_FAILED_REASONS=5`、`API_INVALID_STATUS_IN_FAILED=1` | PASS | 不一致 → FAIL | dev |
 | R9 | `bash scripts/verify-2519.sh r9` | docs/evidence/2519/R9-toggles.txt | exit 0；含 `ALL_OFF_ERROR=1`、`DEPOSIT_ZERO_OK=1`、`LEGACY_TEST_REWRITTEN=1` | PASS | 全关可提交，或旧三段式用例仍在断言废弃 API → FAIL | dev |
 | R10 | `bash scripts/verify-2519.sh r10` | docs/evidence/2519/R10-frontend-wiring.txt | exit 0；含 `LEGACY_SELECTORS=0`、`BATCH_STATUS_CALL=1` | PASS | 残留选择器 → FAIL | dev |
 | R11 | `bash scripts/verify-2519.sh r11` | docs/evidence/2519/R11-docs.txt | exit 0；含 `DOC_TOKENS=4` | PASS | 缺项 → FAIL | dev |
@@ -203,6 +228,10 @@
   - docs/evidence/2519/R11-docs.txt
   - docs/evidence/2519/R12-build.txt
   - docs/evidence/2519/R13-legacy-overrides.txt
+  - docs/evidence/2519/R14-full-gate.txt
+  - docs/evidence/2519/R15-ui-status-contract.txt
+  - docs/evidence/2519/R16-detail-overdue.txt
+  - docs/evidence/2519/R17-invalid-status-contract.txt
 - gate（由 /work 执行）：`~/.config/opencode/scripts/pre-ready-check.sh 2519 --summary-file … --changed-files … --evidence-file docs/evidence/2519/evidence.json --report docs/evidence/2519/pre-ready-2519.json`；`evidence.json` 的 build 字段须匹配 evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$。
 - JSONB 断言必须在**真实数据库**读回（Go 测试用真实 DB/测试库均可），不得只看请求前的输入值。
 
@@ -224,5 +253,6 @@
 ### Workload
 
 - Size: M
+
 
 

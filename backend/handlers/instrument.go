@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 	"log"
 	"net/http"
+	"strings"
 	"tuneloop-backend/database"
 	"tuneloop-backend/internal/service"
 	"tuneloop-backend/middleware"
@@ -38,17 +39,11 @@ func instrumentDepositExplicit(instrument *models.Instrument) bool {
 	return ok && v == 0
 }
 
+// mergePricingDeposit keeps the historical single-record call sites unchanged.
+// #2519 Rev.7 (B4): it is a thin wrapper over mergePricingFields so the JSONB
+// merge logic exists exactly once.
 func mergePricingDeposit(raw string, yuan float64) string {
-	pb := map[string]interface{}{}
-	if raw != "" {
-		_ = json.Unmarshal([]byte(raw), &pb)
-	}
-	pb["deposit"] = yuan
-	b, err := json.Marshal(pb)
-	if err != nil {
-		return raw
-	}
-	return string(b)
+	return mergePricingFields(raw, map[string]interface{}{"deposit": yuan})
 }
 
 type CreateInstrumentRequest struct {
@@ -898,8 +893,19 @@ func BatchUpdateInstrumentStatus(c *gin.Context) {
 
 	updated := 0
 	failed := make([]gin.H, 0)
+	seen := make(map[string]struct{}, len(req.IDs))
 
 	for _, id := range req.IDs {
+		if strings.TrimSpace(id) == "" {
+			failed = append(failed, gin.H{"id": id, "reason": "invalid_id"})
+			continue
+		}
+		if _, dup := seen[id]; dup {
+			// 同一 id 重复提交只处理一次，其余条目显式进 failed[]（不静默丢弃）。
+			failed = append(failed, gin.H{"id": id, "reason": "duplicate_id"})
+			continue
+		}
+		seen[id] = struct{}{}
 		if !isValidInstrumentStockStatus(req.Status) {
 			failed = append(failed, gin.H{"id": id, "reason": "invalid_status"})
 			continue

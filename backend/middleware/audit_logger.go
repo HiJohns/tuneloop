@@ -102,6 +102,7 @@ var auditRouteMap = map[string]auditRouteInfo{
 	"POST /api/instruments/:id/scrap":            {"SCRAP", "instrument", "CRITICAL"},
 	"POST /api/instruments/batch-import/preview": {"PREVIEW", "instrument", "HIGH"},
 	"PUT /api/instruments/batch-pricing":         {"BATCH_PRICING", "instrument", "HIGH"},
+	"PUT /api/instruments/batch/status":          {"BATCH_STATUS", "instrument", "HIGH"},
 	// ---- Categories ----
 	"POST /api/categories":       {"CREATE", "category", "HIGH"},
 	"PUT /api/categories/:id":    {"UPDATE", "category", "HIGH"},
