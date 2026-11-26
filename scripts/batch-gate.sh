@@ -15,7 +15,7 @@
 set -uo pipefail
 
 BATCH=""
-CMD='cd backend && go build ./... && go test ./... -count=1'
+CMD='cd backend && go build ./... && go test ./... -count=1 -timeout 20m -p 2'
 TIMEOUT="20m"
 BASELINE=""
 DRY=0
@@ -62,7 +62,13 @@ timeout "$TIMEOUT" bash -c "$CMD" >"$LOG" 2>&1
 RC=$?
 DUR=$(( $(date +%s) - START ))
 
-fail_set() { grep -E '^--- FAIL:' "$1" 2>/dev/null | sed -E 's/^--- FAIL: ([^ ]+).*/\1/' | sort -u; }
+fail_set() {
+  {
+    grep -E '^--- FAIL:' "$1" 2>/dev/null | sed -E 's/^--- FAIL: ([^ ]+).*/TEST:\1/'
+    grep -E '^FAIL[[:space:]]' "$1" 2>/dev/null | sed -E 's/^FAIL[[:space:]]+([^[:space:]]+).*/PKG:\1/'
+    grep -E '^panic:' "$1" 2>/dev/null | sed 's/^/PANIC:/'
+  } | sort -u
+}
 
 BASE_FAILS=0
 NEW_FAILS=""
@@ -98,6 +104,7 @@ PANICS=$(grep -c '^panic:' "$LOG" 2>/dev/null || true)
     printf 'BASELINE=%s\n' "$BASELINE"
     printf 'BASELINE_FAIL_COUNT=%s\n' "$BASE_FAILS"
     printf 'FULL_GATE_NEW_FAILURES=%s\n' "$(printf '%s' "$NEW_FAILS" | grep -c . || true)"
+    printf 'NEW_PANIC_COUNT=%s\n' "$(printf '%s' "$NEW_FAILS" | grep -c '^PANIC:' || true)"
     printf 'NEW_FAILURES=%s\n' "$(printf '%s' "$NEW_FAILS" | tr '\n' ',' )"
   fi
 } > "$OUT_FILE"
@@ -111,7 +118,7 @@ cat <<EOF
 - batch: $BATCH
 - source: $OUT_FILE
 - source_tree: $SHA
-- result: FULL_SUITE_EXIT=$RC FAIL_COUNT=$FAILS PANIC_COUNT=$PANICS${BASELINE:+ FULL_GATE_NEW_FAILURES=$(printf '%s' "$NEW_FAILS" | grep -c . || true) BASELINE_FAIL_COUNT=$BASE_FAILS}
+- result: FULL_SUITE_EXIT=$RC FAIL_COUNT=$FAILS PANIC_COUNT=$PANICS${BASELINE:+ FULL_GATE_NEW_FAILURES=$(printf '%s' "$NEW_FAILS" | grep -c . || true) NEW_PANIC_COUNT=$(printf '%s' "$NEW_FAILS" | grep -c '^PANIC:' || true) BASELINE_FAIL_COUNT=$BASE_FAILS}
 - timeout: $TIMEOUT
 - marker: BATCH_GATE_REF_OK
 EOF
