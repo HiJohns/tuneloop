@@ -150,7 +150,7 @@ r3)
     ;;
 r4)
     run_go_row R4-batch.txt '^TestBatchCreateOrder2512_GuestOrgFromSiteAndReject$' R4_OK \
-        'BATCH_ORGS_UNIQUE=1' 'BATCH_ORG_MATCHES_SITE_ORG=1' \
+        'BATCH_ORGS_UNIQUE=1' 'BATCH_ORG_MATCHES_SITE_ORG=1' 'BATCH_SITE_ID_AS_ORG=0' \
         'REJECT_STATUS=400' 'REJECT_CODE=40002' 'BATCH_ORDERS_AFTER=0'
     ;;
 r5)

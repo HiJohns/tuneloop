@@ -96,7 +96,7 @@ func (f *guest2512Fixture) instrument2512(t *testing.T, siteID, currentSiteID *s
 type order2512Response struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
-	Data struct {
+	Data    struct {
 		OrderID string `json:"order_id"`
 		Orders  []struct {
 			OrderID string `json:"order_id"`
@@ -230,17 +230,23 @@ func TestBatchCreateOrder2512_GuestOrgFromSiteAndReject(t *testing.T) {
 	require.Len(t, resp.Data.Orders, 2)
 
 	orgs := map[string]bool{}
+	siteIDAsOrg := 0
 	for _, item := range resp.Data.Orders {
 		var order models.Order
 		require.NoError(t, f.db.Where("id = ?", item.OrderID).First(&order).Error)
 		orgs[order.OrgID] = true
 		require.Equal(t, f.orgA, order.OrgID)
 		require.NotEqual(t, f.siteA, order.OrgID)
+		if order.OrgID == f.siteA {
+			siteIDAsOrg++
+		}
 	}
 	t.Logf("BATCH_ORG=%s", f.orgA)
 	t.Logf("SITE_ORG=%s", f.orgA)
 	t.Logf("BATCH_ORGS_UNIQUE=%d", int2512(len(orgs) == 1))
 	t.Logf("BATCH_ORG_MATCHES_SITE_ORG=%d", int2512(len(orgs) == 1))
+	// Rev.3 R4 谓词拆分：站点 ID 域单独判定，禁止与组织域判定合并成同一谓词。
+	t.Logf("BATCH_SITE_ID_AS_ORG=%d", siteIDAsOrg)
 
 	// Second batch: one resolvable + one unresolvable → reject before any write.
 	before := f.orderCount2512(t)
