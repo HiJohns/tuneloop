@@ -88,6 +88,6 @@
 
 ## Remote
 
-- remote: origin/issue-2575; fix=bc778f5e3 pushed=yes; evidence=see evidence commit pushed=yes
+- remote: origin/issue-2575@095a753ed; fix=bc778f5e3 pushed=yes; evidence=12e1b84b7 pushed=yes; gate-report=095a753ed pushed=yes
 
 *Model: DeepSeek V4.1 Flash 1017*
