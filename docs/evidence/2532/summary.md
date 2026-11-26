@@ -8,7 +8,7 @@
 |---|------|------|
 | 1 | `SubmitAssessment`（`hasDamage=true`）回退分支改为「order.OrgID → sites.id 反查」：调用 #2511 的 `resolveSiteIDByOrg`（单一实现，未复制）；不可解析时**不写入**（保留原值）并打印含 instrument id 与 org 的 `[WARN] #2532` | `backend/handlers/assessment.go` |
 | 2 | 新增自带夹具（`sites.id ≠ sites.org_id`，操作者无 `site_members` 确定性进入回退分支）的 3 个用例：回退写站点、不可解析保留原值、主分支不变 | `backend/handlers/assessment_2532_test.go` |
-| 3 | 证据生成器 `r1`–`r4` + `gate`（首行 provenance 锚定 fix commit） | `scripts/verify-2532.sh` |
+| 3 | 证据生成器 `r1`–`r4` + `gate` + `red`（预修复红跑）+ `ledger`（从 fix commit 与 gate 报告派生 `build/commit/dirty` 和 R5 `actual`，禁止手改）（首行 provenance 锚定 fix commit） | `scripts/verify-2532.sh` |
 | 4 | Accepted Plan 快照（四源校验） | `docs/evidence/2532/plan.md` |
 
 **Commit**：fix `0275ebc84` → evidence（本提交）；证据 provenance 锚定 `0275ebc84`。
@@ -28,7 +28,7 @@ remote: `origin/issue-2532`; fix=`0275ebc84` pushed=yes; evidence 提交在其�
 
 **R1（回退写站点 ID）—— 缺陷版 FAIL（HTTP 500 + 外键违例）→ 修复版 PASS**
 
-缺陷版（`git stash` 掉 assessment.go 的修复，用例与夹具不变，同一测试库）：
+缺陷版（预修复源码 `e77597a7d:backend/handlers/assessment.go` 在工作树中还原后运行，用例与夹具不变，同一测试库；等价于 `git stash` 掉修复）：
 
 ```
 STATUS=500
@@ -40,6 +40,8 @@ RED_CONFIRMED=0
     Error:  Not equal: expected: 200 / actual: 500
 FAIL	tuneloop-backend/handlers
 ```
+
+红跑已持久化（非 `tmp/`）：`docs/evidence/2532/R1-red-prefix.txt`，由 `bash scripts/verify-2532.sh red` 生成，首行 provenance 为 `commit=e77597a7d`（预修复 HEAD）+ 说明「fix 0275ebc84 在工作树中被还原后运行」。
 
 修复版（`0275ebc84`）：`docs/evidence/2532/R1-assessment-fallback.txt` → `STATUS=200`、`OPERATOR_SITE=none`、`RESOLVED_IS_SITE=1`、`CURRENT_IS_SITE=1`、`CURRENT_NOT_ORG=1`、`OLD_VALUE_IS_ORG=1`、`RED_CONFIRMED=1`、`--- PASS`、`R1_OK`。
 
@@ -93,6 +95,41 @@ FAIL	tuneloop-backend/handlers
 ## 同类路径对称扫描
 
 `grep -rhE 'current_site_id"\] = .*OrgID' backend/handlers/` → **0**（本单 1 处 + #2511 两处均已收敛）。仓库级其它 `current_site_id` 写点（inventory.go 等）不涉及 `OrgID`，未改。
+
+## Round 2 修复（/fixreview：Round 1 审计 3 项 → 修复 → 证据）
+
+| 审计项 | 问题 | 修复 | 修复后证据 |
+|---|---|---|---|
+| Bug 1（高） | 计划变更点 C6 / Input Truth 要求 `evidence.json` 的 `build/commit/dirty` 由脚本 `ledger` 从最新 fix commit 派生，但脚本只有 `r1`–`r4` / `gate`，账本靠手写 | 新增 `ledger` 子命令：从最新 `fix(issue-2532)` commit 派生 build / commit / dirty，用 `jq` 只写回顶层三字段（保留 rows）；报告缺失、overall 非 PASS、或报告 provenance.commit 与 fix commit 不一致时非 0 退出 | 见下方 Round 2 证据块（LEDGER_OK） |
+| Bug 2（高） | `evidence.json` 的 R5 行 `actual` 仍是首轮占位 `PENDING:first-gate-run`，与产物 overall=PASS 自相矛盾 | `ledger` 从 `docs/evidence/2532/pre-ready-2532.json` 派生 R5 `actual`（overall / plan_sha256 / provenance.build / provenance.commit / dirty / P12 / P13 + 来源路径），占位串清零 | `docs/evidence/2532/evidence.json` 的 R5 `actual` |
+| Bug 3（中） | 红证据只指向不可追溯的 `tmp/red-2532.log`（gitignored），账本引用不可核验路径 | 新增 `red` 子命令：把 fix commit 的父提交 `e77597a7d` 的 `backend/handlers/assessment.go` 还原到工作树后运行同一 R1 用例（等价 stash 掉修复），输出持久化到 `docs/evidence/2532/R1-red-prefix.txt`（首行 provenance 为预修复 commit + 还原说明，`trap` 保证工作树复原）；R1 `negative_result` 改指该文件 | `docs/evidence/2532/R1-red-prefix.txt`（STATUS=500 / CURRENT_NOT_ORG=0 / RED_CONFIRMED=0 / --- FAIL / RED_OK） |
+
+### Round 2 证据（命令输出）
+
+```
+$ bash scripts/verify-2532.sh ledger
+== ledger: derive build/commit/dirty + R5 actual into evidence.json ==
+build=1.0.0275ebc84
+commit=0275ebc843ea3087dcf9a9f316adb33619baadf2
+dirty=false
+R5_ACTUAL=PASS：overall=PASS / plan_sha256=4add6ab58b866c52d0a84d49b2c98e7d4fe4052ef6f3b4166774969400abd24f / provenance.build=1.0.0275ebc84 / provenance.commit=0275ebc843ea3087dcf9a9f316adb33619baadf2 / dirty=false / P12=PASS / P13=PASS（source: docs/evidence/2532/pre-ready-2532.json，ledger 派生）
+ROWS=5 PASS_ROWS=5
+LEDGER_OK
+
+$ bash scripts/verify-2532.sh red
+# build=1.0.e77597a7d # commit=e77597a7d2560a3ba562e0d31d7804d06db84575 # dirty=false
+== R1 red run: pre-fix SubmitAssessment fallback writes order.OrgID ==
+STATUS=500
+CURRENT_IS_SITE=0
+CURRENT_NOT_ORG=0
+RED_CONFIRMED=0
+--- FAIL: TestSubmitAssessment2532_FallbackWritesSiteNotOrg
+RED_EXIT=1
+RED_OK
+```
+
+- 本轮只修复上述审计项：业务代码 `backend/handlers/assessment.go` 与 `backend/handlers/assessment_2532_test.go` 仍与 fix `0275ebc84` 逐字一致，未新增功能、未改验收口径。
+- 审计附带的「计划层观察」（R3 断言强度、P5/P18 两项 WARN）未作为本轮 REJECT 依据，本单不扩面修改；如需加强由 Architect 出新版计划。
 
 ## 未纳入本单（Out of Scope，计划已登记）
 

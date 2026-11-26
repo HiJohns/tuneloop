@@ -18,7 +18,7 @@
       "actual": "PASS：STATUS=200 / OPERATOR_SITE=none / RESOLVED_IS_SITE=1 / CURRENT_IS_SITE=1 / CURRENT_NOT_ORG=1 / OLD_VALUE_IS_ORG=1 / RED_CONFIRMED=1；R1_OK",
       "expected": "STATUS=200、RESOLVED_IS_SITE=1、CURRENT_IS_SITE=1、OLD_VALUE_IS_ORG=1",
       "negative": "current_site_id 仍等于 order.OrgID（CURRENT_NOT_ORG=0）或 500 → R1_FAIL 非 0 退出",
-      "negative_result": "回退到修复前表达式实测：STATUS=500（instruments_current_site_id_fkey）、CURRENT_IS_SITE=0、CURRENT_NOT_ORG=0、RED_CONFIRMED=0，测试 FAIL（tmp/red-2532.log）；恢复修复后 PASS",
+      "negative_result": "回退到修复前表达式实测（预修复源码 e77597a7d 的 assessment.go 在工作树中还原后运行同一 R1 用例）：STATUS=500（instruments_current_site_id_fkey）、CURRENT_IS_SITE=0、CURRENT_NOT_ORG=0、OLD_VALUE_IS_ORG=1、RED_CONFIRMED=0，测试 FAIL；红跑输出持久化于 docs/evidence/2532/R1-red-prefix.txt（首行 provenance commit=e77597a7d、注明 fix 0275ebc84 被还原）；恢复修复后 PASS",
       "pass": true
     },
     {

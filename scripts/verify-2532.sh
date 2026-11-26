@@ -6,19 +6,28 @@
 #   bash scripts/verify-2532.sh r3    # primary branch unchanged
 #   bash scripts/verify-2532.sh r4    # same-class scan + build + targeted regression
 #   bash scripts/verify-2532.sh gate  # gate entry (build + targeted regression)
+#   bash scripts/verify-2532.sh red   # R1 red run: revert the fix, expect the R1 test to FAIL
+#   bash scripts/verify-2532.sh ledger # derive build/commit/dirty + R5 actual into evidence.json
 #
 # Capture a row into its artifact:
 #   bash scripts/verify-2532.sh r1 > docs/evidence/2532/R1-assessment-fallback.txt
+#   bash scripts/verify-2532.sh red > docs/evidence/2532/R1-red-prefix.txt
 #
-# Every artifact starts with the provenance header consumed by
+# Every row artifact starts with the provenance header consumed by
 # scripts/evidence-artifacts.sh (P14):
 #   # build=1.0.<short-sha> # commit=<full-sha> # dirty=<true|false>
+# The `red` artifact is not part of the Evidence Contract artifact set (it
+# documents the pre-fix failure), so it carries its own pre-fix provenance.
+#
+# `ledger` is the only writer of evidence.json's build/commit/dirty and of the
+# R5 `actual` cell: both are derived from the latest `fix(issue-2532)` commit
+# and from the committed gate report, never typed by hand.
 set -uo pipefail
 
 ROW="${1:-}"
 case "$ROW" in
-  r1|r2|r3|r4|gate) ;;
-  *) echo "usage: $0 r1|r2|r3|r4|gate" >&2; exit 2 ;;
+  r1|r2|r3|r4|gate|red|ledger) ;;
+  *) echo "usage: $0 r1|r2|r3|r4|gate|red|ledger" >&2; exit 2 ;;
 esac
 
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "not a git repository" >&2; exit 2; }
@@ -51,9 +60,17 @@ DIRTY=false
 if [ -n "$(git status --porcelain --untracked-files=no -- . ':!docs/evidence' ':!tmp')" ]; then
   DIRTY=true
 fi
-echo "# build=${BUILD} # commit=${ANCHOR_SHA} # dirty=${DIRTY}"
+case "$ROW" in
+  r1|r2|r3|r4|gate) echo "# build=${BUILD} # commit=${ANCHOR_SHA} # dirty=${DIRTY}" ;;
+esac
 
-fail() { echo "R${ROW#r}_FAIL: $*" >&2; exit 1; }
+fail() {
+  case "$ROW" in
+    r1|r2|r3|r4) echo "R${ROW#r}_FAIL: $*" >&2 ;;
+    *) echo "FAIL(${ROW:-?}): $*" >&2 ;;
+  esac
+  exit 1
+}
 
 HEAVY="$HOME/.config/opencode/scripts/heavy-run.sh"
 ASSESSMENT="backend/handlers/assessment.go"
@@ -78,6 +95,15 @@ go_test_row() { # test-name → runs one backend evidence test, echoes its token
 
 need_token() { # token file
   grep -qx -- "$1" "$2" || fail "missing expected token '$1'"
+}
+
+# ledger_r5_actual prints the truthful R5 `actual` cell derived from the gate
+# report (never hand-written).
+ledger_r5_actual() { # gate-report
+  local report="$1"
+  jq -r --arg src "$report" '
+    "\(.overall)：overall=\(.overall) / plan_sha256=\(.plan_sha256) / provenance.build=\(.provenance.build) / provenance.commit=\(.provenance.commit) / dirty=\(.provenance.dirty) / P12=\(([.checks[] | select(.id == "P12")][0].status) // "missing") / P13=\(([.checks[] | select(.id == "P13")][0].status) // "missing")（source: \($src)，ledger 派生）"
+  ' "$report"
 }
 
 case "$ROW" in
@@ -192,5 +218,84 @@ case "$ROW" in
     [ "$BUILD_RC" -eq 0 ] || fail "go build ./... failed (rc=${BUILD_RC})"
     [ "$REG_RC" -eq 0 ] || fail "targeted regression failed (rc=${REG_RC})"
     echo "GATE_OK"
+    ;;
+
+  red)
+    # Pre-fix red run: the R1 assertion must FAIL against the pre-fix
+    # expression. The fix commit's parent holds the pre-fix handler, so this is
+    # the same tree as "stash the fix away and re-run R1" — but reproducible and
+    # durably capturable.
+    [ -n "$FIX_SHA" ] || fail "cannot locate the fix(issue-2532) commit"
+    PRE_SHA="$(git rev-parse "${FIX_SHA}^")"
+    PRE_SHORT="$(git rev-parse --short "$PRE_SHA")"
+    echo "# build=1.0.${PRE_SHORT} # commit=${PRE_SHA} # dirty=false"
+    echo "# red-run: pre-fix source ${ASSESSMENT} @ ${PRE_SHA} (fix ${FIX_SHA} reverted in the working tree for this run)"
+    echo "== R1 red run: pre-fix SubmitAssessment fallback writes order.OrgID =="
+
+    BACKUP="$(mktemp)"
+    cp "$ASSESSMENT" "$BACKUP" || fail "cannot back up $ASSESSMENT"
+    restore_assessment() { cp "$BACKUP" "$ASSESSMENT"; rm -f "$BACKUP"; }
+    trap 'restore_assessment' EXIT INT TERM
+    git show "${PRE_SHA}:${ASSESSMENT}" > "$ASSESSMENT" || {
+      restore_assessment; trap - EXIT INT TERM
+      fail "cannot materialize the pre-fix source"
+    }
+
+    OUT="$(mktemp)"
+    ( cd backend && heavy go test ./handlers -run TestSubmitAssessment2532_FallbackWritesSiteNotOrg -count=1 -v ) > "$OUT" 2>&1
+    RED_RC=$?
+    grep -E '^(STATUS|OPERATOR_SITE|RESOLVED_IS_SITE|CURRENT_IS_SITE|CURRENT_NOT_ORG|OLD_VALUE_IS_ORG|RED_CONFIRMED)=' "$OUT" || true
+    grep -E '^--- (PASS|FAIL)' "$OUT" || true
+    echo "--- go test output (tail) ---"
+    tail -15 "$OUT"
+    rm -f "$OUT"
+
+    restore_assessment
+    trap - EXIT INT TERM
+
+    echo "RED_EXIT=${RED_RC}"
+    [ "$RED_RC" -ne 0 ] || fail "pre-fix source unexpectedly passed the R1 assertion"
+    echo "RED_OK"
+    ;;
+
+  ledger)
+    # Single writer for evidence.json provenance + the R5 `actual` cell.
+    echo "== ledger: derive build/commit/dirty + R5 actual into evidence.json =="
+    LEDGER_FILE="docs/evidence/2532/evidence.json"
+    GATE_REPORT="docs/evidence/2532/pre-ready-2532.json"
+    [ -f "$LEDGER_FILE" ] || fail "missing $LEDGER_FILE"
+    command -v jq >/dev/null 2>&1 || fail "jq is required"
+    [ -f "$GATE_REPORT" ] || fail "missing gate report $GATE_REPORT; run the gate first"
+    jq -e . "$GATE_REPORT" >/dev/null 2>&1 || fail "gate report is not valid JSON: $GATE_REPORT"
+
+    GATE_OVERALL="$(jq -r '.overall // empty' "$GATE_REPORT")"
+    [ "$GATE_OVERALL" = "PASS" ] || fail "gate report overall=${GATE_OVERALL:-missing}; the ledger only records a PASS gate"
+    GATE_COMMIT="$(jq -r '.provenance.commit // empty' "$GATE_REPORT")"
+    [ "$GATE_COMMIT" = "$ANCHOR_SHA" ] || fail "gate report provenance.commit=${GATE_COMMIT:-missing} does not match the fix commit ${ANCHOR_SHA}"
+    R5_COUNT="$(jq -r '[.rows[] | select(.id == "R5")] | length' "$LEDGER_FILE")"
+    [ "$R5_COUNT" = "1" ] || fail "expected exactly one R5 row in $LEDGER_FILE, got ${R5_COUNT:-0}"
+
+    R5_ACTUAL="$(ledger_r5_actual "$GATE_REPORT")" || fail "cannot derive the R5 actual from $GATE_REPORT"
+    [ -n "$R5_ACTUAL" ] || fail "derived R5 actual is empty"
+
+    TMP_LEDGER="$(mktemp)"
+    if ! jq --arg build "$BUILD" --arg commit "$ANCHOR_SHA" --arg actual "$R5_ACTUAL" \
+         --argjson dirty "$([ "$DIRTY" = "true" ] && echo true || echo false)" \
+         '.build = $build
+          | .commit = $commit
+          | .dirty = $dirty
+          | .rows = (.rows | map(if .id == "R5" then .actual = $actual else . end))' \
+         "$LEDGER_FILE" > "$TMP_LEDGER"; then
+      rm -f "$TMP_LEDGER"
+      fail "jq rewrite failed"
+    fi
+    mv "$TMP_LEDGER" "$LEDGER_FILE"
+
+    echo "build=${BUILD}"
+    echo "commit=${ANCHOR_SHA}"
+    echo "dirty=${DIRTY}"
+    echo "R5_ACTUAL=${R5_ACTUAL}"
+    echo "ROWS=$(jq -r '.rows | length' "$LEDGER_FILE") PASS_ROWS=$(jq -r '[.rows[] | select(.pass == true)] | length' "$LEDGER_FILE")"
+    echo "LEDGER_OK"
     ;;
 esac
