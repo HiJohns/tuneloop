@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "issue": 2543,
-  "build": "1.0.690c61722",
-  "commit": "690c61722ae9a52e4e0099f8f198a84bea4d8369",
+  "build": "1.0.489d3580a",
+  "commit": "489d3580a91f0a3668e2a816729353c636a6c606",
   "dirty": false,
   "plan_sha256": "b7892888961821b3b58de4b577392b78985a79cefe8d9e1fa33c981a5a5fe891",
   "tooling_commit": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
-  "environment": "isolated worktree wt-2543 (branch issue-2543, base origin/develop 758e447ed); Postgres test DB 127.0.0.1:25432 (node-isolated tuneloop_test_* cloned from the template, migrations replayed); fake IAM httptest server (client-credentials token + business writes recorded); no production calls",
+  "environment": "worktree /tmp/opencode/tuneloop/wt-2543 (branch issue-2543, created by scripts/worktree-create.sh --base origin/issue-2543); node-isolated Postgres test DB 'tuneloop_test_node_opencode_s74_p74_b3c2c3_c4e2b93b' on localhost:5432 (per-node test database, tables replayed from migrations); fake IAM httptest server (client-credentials token + business writes recorded); no production calls",
   "rows": [
     {
       "id": "R1",
@@ -16,7 +16,7 @@
         "docs/evidence/2543/R1-schema.txt"
       ],
       "assert": "exit 0；含 TABLE_EXISTS=1、EXEMPT_REMOVED=1",
-      "actual": "PASS：TABLE_EXISTS=1 / EXEMPT_REMOVED=1（计划合同字面，未改口径）；本轮另加行为断言 MISSING_TABLE_ERR=1 —— 用例 DROP TABLE 后要求 database.ValidateModelColumnsForTest(&models.ConfirmationSession{}) 返回 error（豁免真正移除），up 迁移建表后要求返回 nil（防假阳性）；另附 COLUMN_COUNT=18、TOKEN_UNIQUE=1、DOWN_TABLE_EXISTS=0、MIGRATION_PAIR=ok；EXEMPT_REMOVED 由「注释字符串消失」改为「源码不含 case \"confirmation_sessions\"」",
+      "actual": "PASS：TABLE_EXISTS=1 / EXEMPT_REMOVED=1（计划合同字面，未改口径）；本轮另加行为断言 MISSING_TABLE_ERR=1 —— 用例 DROP TABLE 后要求 database.ValidateModelColumnsForTest(&models.ConfirmationSession{}) 返回 error（豁免真正移除），up 迁移建表后要求返回 nil（防假阳性）；另附 COLUMN_COUNT=18、TOKEN_UNIQUE=1、DOWN_TABLE_EXISTS=0、MIGRATION_PAIR=ok；EXEMPT_REMOVED 由「注释字符串消失」改为「源码不含 case \"confirmation_sessions\"」；Round 3 以本 fix commit 为锚点重生成（合同断言未改）",
       "expected": "PASS",
       "negative": "表缺失 → FAIL",
       "negative_result": "红①（审计 Bug 1 缺陷版）：把 confirmation_sessions 重新加回 nonPersistedTables → Error: An error is expected but got nil. / missing confirmation_sessions table must be a hard validation error (no exemption)，--- FAIL: TestConfirmationSessionsMigration_2543（tmp/red-r1-2543-bug1.log，RED_RC=1）。红②（HEAD^ = 5c28d480f 审计驳回版）：R1_FAIL: missing assertion token TABLE_EXISTS=1。绿：移除豁免后的本 artifact MISSING_TABLE_ERR=1 / TABLE_EXISTS=1 / EXEMPT_REMOVED=1",
@@ -30,7 +30,7 @@
         "docs/evidence/2543/R2-iam-subject.txt"
       ],
       "assert": "exit 0；含 IAM_LOCAL_ID_SENT=0、ROLE=OWNER",
-      "actual": "PASS：IAM_LOCAL_ID_SENT=0 / ROLE=OWNER（另附 BIND_USER_ARG=sub-2543-cfcc3f2a、PERM_USER_ARG=sub-2543-cfcc3f2a、CONFIRM_STATUS=confirmed）；IAM 替身记录到恰好两次业务写入（PUT /organizations/{org}/users/{iam_sub}/bind 与 PUT .../customer-permissions），perm-version 通知不计入主体断言",
+      "actual": "PASS：IAM_LOCAL_ID_SENT=0 / ROLE=OWNER（另附 BIND_USER_ARG=<users.iam_sub 运行期随机值>、PERM_USER_ARG=<同值>、CONFIRM_STATUS=confirmed）；IAM 替身记录到恰好两次业务写入（PUT /organizations/{org}/users/{iam_sub}/bind 与 PUT .../customer-permissions），perm-version 通知不计入主体断言；Round 3：`actual` 不再抄写本轮随机生成的 iam_sub 具体值（审计 Bug 4）——`BIND_USER_ARG` / `PERM_USER_ARG` 的值为 `users.iam_sub` 的运行期随机串，具体值见 artifact，断言用路径等值判定，不依赖具体值",
       "expected": "PASS",
       "negative": "发本地 id → FAIL",
       "negative_result": "红：在 HEAD^（Rev.1，merchant_admin 分支不写 IAM）上跑同一用例 → IAM 调用为 0、无 iam_sub 主体，--- FAIL: TestExecuteAction_MerchantAdmin_UsesIAMSub_2543（tmp/red-2543-r2r3.log，RED_RC=1）。绿：本单修复后同用例 PASS（本 artifact）",
@@ -44,7 +44,7 @@
         "docs/evidence/2543/R3-empty-sub-guard.txt"
       ],
       "assert": "exit 0；含 IAM_CALLS=0、MESSAGE_HAS_ACTIVATE=1",
-      "actual": "PASS：IAM_CALLS=0 / MESSAGE_HAS_ACTIVATE=1（另附 CONFIRM_STATUS=failed）；确认接口返回 500/50000，message 含「账号尚未激活，无法绑定组织」，会话由 confirmed 回落 failed（不留在成功态）",
+      "actual": "PASS：IAM_CALLS=0 / MESSAGE_HAS_ACTIVATE=1（另附 CONFIRM_STATUS=failed）；确认接口返回 500/50000，message 含「账号尚未激活，无法绑定组织」，会话由 confirmed 回落 failed（不留在成功态）；Round 3 增空白主体分支：`iam_sub` 为纯空白时同样 `status=failed`、0 次 IAM 请求（`WHITESPACE_SUB_CONFIRM_STATUS=failed`、`WHITESPACE_SUB_IAM_CALLS=0`），`iam_ready` 与执行守卫共用单点谓词 `iamSubjectReady`（审计 Bug 3）",
       "expected": "PASS",
       "negative": "仍请求 IAM → FAIL",
       "negative_result": "红：在 HEAD^（Rev.1）上跑同一用例 → 无 iam_sub 守卫、无失败态，--- FAIL: TestExecuteAction_MerchantAdmin_EmptyIAMSub_2543（tmp/red-2543-r2r3.log，RED_RC=1）。绿：本单修复后同用例 PASS（本 artifact）",
@@ -58,7 +58,7 @@
         "docs/evidence/2543/R4-docs.txt"
       ],
       "assert": "exit 0；含 DOC_FACT_SOURCE=1",
-      "actual": "PASS：DOC_FACT_SOURCE=1（另附 DOC_DELETE_SYSADMIN_ONLY=1、DOC_IAM_READY=1、DOC_OWNER_INVARIANT=1）——iam-notes.md「事实来源」章节（IAM 唯一事实源 / 先 IAM 后本地 / iam_sub 主体 / iam_sub 为空显式失败）、组织所有人不变量表（branch 必须 0）、permissions.md 删除边界、api.md `iam_ready` 契约",
+      "actual": "PASS：DOC_FACT_SOURCE=1（另附 DOC_DELETE_SYSADMIN_ONLY=1、DOC_IAM_READY=1、DOC_OWNER_INVARIANT=1）——iam-notes.md「事实来源」章节（IAM 唯一事实源 / 先 IAM 后本地 / iam_sub 主体 / iam_sub 为空显式失败）、组织所有人不变量表（branch 必须 0）、permissions.md 删除边界、api.md `iam_ready` 契约；Round 3 增文档真实性断言：`DOC_REJECT_TRUTH=1`（§2.8.3 与 `Reject` 实现逐行一致、不再声明「已确认/已过期会话不受理」、回链跟踪 Issue #2575）、`DOC_GET_FIELDS=1`（§2.8.1 GET 返回字段集与 `GetConfirmationSession` 对齐）",
       "expected": "PASS",
       "negative": "缺文档 → FAIL",
       "negative_result": "红：Rev.1 的 api.md 段落写「不调用任何 IAM 接口」，iam-notes.md/permissions.md 无「事实来源」章节 → r4 的 4 个 token 均为 0（修复前代码状态即红）。绿：本单文档更新后 4 个 token 全为 1（本 artifact）",
@@ -72,7 +72,7 @@
         "docs/evidence/2543/R5-build.txt"
       ],
       "assert": "exit 0；含 GO_TEST_OK=1、MIGRATION_ROUNDTRIP=1",
-      "actual": "PASS：GO_TEST_OK=1 / MIGRATION_ROUNDTRIP=1（另附 GO_BUILD_OK=1、BUILD_OK=1、GO_ARTIFACT_TESTS_OK=1）；go test ./handlers -run 2543 六个用例全绿（含新的表缺失负例），go test ./database -run Artifact 覆盖 20261126002 → confirmation_sessions 工件断言，迁移 up/down 往返复跑通过；BUILD_OK=1 为对齐 Accepted Plan G0 R5 字面量（审计 Bug 3）",
+      "actual": "PASS：GO_TEST_OK=1 / MIGRATION_ROUNDTRIP=1（另附 GO_BUILD_OK=1、BUILD_OK=1、GO_ARTIFACT_TESTS_OK=1）；go test ./handlers -run 2543 六个用例全绿（含新的表缺失负例），go test ./database -run Artifact 覆盖 20261126002 → confirmation_sessions 工件断言，迁移 up/down 往返复跑通过；BUILD_OK=1 为对齐 Accepted Plan G0 R5 字面量（审计 Bug 3）；Round 3 以本 fix commit 为锚点重跑（`go build ./...` + `go test ./handlers -run 2543` + `go test ./database -run Artifact` + 迁移 up/down 往返）",
       "expected": "PASS",
       "negative": "任一失败 → FAIL",
       "negative_result": "红：新增迁移未登记 defaultMigrationArtifacts 时 database 工件测试失败；迁移 down 缺省时 R1 DOWN_TABLE_EXISTS=0 断言失败（见 R1 negative）。绿：本 artifact 四个 token 均为 1",
