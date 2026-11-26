@@ -664,6 +664,26 @@ func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
 		return
 	}
 
+	// #2527 R10 / D7：激活同样要落在有效组织上。归属缺失（users.org_id 为 nil UUID）
+	// 的行不能把该值当组织发给 IAM；能由 membership 派生就用派生值，派生不出则
+	// 在创建 IAM 用户之前显式 40002 中止（否则会留下绑不上组织的孤儿账号）。
+	orgID, orgErr := effectiveOrgID(db, ctx, user)
+	if orgErr != nil {
+		log.Printf("[ActivateUser] ERROR: derive attribution org user=%s: %v", user.ID, orgErr)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to resolve user attribution: " + orgErr.Error()})
+		return
+	}
+	if orgID == "" {
+		if strings.TrimSpace(user.OrgID) == nilUUIDLiteral {
+			log.Printf("[ActivateUser] WARN: activation blocked user=%s actor=%s: attribution missing (users.org_id is nil UUID, no active site membership)",
+				user.ID, middleware.GetUserID(ctx))
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "账号归属缺失，请先补全成员关系后再激活"})
+			return
+		}
+		// 历史行为：users.org_id 为空（从未回填）时回落租户 ID。
+		orgID = tenantID
+	}
+
 	iamClient := services.NewIAMClient()
 	username := user.Email
 	createReq := &services.CreateUserRequest{
@@ -693,11 +713,6 @@ func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
 	if iamResp.UserID == "" {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "IAM user creation failed: empty user_id returned"})
 		return
-	}
-
-	orgID := user.OrgID
-	if orgID == "" {
-		orgID = tenantID
 	}
 
 	// #2540：关系角色与客户权限模板必须同源取自 users.role。
@@ -1314,12 +1329,18 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 					c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to derive current organization: " + orgErr.Error()})
 					return
 				}
-				if oldOrgID != "" {
-					iamClient := services.NewIAMClient()
-					if err := iamClient.UnbindUserFromOrganization(existingUser.IAMSub, oldOrgID, ""); err != nil {
-						c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to unbind user from organization: " + err.Error()})
-						return
-					}
+				if oldOrgID == "" {
+					// #2527 R9 / D6：清空归属网点必然要解绑 IAM 组织；派生为空时
+					// 必须显式拒绝，禁止 200 静默跳过解绑（静默吞错是红线）。
+					log.Printf("[UpdateUser] WARN: clear site blocked user=%s actor=%s: attribution missing (no users.org_id, no active site membership)",
+						userID, middleware.GetUserID(ctx))
+					c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "账号归属缺失，请先补全成员关系后再清空归属网点"})
+					return
+				}
+				iamClient := services.NewIAMClient()
+				if err := iamClient.UnbindUserFromOrganization(existingUser.IAMSub, oldOrgID, ""); err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to unbind user from organization: " + err.Error()})
+					return
 				}
 			}
 		} else {
@@ -2030,6 +2051,9 @@ func (h *UserStaffHandler) BatchDeleteUsers(c *gin.Context) {
 	now := time.Now()
 	deleted := 0
 	iamClient := services.NewIAMClient()
+	// #2527 R10 / D7：归属缺失（nil UUID / 空）的行不得把该值当组织发给 IAM，
+	// 跳过解绑并显式分类，禁止静默（响应里必须能看到哪些行被跳过）。
+	skippedNoAttribution := make([]string, 0)
 
 	for _, user := range users {
 		if err := db.Model(&models.User{}).Where("id = ?", user.ID).Update("deleted_at", now).Error; err != nil {
@@ -2042,10 +2066,12 @@ func (h *UserStaffHandler) BatchDeleteUsers(c *gin.Context) {
 			if err := iamClient.DeleteUser(user.IAMSub); err != nil {
 				log.Printf("[BatchDeleteUsers] IAM DeleteUser failed for %s: %v", user.IAMSub, err)
 			}
-			if user.OrgID != "" {
-				if err := iamClient.UnbindUserFromOrganization(user.IAMSub, user.OrgID, ""); err != nil {
-					log.Printf("[BatchDeleteUsers] IAM UnbindUser failed for %s from org %s: %v", user.IAMSub, user.OrgID, err)
-				}
+			if isNilAttribution(user.OrgID) {
+				log.Printf("[BatchDeleteUsers] WARN: skip IAM unbind user=%s actor=%s: attribution missing (users.org_id=%q)",
+					user.ID, middleware.GetUserID(ctx), user.OrgID)
+				skippedNoAttribution = append(skippedNoAttribution, user.ID)
+			} else if err := iamClient.UnbindUserFromOrganization(user.IAMSub, user.OrgID, ""); err != nil {
+				log.Printf("[BatchDeleteUsers] IAM UnbindUser failed for %s from org %s: %v", user.IAMSub, user.OrgID, err)
 			}
 		}
 	}
@@ -2054,8 +2080,9 @@ func (h *UserStaffHandler) BatchDeleteUsers(c *gin.Context) {
 		"code":    20000,
 		"message": "success",
 		"data": gin.H{
-			"deleted": deleted,
-			"failed":  len(req.IDs) - deleted,
+			"deleted":                deleted,
+			"failed":                 len(req.IDs) - deleted,
+			"skipped_no_attribution": skippedNoAttribution,
 		},
 	})
 }

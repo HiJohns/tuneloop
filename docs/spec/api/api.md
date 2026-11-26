@@ -6537,7 +6537,7 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 
 ---
 
-#### 10.18.7 批量重置密码分类与 IAM 归属推导（#2527）
+#### 10.18.8 批量重置密码分类与 IAM 归属推导（#2527）
 
 **接口**: `POST /api/users/reset-password`、`PUT /api/users/:id`
 
@@ -6580,6 +6580,13 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
   - 网点调动 / 清空归属网点 → `400 40002`「账号归属缺失，请先补全成员关系」并中止
   - 角色变更 → 本地更新照常成功，错误写入 `data.role_errors`（`account attribution missing`，非阻断，#2375 D3）
 - 任何情况下不得把 nil UUID 当作组织 ID 发给 IAM
+
+**邻居写路径（同根因入口，#2527 D7）**
+
+| 接口 | 归属缺失（`users.org_id` 为空/nil UUID）时的行为 |
+|---|---|
+| `DELETE /api/users/batch` | 软删照常、IAM `DeleteUser` 照常；**跳过** `UnbindUserFromOrganization`（不把 nil UUID 当组织），该 id 计入响应 `data.skipped_no_attribution` |
+| `POST /api/users/:id/activate` | 能在 membership 派生组织 → 用派生值绑定；派生为空 → `400 40002`「账号归属缺失，请先补全成员关系后再激活」，且在创建 IAM 用户**之前**中止（不留孤儿账号） |
 
 ---
 

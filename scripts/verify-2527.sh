@@ -3,7 +3,7 @@
 #   (归属缺失（nil UUID）用户的批量重置密码 / 网点调动 / IAM 归属推导)
 #
 # Usage:
-#   bash scripts/verify-2527.sh r1 … r8
+#   bash scripts/verify-2527.sh r0 … r10
 #
 # Each row prints a provenance header, runs the row's commands, writes the
 # artifact under docs/evidence/2527/ and fails (exit 1) when any expected
@@ -172,6 +172,93 @@ row_r7() {
   assert_grep "$a" 'GO_TEST_RC=0' 'TRANSFER_STATUS=40002' 'ROLE_STATUS=200' 'ROLE_ERRORS_ATTRIBUTION=1' 'NIL_UUID_CALLS=0'
 }
 
+row_r9() {
+  local a="$OUT/R9-clear-site-no-attribution.txt"
+  : >"$a"
+  go_test_row "$a" '^TestClearSiteNoAttributionRejected_2527$' ./handlers/
+  assert_grep "$a" 'GO_TEST_RC=0' 'CLEAR_SITE_STATUS=400' 'CLEAR_SITE_CODE=40002' 'IAM_UNBIND_CALLS=0' 'NIL_UUID_CALLS=0'
+}
+
+row_r10() {
+  local a="$OUT/R10-neighbor-nil-uuid.txt"
+  : >"$a"
+  go_test_row "$a" '^TestNeighborPathsNoNilUUID_2527$' ./handlers/
+  assert_grep "$a" 'GO_TEST_RC=0' 'BATCH_UNBIND_CALLS=0' 'BATCH_SKIPPED_NO_ATTRIBUTION=1' \
+    'ACTIVATE_STATUS=40002' 'NIL_UUID_CALLS=0'
+}
+
+# R0: red-green proof. The same `_2527$` suite must FAIL on the pre-fix baseline
+# (c37655eb0 — the commit the audit found the defect on) and PASS on the fixed
+# tree. The baseline checkout only receives the test file; product code is
+# untouched, so a green baseline would mean the tests do not cover the defect.
+BASE_REF="${R0_BASE_REF:-c37655eb0}"
+
+row_r0() {
+  local a="$OUT/R0-red.txt"
+  local base_dir="$ROOT/tmp/r0-2527-baseline"
+  local red_log="$ROOT/tmp/r0-2527-red.log"
+  local green_log="$ROOT/tmp/r0-2527-green.log"
+  : >"$a"
+  {
+    echo "$PROVENANCE"
+    echo "# R0 红绿：基线 $BASE_REF 跑同一批 _2527 用例（缺陷版 FAIL）→ 修复版 PASS"
+  } >>"$a"
+
+  local base_sha
+  if ! base_sha="$(git -C "$ROOT" rev-parse --verify "$BASE_REF^{commit}" 2>/dev/null)"; then
+    echo "R0_BASELINE=missing($BASE_REF)" >>"$a"
+    echo "RED_RC=0" >>"$a"
+    echo "RED_RC_NONZERO=0" >>"$a"
+    echo "GREEN_RC=1" >>"$a"
+    echo "MISSING: baseline $BASE_REF cannot be resolved" >&2
+    FAILURES=$((FAILURES + 1))
+    return
+  fi
+  echo "R0_BASELINE=$base_sha" >>"$a"
+
+  git -C "$ROOT" worktree remove --force "$base_dir" >/dev/null 2>&1 || true
+  rm -rf "$base_dir"
+  if ! git -C "$ROOT" worktree add --detach "$base_dir" "$base_sha" >>"$a" 2>&1; then
+    echo "RED_RC=0" >>"$a"
+    echo "RED_RC_NONZERO=0" >>"$a"
+    echo "GREEN_RC=1" >>"$a"
+    echo "MISSING: cannot materialise baseline worktree at $base_sha" >&2
+    FAILURES=$((FAILURES + 1))
+    return
+  fi
+  # 只在基线里补测试文件（缺陷版产品代码原封不动）。
+  cp "$ROOT/backend/handlers/reset_password_scope_2527_test.go" "$base_dir/backend/handlers/"
+
+  local red_rc=0
+  ( cd "$base_dir/backend" && heavy go test -v -count=1 -run '_2527$' ./handlers/ ) >"$red_log" 2>&1 || red_rc=$?
+  grep -E '^(--- (PASS|FAIL)|(R[0-9]+) )' "$red_log" >>"$a" 2>/dev/null || true
+  local red_fail_lines
+  red_fail_lines=$(grep -c '^--- FAIL' "$red_log" 2>/dev/null || true)
+  red_fail_lines=${red_fail_lines:-0}
+  echo "RED_RC=$red_rc" >>"$a"
+  echo "RED_FAIL_LINES=$red_fail_lines" >>"$a"
+
+  local green_rc=0
+  ( cd "$ROOT/backend" && heavy go test -v -count=1 -run '_2527$' ./handlers/ ) >"$green_log" 2>&1 || green_rc=$?
+  grep -E '^(--- (PASS|FAIL)|(R[0-9]+) )' "$green_log" >>"$a" 2>/dev/null || true
+  echo "GREEN_RC=$green_rc" >>"$a"
+
+  git -C "$ROOT" worktree remove --force "$base_dir" >/dev/null 2>&1 || true
+
+  local red_nonzero=0
+  [ "$red_rc" != "0" ] && red_nonzero=1
+  echo "RED_RC_NONZERO=$red_nonzero" >>"$a"
+  if [ "$red_nonzero" = "0" ] || [ "$red_fail_lines" = "0" ]; then
+    echo "MISSING: baseline run must fail ($red_rc) with --- FAIL lines ($red_fail_lines)" >&2
+    FAILURES=$((FAILURES + 1))
+  fi
+  if [ "$green_rc" != "0" ]; then
+    echo "MISSING: fixed-tree run must pass (rc=$green_rc)" >&2
+    FAILURES=$((FAILURES + 1))
+  fi
+  assert_grep "$a" 'RED_RC_NONZERO=1' 'GREEN_RC=0'
+}
+
 row_r8() {
   local a="$OUT/R8-regression.txt"
   {
@@ -213,6 +300,7 @@ row_r8() {
 }
 
 case "$ROW" in
+  r0) row_r0 ;;
   r1) row_r1 ;;
   r2) row_r2 ;;
   r3) row_r3 ;;
@@ -221,8 +309,10 @@ case "$ROW" in
   r6) row_r6 ;;
   r7) row_r7 ;;
   r8) row_r8 ;;
+  r9) row_r9 ;;
+  r10) row_r10 ;;
   *)
-    echo "usage: bash scripts/verify-2527.sh {r1|r2|r3|r4|r5|r6|r7|r8}" >&2
+    echo "usage: bash scripts/verify-2527.sh {r0|r1|r2|r3|r4|r5|r6|r7|r8|r9|r10}" >&2
     exit 2
     ;;
 esac

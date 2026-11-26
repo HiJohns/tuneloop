@@ -21,6 +21,7 @@ import (
 	"sync"
 	"testing"
 
+	"tuneloop-backend/database"
 	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
@@ -175,6 +176,7 @@ type fixture2527 struct {
 	zeroTenant      string // tenant/org = nil UUID，但 membership 在 siteA
 	otherTenant     string // 他商户成员（不可见负例）
 	noDerivableOrg  string // 归属缺失且无 membership（可见旧口径，但 IAM org 派生不出）
+	activatable     string // 归属缺失且无 membership，且尚未激活（iam_sub 为空）
 }
 
 func setup2527(t *testing.T) fixture2527 {
@@ -221,6 +223,15 @@ func setup2527(t *testing.T) fixture2527 {
 		Role: "merchant_staff", Status: "active",
 	}).Error)
 
+	// R10：可见（tenant 命中）但归属缺失且从未激活（iam_sub 为空）——激活必须先拒绝，
+	// 不得创建绑不上组织的 IAM 用户。
+	f.activatable = uuid.New().String()
+	require.NoError(t, db.Create(&models.User{
+		ID: f.activatable, IAMSub: "", TenantID: f.tid, OrgID: nilUUIDLiteral,
+		Username: "act2527", Name: "待激活无归属成员", Email: "act2527@example.com",
+		Role: "merchant_staff", Status: "pending",
+	}).Error)
+
 	return f
 }
 
@@ -237,6 +248,8 @@ func router2527(f fixture2527) *gin.Engine {
 	r := gin.New()
 	r.POST("/users/reset-password", withActor, h.ResetPassword)
 	r.PUT("/users/:id", withActor, h.UpdateUser)
+	r.DELETE("/users/batch", withActor, h.BatchDeleteUsers)
+	r.POST("/users/:id/activate", withActor, h.ActivateUser)
 	return r
 }
 
@@ -478,4 +491,70 @@ func TestNoAttributionRejectedExplicitly_2527(t *testing.T) {
 	require.Equal(t, 0, nilCalls)
 	require.Equal(t, http.StatusOK, clearResp.status)
 	require.Equal(t, f.orgA, clearUnbindOrg, "clear-site unbind must use the derived org")
+}
+
+// unbindCalls 统计 IAM 解绑调用数（按 action=unbind 计）。
+func (f *fakeIAM2527) unbindCalls() int {
+	n := 0
+	for _, call := range f.bindCalls() {
+		if call[1] == "unbind" {
+			n++
+		}
+	}
+	return n
+}
+
+// R9：清空归属网点但归属派生为空 → 显式 400/40002，且不得静默跳过 IAM 解绑。
+func TestClearSiteNoAttributionRejected_2527(t *testing.T) {
+	f := setup2527(t)
+	fake := installFakeIAM2527(t)
+	r := router2527(f)
+
+	resp := serve2527(t, r, http.MethodPut, "/users/"+f.noDerivableOrg,
+		map[string]interface{}{"site_id": uuid.Nil.String()})
+
+	unbinds := fake.unbindCalls()
+	nilCalls := fake.nilUUIDOrgCalls()
+	// 请求被拒时不得写库：users.org_id 必须保持原值（nil UUID 属本地缓存，只读校验）。
+	var stored models.User
+	require.NoError(t, database.GetDB().Where("id = ?", f.noDerivableOrg).First(&stored).Error)
+
+	fmt.Printf("R9 CLEAR_SITE_STATUS=%d CLEAR_SITE_CODE=%d IAM_UNBIND_CALLS=%d NIL_UUID_CALLS=%d ORG_UNCHANGED=%d\n",
+		resp.status, resp.code, unbinds, nilCalls, flag2527(stored.OrgID == nilUUIDLiteral))
+	require.Equal(t, http.StatusBadRequest, resp.status)
+	require.EqualValues(t, 40002, resp.code)
+	require.Equal(t, 0, unbinds, "clear-site without attribution must not call IAM unbind")
+	require.Equal(t, 0, nilCalls)
+}
+
+// R10：邻居路径不得把 nil UUID 当组织发给 IAM（批量删除跳过解绑并分类；激活显式 40002）。
+func TestNeighborPathsNoNilUUID_2527(t *testing.T) {
+	f := setup2527(t)
+	fake := installFakeIAM2527(t)
+	r := router2527(f)
+
+	delResp := serve2527(t, r, http.MethodDelete, "/users/batch",
+		map[string]interface{}{"ids": []string{f.noDerivableOrg}})
+	batchUnbinds := fake.unbindCalls()
+	skipped := ids2527(t, delResp.data, "skipped_no_attribution")
+	batchNil := fake.nilUUIDOrgCalls()
+
+	activateResp := serve2527(t, r, http.MethodPost, "/users/"+f.activatable+"/activate", nil)
+	activateCalls := 0
+	for _, call := range fake.snapshot() {
+		if strings.HasSuffix(call.Path, "/users") && call.Method == http.MethodPost {
+			activateCalls++
+		}
+	}
+
+	fmt.Printf("R10 BATCH_STATUS=%d BATCH_HTTP=%d BATCH_UNBIND_CALLS=%d BATCH_SKIPPED_NO_ATTRIBUTION=%d BATCH_NIL_UUID_CALLS=%d ACTIVATE_STATUS=%d ACTIVATE_HTTP=%d ACTIVATE_IAM_CREATE_CALLS=%d NIL_UUID_CALLS=%d\n",
+		delResp.code, delResp.status, batchUnbinds, len(skipped), batchNil,
+		activateResp.code, activateResp.status, activateCalls, fake.nilUUIDOrgCalls())
+	require.Equal(t, http.StatusOK, delResp.status)
+	require.Equal(t, 0, batchUnbinds, "batch delete must not unbind with a missing attribution")
+	require.Equal(t, []string{f.noDerivableOrg}, skipped)
+	require.Equal(t, http.StatusBadRequest, activateResp.status)
+	require.EqualValues(t, 40002, activateResp.code)
+	require.Equal(t, 0, activateCalls, "activation must be rejected before creating an IAM user")
+	require.Equal(t, 0, fake.nilUUIDOrgCalls())
 }
