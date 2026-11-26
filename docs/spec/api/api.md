@@ -1205,6 +1205,7 @@ GET /api/confirmation-sessions/:id
   | `resolved_daily_rate` | int64（分） | **标准日租金**（pricing-v2 生效值：`resolveDailyRateCents` → `CalculatePricing`，含 `pricing_overrides.daily_rent` 覆盖）。`0` = 无法解析（pricing-v2 对同一乐器返回 `40004`）。前端列名「标准日租金」，展示走 `formatCents`（分→元） |
   | `deposit` | int64（分）或 `null` | 与 pricing-v2 **同一函数**产出（`pricingResponseWithInstrument`）：`instruments.deposit` 非 nil 即权威（**含显式 0**），NULL 才回落商户定价。`null` = 无法解析（不伪造 0） |
   | `deposit_reduced` | int64（分）或 `null` | `instruments.deposit_reduced` 原值；`null` = 无差额档，`0` = 显式零差额 |
+  | `overdue_daily_fee`（#2537） | int64（分）或 `null` | **逾期租金**（pricing-v2 生效值）：与 pricing-v2 **同一条计算链**（`CalculatePricing` overrides → `pricing` JSONB 回落 → 配置默认），由 `instrumentListPriceFields` 透出。`null` = 无法解析（无基础日租/定价缺失），前端显示 `-`；**禁止**前端自行解析 `pricing` JSONB |
 - **图片取源（#2528）**：`thumbnail`（`instrument_media` 优先 `is_display=true`）→ `poster` → `images[0]`（旧 JSONB，仅兼容回落）。前端不得再用 `images` 作为首选源，也不得引用未入库的静态占位文件
 - ⚠️ 该接口**不返回 `name`**：列表「名称」列应显示**识别码(sn)**（#2043 合并页据此对齐）
 - ⚠️ 列表金额**一律为分**（`models.Cents`）：前端必须经 `frontend-pc/src/utils/money.js` 的 `formatCents` 换算，禁止裸 `toLocaleString()`（#2528：曾放大 100 倍）

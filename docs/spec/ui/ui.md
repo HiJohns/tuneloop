@@ -1569,12 +1569,17 @@ API 来源：
 
 > **#2212 撤销 #2043/#2101 的错误菜单合并**，恢复两个独立页：「**乐器列表**」`/instruments/list`（渲染 `List.jsx`，乐器档案新增/编辑/导入/导出/设价/排序）与「**库存监控**」`/site/stock`（渲染 `InstrumentStock.jsx`，**透传 `?status=`**，Dashboard 链接不得破坏；工具栏含 导出/批量导入/批量设价/批量删除，按 cusPerm 门控）。
 
-- **列表列**：图片 / 识别码 / 分类 / 分级 / 网点 / 状态 / **标准日租金**（按权限显示）/ **押金**（按权限显示）/ 加入时间 / 操作
-- **价格列（#2528）**：
+- **列表列（#2537 两页列口径区分）**：
+  - **乐器列表** `/instruments/list`（`List.jsx`）：图片 / 识别码 / 分类 / 乐器分级 / 加入时间 / 网点 / 状态 / 操作（**无**标准日租金、**无**押金列；价格口径归库存监控页）
+  - **库存监控** `/site/stock`（`InstrumentStock.jsx`）：图片 / 识别码 / 分类 / 所属网点 / 标准日租金 / **逾期租金** / **全额押金** / **差额押金** / 操作（**无**级别、**无**状态列）
+  - **识别码即详情入口**（D6）：两页「识别码」为可点击链接（乐器列表 → `/instruments/detail/:id`，库存监控 → `/site/stock/:id`），不再提供独立的「查看」/「详情」按钮
+- **价格列（#2528，2026-11-26 起按 #2537 拆分）**：
   - 「标准日租金」= API `resolved_daily_rate`（pricing-v2 生效值，**分**）> 0 优先，回落 `base_daily_rate`；两者皆无/≤0 显示 `-`。展示必须经 `formatCents`（分→元），**禁止**裸 `toLocaleString()`（旧实现「估值」把分当元 → 放大 100 倍）
-  - 「押金」= API `deposit`（分）：`null` → `-`（不伪造 0），显式 `0` → `¥0.00`；`deposit_reduced` 非空时追加「（差额 ¥X）」。两页（`InstrumentStock.jsx` / `admin/instrument/List.jsx`）同口径
-  - 旧列名「估值」已废弃（其值实为标准日租金，非资产估值）
-  - 取源/换算/兜底统一走 `frontend-pc/src/utils/instrumentDisplay.js`（`instrumentImageSrc` / `formatDailyRate` / `formatDeposit`）
+  - 「逾期租金」= API `overdue_daily_fee`（**分**，与 pricing-v2 同链）；`null`/≤0 → `-`
+  - 「全额押金」= API `deposit`（分）：`null` → `-`（不伪造 0），显式 `0` → `¥0.00`
+  - 「差额押金」= API `deposit_reduced`（分）：`null` → `未配置`，显式 `0` → `¥0.00`（与详情页同文案）
+  - 旧列名「估值」与合并式「押金（差额 ¥X）」均已废弃
+  - 取源/换算/兜底统一走 `frontend-pc/src/utils/instrumentDisplay.js`（`instrumentImageSrc` / `formatDailyRate` / `formatOverdueDailyFee` / `formatDepositFull` / `formatDepositReduced`）
 - **图片列取源（#2528）**：`thumbnail` → `poster` → `images[0]`（兼容 JSON 字符串）→ **内置 data-URI 占位**；`onError` 回落同一占位。禁止引用未入库静态资源（旧 `/images/default-instrument.jpg` 即为 404 → 二次空图），也禁止新增二进制占位文件
 - **操作门控**：按 cusPerm **不渲染**无权限按钮
   - `update`：编辑 / 丢失 / 恢复；`delete`：删除 / 批量删除；`RequireRole`：批量设价

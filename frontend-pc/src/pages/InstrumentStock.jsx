@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { formatCents, yuanToCents } from '../utils/money'
 import { Table, Tag, Button, Space, Spin, Modal, Form, Input, InputNumber, Select, Radio, Upload, Descriptions, Image, message, Popconfirm, Alert } from 'antd'
-import { EyeOutlined, EditOutlined, WarningOutlined, RollbackOutlined, FileTextOutlined, DeleteOutlined } from '@ant-design/icons'
+import { EditOutlined, WarningOutlined, RollbackOutlined, FileTextOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { inventoryApi, lossApi, api, pricingApi } from '../services/api'
 import PermissionGate from '../components/PermissionGate'
@@ -15,7 +15,9 @@ import {
 import {
   INSTRUMENT_IMAGE_PLACEHOLDER,
   formatDailyRate,
-  formatDeposit,
+  formatDepositFull,
+  formatDepositReduced,
+  formatOverdueDailyFee,
   instrumentImageSrc,
 } from '../utils/instrumentDisplay'
 
@@ -89,8 +91,19 @@ export default function InstrumentStock() {
       dataIndex: 'sn',
       key: 'sn',
       width: 160,
+      // #2537 D6: 识别码即详情入口（不再有独立「详情」按钮）。
       render: (sn, record) => (
-        <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{sn || record.id?.slice(0, 8) || '-'}</span>
+        <Button
+          type="link"
+          size="small"
+          style={{ padding: 0, fontFamily: 'monospace', fontSize: 12 }}
+          onClick={(e) => {
+            e.stopPropagation()
+            navigate(`/site/stock/${record.id}`)
+          }}
+        >
+          {sn || record.id?.slice(0, 8) || '-'}
+        </Button>
       )
     },
     {
@@ -98,38 +111,6 @@ export default function InstrumentStock() {
       dataIndex: 'category_name',
       key: 'category_name',
       width: 120,
-    },
-    {
-      title: '级别',
-      dataIndex: 'level_name',
-      key: 'level_name',
-      width: 80,
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      width: 100,
-      render: (status, record) => {
-        const getUnifiedStatus = (status) => {
-          const statusMap = {
-            "在租": { color: 'green', text: '在租' },
-            "rented": { color: 'green', text: '在租' },
-            "待租": { color: 'blue', text: '待租' },
-            "available": { color: 'blue', text: '待租' },
-            "维修中": { color: 'orange', text: '维修中' },
-            "maintenance": { color: 'orange', text: '维修中' },
-            "已熔断": { color: 'red', text: '已熔断' },
-            "lost": { color: 'red', text: '已丢失' },
-            "archived": { color: 'default', text: '已下架' },
-            "sold": { color: 'default', text: '已售出' }
-          }
-          return statusMap[status] || { color: 'default', text: status }
-        }
-        
-        const info = getUnifiedStatus(status)
-        return <Tag color={info.color}>{info.text}</Tag>
-      }
     },
     {
       title: '所属网点',
@@ -143,16 +124,31 @@ export default function InstrumentStock() {
       title: '标准日租金',
       dataIndex: 'resolved_daily_rate',
       key: 'resolved_daily_rate',
-      width: 130,
+      width: 120,
       align: 'right',
       render: (_, record) => formatDailyRate(record)
     }, {
-      title: '押金',
+      // #2537: 逾期租金列（列表新字段，与 pricing-v2 同链）。
+      title: '逾期租金',
+      dataIndex: 'overdue_daily_fee',
+      key: 'overdue_daily_fee',
+      width: 120,
+      align: 'right',
+      render: (_, record) => formatOverdueDailyFee(record)
+    }, {
+      title: '全额押金',
       dataIndex: 'deposit',
       key: 'deposit',
-      width: 150,
+      width: 120,
       align: 'right',
-      render: (_, record) => formatDeposit(record)
+      render: (_, record) => formatDepositFull(record)
+    }, {
+      title: '差额押金',
+      dataIndex: 'deposit_reduced',
+      key: 'deposit_reduced',
+      width: 120,
+      align: 'right',
+      render: (_, record) => formatDepositReduced(record)
     }] : []),
     {
       title: '操作',
@@ -160,8 +156,6 @@ export default function InstrumentStock() {
       width: 200,
       render: (_, record) => (
         <Space>
-          <Button type="link" size="small" icon={<EyeOutlined />}
-            onClick={(e) => { e.stopPropagation(); navigate(`/site/stock/${record.id}`) }}>详情</Button>
           {/* #2043: 编辑/丢失/恢复 需 instrument:update（无权限不渲染） */}
           <PermissionGate code="instrument:update">
             <Button type="link" size="small" icon={<EditOutlined />}
