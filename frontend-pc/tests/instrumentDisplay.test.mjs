@@ -9,7 +9,9 @@ import {
   INSTRUMENT_IMAGE_PLACEHOLDER,
   instrumentImageSrc,
   formatDailyRate,
-  formatDeposit,
+  formatDepositFull,
+  formatDepositReduced,
+  formatOverdueDailyFee,
 } from '../src/utils/instrumentDisplay.js'
 
 test('instrumentImageSrc prefers thumbnail over other sources', () => {
@@ -66,17 +68,44 @@ test('formatDailyRate shows dash when no rate can be resolved', () => {
   assert.equal(formatDailyRate({ resolved_daily_rate: -100 }), '-')
 })
 
-test('formatDeposit renders cents as yuan and appends reduced difference', () => {
-  assert.equal(formatDeposit({ deposit: 50000 }), '¥500.00')
-  assert.equal(formatDeposit({ deposit: 50000, deposit_reduced: 0 }), '¥500.00（差额 ¥0.00）')
-  assert.equal(formatDeposit({ deposit: 50000, deposit_reduced: 20000 }), '¥500.00（差额 ¥200.00）')
+// #2537 D5: 押金拆成「全额押金」与「差额押金」两列，口径与详情页一致。
+test('formatDepositFull renders cents as yuan', () => {
+  assert.equal(formatDepositFull({ deposit: 50000 }), '¥500.00')
 })
 
-test('formatDeposit keeps explicit zero deposit visible', () => {
-  assert.equal(formatDeposit({ deposit: 0 }), '¥0.00')
+test('formatDepositFull keeps explicit zero deposit visible', () => {
+  assert.equal(formatDepositFull({ deposit: 0 }), '¥0.00')
 })
 
-test('formatDeposit shows dash for null or missing deposit', () => {
-  assert.equal(formatDeposit({ deposit: null }), '-')
-  assert.equal(formatDeposit({}), '-')
+test('formatDepositFull shows dash for null or missing deposit', () => {
+  assert.equal(formatDepositFull({ deposit: null }), '-')
+  assert.equal(formatDepositFull({}), '-')
+})
+
+test('formatDepositReduced renders the difference tier', () => {
+  assert.equal(formatDepositReduced({ deposit_reduced: 20000 }), '¥200.00')
+})
+
+test('formatDepositReduced keeps explicit zero difference visible', () => {
+  assert.equal(formatDepositReduced({ deposit_reduced: 0 }), '¥0.00')
+})
+
+test('formatDepositReduced shows 未配置 for null or missing value', () => {
+  assert.equal(formatDepositReduced({ deposit_reduced: null }), '未配置')
+  assert.equal(formatDepositReduced({}), '未配置')
+})
+
+test('formatOverdueDailyFee renders cents as yuan', () => {
+  assert.equal(formatOverdueDailyFee({ overdue_daily_fee: 3600 }), '¥36.00')
+})
+
+test('formatOverdueDailyFee shows dash for null, missing or non-positive value', () => {
+  assert.equal(formatOverdueDailyFee({ overdue_daily_fee: null }), '-')
+  assert.equal(formatOverdueDailyFee({}), '-')
+  assert.equal(formatOverdueDailyFee({ overdue_daily_fee: 0 }), '-')
+  assert.equal(formatOverdueDailyFee({ overdue_daily_fee: -100 }), '-')
+})
+
+test('formatOverdueDailyFee ignores non-numeric garbage without throwing', () => {
+  assert.equal(formatOverdueDailyFee({ overdue_daily_fee: 'n/a' }), '-')
 })

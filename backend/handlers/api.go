@@ -556,6 +556,12 @@ func GetInstruments(c *gin.Context) {
 		} else {
 			instrumentMap["deposit_reduced"] = nil
 		}
+		// #2537: overdue rent column (cents); same chain as pricing-v2.
+		if listPricing.OverdueDailyFee != nil {
+			instrumentMap["overdue_daily_fee"] = *listPricing.OverdueDailyFee
+		} else {
+			instrumentMap["overdue_daily_fee"] = nil
+		}
 
 		// Fetch dynamic properties from instrument_properties table
 		var instrumentProps []models.InstrumentProperty

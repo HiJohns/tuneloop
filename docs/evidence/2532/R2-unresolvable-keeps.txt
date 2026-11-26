@@ -1,0 +1,9 @@
+# build=1.0.0275ebc84 # commit=0275ebc843ea3087dcf9a9f316adb33619baadf2 # dirty=false
+== R2 unresolvable org keeps the previous value ==
+STATUS=200
+KEPT_ORIGINAL=1
+NO_CROSS_DOMAIN_WRITE=1
+RESOLVED_EMPTY=1
+OLD_WOULD_WRITE_ORG=1
+--- PASS: TestSubmitAssessment2532_UnresolvableKeepsValue (0.99s)
+R2_OK

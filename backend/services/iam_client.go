@@ -64,6 +64,13 @@ var ErrIAMForbidden = errors.New("iam forbidden")
 // ErrIAMOrgNotFound（#2457）：IAM 返回 404（组织已不存在 / org_id 失效）。
 var ErrIAMOrgNotFound = errors.New("iam organization not found")
 
+// ErrOrganizationNameConflict（#2552）：CreateOrganization 返回 409（同命名空间组织名冲突）。
+//
+// 与 UpdateOrganization 的 ErrIAMOrgNameConflict 是**同一个错误值**——两者语义完全相同
+// （组织名冲突 → 409/40900），共用一份避免调用方出现两套 errors.Is 分支。
+// handlers 用 errors.Is 映射，禁止字符串匹配。
+var ErrOrganizationNameConflict = ErrIAMOrgNameConflict
+
 // userAuthState (#1735): IAM-authoritative subject validity snapshot used by
 // the auth middleware (token_version + account status).
 type userAuthState struct {
@@ -275,6 +282,7 @@ func (c *IAMClient) doRequestWithToken(method, path, token string, payload inter
 
 type CreateOrganizationRequest struct {
 	Name             string             `json:"name"`
+	Type             string             `json:"type,omitempty"` // #2552: 组织类型（中转网点 = "branch"，见 beaconiam#509）
 	ParentID         string             `json:"parent_id,omitempty"`
 	NamespaceID      string             `json:"namespace_id,omitempty"`
 	Address          string             `json:"address,omitempty"`
@@ -311,7 +319,8 @@ func (c *IAMClient) CreateOrganization(req *CreateOrganizationRequest) (*CreateO
 	}
 
 	if statusCode == http.StatusConflict {
-		return nil, fmt.Errorf("organization name conflict: %s", string(respBody))
+		// #2552: 哨兵错误，调用方用 errors.Is 映射为 409/40900（禁止字符串匹配）。
+		return nil, fmt.Errorf("%w: %s", ErrOrganizationNameConflict, string(respBody))
 	}
 	if statusCode == http.StatusForbidden {
 		return nil, fmt.Errorf("permission denied: %s", string(respBody))
@@ -350,7 +359,8 @@ func (c *IAMClient) CreateOrganizationWithToken(token string, req *CreateOrganiz
 	}
 
 	if statusCode == http.StatusConflict {
-		return nil, fmt.Errorf("organization name conflict: %s", string(respBody))
+		// #2552: 哨兵错误，调用方用 errors.Is 映射为 409/40900（禁止字符串匹配）。
+		return nil, fmt.Errorf("%w: %s", ErrOrganizationNameConflict, string(respBody))
 	}
 	if statusCode == http.StatusForbidden {
 		return nil, fmt.Errorf("permission denied: %s", string(respBody))
@@ -397,6 +407,7 @@ func (c *IAMClient) DeleteOrganization(orgID string) error {
 type Organization struct {
 	ID          string  `json:"id"`
 	Name        string  `json:"name"`
+	Type        string  `json:"type"` // #2552: 组织类型（branch 等，beaconiam#509）
 	ParentID    *string `json:"parent_id"`
 	NamespaceID string  `json:"namespace_id"`
 	IsPrimary   bool    `json:"is_primary"`
@@ -482,6 +493,40 @@ func (c *IAMClient) ListOrganizations() ([]Organization, error) {
 	}
 
 	return result.Organizations, nil
+}
+
+// ResolveNamespacePrimaryOrg 解析命名空间的「主组织」（`is_primary=true`），
+// 用作中转网点 branch 子组织的父组织（#2552 / beaconiam#509）。
+//
+// 判定：`ListOrganizations()` 中 `IsPrimary` **恰好 1 个** 才算成功；
+// 0 个或多个 → 显式错误。不猜、不回落租户（回落会把父组织指到错误层级，
+// 且失败原因被掩盖）。
+func ResolveNamespacePrimaryOrg(client *IAMClient) (string, error) {
+	if client == nil {
+		return "", fmt.Errorf("ResolveNamespacePrimaryOrg: nil IAM client")
+	}
+	orgs, err := client.ListOrganizations()
+	if err != nil {
+		return "", fmt.Errorf("ResolveNamespacePrimaryOrg: list organizations: %w", err)
+	}
+	primaries := make([]Organization, 0, 1)
+	for _, org := range orgs {
+		if org.IsPrimary {
+			primaries = append(primaries, org)
+		}
+	}
+	switch len(primaries) {
+	case 1:
+		id := strings.TrimSpace(primaries[0].ID)
+		if id == "" {
+			return "", fmt.Errorf("ResolveNamespacePrimaryOrg: primary organization has empty id")
+		}
+		return id, nil
+	case 0:
+		return "", fmt.Errorf("ResolveNamespacePrimaryOrg: namespace has no primary organization")
+	default:
+		return "", fmt.Errorf("ResolveNamespacePrimaryOrg: namespace has %d primary organizations (expected exactly 1)", len(primaries))
+	}
 }
 
 func (c *IAMClient) ListOrganizationsWithToken(token string) ([]Organization, error) {

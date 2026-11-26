@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Card, Button, Space, Tag, Image, message, Select, Input, Pagination } from 'antd'
 import { ShoppingCartOutlined, FilterOutlined, EyeOutlined } from '@ant-design/icons'
 import { api } from '../services/api'
+import { IMAGE_PLACEHOLDER } from '../utils/instrumentDisplay'
 
 const { Option } = Select
 const { Search } = Input
@@ -160,7 +161,7 @@ export default function InstrumentListUser() {
                     alt={instrument.sn}
                     className="h-48 w-full object-cover"
                     preview={false}
-                    fallback="/placeholder-instrument.png"
+                    fallback={IMAGE_PLACEHOLDER}
                   />
                 ) : (
                   <div className="h-48 w-full bg-gray-200 flex items-center justify-center">

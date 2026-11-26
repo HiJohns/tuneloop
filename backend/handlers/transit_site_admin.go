@@ -6,8 +6,10 @@ package handlers
 // — 被 TransitRoute 引用的中转网点禁止停用/删除（需先解绑路由）。
 
 import (
+	"errors"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"tuneloop-backend/database"
@@ -79,14 +81,57 @@ func CreateAdminTransitSite(c *gin.Context) {
 	}
 
 	db := database.GetDB()
-	tenantID := middleware.GetTenantID(c.Request.Context())
+	ctx := c.Request.Context()
+	tenantID := middleware.GetTenantID(ctx)
 
-	// #1935: 中转网点直辖平台顶层组织 —— OrgID 填平台租户 ID（顶层）
+	// #2552 B5：平台租户为空时必须在**调用 IAM 之前**拒绝。
+	// 旧实现先建组织、随后 `sites.tenant_id`（NOT NULL）落库失败 → 500，
+	// 且留下一个没有任何站点引用的孤儿组织。
+	if strings.TrimSpace(tenantID) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "当前上下文缺少租户信息，无法创建中转网点"})
+		return
+	}
+
+	// #2552 B3/B5：中转网点是平台直属直营分支，必须有自己的一级组织——
+	// 在命名空间主组织（`is_primary=true`，恰好 1 个）下建 `type=branch` 子组织（无 OWNER）。
+	// 父组织不可解析 / 建组织失败 → 整站创建失败，禁止留下「无 IAM 组织」的站点。
+	orgName := req.Name
+	if orgName == "" {
+		orgName = "中转网点"
+	}
+	iamClient := services.NewIAMClient()
+	parentOrgID, err := services.ResolveNamespacePrimaryOrg(iamClient)
+	if err != nil {
+		log.Printf("[CreateAdminTransitSite] resolve namespace primary org failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "无法解析命名空间主组织：" + err.Error()})
+		return
+	}
+	createdOrg, err := iamClient.CreateOrganization(&services.CreateOrganizationRequest{
+		Name:             orgName,
+		Type:             "branch",
+		ParentID:         parentOrgID,
+		Address:          req.Address,
+		ContactPhone:     req.Phone,
+		NotificationLang: middleware.GetCulture(c),
+		OperatorID:       middleware.GetUserID(ctx),
+		// AdminInfo 保持 nil：中转网点没有 owner，成员由平台管理员显式添加。
+		AdminInfo: nil,
+	})
+	if err != nil {
+		// #2552 B4/D5：名冲突映射为 409/40900（旧实现一律 502/50200）。
+		if errors.Is(err, services.ErrOrganizationNameConflict) {
+			c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "同名组织已存在，请更换名称后重试"})
+			return
+		}
+		c.JSON(http.StatusBadGateway, gin.H{"code": 50200, "message": "中转网点组织创建失败（IAM）：" + err.Error()})
+		return
+	}
+
 	// #1935 audit Bug4: contact_name 持久化（此前被静默丢弃）
 	site := models.Site{
 		ID:          uuid.New().String(),
 		TenantID:    tenantID,
-		OrgID:       tenantID,
+		OrgID:       createdOrg.OrgID,
 		Name:        req.Name,
 		Address:     req.Address,
 		Phone:       req.Phone,
@@ -97,6 +142,14 @@ func CreateAdminTransitSite(c *gin.Context) {
 		UpdatedAt:   time.Now(),
 	}
 	if err := db.Create(&site).Error; err != nil {
+		// #2552 D5：本地落库失败必须补偿已建的 IAM 组织（best-effort），
+		// 不得留下孤儿组织；补偿失败只记录，不改变对外的 500 语义。
+		if delErr := iamClient.DeleteOrganization(createdOrg.OrgID); delErr != nil {
+			log.Printf("[CreateAdminTransitSite] CRITICAL: orphan org compensation failed site=%s org=%s: %v",
+				site.ID, createdOrg.OrgID, delErr)
+		} else {
+			log.Printf("[CreateAdminTransitSite] compensated orphan org=%s after local create failure", createdOrg.OrgID)
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create transit site"})
 		return
 	}
@@ -268,6 +321,14 @@ func AddTransitSiteMember(c *gin.Context) {
 		}
 	}
 
+	// #2552 D1（#2547 D2）：addMembersCore 的第 4 参数只作**本地租户作用域**
+	// （写 `site_members.tenant_id` / `users.tenant_id`，并作幂等判定的 tenant 条件）；
+	// IAM 绑定/角色/解绑目标由 core 固定取 `site.OrgID`，与本地租户列无关。
+	//
+	// 此处若传 `site.OrgID`（中转网点的分支组织 ID），会把组织 ID 写进租户列：
+	// ① 本地租户作用域分裂（按 tenant 过滤的路径读不到这些行）；
+	// ② 幂等判定按 org 计数，而唯一键 `(tenant_id, site_id, user_id)` 含 tenant →
+	//    同一用户可被重复插入第二条成员行。
 	res, fail := addMembersCore(c, db, site, site.TenantID, siteID, input)
 	if fail != nil {
 		c.JSON(fail.Status, fail.Body)

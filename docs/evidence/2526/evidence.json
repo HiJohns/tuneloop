@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "issue": 2526,
+  "build": "1.0.44f9368c7",
+  "commit": "44f9368c757143396bcaf0dabe3db2d3f2741441",
+  "dirty": false,
+  "plan_sha256": "e0e777106d0fb554b37b2191d217c3a0629c462f0a9743eadd36b3cc6a0936ce",
+  "environment": "isolated worktree wt-2526 (branch issue-2526, base origin/develop 93e585607); backend go build + Postgres test DB (127.0.0.1:15433/tuneloop_test_local); PC frontend node --test + eslint + vite build; no production calls",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2526.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2526/R1-detail-zero-tenant.txt"
+      ],
+      "assert": "exit 0；grep DETAIL_ZERO_TENANT_STATUS=200、DETAIL_ZERO_TENANT_USER_ROLE_STATUS=200、OLD_PREDICATE_ROWS=0、MEMBERSHIP_ROWS=1、DETAIL_SITE_NAME=网点A、RED_CONFIRMED=1",
+      "actual": "PASS：DETAIL_ZERO_TENANT_STATUS=200 / DETAIL_ZERO_TENANT_USER_ROLE_STATUS=200 / OLD_PREDICATE_ROWS=0 / MEMBERSHIP_ROWS=1 / DETAIL_SITE_NAME=网点A / RED_CONFIRMED=1；R1_OK",
+      "expected": "PASS",
+      "negative": "出现 DETAIL_ZERO_TENANT_STATUS=404 或 DETAIL_ZERO_TENANT_USER_ROLE_STATUS=404 → 主诉未修复 → FAIL",
+      "negative_result": "预修复源码实测（git show HEAD^:backend/handlers/user_staff.go 覆盖工作树后跑同一用例）：DETAIL_ZERO_TENANT_STATUS=404、DETAIL_ZERO_TENANT_USER_ROLE_STATUS=404、OLD_PREDICATE_ROWS=0、MEMBERSHIP_ROWS=1、DETAIL_SITE_NAME 为空，--- FAIL（tmp/red-2526.txt）；恢复修复后 200 PASS（红绿可证）",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2526.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2526/R2-site-admin-detail.txt"
+      ],
+      "assert": "exit 0；grep SITE_DETAIL_ZERO=200、SITE_DETAIL_CROSS_ORG=404",
+      "actual": "PASS：SITE_DETAIL_ZERO=200 / SITE_DETAIL_CROSS_ORG=404；R2_OK",
+      "expected": "PASS",
+      "negative": "SITE_DETAIL_CROSS_ORG=200 → 跨组织泄漏 → FAIL",
+      "negative_result": "SITE_DETAIL_CROSS_ORG=404，日志含 [GetStaffUser] WARN: invisible staff user=… role=site_admin …（不可见分支可观测，B6）",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2526.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2526/R3-system-admin-detail.txt"
+      ],
+      "assert": "exit 0；grep SYSTEM_PLATFORM=200、SYSTEM_TRANSIT=200、SYSTEM_ZERO_TENANT=404",
+      "actual": "PASS：SYSTEM_PLATFORM=200 / SYSTEM_TRANSIT=200 / SYSTEM_ZERO_TENANT=404；R3_OK",
+      "expected": "PASS",
+      "negative": "SYSTEM_ZERO_TENANT=200 → 口径误加宽 → FAIL",
+      "negative_result": "SYSTEM_ZERO_TENANT=404：零租户成员无 org_id=rootOrg、无中转网点 membership、system actor 的 tid 为空，三条分支均不命中",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2526.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2526/R4-isolation-negative.txt"
+      ],
+      "assert": "exit 0；grep MERCHANT_CUSTOMER=404、MERCHANT_CUSTOMER_BODY_CODE=40400、MERCHANT_OTHER_TENANT=404、MERCHANT_OTHER_TENANT_BODY_CODE=40400",
+      "actual": "PASS：MERCHANT_CUSTOMER=404 / MERCHANT_CUSTOMER_BODY_CODE=40400 / MERCHANT_OTHER_TENANT=404 / MERCHANT_OTHER_TENANT_BODY_CODE=40400；R4_OK",
+      "expected": "PASS",
+      "negative": "任一 =200 → 越权读 → FAIL",
+      "negative_result": "两类负例均 404 + 40400；纯顾客虽有 users.tenant_id = tid，仍因顾客角色被排除（B10 收窄生效），日志 WARN 记录 user_role=USER",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2526.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2526/R5-list-detail-parity.txt"
+      ],
+      "assert": "exit 0；grep PARITY_LIST_ROWS=5、PARITY_DETAIL_OK=5、PARITY_MISMATCH=0",
+      "actual": "PASS：PARITY_LIST_ROWS=5 / PARITY_DETAIL_OK=5 / PARITY_MISMATCH=0；R5_OK",
+      "expected": "PASS",
+      "negative": "PARITY_MISMATCH=1 → 列表与详情再次分裂 → FAIL",
+      "negative_result": "5 行（siteMemberA/siteMemberB/zeroTenantMember/directMember/technician）详情全部 200 且 site_id 一致；修复前 siteMemberB（org_id=网点B组织≠tid）会被旧 org 范围过滤成 404",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2526.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2526/R6-update-persist.txt"
+      ],
+      "assert": "exit 0；grep UPDATE_ZERO_STATUS=200、UPDATE_ZERO_NAME_PERSISTED=1、UPDATE_CROSS_TENANT_STATUS=404、UPDATE_CROSS_TENANT_UNCHANGED=1",
+      "actual": "PASS：UPDATE_ZERO_STATUS=200 / UPDATE_ZERO_NAME_PERSISTED=1 / UPDATE_CROSS_TENANT_STATUS=404 / UPDATE_CROSS_TENANT_UNCHANGED=1；R6_OK",
+      "expected": "PASS",
+      "negative": "UPDATE_ZERO_NAME_PERSISTED=0 → 静默空更新 → FAIL",
+      "negative_result": "落库后重新 SELECT 读回 name 为写入值；跨租户请求 404 且对方 name 保持「他商户成员」",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2526.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2526/R7-activate-row-action.txt"
+      ],
+      "assert": "exit 0；grep ACTIVATE_ZERO_STATUS=40001、ACTIVATE_CROSS_TENANT_STATUS=404",
+      "actual": "PASS：ACTIVATE_ZERO_STATUS=40001 / ACTIVATE_ZERO_HTTP=400 / ACTIVATE_CROSS_TENANT_STATUS=404；R7_OK",
+      "expected": "PASS",
+      "negative": "ACTIVATE_ZERO_STATUS=404 → 行操作不可达 → FAIL",
+      "negative_result": "修复前同一请求为 404 40400（tenant 过滤取不到行）；修复后进入既有 user already activated 分支（40001）",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash scripts/verify-2526.sh r8",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2526/R8-attribution-flag.txt"
+      ],
+      "assert": "exit 0；grep FLAG_ZERO_TENANT=1、FLAG_NORMAL_MEMBER=0、FLAG_SITE_VIEW_ZERO=1",
+      "actual": "PASS：FLAG_ZERO_TENANT=1 / FLAG_NORMAL_MEMBER=0 / FLAG_SITE_VIEW_ZERO=1；R8_OK",
+      "expected": "PASS",
+      "negative": "FLAG_NORMAL_MEMBER=1 → 误标正常行 → FAIL",
+      "negative_result": "三视图一致：零租户成员在商户与网点视图均为 1，正常网点成员为 0",
+      "pass": true
+    },
+    {
+      "id": "R9",
+      "command": "bash scripts/verify-2526.sh r9",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2526/R9-pc-wiring.txt"
+      ],
+      "assert": "exit 0；grep NODE_TEST_RC=0、RENDER_WIRED=1、FRONTEND_LINT_RC=0、FRONTEND_BUILD_RC=0",
+      "actual": "PASS：NODE_TEST_RC=0（node --test 9/9） / RENDER_WIRED=1（StaffManagement.jsx 导入并调用 attributionMissingBadge(record)） / FRONTEND_LINT_RC=0 / FRONTEND_BUILD_RC=0（vite build ✓ built）；R9_OK",
+      "expected": "PASS",
+      "negative": "RENDER_WIRED=0 → 字段无消费方（死代码）→ FAIL",
+      "negative_result": "evidence_type=static（D6 Owner 豁免：PC 无组件测试运行器）；真实渲染截图归关闭时的 [Ops-Followup of #2526]（waitForConfirm）",
+      "pass": true
+    },
+    {
+      "id": "R10",
+      "command": "bash scripts/verify-2526.sh r10",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2526/R10-regression.txt"
+      ],
+      "assert": "exit 0；grep BUILD_RC=0、REGRESSION_PASS=1、FAIL_COUNT=0、--- PASS: TestGetStaffUser_ReturnsSiteAndDirectFlag_2429、--- PASS: TestUpdateUserRoleForbidden_2375",
+      "actual": "PASS：BUILD_RC=0（go build ./...） / REGRESSION_PASS=1 / FAIL_COUNT=0 / 回归 37 PASS（含 --- PASS: TestGetStaffUser_ReturnsSiteAndDirectFlag_2429 与 --- PASS: TestUpdateUserRoleForbidden_2375、TestPersonnel2065_*、TestSiteTransfer_*_2466、TestUpdateUser_*_2482）；R10_OK",
+      "expected": "PASS",
+      "negative": "任一既有用例 FAIL 或 BUILD_RC=1 → FAIL",
+      "negative_result": "红跑对照：修复前 R1 用例 FAIL（DETAIL_ZERO_TENANT_STATUS=404），修复后全绿；语义变更清单登记的 1 处收窄（纯顾客 by-id 200→404）由 R4 证明",
+      "pass": true
+    }
+  ]
+}

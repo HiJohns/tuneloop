@@ -1,0 +1,27 @@
+# build=1.0.3f08c2dd8 # commit=3f08c2dd8e32d0ac19a73101752de2e257b92958 # dirty=false
+GENERATED_AT_HEAD=3f08c2dd8e32d0ac19a73101752de2e257b92958
+== R6 build + targeted tests ==
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed at_ms=1795660752693 wait_ms=31179
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed wait_ms=31179
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795660780210 hold_ms=27517
+--- PASS: TestInstrumentListOverdue2537_R1 (1.20s)
+--- PASS: TestInstrumentListPricing2528_R1 (0.96s)
+--- PASS: TestInstrumentListPricing2528_R2 (1.11s)
+   78:6   warning  React Hook useEffect has missing dependencies: 'fetchInstruments' and 'pagination.pageSize'. Either include them or remove the dependency array                      react-hooks/exhaustive-deps
+  290:32  warning  'deleteInstrument' was used before it was defined                                                                                                                    no-use-before-define
+
+✖ 10 problems (0 errors, 10 warnings)
+
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2m 9s
+GO_BUILD_RC=0
+GO_TEST_RC=0
+GO_TEST_FAIL=0
+ESLINT_RC=0
+PC_BUILD_RC=0
+GO_BUILD_OK=1
+GO_TEST_OK=1
+ESLINT_OK=1
+PC_BUILD_OK=1
+R6_OK

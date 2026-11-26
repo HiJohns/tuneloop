@@ -1,0 +1,6 @@
+# build=1.0.44f9368c7 # commit=44f9368c757143396bcaf0dabe3db2d3f2741441 # dirty=false
+== R2 site_admin 详情 + 跨组织负例 ==
+SITE_DETAIL_ZERO=200
+SITE_DETAIL_CROSS_ORG=404
+--- PASS: TestStaffDetail2526_SiteAdmin (0.89s)
+R2_OK

@@ -1,0 +1,7 @@
+# build=1.0.220785f52 # commit=220785f52d7eee81d62efcfa5b35c7da923535c5 # dirty=false
+== R3 unresolvable org keeps the previous value ==
+CURRENT_SITE_ID=aID
+KEPT_ORIGINAL=1
+NO_CROSS_DOMAIN_WRITE=1
+--- PASS: TestInspectReturn2511_UnresolvableKeepsValue (1.32s)
+R3_OK

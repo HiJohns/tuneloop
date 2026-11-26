@@ -190,6 +190,18 @@ pending_approval → pending（已发邀请） → accepted
 - **默认 `transfer`**：加入新网点时移出原网点，避免重复占用。
 - 商户管理员可选择 **`multi_site`** 保留原网点；多网点当前站点由 `/users/me.site_id` 按 JWT `oid` 解析（#2449）。
 
+### 移除成员（离职）与删除账号（Owner 2026-11-26 裁定）
+
+| 动作 | 语义 | 谁能做 | 结果 |
+|---|---|---|---|
+| **移除成员（离职）** | IAM `unbind` + 删除本地成员行（`merchant_members`/`site_members`/`technician_profiles`）+ `reconcileUserCache` + 审计 | **商户管理员**（本商户范围内） | `users` 记录保留、`status=active`；账号可继续以**顾客**身份登录与下单；可重新加入 |
+| **删除账号** | IAM 全局 `status=deleted`（账号消失） | **仅命名空间管理员（系统管理员）** | 全局不可登录；商户侧入口已移除（`merchant_admin` 模板移除 `sys_perm` bit19） |
+
+- 事实来源：用户/组织/权限/角色一律以 **IAM** 为准，本地表只是缓存。
+- **在办资产**：离职时其在办维修单（`inspecting/quoted/repairing/return_pending`）`worker_id` **挂空** + 记录原因（`record_type=worker_unassigned`），调度列表显示「待接手」；完整转派手续见 #2568 设计稿。
+- 直属员工/维修师同样必须有「移除成员（离职）」入口（此前只有「前往人员管理」，导致运营只能点「删除员工」→ 误删账号）。
+- 审计：`OFFBOARD_MEMBER`（单）/`OFFBOARD_MEMBERS`（批），含 `org_id`、移除行数、挂空工单数、操作者。
+
 ### 无邮箱密码重置
 
 - 有邮箱：行内与批量均发送邮件重置。

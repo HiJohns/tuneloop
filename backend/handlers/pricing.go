@@ -298,6 +298,9 @@ type instrumentListPricing struct {
 	ResolvedDailyRate int64  // pricing-v2 effective base daily rate; 0 = cannot resolve (pricing-v2 → 40004)
 	Deposit           *int64 // nil = cannot resolve; 0 = explicit zero deposit
 	DepositReduced    *int64 // nil = no reduced tier; 0 = explicit zero difference
+	// #2537: overdue rent column; same chain as pricing-v2
+	// (overrides → pricing JSONB → config default). nil = cannot resolve.
+	OverdueDailyFee *int64
 }
 
 // instrumentListPriceFields derives the list price fields from the same helpers
@@ -370,6 +373,16 @@ func instrumentListPriceFields(ctx context.Context, instrument *models.Instrumen
 			reduced := *v
 			out.DepositReduced = &reduced
 		}
+	}
+	// #2537: overdue_daily_fee comes from services.FormatPricingResult (cents,
+	// float64 in the map). Keep the list and pricing-v2 on one calculation chain.
+	switch v := data["overdue_daily_fee"].(type) {
+	case float64:
+		overdue := int64(math.Round(v))
+		out.OverdueDailyFee = &overdue
+	case int64:
+		overdue := v
+		out.OverdueDailyFee = &overdue
 	}
 	return out
 }

@@ -1,0 +1,45 @@
+# build=1.0.44f9368c7 # commit=44f9368c757143396bcaf0dabe3db2d3f2741441 # dirty=false
+== R10 构建 + 既有用例回归 ==
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed at_ms=1795664227431 wait_ms=146
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed wait_ms=146
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795664238863 hold_ms=11432
+--- PASS: TestPersonnel2072_NewestFirst (0.70s)
+--- PASS: TestStaffDetail2526_ZeroTenantMember (0.71s)
+--- PASS: TestStaffDetail2526_SiteAdmin (0.73s)
+--- PASS: TestStaffDetail2526_SystemAdmin (0.79s)
+--- PASS: TestStaffDetail2526_IsolationNegative (0.80s)
+--- PASS: TestStaffDetail2526_ListDetailParity (0.74s)
+--- PASS: TestStaffUpdate2526_ZeroTenantPersists (0.74s)
+--- PASS: TestStaffActivate2526_RowAction (0.82s)
+--- PASS: TestPersonnelAttributionFlag2526 (0.72s)
+--- PASS: TestUpdateUser_RoleSyncWritesJSONB_2475 (0.71s)
+--- PASS: TestUpdateUserRoleForbidden_2375 (0.74s)
+--- PASS: TestSiteTransfer_SameOrg_LocalOnly_2466 (0.03s)
+--- PASS: TestSiteTransfer_CrossOrg_Staff_2466 (0.03s)
+--- PASS: TestSiteTransfer_CrossOrg_Admin_2466 (0.03s)
+--- PASS: TestSiteTransfer_TargetAlreadyMember_2466 (0.02s)
+--- PASS: TestSiteTransfer_NewTarget_2466 (0.03s)
+--- PASS: TestSiteTransfer_IAMBindFail_NoHalfState_2466 (0.02s)
+--- PASS: TestSiteTransfer_TemplateFail_Explicit_2466 (0.02s)
+--- PASS: TestSiteTransfer_Readback_2466 (0.03s)
+--- PASS: TestUpdateUser_RoleChangeKeepsOtherRoles_2482 (0.65s)
+--- PASS: TestUpdateUser_RoleChangeMultiSite_2482 (0.81s)
+--- PASS: TestUpdateUser_RoleUnchangedNoWrite_2482 (0.71s)
+--- PASS: TestUpdateUser_SingleRoleNoResidue_2482 (0.64s)
+--- PASS: TestUpdateUser_SameSiteSkipsIAM_2429 (0.01s)
+--- PASS: TestGetStaffUser_ReturnsSiteAndDirectFlag_2429 (0.02s)
+--- PASS: TestUpdateUser_MultiSiteSameOrgSkipsIAM_2429 (0.02s)
+--- PASS: TestGetStaffUser_MultiSiteDual_2429 (0.02s)
+--- PASS: TestUpdateUser_SiteIDNoChange (0.00s)
+--- PASS: TestUpdateUser_UserNotFound (0.00s)
+--- PASS: TestUpdateUser_SiteIDChanged_SiteNotFound (0.00s)
+PASS
+ok  	tuneloop-backend/handlers	17.973s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795664262581 hold_ms=24225
+BUILD_RC=0
+REGRESSION_PASS=1
+FAIL_COUNT=0
+REGRESSION_PASS_COUNT=37
+EXISTING_2429_PASS=1
+EXISTING_2375_PASS=1
+R10_OK
