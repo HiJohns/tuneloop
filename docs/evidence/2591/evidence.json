@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "issue": "2591",
+  "build": "1.0.3a4249633",
+  "commit": "3a4249633bc785194eef922c2104f98be126f50c",
+  "dirty": false,
+  "plan_sha256": "b6ab0c8ae83147ab47df2540ae827225b7141eae47ef0f347f8446b99c4def09",
+  "tooling_commit": "acab7d27d28832d1ad366dd4c944ffb3e2ff9ca8",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2591.sh r1",
+      "artifacts": [
+        "docs/evidence/2591/R1-structure-restored.txt"
+      ],
+      "assert": "exit 0 且含 TARGET_LINE_LEN=21 LITERAL_BSLASH_N_LINES=0 SECURITY_BULLETS_58_3=3 HEADINGS_58X=3 STALE_58_TITLES=0",
+      "actual": "exit=0；TARGET_LINE_LEN=21；LITERAL_BSLASH_N_LINES=0；SECURITY_BULLETS_58_3=3；HEADINGS_58X=3；STALE_58_TITLES=0；RESULT=PASS",
+      "expected": "PASS（5 项 token 全为期望值）",
+      "negative": "目标行仍含字面 \\n、或 §5.8.3 只剩 2 条 bullet、或出现旧编号 5.6.x 小节 → FAIL",
+      "negative_result": "R3 即反例实证：同一算法作用于 fix^ blob 时 SECURITY_BULLETS_58_3=2 且 LITERAL_BSLASH_N_LINES=1，故 r1 的 3/0 不是恒真",
+      "pass": true,
+      "exit": 0
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2591.sh r2",
+      "artifacts": [
+        "docs/evidence/2591/R2-no-side-effect.txt"
+      ],
+      "assert": "exit 0 且含 LINE_COUNT_UNCHANGED=1 FENCE_COUNT_UNCHANGED=1 HEADING_COUNT_UNCHANGED=1 PREFIX_IDENTICAL=1 SUFFIX_IDENTICAL=1 SEC_58_BLOCK_IDENTICAL=1 DIFF_ADDED_LINES=1 DIFF_DELETED_LINES=1",
+      "actual": "exit=0；LINE_COUNT_UNCHANGED=1；FENCE_COUNT_UNCHANGED=1；HEADING_COUNT_UNCHANGED=1；PREFIX_IDENTICAL=1；SUFFIX_IDENTICAL=1；SEC_58_BLOCK_IDENTICAL=1；DIFF_ADDED_LINES=1；DIFF_DELETED_LINES=1；RESULT=PASS",
+      "expected": "PASS（8 项 token 全为期望值）",
+      "negative": "改动溢出到 §5.8 正文或其他行、diff 非 1/1 → FAIL",
+      "negative_result": "块比对以「fix^ 块仅把折叠行替换为首段」为期望形态；实测 head 块与之逐行相等（SEC_58_BLOCK_IDENTICAL=1），diff 恰为 1/1，行数/围栏/标题计数 7578/597/348 不变",
+      "pass": true,
+      "exit": 0
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2591.sh r3",
+      "artifacts": [
+        "docs/evidence/2591/R3-red-baseline.txt"
+      ],
+      "assert": "exit 0 且含 RED_LITERAL_BSLASH_N_LINES=1 RED_TARGET_LINE_LEN=3060 RED_SECURITY_BULLETS_58_3=2 RED_STALE_TITLE_MAP=3",
+      "actual": "exit=0；RED_LITERAL_BSLASH_N_LINES=1；RED_TARGET_LINE_LEN=3060；RED_SECURITY_BULLETS_58_3=2；RED_STALE_TITLE_MAP=3；RESULT=PASS",
+      "expected": "PASS（4 项 token 全为期望值，即修复前确为红）",
+      "negative": "修复前被判定为正常（RED_TARGET_LINE_LEN 非 3060）→ FAIL",
+      "negative_result": "红样现场取自 git show 3a4249633^:docs/spec/api/api.md（非手写常量）：3060 字符、1 行含字面 \\n、§5.8.3 仅 2 条可见 bullet、折叠块内含 3 个旧编号标题",
+      "pass": true,
+      "exit": 0
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2591.sh r4",
+      "artifacts": [
+        "docs/evidence/2591/R4-stale-mapping.txt"
+      ],
+      "assert": "exit 0 且含 STALE_ONLY_LINES=12 STALE_TITLE_MAP=3 STALE_UNMAPPED=0 RETAINED_BULLET_PRESENT=1",
+      "actual": "exit=0；STALE_ONLY_LINES=12；STALE_TITLE_MAP=3；STALE_UNMAPPED=0；RETAINED_BULLET_PRESENT=1；RESULT=PASS",
+      "expected": "PASS（4 项 token 全为期望值）",
+      "negative": "存在无法映射到现行 §5.8 行的独有内容、或保留的 bullet 未被写入 → FAIL",
+      "negative_result": "12 行陈旧独有行逐行映射：3 个旧编号标题→5.8.1/5.8.2/5.8.3；3 条双反斜杠 curl→现行单反斜杠行；3 条旧表格行→现行 | 字段 | 中文标题 | 行；3 条旧查询参数→现行 category/status/fields 条目（STALE_UNMAPPED=0）",
+      "pass": true,
+      "exit": 0
+    }
+  ]
+}
