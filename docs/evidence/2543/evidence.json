@@ -5,7 +5,7 @@
   "commit": "489d3580a91f0a3668e2a816729353c636a6c606",
   "dirty": false,
   "plan_sha256": "b7892888961821b3b58de4b577392b78985a79cefe8d9e1fa33c981a5a5fe891",
-  "tooling_commit": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
+  "tooling_commit": "b8e05b8eb3f11d4da244573d9ec1a0a702a0aa6a",
   "environment": "worktree /tmp/opencode/tuneloop/wt-2543 (branch issue-2543, created by scripts/worktree-create.sh --base origin/issue-2543); node-isolated Postgres test DB 'tuneloop_test_node_opencode_s74_p74_b3c2c3_c4e2b93b' on localhost:5432 (per-node test database, tables replayed from migrations); fake IAM httptest server (client-credentials token + business writes recorded); no production calls",
   "rows": [
     {
