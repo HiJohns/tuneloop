@@ -8,7 +8,8 @@ import { isBusinessCorrectableConflict } from '../utils/formConflict'
 import PasswordSettingFields from '../components/PasswordSettingFields'
 import InitialPasswordModal from '../components/InitialPasswordModal'
 import { resolveCreateFeedback } from '../utils/createFeedback'
-import { buildPersonnelQuery } from '../utils/personnelQuery'
+import { buildPersonnelQuery, attributionMissingBadge } from '../utils/personnelQuery'
+import { isCreateIntent } from '../utils/staffCreateIntent'
 import { checkPermission, isSystemLevelRole, SysPermBits } from '../config/menuPermissions'
 import 'react-quill/dist/quill.snow.css'
 import { staffApi, sitesApi, personnelApi, invitesApi } from '../services/api'
@@ -187,6 +188,16 @@ export default function StaffManagement() {
     setPasswordModalOpen(false)
     setFormConflict('') // #2480 D8：入口/取消/成功后清空冲突提示
   }
+
+  // #2478：消费跨页「创建员工」一次性意图（直属成员管理单击即进创建表单）。
+  // 命中后立即 replace 清掉 state，刷新/前进后退不会重复打开表单；
+  // 返回列表后再从直属成员管理点击会带上新的 state，仍然生效。
+  useEffect(() => {
+    if (!isCreateIntent(location.state)) return
+    resetCreateState()
+    setViewMode('create')
+    navigate(location.pathname, { replace: true, state: null })
+  }, [location.state])
 
   const handleCreateUser = async (values) => {
     setFormConflict('') // #2480 D8：提交开始即清空陈旧冲突提示
@@ -493,7 +504,18 @@ export default function StaffManagement() {
       dataIndex: 'site_name',
       key: 'site_name',
       width: 150,
-      render: (siteName) => siteName || '-'
+      // #2526：归属缺失（users.tenant_id/org_id 为 nil UUID）的存量行在网点名后加标记，
+      // 避免用户点进编辑才发现归属异常。
+      render: (siteName, record) => {
+        const badge = attributionMissingBadge(record)
+        if (!badge) return siteName || '-'
+        return (
+          <span>
+            {siteName || '-'}
+            <Tag color={badge.color} title={badge.title} style={{ marginLeft: 6 }}>{badge.label}</Tag>
+          </span>
+        )
+      }
     },
     {
       title: '角色',

@@ -5,8 +5,11 @@
 //   L1 message_map   — 精确英文键翻译（#1675）
 //   L2 human_message — 后端可读中文文案原样透传（#2480，先于 code 家族）
 //   L3 code_map      — code 家族通用中文（仅 L2 未命中时兜底）
-//   L4 raw_message   — 其它 message 透传（#2104）
+//   L4 raw_message   — **已不可达**（#2504 D8）：含 CJK 的文案在 L2 已返回，本层不再有
+//                      返回分支；层名保留仅为兼容历史断言/日志口径
 //   L5 fallback      — 调用点兜底
+//
+// #2504：ASCII 机器串（如后端硬编码 `access denied`）不直出；未知码走 fallback。
 //
 // PC（frontend-pc/src/services/errorMessages.js）与 mobile（errorMessages.js）各有一份 map，
 // 但顺序与判定必须一致；跨包漂移由 scripts/check-error-message-parity-2480.mjs 兜住（D5）。
@@ -27,7 +30,7 @@ function hasMessage(message) {
  * 解析后端错误载荷。
  * @param {{code?: number|string, message?: string}|null|undefined} result
  * @param {{codeMap?: Record<string|number, string>, messageMap?: Record<string, string>, fallback?: string}} [options]
- * @returns {{text: string, layer: 'message_map'|'human_message'|'code_map'|'raw_message'|'fallback'}}
+ * @returns {{text: string, layer: 'message_map'|'human_message'|'code_map'|'raw_message'|'fallback'}}（'raw_message' 仅保留层名，不再产生）
  */
 export function resolveErrorCore(result, options = {}) {
   const {
@@ -40,7 +43,7 @@ export function resolveErrorCore(result, options = {}) {
   if (hasMessage(message) && messageMap[message]) return { text: messageMap[message], layer: 'message_map' }
   if (isHumanReadableMessage(message)) return { text: message, layer: 'human_message' }
   if (code && codeMap[code]) return { text: codeMap[code], layer: 'code_map' }
-  if (hasMessage(message)) return { text: message, layer: 'raw_message' }
+  // #2504 D8：L4 raw_message 返回分支已删除（不可达：含 CJK 的文案在 L2 已返回）。
   return { text: fallback, layer: 'fallback' }
 }
 

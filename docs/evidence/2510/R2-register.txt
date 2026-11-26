@@ -1,0 +1,7 @@
+# build=1.0.f11aedb5 # commit=f11aedb567ec2a6b57ea3cc17eaf25b2b0e7f030 # dirty=false
+# tree=f11aedb567ec2a6b57ea3cc17eaf25b2b0e7f030
+    instrument_loss_test.go:422: STATUS=200
+    instrument_loss_test.go:423: CODE=20000
+    instrument_loss_test.go:424: LOSS_RECORD_CREATED=1
+    instrument_loss_test.go:425: INSTRUMENT_LOST=1
+GO_TEST_EXIT=0

@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "issue": 2482,
+  "build": "1.0.719e6492",
+  "commit": "719e649291800235e48194c8ef10ad0420a3c70a",
+  "dirty": false,
+  "plan_sha256": "f1403367761271da70ddc8ad3fcb14fc0aec38dbd9b10b32af25af41f59c76ce",
+  "environment": "beacondev worktree /tmp/opencode/tuneloop/wt-2482 (base origin/develop); PostgreSQL test DB via TUNELOOP_DB=tuneloop_debug template; fake IAM via httptest",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2482.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2482/R1-merge-fn.txt"
+      ],
+      "assert": "exit 0；grep CASE1=、ORDER_STABLE=1、EMPTY_NEW=",
+      "actual": "PASS：CASE1=site_admin,repair_technician / CASE2..CASE5 去重与空输入 / ORDER_STABLE=1 / EMPTY_NEW=repair_technician",
+      "expected": "PASS",
+      "negative": "丢角色 → FAIL",
+      "negative_result": "CASE2/CASE3 覆盖去重与追加，旧单值实现会丢 repair_technician",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2482.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2482/R2-handler.txt"
+      ],
+      "assert": "exit 0；grep ROLES_JSON=[\"site_admin\",\"repair_technician\"]、RED_GREEN=1",
+      "actual": "PASS：改 role=site_admin 后 ROLES_JSON=[\"site_admin\",\"repair_technician\"] / ROLE=site_admin / RED_GREEN=1（旧实现为 [\"site_admin\"]）",
+      "expected": "PASS",
+      "negative": "丢 repair_technician → FAIL",
+      "negative_result": "红跑：缺陷版写入 [\"site_admin\"] 与断言不等",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2482.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2482/R3-multi-site.txt"
+      ],
+      "assert": "exit 0；grep ROW1_OK=1、ROW2_OK=1",
+      "actual": "PASS：两行各自合并 → ROW1_JSON=[\"site_admin\",\"repair_technician\"] / ROW2_JSON=[\"site_admin\"]",
+      "expected": "PASS",
+      "negative": "统一覆盖 → FAIL",
+      "negative_result": "逐行 WHERE id 更新，两行结果不同且均含新主角色",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2482.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2482/R4-invariant.txt"
+      ],
+      "assert": "exit 0；grep NO_22P02=1、INVARIANT=1",
+      "actual": "PASS：roles 合法 jsonb（非 NULL）且包含主角色 → NO_22P02=1 / INVARIANT=1 / ROLES_NOT_NULL=1",
+      "expected": "PASS",
+      "negative": "22P02 → FAIL",
+      "negative_result": "写入仍走 siteMemberRolesExpr(?::jsonb)",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2482.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2482/R5-no-flip.txt"
+      ],
+      "assert": "exit 0；grep IAM_ROLE_CALLS=0、NO_OLD_RESIDUE=1",
+      "actual": "PASS：只改职位 → IAM_ROLE_CALLS=0 / ROLES_UNCHANGED=1；单角色改主角色 → [\"site_admin\"] 无 site_member 残留",
+      "expected": "PASS",
+      "negative": "旧角色残留 → FAIL",
+      "negative_result": "单角色场景断言 NO_OLD_RESIDUE=1",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2482.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2482/R6-dual-source.txt"
+      ],
+      "assert": "exit 0；grep IAM_UNASSIGN_CALLS=0、DUAL_SOURCE_OK=1",
+      "actual": "PASS：IAM_ASSIGN_CALLS=1 / IAM_UNASSIGN_CALLS=0（新增 unassign 端点未使用）/ DUAL_SOURCE_OK=1",
+      "expected": "PASS",
+      "negative": "调用 unassign → FAIL",
+      "negative_result": "fake IAM 统计 DELETE 调用为 0",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2482.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2482/R7-build.txt"
+      ],
+      "assert": "exit 0；grep BUILD_EXIT=0、TESTS_FAIL=0",
+      "actual": "PASS：go build ./... exit 0；定向 _2482/_2475/_2375 全绿 → TESTS_FAIL=0",
+      "expected": "PASS",
+      "negative": "任一非 0 → FAIL",
+      "negative_result": "构建与定向回归均 exit 0",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash scripts/verify-2482.sh r8",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2482/R8-gate.txt"
+      ],
+      "assert": "exit 0；grep GATE_RESULT=PASS、PLAN_SOURCE=PASS",
+      "actual": "PASS：gate overall=PASS（handlers 全量 15m + services 全量）；PLAN_SOURCE=PASS",
+      "expected": "PASS",
+      "negative": "P5=NA → FAIL",
+      "negative_result": "full-gate-cmd 为可执行全量命令，P5 不得 N/A",
+      "pass": true
+    }
+  ]
+}

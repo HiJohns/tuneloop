@@ -5,7 +5,9 @@ import { resolveErrorCore } from './errorMessageResolution.mjs'
 
 // 后端错误消息统一解析器（#1675）
 // 后端 message 是机器可读稳定标识（英文），前端在此集中翻译为用户友好中文。
-// 三层回退：L1 message 精确匹配 → L2 code 家族映射 → L3 调用点 fallback。
+// 层序 owner = errorMessageResolution.mjs（#2480 / #2504）：
+//   L1 message 精确匹配 → L2 CJK 可读文案 → L3 code 家族映射 → L4 CJK 兜底透传 → L5 调用点 fallback。
+// #2504：ASCII 机器串不外溢（如 `access denied` 由 40303 → 「暂无权限访问该页面」）。
 
 // L2: code 家族 → 通用中文（兜底）
 export const ERROR_CODE_MAP = {
@@ -24,6 +26,7 @@ export const ERROR_CODE_MAP = {
   40104: '登录状态异常，请重新登录',
   40300: '暂无权限执行此操作',
   40301: '暂无权限执行此操作',
+  40303: '暂无权限访问该页面', // #2504：personnel/权限中间件「权限范围不匹配」
   40400: '未找到相关数据',
   40900: '数据冲突，请刷新后重试',
   40901: '数据冲突，请刷新后重试',

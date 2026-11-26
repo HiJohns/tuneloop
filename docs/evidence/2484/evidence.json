@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "issue": 2484,
+  "build": "1.0.827f9d1d",
+  "commit": "827f9d1dc70e496d4ed08b49499fc1309e3b63e9",
+  "dirty": false,
+  "plan_sha256": "35d9fd2f796913edf39244333ce8931083abecc7ebdbaba3ec9f3a712c140653",
+  "environment": "beaconwork worktree /tmp/opencode/tuneloop/wt-2484 (base origin/develop); fixture-only rows, no DB access",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2484.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2484/R1-empty-field.txt"
+      ],
+      "assert": "exit 0；grep ACTION=none、ALIGN_ROWS=0、merchant_id=m3",
+      "actual": "PASS：u3|site_member||m3|1 → ACTION=none / ALIGN_ROWS=0 / merchant_id=m3 / FIELDS_ALIGNED=1",
+      "expected": "PASS",
+      "negative": "ACTION=align → FAIL",
+      "negative_result": "旧 Tab 版同语义行输出 ACTION=align（R2 实测）→ FAIL",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2484.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2484/R2-red-green.txt"
+      ],
+      "assert": "exit 0；grep OLD_ALIGN_ROWS=1、NEW_ALIGN_ROWS=0",
+      "actual": "PASS：OLD_ALIGN_ROWS=1（父提交 Tab 版）/ NEW_ALIGN_ROWS=0（pipe 版）/ RED_GREEN=1",
+      "expected": "PASS",
+      "negative": "旧版 0 → FAIL",
+      "negative_result": "实测旧版=1，用例可抓缺陷",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2484.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2484/R3-invalid-row.txt"
+      ],
+      "assert": "exit 0；grep FIXTURE_INVALID=1、EXIT=3、DB_WRITES=0",
+      "actual": "PASS：4 列行 EXIT=3 / has_site_member=9 EXIT=3 / FIXTURE_INVALID=1 / DB_WRITES=0",
+      "expected": "PASS",
+      "negative": "exit 0 → FAIL",
+      "negative_result": "畸形行实测 exit 3",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2484.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2484/R4-apply-confirm.txt"
+      ],
+      "assert": "exit 0；grep APPLY_CONFIRM_MISMATCH=1、APPLY_READY=1、DB_WRITES=0",
+      "actual": "PASS：无 --confirm-rows → exit 2 / --confirm-rows 0 → exit 2 / --confirm-rows 1 → APPLY_READY=1 / DB_WRITES=0",
+      "expected": "PASS",
+      "negative": "未确认写库 → FAIL",
+      "negative_result": "未确认分支命令前退出，未触库",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2484.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2484/R5-real-snapshot.txt"
+      ],
+      "assert": "exit 0；grep ALIGN_ROWS=5、NONE_ROWS=4",
+      "actual": "PASS：9 行快照（5 漂移含空 users_role / 4 双归属）→ ALIGN_ROWS=5 NONE_ROWS=4 READONLY=1",
+      "expected": "PASS",
+      "negative": "ALIGN_ROWS>5 → FAIL",
+      "negative_result": "双归属行全部 ACTION=none",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2484.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2484/R6-tests.txt"
+      ],
+      "assert": "exit 0；grep TESTS_FAIL=0、SKIPPED=0",
+      "actual": "PASS：2462 自测 exit 0 / 2484 自测 exit 0 / TESTS_FAIL=0 / SKIPPED=0",
+      "expected": "PASS",
+      "negative": "任一 FAIL → FAIL",
+      "negative_result": "两套自测均 PASS",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2484.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2484/R7-gate.txt"
+      ],
+      "assert": "exit 0；grep GATE_RESULT=PASS、PLAN_SOURCE=PASS",
+      "actual": "PASS：gate overall=PASS（P5 全量=两套自测 exit 0）；PLAN_SOURCE=PASS",
+      "expected": "PASS",
+      "negative": "P5=NA → FAIL",
+      "negative_result": "gate 的 full-gate-cmd 为可执行的两套自测，P5 不得 N/A",
+      "pass": true
+    }
+  ]
+}

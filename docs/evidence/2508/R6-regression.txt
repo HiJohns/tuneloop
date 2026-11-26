@@ -1,0 +1,109 @@
+# build=1.0.448a2b0ec # commit=448a2b0ec282690913b16ea9544e5ad72cd3c201 # dirty=false
+== R6 personnel suite regression (2065/2067/2072/2427/2508) ==
+[WARNING] No .env file found in common paths
+2026/11/25 14:38:16 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21 sslmode=disable
+2026/11/25 14:38:17 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21
+2026/11/25 14:38:17 [DB] Connected to database 'tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21'
+=== RUN   TestPersonnel2073_ReturnsBioAndAvatar
+2026/11/25 14:38:18 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21 sslmode=disable
+2026/11/25 14:38:18 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21
+2026/11/25 14:38:18 [DB] Connected to database 'tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21'
+
+2026/11/25 14:38:19 [32m/home/coder/worktrees/tuneloop/wt-2508/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[1005.347ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_levels", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+--- PASS: TestPersonnel2073_ReturnsBioAndAvatar (2.14s)
+=== RUN   TestPersonnel2065_MerchantView
+
+2026/11/25 14:38:21 [32m/home/coder/worktrees/tuneloop/wt-2508/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[816.703ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchant_members", "pricing_templates", "site_members", "sites", "tenants", "users", "technician_profiles" RESTART IDENTITY CASCADE[0m
+--- PASS: TestPersonnel2065_MerchantView (1.45s)
+=== RUN   TestPersonnel_MerchantView_TenantIsolation2336
+
+2026/11/25 14:38:22 [32m/home/coder/worktrees/tuneloop/wt-2508/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[771.827ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchant_members", "pricing_templates", "site_members", "sites", "tenants", "users", "technician_profiles" RESTART IDENTITY CASCADE[0m
+--- PASS: TestPersonnel_MerchantView_TenantIsolation2336 (1.35s)
+=== RUN   TestPersonnel2065_SiteView
+
+2026/11/25 14:38:24 [32m/home/coder/worktrees/tuneloop/wt-2508/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[1046.402ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchant_members", "pricing_templates", "site_members", "sites", "tenants", "users", "technician_profiles" RESTART IDENTITY CASCADE[0m
+--- PASS: TestPersonnel2065_SiteView (1.77s)
+=== RUN   TestPersonnel2065_SystemView
+
+2026/11/25 14:38:26 [32m/home/coder/worktrees/tuneloop/wt-2508/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[922.947ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchant_members", "pricing_templates", "site_members", "sites", "tenants", "users", "technician_profiles" RESTART IDENTITY CASCADE[0m
+--- PASS: TestPersonnel2065_SystemView (1.62s)
+=== RUN   TestPersonnel2065_CustomerDenied
+
+2026/11/25 14:38:27 [32m/home/coder/worktrees/tuneloop/wt-2508/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[827.345ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchant_members", "pricing_templates", "site_members", "sites", "tenants", "users", "technician_profiles" RESTART IDENTITY CASCADE[0m
+--- PASS: TestPersonnel2065_CustomerDenied (1.26s)
+=== RUN   TestPersonnel2065_MerchantSearchAndSiteFilter
+
+2026/11/25 14:38:28 [32m/home/coder/worktrees/tuneloop/wt-2508/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[789.628ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchant_members", "pricing_templates", "site_members", "sites", "tenants", "users", "technician_profiles" RESTART IDENTITY CASCADE[0m
+--- PASS: TestPersonnel2065_MerchantSearchAndSiteFilter (1.26s)
+=== RUN   TestPersonnel2067_MembershipAnchorAndDirect
+
+2026/11/25 14:38:30 [32m/home/coder/worktrees/tuneloop/wt-2508/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[1083.569ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchant_members", "pricing_templates", "site_members", "sites", "tenants", "users", "technician_profiles" RESTART IDENTITY CASCADE[0m
+--- PASS: TestPersonnel2067_MembershipAnchorAndDirect (2.02s)
+=== RUN   TestPersonnel2072_NewestFirst
+
+2026/11/25 14:38:32 [32m/home/coder/worktrees/tuneloop/wt-2508/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[1083.670ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchant_members", "pricing_templates", "site_members", "sites", "tenants", "users", "technician_profiles" RESTART IDENTITY CASCADE[0m
+--- PASS: TestPersonnel2072_NewestFirst (1.60s)
+=== RUN   TestPersonnelFilter2427_InvalidSiteID_40002
+
+2026/11/25 14:38:33 [32m/home/coder/worktrees/tuneloop/wt-2508/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[947.521ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchant_members", "pricing_templates", "site_members", "sites", "tenants", "users", "technician_profiles" RESTART IDENTITY CASCADE[0m
+2026/11/25 14:38:33 [Personnel] WARN: invalid site_id="null" from user=f92ee402-3e18-42e9-8a18-ba1173159e6f: invalid UUID length: 4
+2026/11/25 14:38:33 [Personnel] WARN: invalid site_id="abc" from user=f92ee402-3e18-42e9-8a18-ba1173159e6f: invalid UUID length: 3
+2026/11/25 14:38:33 [Personnel] WARN: invalid site_id="undefined" from user=f92ee402-3e18-42e9-8a18-ba1173159e6f: invalid UUID length: 9
+2026/11/25 14:38:33 [Personnel] WARN: invalid site_id="123" from user=f92ee402-3e18-42e9-8a18-ba1173159e6f: invalid UUID length: 3
+--- PASS: TestPersonnelFilter2427_InvalidSiteID_40002 (1.47s)
+=== RUN   TestPersonnelFilter2427_EmptySiteReturnsAll
+
+2026/11/25 14:38:35 [32m/home/coder/worktrees/tuneloop/wt-2508/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[862.030ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchant_members", "pricing_templates", "site_members", "sites", "tenants", "users", "technician_profiles" RESTART IDENTITY CASCADE[0m
+--- PASS: TestPersonnelFilter2427_EmptySiteReturnsAll (1.59s)
+=== RUN   TestPersonnelFilter2427_ValidSiteFilterStillWorks
+
+2026/11/25 14:38:37 [32m/home/coder/worktrees/tuneloop/wt-2508/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[972.443ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchant_members", "pricing_templates", "site_members", "sites", "tenants", "users", "technician_profiles" RESTART IDENTITY CASCADE[0m
+--- PASS: TestPersonnelFilter2427_ValidSiteFilterStillWorks (1.79s)
+=== RUN   TestPersonnel2508_IDDomainRootCause
+
+2026/11/25 14:38:38 [32m/home/coder/worktrees/tuneloop/wt-2508/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[876.602ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchant_members", "pricing_templates", "site_members", "sites", "tenants", "users", "technician_profiles" RESTART IDENTITY CASCADE[0m
+    personnel_site_org_2508_test.go:75: R1 BUGGY_ROWS=0 FIXED_ROWS=2 RED_CONFIRMED=1
+--- PASS: TestPersonnel2508_IDDomainRootCause (1.47s)
+=== RUN   TestPersonnel2508_SiteView
+
+2026/11/25 14:38:40 [32m/home/coder/worktrees/tuneloop/wt-2508/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[952.630ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchant_members", "pricing_templates", "site_members", "sites", "tenants", "users", "technician_profiles" RESTART IDENTITY CASCADE[0m
+    personnel_site_org_2508_test.go:102: R2 SITE_VIEW_ROWS=2 HAS_SITE_A_MEMBER=1 HAS_ZERO_TENANT=1 LEAK_SITE_B=0 LEAK_TECH=0 LEAK_PLATFORM=0 LEAK_OTHER_TENANT=0
+--- PASS: TestPersonnel2508_SiteView (1.50s)
+=== RUN   TestPersonnel2508_CrossOrgIsolation
+
+2026/11/25 14:38:41 [32m/home/coder/worktrees/tuneloop/wt-2508/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[1137.135ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchant_members", "pricing_templates", "site_members", "sites", "tenants", "users", "technician_profiles" RESTART IDENTITY CASCADE[0m
+    personnel_site_org_2508_test.go:143: R3 A_ONLY=1 B_ONLY=1 CROSS_LEAK=0
+--- PASS: TestPersonnel2508_CrossOrgIsolation (1.87s)
+=== RUN   TestPersonnel2508_OldKeyingGone
+
+2026/11/25 14:38:43 [32m/home/coder/worktrees/tuneloop/wt-2508/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[899.466ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchant_members", "pricing_templates", "site_members", "sites", "tenants", "users", "technician_profiles" RESTART IDENTITY CASCADE[0m
+2026/11/25 14:38:43 [Personnel] WARN: site view resolved 0 active members for org=34733d45-cc96-44fa-bb71-dea32bedbf5b (site_id="", keyword="")
+    personnel_site_org_2508_test.go:155: R4 OLD_KEYING_ROWS=0 STATUS=200
+--- PASS: TestPersonnel2508_OldKeyingGone (1.46s)
+=== RUN   TestPersonnel2508_MultiSiteFilter
+
+2026/11/25 14:38:45 [32m/home/coder/worktrees/tuneloop/wt-2508/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[1507.493ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchant_members", "pricing_templates", "site_members", "sites", "tenants", "users", "technician_profiles" RESTART IDENTITY CASCADE[0m
+2026/11/25 14:38:45 [Personnel] WARN: site view resolved 0 active members for org=6bd716a0-b4b8-4e3b-8435-ae052f6ab876 (site_id="3b11024e-19c2-4666-a7cf-4297d7bedfcf", keyword="")
+2026/11/25 14:38:45 [Personnel] WARN: invalid site_id="null" from user=c0079926-3100-4fe4-971f-ef52c1c864da: invalid UUID length: 4
+    personnel_site_org_2508_test.go:195: R5 MULTI_ROWS=3 FILTER_A_ROWS=2 FILTER_B_ROWS=0 INVALID_SITE_CODE=40002
+--- PASS: TestPersonnel2508_MultiSiteFilter (1.95s)
+PASS
+ok  	tuneloop-backend/handlers	30.420s
+SUMMARY: REGRESSION_PASS=1 FAIL_COUNT=0 PASS_COUNT=17

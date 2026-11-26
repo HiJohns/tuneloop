@@ -1,0 +1,25 @@
+# build=1.0.c0539fd00 # commit=c0539fd00ba769039194e174dfd49a70ad754303 # dirty=false
+# tree=c0539fd00ba769039194e174dfd49a70ad754303
+FIXTURE=u4|a@b
+============================================
+  Namespace Admin cus_perm Migration
+============================================
+IAM URL:        http://localhost:5561
+Client ID:      tuneloop
+Bits to set:    18 (category:manage) + 19 (attribute:manage)
+Bitmask:        786432
+Mode:           DRY RUN (no changes)
+============================================
+
+[1/4] Reading fixture (offline mode)...
+  Fixture rows: 1
+BAD_ROW=1
+ROW_FIELDS=2
+ERROR: expected 3 fields (uid|email|cus_perm), got 2: u4|a@b
+BAD_ROW=1
+MIGRATE_INVALID=1
+DB_WRITES=0
+ERROR: aborting migration because of malformed input (no changes were made)
+RESULT: FAIL
+EXIT=3
+RESULT: PASS

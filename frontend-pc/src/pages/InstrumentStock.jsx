@@ -1,13 +1,27 @@
 import { useState, useEffect } from 'react'
 import { formatCents, yuanToCents } from '../utils/money'
-import { Table, Tag, Button, Space, Spin, Modal, Form, Input, InputNumber, Select, Radio, Upload, Descriptions, Image, message, Popconfirm } from 'antd'
-import { EyeOutlined, EditOutlined, WarningOutlined, RollbackOutlined, FileTextOutlined, DeleteOutlined } from '@ant-design/icons'
+import { Table, Tag, Button, Space, Spin, Modal, Form, Input, InputNumber, Select, Radio, Upload, Descriptions, Image, message, Popconfirm, Alert } from 'antd'
+import { EditOutlined, WarningOutlined, RollbackOutlined, FileTextOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { inventoryApi, lossApi, api } from '../services/api'
+import { inventoryApi, lossApi, api, pricingApi } from '../services/api'
 import PermissionGate from '../components/PermissionGate'
 import FormConflictAlert from '../components/FormConflictAlert'
 import { conflictText, isBusinessCorrectableConflict } from '../utils/formConflict'
 import { usePermission } from '../hooks/usePermission'
+import {
+  BATCH_PRICE_OPERATOR_OPTIONS,
+  BATCH_PRICE_TYPE_OPTIONS,
+  batchPricingFeedback,
+  buildBatchPricingPayload,
+} from '../utils/batchPricing'
+import {
+  INSTRUMENT_IMAGE_PLACEHOLDER,
+  formatDailyRate,
+  formatDepositFull,
+  formatDepositReduced,
+  formatOverdueDailyFee,
+  instrumentImageSrc,
+} from '../utils/instrumentDisplay'
 
 const statusColors = {
   "在租": "green",
@@ -67,22 +81,36 @@ export default function InstrumentStock() {
   const columns = [
     {
       title: '图片',
-      dataIndex: 'images',
-      key: 'images',
+      dataIndex: 'thumbnail',
+      key: 'thumbnail',
       width: 80,
-      render: (images) => {
-        const imageList = Array.isArray(images) ? images : (images ? JSON.parse(images) : [])
-        const src = imageList && imageList.length > 0 ? imageList[0] : '/images/default-instrument.jpg'
-        return <img src={src} alt="" style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 4 }} />
-      }
+      render: (_, record) => (
+        <img
+          src={instrumentImageSrc(record)}
+          alt=""
+          style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 4 }}
+          onError={(e) => { e.currentTarget.src = INSTRUMENT_IMAGE_PLACEHOLDER }}
+        />
+      )
     },
     {
       title: '识别码',
       dataIndex: 'sn',
       key: 'sn',
       width: 160,
+      // #2537 D6: 识别码即详情入口（不再有独立「详情」按钮）。
       render: (sn, record) => (
-        <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{sn || record.id?.slice(0, 8) || '-'}</span>
+        <Button
+          type="link"
+          size="small"
+          style={{ padding: 0, fontFamily: 'monospace', fontSize: 12 }}
+          onClick={(e) => {
+            e.stopPropagation()
+            navigate(`/site/stock/${record.id}`)
+          }}
+        >
+          {sn || record.id?.slice(0, 8) || '-'}
+        </Button>
       )
     },
     {
@@ -92,51 +120,42 @@ export default function InstrumentStock() {
       width: 120,
     },
     {
-      title: '级别',
-      dataIndex: 'level_name',
-      key: 'level_name',
-      width: 80,
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      width: 100,
-      render: (status, record) => {
-        const getUnifiedStatus = (status) => {
-          const statusMap = {
-            "在租": { color: 'green', text: '在租' },
-            "rented": { color: 'green', text: '在租' },
-            "待租": { color: 'blue', text: '待租' },
-            "available": { color: 'blue', text: '待租' },
-            "维修中": { color: 'orange', text: '维修中' },
-            "maintenance": { color: 'orange', text: '维修中' },
-            "已熔断": { color: 'red', text: '已熔断' },
-            "lost": { color: 'red', text: '已丢失' },
-            "archived": { color: 'default', text: '已下架' },
-            "sold": { color: 'default', text: '已售出' }
-          }
-          return statusMap[status] || { color: 'default', text: status }
-        }
-        
-        const info = getUnifiedStatus(status)
-        return <Tag color={info.color}>{info.text}</Tag>
-      }
-    },
-    {
       title: '所属网点',
       dataIndex: 'site_name',
       key: 'site_name',
       width: 150,
     },
-    // #2043: 估值 = 敏感字段，仅管理员/商户管理员可见
+    // #2043: 价格字段 = 敏感字段，仅管理员/商户管理员可见
+    // #2528: 「估值」实为标准日租金（分），改名 + 分→元换算；新增押金列（与详情同源）
     ...(isManagerLike ? [{
-      title: '估值',
-      dataIndex: 'base_daily_rate',
-      key: 'base_daily_rate',
+      title: '标准日租金',
+      dataIndex: 'resolved_daily_rate',
+      key: 'resolved_daily_rate',
       width: 120,
       align: 'right',
-      render: (value) => value ? `¥${value.toLocaleString()}` : '-'
+      render: (_, record) => formatDailyRate(record)
+    }, {
+      // #2537: 逾期租金列（列表新字段，与 pricing-v2 同链）。
+      title: '逾期租金',
+      dataIndex: 'overdue_daily_fee',
+      key: 'overdue_daily_fee',
+      width: 120,
+      align: 'right',
+      render: (_, record) => formatOverdueDailyFee(record)
+    }, {
+      title: '全额押金',
+      dataIndex: 'deposit',
+      key: 'deposit',
+      width: 120,
+      align: 'right',
+      render: (_, record) => formatDepositFull(record)
+    }, {
+      title: '差额押金',
+      dataIndex: 'deposit_reduced',
+      key: 'deposit_reduced',
+      width: 120,
+      align: 'right',
+      render: (_, record) => formatDepositReduced(record)
     }] : []),
     {
       title: '操作',
@@ -144,8 +163,6 @@ export default function InstrumentStock() {
       width: 200,
       render: (_, record) => (
         <Space>
-          <Button type="link" size="small" icon={<EyeOutlined />}
-            onClick={(e) => { e.stopPropagation(); navigate(`/site/stock/${record.id}`) }}>详情</Button>
           {/* #2043: 编辑/丢失/恢复 需 instrument:update（无权限不渲染） */}
           <PermissionGate code="instrument:update">
             <Button type="link" size="small" icon={<EditOutlined />}
@@ -187,29 +204,35 @@ export default function InstrumentStock() {
     }
   }
 
-  // #2043: 批量设价（服务端 RequireRole(ADMIN/OWNER/site_admin) 兜底）
+  // #2043/#2514: 批量设价（服务端 RequireRole(ADMIN/OWNER/site_admin) 兜底）
+  // 路径与 payload 统一由 utils/batchPricing 生成，避免再次打到不存在的
+  // /instruments/batch/price 或发送后端不认识的 {ids, price_type, ...}。
   const handleBatchPrice = async () => {
     setPriceConflict('') // #2488 D8：提交开始即清空
     try {
       const values = await priceForm.validateFields()
-      const res = await api.put('/instruments/batch/price', {
-        ids: selectedRowKeys,
-        price_type: values.price_type,
-        amount: values.amount,
-        operator: values.operator,
-      })
-      if (res.code === 20000) {
-        message.success(`已修改 ${selectedRowKeys.length} 个乐器价格`)
-        setPriceModalVisible(false)
-        priceForm.resetFields()
-        setSelectedRowKeys([])
-        loadData()
-      } else if (isBusinessCorrectableConflict(res)) {
-        // #2488：状态不允许/冲突（40005/40900）→ 持久提示，不得降级为瞬时 toast。
-        setPriceConflict(conflictText(res, '批量修改价格失败，请调整后重试'))
-      } else {
-        message.error(res.message || '批量修改价格失败')
+      const built = buildBatchPricingPayload(selectedRowKeys, values)
+      if (built.error) {
+        message.error(built.error)
+        return
       }
+      const res = await pricingApi.batchSetPricing(built.payload)
+      if (res.code !== 20000) {
+        // #2488（沿用 #2480 D8）：业务可纠正冲突（40900 等）→ 表单内持久提示，
+        // 不得降级为瞬时 toast；其余（参数/权限/5xx）保持 toast。
+        if (isBusinessCorrectableConflict(res)) {
+          setPriceConflict(conflictText(res, '批量修改价格失败，请调整后重试'))
+        } else {
+          message.error(res.message || '批量修改价格失败')
+        }
+        return
+      }
+      const feedback = batchPricingFeedback(res, selectedRowKeys.length)
+      message[feedback.level](feedback.text)
+      setPriceModalVisible(false)
+      priceForm.resetFields()
+      setSelectedRowKeys([])
+      loadData()
     } catch (e) {
       if (!e?.errorFields) message.error(e?.message || '批量修改价格失败')
     }
@@ -399,20 +422,24 @@ export default function InstrumentStock() {
       >
         <FormConflictAlert text={priceConflict} testId="stock-price-conflict" />
         <Form form={priceForm} layout="vertical">
+          <Alert
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+            message="当前仅支持按日租金批量设置为固定金额"
+          />
           <Form.Item name="price_type" label="价格类型" rules={[{ required: true, message: '请选择价格类型' }]}>
             <Select placeholder="请选择价格类型">
-              <Select.Option value="daily_rate">日租金</Select.Option>
-              <Select.Option value="weekly_rate">周租金</Select.Option>
-              <Select.Option value="monthly_rate">月租金</Select.Option>
-              <Select.Option value="deposit">押金</Select.Option>
+              {BATCH_PRICE_TYPE_OPTIONS.map((option) => (
+                <Select.Option key={option.value} value={option.value}>{option.label}</Select.Option>
+              ))}
             </Select>
           </Form.Item>
           <Form.Item name="operator" label="操作" rules={[{ required: true, message: '请选择操作' }]}>
             <Select placeholder="请选择操作">
-              <Select.Option value="set">设置为</Select.Option>
-              <Select.Option value="increase">增加</Select.Option>
-              <Select.Option value="decrease">减少</Select.Option>
-              <Select.Option value="multiply">乘以</Select.Option>
+              {BATCH_PRICE_OPERATOR_OPTIONS.map((option) => (
+                <Select.Option key={option.value} value={option.value}>{option.label}</Select.Option>
+              ))}
             </Select>
           </Form.Item>
           <Form.Item name="amount" label="金额（元）" rules={[{ required: true, message: '请输入金额' }]}>

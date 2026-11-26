@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2480,
-  "build": "1.0.f44853fe1",
-  "commit": "f44853fe1f5e731a2ff40c674ed842155430bfe6",
+  "build": "1.0.c931502a0",
+  "commit": "c931502a0152238d6f5a70c4a0a310dda8410db0",
   "dirty": false,
   "plan_sha256": "60fdb380122b8777e0600eb999944c49484ca00e92507ea08313b63311b96513",
   "environment": "beaconwork worktree /home/coder/worktrees/tuneloop/wt-2480 (base origin/develop); frontend-pc node 20.20.2 (npm ci), frontend-mobile eslint via shared node_modules, node --test for pure functions, vite build for wiring",
@@ -99,10 +99,10 @@
         "docs/evidence/2480/R7-conflict-fn.txt"
       ],
       "assert": "exit 0；grep TRUE_40900=1、FALSE_40901=1、TEXT_FALLBACK=",
-      "actual": "PASS：TRUE_40900=1 TRUE_40002=1 TRUE_40004=1 TRUE_40005=1 FALSE_50000=0 FALSE_20000=0 FALSE_NULL=0 FALSE_40901=0 FALSE_40902=0 TEXT_MESSAGE=网点名称已存在 TEXT_FALLBACK=请修改后重新提交",
+      "actual": "PASS：TRUE_40900=1 TRUE_40002=1 TRUE_40004=1 TRUE_40005=1 FALSE_50000=1 FALSE_20000=1 FALSE_NULL=1 FALSE_UNDEFINED=1 FALSE_40901=1 FALSE_40902=1 TEXT_MESSAGE=网点名称已存在 TEXT_FALLBACK=请修改后重新提交 （FALSE_* 取值口径=断言成立）",
       "expected": "PASS",
       "negative": "40901 判 true → FAIL",
-      "negative_result": "把 40901（既有账户，Modal 引导）列入 BUSINESS_CORRECTABLE_CODES → FALSE_40901=1 → FAIL；message 为空却输出 undefined → TEXT_FALLBACK 断言失败",
+      "negative_result": "把 40901（既有账户，Modal 引导）列入 BUSINESS_CORRECTABLE_CODES → FALSE_40901=0（断言不成立）→ verify-2480.sh r7 exit 1 （ASSERT_FAIL: forbidden token present: [FALSE_40901=0]）；message 为空却输出 undefined → TEXT_FALLBACK 断言失败",
       "pass": true
     },
     {

@@ -1,0 +1,11 @@
+# build=1.0.e594683c4 # commit=e594683c4650bf3244ddbb3149d6d08a12d49b30 # dirty=false
+== R2 instrument list ↔ pricing-v2 parity (backend) ==
+F2_RESOLVED=1000
+F2_DEPOSIT=3000
+F5_RESOLVED=2000
+PARITY_OK=4
+PARITY_MISMATCH=0
+--- PASS: TestInstrumentListPricing2528_R2 (1.21s)
+PASS
+ok  	tuneloop-backend/handlers	2.098s
+R2_OK

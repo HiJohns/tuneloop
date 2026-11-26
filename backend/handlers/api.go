@@ -497,6 +497,8 @@ func GetInstruments(c *gin.Context) {
 
 	// Process instruments to parse specifications and pricing into specs array
 	var responseInstruments []map[string]interface{}
+	// #2528 D6: merchant pricing config is loaded at most once per request.
+	pricingConfigCache := map[string]string{}
 	for _, instrument := range instruments {
 		// Get site_name from Site table if SiteID exists
 		var siteName = "-"
@@ -538,6 +540,27 @@ func GetInstruments(c *gin.Context) {
 			"updated_at":      instrument.UpdatedAt,
 			"specifications":  json.RawMessage(instrument.Specifications),
 			"pricing":         json.RawMessage(instrument.Pricing),
+		}
+
+		// #2528: additive pricing fields — same single-source helpers as pricing-v2
+		// (resolved_daily_rate / deposit / deposit_reduced, all in cents).
+		listPricing := instrumentListPriceFields(ctx, &instrument, pricingConfigCache)
+		instrumentMap["resolved_daily_rate"] = listPricing.ResolvedDailyRate
+		if listPricing.Deposit != nil {
+			instrumentMap["deposit"] = *listPricing.Deposit
+		} else {
+			instrumentMap["deposit"] = nil
+		}
+		if listPricing.DepositReduced != nil {
+			instrumentMap["deposit_reduced"] = *listPricing.DepositReduced
+		} else {
+			instrumentMap["deposit_reduced"] = nil
+		}
+		// #2537: overdue rent column (cents); same chain as pricing-v2.
+		if listPricing.OverdueDailyFee != nil {
+			instrumentMap["overdue_daily_fee"] = *listPricing.OverdueDailyFee
+		} else {
+			instrumentMap["overdue_daily_fee"] = nil
 		}
 
 		// Fetch dynamic properties from instrument_properties table

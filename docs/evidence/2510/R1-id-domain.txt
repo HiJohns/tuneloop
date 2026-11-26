@@ -1,0 +1,8 @@
+# build=1.0.f11aedb5 # commit=f11aedb567ec2a6b57ea3cc17eaf25b2b0e7f030 # dirty=false
+# tree=f11aedb567ec2a6b57ea3cc17eaf25b2b0e7f030
+    instrument_loss_test.go:398: SITE_ID=104ef99d-5dbe-4ddd-bf20-2e75c565db31
+    instrument_loss_test.go:399: SITE_ORG=6ae58685-44bd-4f30-9587-f0c07a594bf9
+    instrument_loss_test.go:400: OLD_PREDICATE_MATCH=0
+    instrument_loss_test.go:401: NEW_RULE_MATCH=1
+    instrument_loss_test.go:402: RED_CONFIRMED=1
+GO_TEST_EXIT=0

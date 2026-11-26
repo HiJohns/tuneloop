@@ -7,6 +7,7 @@ import { formatBeijingDate } from '../utils/date'
 import PasswordSettingFields from '../components/PasswordSettingFields'
 import InitialPasswordModal from '../components/InitialPasswordModal'
 import { resolveCreateFeedback } from '../utils/createFeedback'
+import { createIntentState } from '../utils/staffCreateIntent'
 
 // #2114 直属成员管理（子页）：
 // - 商户管理员：管理/邀请本商户直属员工（merchant_staff）
@@ -225,7 +226,7 @@ export default function DirectMemberManagement() {
                 创建维修师
               </Button>
             )}
-            <Button icon={<PlusOutlined />} onClick={() => navigate('/staff')}>
+            <Button icon={<PlusOutlined />} onClick={() => navigate('/staff', { state: createIntentState() })}>
               创建员工
             </Button>
           </Space>

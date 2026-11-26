@@ -1,0 +1,28 @@
+# build=1.0.44f9368c7 # commit=44f9368c757143396bcaf0dabe3db2d3f2741441 # dirty=false
+== R9 PC 列渲染接线（纯函数 + 静态接线 + lint/build） ==
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 180.448323
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+✖ 7 problems (0 errors, 7 warnings)
+
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795664179374 hold_ms=3769
+dist/assets/index-rtlWBaPF.js   2,627.90 kB │ gzip: 808.95 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 43.17s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795664224825 hold_ms=45178
+NODE_TEST_RC=0
+RENDER_WIRED=1
+FRONTEND_LINT_RC=0
+FRONTEND_BUILD_RC=0
+R9_OK

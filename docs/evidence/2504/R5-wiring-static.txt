@@ -1,0 +1,9 @@
+# build=1.0.9ee0eef8 # commit=9ee0eef85e77817fae9c6e84278d8e862724876f # dirty=false
+MENU_GATED=1
+REQUIRE_ALL_LOGIC=1
+API_RESOLVES=1
+PAGE_MESSAGE_FROM_RESOLVER=1
+DIRECT_ENGLISH_LEAK=0
+ASSERTS=App.jsx '/staff' menu + menuPermissions.requireAll + api.js resolveErrorMessage + StaffManagement error.message
+RESULT: PASS
+

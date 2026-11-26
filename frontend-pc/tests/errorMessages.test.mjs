@@ -21,7 +21,8 @@ const FIXTURES = [
   { key: '40912', input: { code: 40912, message: '学生证作为第二证件需介绍信' }, layer: 'human_message', text: '学生证作为第二证件需介绍信' },
   { key: 'L1', input: { message: 'order not found' }, layer: 'message_map', text: '未找到订单' },
   { key: 'NULL', input: null, layer: 'fallback', text: '操作失败，请重试' },
-  { key: 'UNKNOWN', input: { code: 49999, message: 'unknown conflict' }, layer: 'raw_message', text: 'unknown conflict' },
+  // #2504：ASCII 机器串不再经 L4 直出（旧期望 raw_message/'unknown conflict' 已翻转）
+  { key: 'UNKNOWN', input: { code: 49999, message: 'unknown conflict' }, layer: 'fallback', text: '操作失败，请重试' },
   { key: 'INVITE', input: { code: 40901, message: '该用户已有待处理的邀请申请' }, layer: 'human_message', text: '该用户已有待处理的邀请申请' },
 ]
 
@@ -55,6 +56,25 @@ test('4091x（不在 code map）继续透传中文 message', () => {
   const core = resolveErrorCore({ code: 40912, message: '学生证作为第二证件需介绍信' })
   assert.equal(core.layer, 'human_message')
   assert.equal(core.text, '学生证作为第二证件需介绍信')
+})
+
+test('未知 code 的 ASCII message 不外溢：走 fallback（#2504 收紧 L4）', () => {
+  const core = resolveErrorCore({ code: 49999, message: 'unknown conflict' })
+  assert.equal(core.layer, 'fallback')
+  assert.equal(core.text, '操作失败，请重试')
+  // 负例：把英文技术串原样吐给用户 → 失败
+  assert.ok(!core.text.includes('unknown conflict'))
+})
+
+test('40303 + access denied → code_map 中文（#2504 主诉）', () => {
+  const core = resolveErrorCore({ code: 40303, message: 'access denied' })
+  assert.equal(core.layer, 'code_map')
+  assert.equal(core.text, '暂无权限访问该页面')
+  assert.equal(resolveErrorMessage({ code: 40303, message: 'access denied' }), '暂无权限访问该页面')
+  // 负例：英文 `access denied` 直出 → 失败
+  assert.ok(!resolveErrorMessage({ code: 40303, message: 'access denied' }).includes('access denied'))
+  console.log(`L40303=${core.layer}`)
+  console.log(`C40303=${core.text}`)
 })
 
 test('L1 英文精确键 → 中文翻译（#1675 行为不变）', () => {

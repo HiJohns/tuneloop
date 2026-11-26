@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -19,7 +20,7 @@ import (
 
 // #2065 人员管理三视图（角色感知）：
 //   - merchant_admin：本商户全员 = 各网点成员 ∪ 维修师傅（直属商户，不挂网点）
-//   - site_admin：仅本网点成员（不含维修师傅）
+//   - site_admin：本网点（**组织域**：JWT `oid` = `sites.org_id`）成员，不含维修师傅
 //   - system_admin：平台员工（根组织 users）∪ 中转网点成员
 //
 // 字段：姓名/电话/所属网点/职位（+ email/status/iam_sub 供既有行操作复用）。
@@ -42,6 +43,10 @@ type personnelRow struct {
 	IsTechnician bool   `json:"is_technician"`
 	Bio          string `json:"bio"`    // #2073: 全员富文本简介
 	Avatar       string `json:"avatar"` // #2073: 头像（users.avatar_url）
+	// #2526: 本地归属（users.tenant_id / users.org_id）缺失（空或 nil UUID）时为 true，
+	// 该行按 membership 展示但归属未回填，PC 列表须显示「归属缺失」标记。
+	// 由 assemblePersonnel（商户/网点视图）与 personnelSystemView（系统视图）同源填充。
+	AttributionMissing bool `json:"attribution_missing"`
 }
 
 // List GET /api/admin/personnel
@@ -83,7 +88,9 @@ func (h *PersonnelHandler) List(c *gin.Context) {
 			c.JSON(http.StatusForbidden, gin.H{"code": 40303, "message": "access denied"})
 			return
 		}
-		rows, err = personnelSiteView(db, oid, keyword)
+		// #2508: oid 是组织 ID（sites.org_id），与 site_id（sites.id）不同域；
+		// site_id 过滤与本组织求交，必须在视图内消费（D2）。
+		rows, err = personnelSiteView(db, oid, keyword, siteFilter)
 	case middleware.BusinessRoleSystemAdmin:
 		if oid == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "operator has no organization"})
@@ -216,14 +223,36 @@ func personnelMerchantView(db *gorm.DB, tid, keyword, siteFilter string, directO
 }
 
 // personnelSiteView 仅本网点成员（不含维修师傅）。
-func personnelSiteView(db *gorm.DB, siteID, keyword string) ([]personnelRow, error) {
+//
+// #2508：JWT `oid` 是**组织 ID**（`sites.org_id`），而 `site_members.site_id`
+// 存的是 `sites.id`——两者不同域。必须经 `sites` 关联按组织过滤；直接把 `oid`
+// 当 `site_id` 比较会让 site_admin 的人员列表恒为空（静默 0 条，无报错）。
+func personnelSiteView(db *gorm.DB, orgID, keyword, siteFilter string) ([]personnelRow, error) {
+	// #2067 / D4：membership 为权威（users.tenant_id 不可靠，如零租户成员），
+	// 隔离由 `sites.org_id = oid` 与成员关系承担，故显式关闭自动租户范围。
+	scopeCtx := db.Statement.Context
+	if scopeCtx == nil {
+		scopeCtx = context.Background()
+	}
+	db = db.WithContext(database.ExplicitTenantScopeOnly(scopeCtx))
+
 	var sms []siteMembershipRow
-	if err := db.Table("site_members AS sm").
+	smq := db.Table("site_members AS sm").
 		Select("sm.user_id, sm.site_id, s.name AS site_name, sm.role").
 		Joins("JOIN sites s ON s.id = sm.site_id").
-		Where("sm.site_id = ? AND sm.status = 'active'", siteID).
-		Scan(&sms).Error; err != nil {
-		return nil, fmt.Errorf("site_members scan failed: %w", err)
+		Where("s.org_id = ? AND sm.status = 'active'", orgID)
+	// D2：site_id 与本组织求交——跨组织站点 ID 得到空集（不报错、不泄漏）。
+	if siteFilter != "" {
+		smq = smq.Where("sm.site_id = ?", siteFilter)
+	}
+	if err := smq.Scan(&sms).Error; err != nil {
+		return nil, fmt.Errorf("site_members scan failed (org=%s): %w", orgID, err)
+	}
+	if len(sms) == 0 {
+		// #2427 D3 / #2508 B5：「恒空」必须留可观测痕迹，否则 ID 域/配置问题
+		// 会再次以「空列表、无报错」的形态逃过巡检。
+		log.Printf("[Personnel] WARN: site view resolved 0 active members for org=%s (site_id=%q, keyword=%q)",
+			orgID, siteFilter, keyword)
 	}
 
 	ids := make([]string, 0, len(sms))
@@ -271,6 +300,7 @@ func personnelSystemView(db *gorm.DB, rootOrgID, keyword string) ([]personnelRow
 			ID: u.ID, UserID: u.ID, Name: u.Name, Phone: u.Phone, Email: u.Email,
 			Position: u.Position, Role: u.Role, Status: u.Status, IAMSub: u.IAMSub,
 			SiteName: "平台", Bio: u.Bio, Avatar: u.AvatarURL,
+			AttributionMissing: isNilAttribution(u.TenantID) || isNilAttribution(u.OrgID),
 		})
 	}
 
@@ -319,6 +349,7 @@ func personnelSystemView(db *gorm.DB, rootOrgID, keyword string) ([]personnelRow
 				ID: u.ID, UserID: u.ID, Name: u.Name, Phone: u.Phone, Email: u.Email,
 				Position: u.Position, Role: u.Role, Status: u.Status, IAMSub: u.IAMSub,
 				SiteName: strings.Join(siteNames, ", "), Bio: u.Bio, Avatar: u.AvatarURL,
+				AttributionMissing: isNilAttribution(u.TenantID) || isNilAttribution(u.OrgID),
 			}
 			if len(roleNames) > 0 {
 				row.Role = strings.Join(roleNames, ",")
@@ -403,7 +434,211 @@ func assemblePersonnel(users []models.User, sms []siteMembershipRow, techIDs []s
 			Position: position, Role: role, Status: u.Status, IAMSub: u.IAMSub,
 			SiteID: siteID, SiteName: siteName, IsTechnician: isTech,
 			Bio: u.Bio, Avatar: u.AvatarURL,
+			AttributionMissing: isNilAttribution(u.TenantID) || isNilAttribution(u.OrgID),
 		})
 	}
 	return rows
+}
+
+// #2526：员工 by-id 动作（详情/保存/激活）的可见性判定。
+//
+// 背景：人员列表三视图以 membership 为权威（#2065/#2067），但 by-id 动作曾按
+// `users.tenant_id = ?` 过滤 → 零租户（nil UUID）存量行「列表可见、点开 404」。
+// 这里把判定收口为唯一实现，列表与详情不再各写一套：
+//
+//	可见 = membership 口径 ∪（旧 tenant/org 口径 ∧ 非顾客角色）
+//
+// 纯顾客（`lower(role) ∈ {"", "user"}`）不再因 `users.tenant_id` 命中被当员工打开
+// （数据保护 B10）；不可见与不存在对调用方统一映射为 404，不泄漏存在性。
+
+// nilUUIDLiteral 是 PostgreSQL/SQL 里表示「无归属」的 nil UUID。
+const nilUUIDLiteral = "00000000-0000-0000-0000-000000000000"
+
+// staffUserLookup 区分「不存在」与「存在但不可见」，两者对外都是 404。
+type staffUserLookup int
+
+const (
+	staffUserFound staffUserLookup = iota
+	staffUserMissing
+	staffUserInvisible
+)
+
+// isNilAttribution 报告字符串形式的归属 ID 是否为空/nil UUID。
+func isNilAttribution(v string) bool {
+	t := strings.TrimSpace(v)
+	return t == "" || t == nilUUIDLiteral
+}
+
+// isCustomerUserRole 报告 users.role 是否属于顾客（含空值，空值不可当员工）。
+func isCustomerUserRole(role string) bool {
+	switch strings.ToLower(strings.TrimSpace(role)) {
+	case "", "user":
+		return true
+	default:
+		return false
+	}
+}
+
+// loadVisibleStaffUser 取行（不按租户过滤）后再做可见性判定。
+// 定位与授权分离：先按 id 取行，再交给 personnelUserVisible 判定能否访问（B3）。
+func loadVisibleStaffUser(db *gorm.DB, ctx context.Context, userID string) (*models.User, staffUserLookup, error) {
+	trimmed := strings.TrimSpace(userID)
+	if trimmed == "" {
+		return nil, staffUserMissing, nil
+	}
+	if _, err := uuid.Parse(trimmed); err != nil {
+		// 非 UUID 在主键查询里必然无行（PG 会报 22P02，不能当 500 泄露实现细节）。
+		return nil, staffUserMissing, nil
+	}
+	var user models.User
+	q := db.WithContext(database.ExplicitTenantScopeOnly(ctx)).
+		Where("id = ? AND deleted_at IS NULL", trimmed)
+	if err := q.First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, staffUserMissing, nil
+		}
+		return nil, staffUserMissing, fmt.Errorf("query user %s: %w", trimmed, err)
+	}
+	visible, err := personnelUserVisible(db, ctx, &user)
+	if err != nil {
+		return nil, staffUserMissing, err
+	}
+	if !visible {
+		return &user, staffUserInvisible, nil
+	}
+	return &user, staffUserFound, nil
+}
+
+// personnelUserVisible 是员工 by-id 动作的唯一可见性判定（列表口径 + 角色感知旧口径）。
+func personnelUserVisible(db *gorm.DB, ctx context.Context, u *models.User) (bool, error) {
+	if u == nil {
+		return false, nil
+	}
+	businessRole := middleware.GetBusinessRole(ctx)
+	tid := middleware.GetTenantID(ctx)
+	oid := middleware.GetOrgID(ctx)
+	customer := isCustomerUserRole(u.Role)
+
+	switch businessRole {
+	case middleware.BusinessRoleMerchantAdmin:
+		if tid == "" {
+			return false, nil
+		}
+		ok, err := hasMerchantMembership(db, ctx, u.ID, tid)
+		if err != nil || ok {
+			return ok, err
+		}
+		// 旧口径：同商户本地行，但只对员工角色生效（顾客不因 tenant 命中变员工）。
+		return !customer && u.TenantID == tid, nil
+
+	case middleware.BusinessRoleSiteAdmin:
+		if oid == "" {
+			return false, nil
+		}
+		ok, err := hasSiteMembershipByOrg(db, ctx, u.ID, oid)
+		if err != nil || ok {
+			return ok, err
+		}
+		// #2508：site_admin 的旧口径是「tenant 命中 + org 在可见组织内」，仍限员工角色。
+		if customer {
+			return false, nil
+		}
+		return legacyTenantOrgVisible(ctx, u), nil
+
+	case middleware.BusinessRoleSystemAdmin:
+		if oid == "" {
+			return false, nil
+		}
+		// 平台员工（与 personnelSystemView 同源）
+		switch strings.ToLower(strings.TrimSpace(u.Role)) {
+		case "staff", "namespace_admin", "sys_admin":
+			if u.OrgID == oid {
+				return true, nil
+			}
+		}
+		if ok, err := hasTransitSiteMembership(db, ctx, u.ID, oid); err != nil || ok {
+			return ok, err
+		}
+		// 带租户 claim 的 NAMESPACE_ADMIN 等仍按旧口径放行，避免收窄既有访问。
+		return tid != "" && u.TenantID == tid, nil
+
+	default:
+		return legacyTenantOrgVisible(ctx, u), nil
+	}
+}
+
+// legacyTenantOrgVisible 复刻修复前的旧口径：`users.tenant_id = tid` + ApplyOrgScope。
+func legacyTenantOrgVisible(ctx context.Context, u *models.User) bool {
+	tid := middleware.GetTenantID(ctx)
+	if tid == "" || u.TenantID != tid {
+		return false
+	}
+	orgIDs, err := middleware.GetVisibleOrgIDs(ctx)
+	if err != nil || orgIDs == nil {
+		// ApplyOrgScope 在无法解析可见组织时退化为「不加 org 约束」。
+		return true
+	}
+	for _, id := range orgIDs {
+		if id == u.OrgID {
+			return true
+		}
+	}
+	return false
+}
+
+// hasMerchantMembership 报告用户是否以 active 成员身份归属本商户
+// （网点成员 / 商户直属员工 / 维修师傅，与 personnelMerchantView 同源）。
+func hasMerchantMembership(db *gorm.DB, ctx context.Context, userID, tenantID string) (bool, error) {
+	scoped := db.WithContext(database.ExplicitTenantScopeOnly(ctx))
+	var count int64
+	if err := scoped.Table("site_members AS sm").
+		Joins("JOIN sites s ON s.id = sm.site_id").
+		Where("sm.user_id = ? AND sm.status = 'active' AND s.tenant_id = ?", userID, tenantID).
+		Count(&count).Error; err != nil {
+		return false, fmt.Errorf("site membership check failed (user=%s tenant=%s): %w", userID, tenantID, err)
+	}
+	if count > 0 {
+		return true, nil
+	}
+	if err := scoped.Table("merchant_members").
+		Where("user_id = ? AND tenant_id = ? AND status = 'active'", userID, tenantID).
+		Count(&count).Error; err != nil {
+		return false, fmt.Errorf("merchant membership check failed (user=%s tenant=%s): %w", userID, tenantID, err)
+	}
+	if count > 0 {
+		return true, nil
+	}
+	if err := scoped.Model(&models.TechnicianProfile{}).
+		Where("user_id = ? AND tenant_id = ?", userID, tenantID).
+		Count(&count).Error; err != nil {
+		return false, fmt.Errorf("technician profile check failed (user=%s tenant=%s): %w", userID, tenantID, err)
+	}
+	return count > 0, nil
+}
+
+// hasSiteMembershipByOrg 报告用户是否以 active 成员身份归属该组织（#2508 口径：sites.org_id）。
+func hasSiteMembershipByOrg(db *gorm.DB, ctx context.Context, userID, orgID string) (bool, error) {
+	scoped := db.WithContext(database.ExplicitTenantScopeOnly(ctx))
+	var count int64
+	if err := scoped.Table("site_members AS sm").
+		Joins("JOIN sites s ON s.id = sm.site_id").
+		Where("sm.user_id = ? AND sm.status = 'active' AND s.org_id = ?", userID, orgID).
+		Count(&count).Error; err != nil {
+		return false, fmt.Errorf("site membership check failed (user=%s org=%s): %w", userID, orgID, err)
+	}
+	return count > 0, nil
+}
+
+// hasTransitSiteMembership 报告用户是否属于该组织下的中转网点（与 personnelSystemView 同源）。
+func hasTransitSiteMembership(db *gorm.DB, ctx context.Context, userID, orgID string) (bool, error) {
+	scoped := db.WithContext(database.ExplicitTenantScopeOnly(ctx))
+	var count int64
+	if err := scoped.Table("site_members AS sm").
+		Joins("JOIN sites s ON s.id = sm.site_id").
+		Where("sm.user_id = ? AND sm.status = 'active' AND s.type = ? AND (s.tenant_id = ? OR s.org_id = ?)",
+			userID, "transit", orgID, orgID).
+		Count(&count).Error; err != nil {
+		return false, fmt.Errorf("transit membership check failed (user=%s org=%s): %w", userID, orgID, err)
+	}
+	return count > 0, nil
 }

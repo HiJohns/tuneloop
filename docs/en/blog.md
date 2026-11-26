@@ -411,3 +411,25 @@
 - 2026-10-06: Batch run completed; tasks included: Resolved Issues: #2145, #2146, #2148, #2150, #2151
 - 2026-11-24: Batch processing completed, including tasks: Resolved Issues: #2461（审计 PASS；代码待集成至 develop；Ops Follow-up #2468）
 - 2026-11-24: Batch processing completed, including tasks: Resolved Issues: #2469 #2466 #2462 #2457（4 单审计 PASS；代码待集成至 develop；Ops Follow-ups #2471 #2472 #2473 #2474）
+- 2026-11-24: Batch processing completed, including tasks: Resolved Issues: #2475（审计 PASS，含 Ops #2481；另 #2480 退回 analysis 待 Architect 补计划、#2459 rejected 待返工）
+- 2026-11-25: Batch processing completed, including tasks: Resolved Issues: #2484 #2483 #2478（审计 PASS；Ops #2491 #2492 #2494）。待返工：#2480（R7 证据键与计划断言相反）、#2482（已发 Verification Request 待重跑）；新立项 #2490 #2493 + beaconiam#504
+- 2026-11-25: Batch processing completed, including tasks: Resolved Issues: #2482 (改主角色保留其它角色；#2485 已 REJECT 待返工)
+- 2026-11-25: Batch processing completed, including tasks: Resolved Issues: #2480
+- 2026-11-25: Batch processing completed, including tasks: Resolved Issues: #2490
+- 2026-11-25: Batch processing completed, including tasks: Resolved Issues: #2479（审计 PASS；Ops Follow-up #2499）
+- 2026-11-25: Batch processing completed, including tasks: Resolved: #2510（Ops #2520）｜REJECT: #2508（缺独立 Issue 全量 gate，已发 Verification Request）、#2470（UI 仅源码 grep + 缺全量 gate + 契约未文档化）、#2504（gate 报告 FAIL 却自证 PASS，pre-fix 证据）｜#2509 父任务待 #2511/#2512/#2513
+- 2026-11-25: Batch processing completed, including tasks: Resolved Issues: #2514
+- 2026-11-25: Batch processing completed, including tasks: Resolved Issues: #2513
+- 2026-11-25: Batch processing completed, including tasks: Resolved Issues: #2502
+- 2026-11-25: Batch processing completed, including tasks: Resolved Issues: #2518
+- 2026-11-25: Batch processing completed, including tasks: Resolved Issues: #2528
+- 2026-11-25: Batch processing completed, including tasks: Resolved Issues: #2529 (Ops Follow-ups #2533 #2534)
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2511
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2537
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2532
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2538
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2526
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2555
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2540
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2515
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2506

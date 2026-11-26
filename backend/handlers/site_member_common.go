@@ -6,6 +6,7 @@ package handlers
 //       new_users:[{username,name,email,phone,role,password,auto_generate,force_password_change}] + skip_activation。
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -19,6 +20,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // errAlreadyRegistered is returned when adding a member whose phone/email
@@ -379,4 +381,90 @@ func addMembersCore(c *gin.Context, db *gorm.DB, site models.Site, tenantID, sit
 	}
 
 	return res, nil
+}
+
+// mergeSiteMemberRoles 计算改主角色后的角色全集（#2482）。
+//
+// `site_members.roles` 是身份全集（主角色 + 其它身份，如「员工 + 维修师傅」），
+// 而授权门禁（hasSiteRole）以 `roles` 为准。改主角色时若整体替换为单值，会在
+// 本地抹掉其它身份，而 IAM 侧旧功能角色模板并不会被移除（无 unassign API），
+// 造成「本地拒维修 / IAM 仍授权」的双源不一致。
+//
+// 语义：去空白 + 去重保序；保留其它角色；旧主角色**原位**替换为 newPrimary；
+// 结果必含 newPrimary；newPrimary 为空时原样返回（防御，不制造空主角色）。
+func mergeSiteMemberRoles(existing []string, oldPrimary, newPrimary string) []string {
+	oldPrimary = strings.TrimSpace(oldPrimary)
+	newPrimary = strings.TrimSpace(newPrimary)
+
+	normalized := make([]string, 0, len(existing)+1)
+	seen := make(map[string]struct{}, len(existing)+1)
+	for _, role := range existing {
+		role = strings.TrimSpace(role)
+		if role == "" {
+			continue
+		}
+		if _, ok := seen[role]; ok {
+			continue
+		}
+		seen[role] = struct{}{}
+		normalized = append(normalized, role)
+	}
+	if newPrimary == "" {
+		return normalized
+	}
+
+	replaced := false
+	for i, role := range normalized {
+		if oldPrimary != "" && role == oldPrimary {
+			normalized[i] = newPrimary
+			replaced = true
+			break
+		}
+	}
+	if replaced {
+		// 原位替换后可能产生重复（newPrimary 原本已在集合内）→ 去重保序。
+		out := make([]string, 0, len(normalized))
+		seen = make(map[string]struct{}, len(normalized))
+		for _, role := range normalized {
+			if _, ok := seen[role]; ok {
+				continue
+			}
+			seen[role] = struct{}{}
+			out = append(out, role)
+		}
+		return out
+	}
+	if _, ok := seen[newPrimary]; ok {
+		return normalized
+	}
+	return append(normalized, newPrimary)
+}
+
+// siteMemberRolesExpr 把角色集合序列化为 jsonb 表达式（#2475）。
+//
+// GORM 的 map Update 绕过 `serializer:json`，直接传 Go `[]string` 会被渲染成
+// SQL 数组字面量 `('site_member')`，对 jsonb 列报 SQLSTATE 22P02。所有 map
+// 写入 site_members.roles 的路径必须复用本 helper（与 site_member.go 的
+// UpdateMemberRole 同口径），不得各自拼 SQL。
+//
+// 语义：去空白 + 去重保序；nil/空集合 → `[]`（roles 列 NOT NULL）。
+func siteMemberRolesExpr(roles []string) (clause.Expr, error) {
+	normalized := make([]string, 0, len(roles))
+	seen := make(map[string]struct{}, len(roles))
+	for _, role := range roles {
+		role = strings.TrimSpace(role)
+		if role == "" {
+			continue
+		}
+		if _, ok := seen[role]; ok {
+			continue
+		}
+		seen[role] = struct{}{}
+		normalized = append(normalized, role)
+	}
+	encoded, err := json.Marshal(normalized)
+	if err != nil {
+		return clause.Expr{}, fmt.Errorf("encode site_member roles: %w", err)
+	}
+	return gorm.Expr("?::jsonb", string(encoded)), nil
 }

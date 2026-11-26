@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "issue": 2537,
+  "build": "1.0.3f08c2dd8",
+  "commit": "3f08c2dd8e32d0ac19a73101752de2e257b92958",
+  "dirty": false,
+  "plan_sha256": "e115f761073e0b45f37724f592f5066147e92df37fa7a0d023faafdb95d16b1b",
+  "environment": "isolated worktree wt-2537 (branch issue-2537, base origin/develop 608b30064); backend go build + Postgres test DB (127.0.0.1:15433/tuneloop_test_local) + frontend-pc node --test/eslint/vite build; no production calls",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2537.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2537/R1-list-field.txt"
+      ],
+      "assert": "exit 0；含 LIST_OVERDUE_A=3600、PRICING_V2_OVERDUE_A=3600、LIST_OVERDUE_B=1500",
+      "actual": "PASS：LIST_OVERDUE_A=3600 / PRICING_V2_OVERDUE_A=3600（同链相等）/ LIST_OVERDUE_B=1500（overrides 生效）/ LIST_OVERDUE_C=null（无定价不伪造 0）；TestInstrumentListOverdue2537_R1 PASS",
+      "expected": "PASS",
+      "negative": "两值不等 → FAIL",
+      "negative_result": "两值不等或缺失即断言失败：A 从 pricing JSONB（36 元）→3600 分；B 由 pricing_overrides（15 元）覆盖→1500 分；C 无基础日租→null",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2537.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2537/R2-display-helpers.txt"
+      ],
+      "assert": "exit 0；含 TESTS_PASS>=9、REDUCED_NULL=未配置",
+      "actual": "PASS：TESTS_PASS=18 / TESTS_FAIL=0；FULL_NULL=- / REDUCED_NULL=未配置 / ZERO=¥0.00 / OVERDUE_NULL=- / OVERDUE_NORMAL=¥36.00",
+      "expected": "PASS",
+      "negative": "断言失败 → FAIL",
+      "negative_result": "差额押金空值若显示 `-`（旧合并式口径）或 0 被吞 → R2_FAIL；本次 helper 断言全绿",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2537.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2537/R3-columns-static.txt"
+      ],
+      "assert": "exit 0；含 STOCK_DEPOSIT_COLS=2、STOCK_OVERDUE_COL=1、LIST_HAS_RATE_COL=0",
+      "actual": "PASS：LIST_HAS_RATE_COL=0 / LIST_HAS_DEPOSIT_COL=0 / STOCK_HAS_LEVEL_COL=0 / STOCK_HAS_STATUS_COL=0 / STOCK_DEPOSIT_COLS=2 / STOCK_OVERDUE_COL=1",
+      "expected": "PASS",
+      "negative": "列残留/缺失 → FAIL",
+      "negative_result": "断言按「主列表 columns 数组块」提取（排除文件后段的丢失台账表），残留或缺失任一 → R3_FAIL",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2537.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2537/R4-sn-link-static.txt"
+      ],
+      "assert": "exit 0；含 SN_LINK_COUNT=2、DETAIL_BUTTON_COUNT=0",
+      "actual": "PASS：SN_LINK_COUNT=2（库存监控→/site/stock/:id、乐器列表→/instruments/detail/:id）/ DETAIL_BUTTON_COUNT=0 / VIEW_BUTTON_COUNT=0",
+      "expected": "PASS",
+      "negative": "按钮残留 → FAIL",
+      "negative_result": "识别码未接 navigate 或任一独立查看/详情按钮残留（主列表区）→ R4_FAIL",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2537.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2537/R5-docs.txt"
+      ],
+      "assert": "exit 0；含 DOC_OVERDUE=1、UI_SN_ENTRY=1",
+      "actual": "PASS：DOC_OVERDUE=2（api.md §5.4.0 字段表 + 说明）/ UI_LIST_COLUMNS=1（逾期租金/全额押金/差额押金）/ UI_SN_ENTRY=1（识别码即详情入口）",
+      "expected": "PASS",
+      "negative": "缺项 → FAIL",
+      "negative_result": "文档缺项 → R5_FAIL",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2537.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2537/R6-build.txt"
+      ],
+      "assert": "exit 0；含 GO_BUILD_OK=1、PC_BUILD_OK=1、ESLINT_OK=1",
+      "actual": "PASS：GO_BUILD_OK=1 / GO_TEST_OK=1（TestInstrumentListOverdue2537_R1 + TestInstrumentListPricing2528）/ ESLINT_OK=1（0 error，10 条既有 warning）/ PC_BUILD_OK=1（vite build 2m09s）",
+      "expected": "PASS",
+      "negative": "任一失败 → FAIL",
+      "negative_result": "构建/测试/lint 任一非 0 → R6_FAIL",
+      "pass": true
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+# build=1.0.827f9d1d # commit=827f9d1dc70e496d4ed08b49499fc1309e3b63e9 # dirty=false
+ACTION=none user_id=u3 mm_role=site_member users_role= merchant_id=m3
+ALIGN_ROWS=0
+NONE_ROWS=1
+DB_WRITES=0
+READONLY=1
+RESULT: PASS
+FIXTURE_EXIT=0
+FIELDS_ALIGNED=1
+NONE_OK=1
+MERCHANT_ID=m3
+

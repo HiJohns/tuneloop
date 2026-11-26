@@ -1,0 +1,9 @@
+# build=1.0.ddd45358 # commit=ddd45358060d6e403dccb83596e07a38cf3b1475 # dirty=false
+BUILD_CMD=cd backend && go build ./...
+BUILD_EXIT=0
+TESTS_CMD=cd backend && go test ./handlers -run TestCreateSite -count=1 -timeout 15m
+TESTS_EXIT=0
+TESTS_FAIL=0
+TESTS_PASS_COUNT=9
+RESULT: PASS
+

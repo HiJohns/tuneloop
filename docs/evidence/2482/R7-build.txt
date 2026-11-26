@@ -1,0 +1,5 @@
+# build=1.0.719e6492 # commit=719e649291800235e48194c8ef10ad0420a3c70a # dirty=false
+BUILD_EXIT=0
+TESTS_EXIT=0
+TESTS_FAIL=0
+

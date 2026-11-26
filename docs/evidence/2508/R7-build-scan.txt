@@ -1,0 +1,9 @@
+# build=1.0.448a2b0ec # commit=448a2b0ec282690913b16ea9544e5ad72cd3c201 # dirty=false
+== R7 go build + same-class ID-domain scan ==
+BUILD_RC=0
+-- scan: personnel.go still keys site_members.site_id off the org ID? (expect 0) --
+PERSONNEL_SITE_ID_MATCH=0
+-- same-class defects registered in #2509 (S2..S5, unchanged by this Issue) --
+S2=1 S3=2 S4=2 S5=2
+-- ID-domain source of truth --
+docs/cases/cases.md:289 284:- `POST /api/sites` —— 新增调用 IAM Create Organization (parent_id=商户org_id) + IAM 三步绑定管理员

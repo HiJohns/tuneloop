@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "issue": 2529,
+  "build": "1.0.ed39cccd4",
+  "commit": "ed39cccd43d217124b5886a89bf90769bb7898cb",
+  "dirty": false,
+  "plan_sha256": "c8bf466f3b2f538c972f82ec095269c6f2ef79856406e241d6392fe509a35a34",
+  "tooling_commit": "f663626b8fe3895a49dffa4c43266664546741db",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2529.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2529/R1-detail-contract.txt"
+      ],
+      "assert": "exit 0；grep STATUS=200、CODE=20000、HAS_BASE_DAILY_RATE=1、HAS_MEDIA_DISPLAY=1、HAS_POSTER=1、NOT_FOUND_CODE=40400",
+      "actual": "PASS：STATUS=200、CODE=20000、HAS_BASE_DAILY_RATE=1、HAS_MEDIA_DISPLAY=1、HAS_POSTER=1（base_daily_rate=1000 分、poster 与 media.display[0].url 均存在、category_name/level_name/site_name/status 齐全）；不存在 id → HTTP 404 + NOT_FOUND_CODE=40400；--- PASS: TestAssetDetail2529_R1；R1_OK",
+      "expected": "PASS",
+      "negative": "HAS_MEDIA_DISPLAY=0 → 页面无图 → FAIL",
+      "negative_result": "negative not triggered：HAS_MEDIA_DISPLAY 用 require.NotEmpty(media.display) 断言，缺展示图即 --- FAIL；NOT_FOUND_CODE 用 require.Equal(40400) 断言，返回 20000 即 FAIL。修复前该测试不存在（契约守护行，B7 预防），R2 承载缺陷红绿。",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2529.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2529/R2-pc-detail.txt"
+      ],
+      "assert": "exit 0；grep NODE_TEST_RC=0、TESTS_FAIL=0、ASSET_DETAIL_USES_GET=1、LIST_STILL_USES_LIST_SCAN=0、LEGACY_PLACEHOLDER_REF=0、FALLBACK_WIRED=2",
+      "actual": "PASS：NODE_TEST_RC=0、TESTS_PASS=9、TESTS_FAIL=0（assetDetailState 4 类响应 + assetHeroImage 4 档来源）、ASSET_DETAIL_USES_GET=1、LIST_STILL_USES_LIST_SCAN=0、LEGACY_PLACEHOLDER_REF=0、LEGACY_PLACEHOLDER_REF_PRE_FIX=2（同一探针 `grep -rnE '<pattern>' <tree> | wc -l` 在 fix commit 父树 33570b31e 上实测 2 命中，命中行已随 artifact 打印）、FALLBACK_WIRED=2；R2_OK",
+      "expected": "PASS",
+      "negative": "LIST_STILL_USES_LIST_SCAN=1 → 详情仍按首页列表查 → FAIL",
+      "negative_result": "negative reproducible（round-1 Bug 1 已修）：LEGACY_PLACEHOLDER_REF 改为递归真实计数 `grep -rnE -- 'placeholder-instrument\\.png|\"/placeholder\\.png\"' frontend-pc/src | wc -l`。同一命令在 fix commit 父树（33570b31e，`git archive <fix>^ frontend-pc/src`）实测 LEGACY_PLACEHOLDER_REF_PRE_FIX=2（InstrumentListUser.jsx:163、IdPhotoDisplay.jsx:66），修复树为 0 → 若仍有旧路径引用，LEGACY_PLACEHOLDER_REF 将 >0 并以 `R2_FAIL: LEGACY_PLACEHOLDER_REF expected '0' got '2'` 非 0 退出；脚本内还断言 LEGACY_PLACEHOLDER_REF_PRE_FIX=2，故探针若退化为恒真/恒 0，该行同样 FAIL。旧实现 `grep -cE <dir>`（无 -r）在同一树上返回 0（stderr 被吞），即恒真断言——已移除。",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2529.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2529/R3-gate.txt"
+      ],
+      "assert": "exit 0；grep BUILD_RC=0、TEST_FAIL_COUNT=0、ESLINT_NO_UNDEF=0、PC_BUILD_RC=0、GATE_RESULT=PASS、PLAN_SOURCE=PASS",
+      "actual": "PASS：BUILD_RC=0、TEST_TARGETED_RC=0、TEST_FAIL_COUNT=0、TEST_PASS_COUNT=11（TestAssetDetail2529_R1 + TestGetInstrument_* + TestInstrumentDetail_* + TestGetInstruments_*）、ESLINT_RC=0、ESLINT_NO_UNDEF=0、PC_BUILD_RC=0、PLAN_SOURCE=PASS、GATE_RESULT=PASS；R3_OK",
+      "expected": "PASS",
+      "negative": "BUILD_RC=1 或 PLAN_SOURCE=FAIL → FAIL",
+      "negative_result": "negative not triggered：复合判定要求 BUILD_RC/TEST_FAIL_COUNT/ESLINT_NO_UNDEF/PC_BUILD_RC 全 0 且 GATE_RESULT=PASS、PLAN_SOURCE=PASS 才输出 GATE_RESULT=PASS 并以 0 退出；任一不满足打印 R3_FAIL 非 0 退出，不得作为 ready 证据。",
+      "pass": true
+    }
+  ]
+}
