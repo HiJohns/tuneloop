@@ -1,7 +1,7 @@
 {
   "issue": 2488,
   "overall": "PASS",
-  "plan": "/tmp/opencode/tuneloop/wt-2488/tmp/pre-ready-2488.VEdMUn/plan.md",
+  "plan": "/tmp/opencode/tuneloop/wt-2488/tmp/pre-ready-2488.lceLXG/plan.md",
   "plan_sha256": "8d7eba262acfbcbbbfe2d3e6f467f93bf46ef037447aceb71b3610d849e37152",
   "config_sha": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
   "provenance": {
@@ -10,7 +10,7 @@
     "dirty": false
   },
   "summary": "tmp/work-summary-2488.md",
-  "timestamp": "20261126-131700",
+  "timestamp": "20261126-132249",
   "checks": [
     {
       "id": "P1",
@@ -59,13 +59,13 @@
     },
     {
       "id": "P17",
-      "status": "PASS",
-      "detail": "plan snapshot and Accepted Plan comment match the gated plan"
+      "status": "N/A",
+      "detail": "Accepted Plan comment unavailable (no fake PASS)"
     },
     {
       "id": "P5",
       "status": "N/A",
-      "detail": "sub-task: full gate belongs to the parent/batch gate"
+      "detail": "no go.mod/package.json and no --full-gate-cmd: full gate not applicable"
     },
     {
       "id": "P6",

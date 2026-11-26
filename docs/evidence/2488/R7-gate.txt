@@ -1,5 +1,5 @@
 # build=1.0.a98106a26 # commit=a98106a2600b8cc72a35a404769eb358624bcd35 # dirty=false
-# tree=23487bec3cb923eb41105657fac1576d8aa8b857
+# tree=8ba895ce3813813797b0484a9ad0b4053d3c2fec
 GATE_RESULT=PASS
 FULL_GATE_CMD=cd frontend-pc && npm run build
 dist/assets/index-B9174E9n.css     38.39 kB │ gzip:   7.13 kB
@@ -9,7 +9,7 @@ dist/assets/index-BvY4XCr5.js   2,629.17 kB │ gzip: 809.30 kB
 - Using dynamic import() to code-split the application
 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-✓ built in 19.02s
+✓ built in 19.46s
 FULL_GATE_DIRECT_EXIT=0
 P5=N/A
 GATE_PLAN_SHA_MATCH=1
