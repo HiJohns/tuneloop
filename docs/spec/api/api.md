@@ -3837,13 +3837,6 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 ### 8.7 收藏列表
 
-**接口**: `GET /api/user/favorites`
-
-**响应**:
-```json
-{
-  "code": 20000,
-  "data": {
 
 **接口**: `GET /api/user/favorites`
 
@@ -6677,6 +6670,7 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
     ]
   }
 }
+```
 
 ### 12.3 商户管理
 
@@ -6949,7 +6943,6 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 | 502 | 50200 | IAM 5xx / 网络失败（**不得**降级为 200） |
 
 > 本地 `admin_uid` 与 IAM OWNER 的存量一致性核对由运维单（#2553）负责，本端点不做存量猜测。
-```
 
 ### 12.4 审计日志
 
