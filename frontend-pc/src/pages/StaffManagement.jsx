@@ -8,7 +8,7 @@ import { isBusinessCorrectableConflict } from '../utils/formConflict'
 import PasswordSettingFields from '../components/PasswordSettingFields'
 import InitialPasswordModal from '../components/InitialPasswordModal'
 import { resolveCreateFeedback } from '../utils/createFeedback'
-import { buildPersonnelQuery } from '../utils/personnelQuery'
+import { buildPersonnelQuery, attributionMissingBadge } from '../utils/personnelQuery'
 import { isCreateIntent } from '../utils/staffCreateIntent'
 import { checkPermission, isSystemLevelRole, SysPermBits } from '../config/menuPermissions'
 import 'react-quill/dist/quill.snow.css'
@@ -504,7 +504,18 @@ export default function StaffManagement() {
       dataIndex: 'site_name',
       key: 'site_name',
       width: 150,
-      render: (siteName) => siteName || '-'
+      // #2526：归属缺失（users.tenant_id/org_id 为 nil UUID）的存量行在网点名后加标记，
+      // 避免用户点进编辑才发现归属异常。
+      render: (siteName, record) => {
+        const badge = attributionMissingBadge(record)
+        if (!badge) return siteName || '-'
+        return (
+          <span>
+            {siteName || '-'}
+            <Tag color={badge.color} title={badge.title} style={{ marginLeft: 6 }}>{badge.label}</Tag>
+          </span>
+        )
+      }
     },
     {
       title: '角色',

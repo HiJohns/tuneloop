@@ -2618,6 +2618,8 @@ const handleSyncUsersFromIAM = async () => {
 
 职位列取 `position`（缺失时回退 role 映射；师傅显示「维修师傅」）。
 
+**#2526 归属缺失标记**：`attribution_missing=true` 的行（本地 `users.tenant_id`/`org_id` 为空或 nil UUID 的存量数据）在「所属网点」列网点名后追加 `归属缺失`（`Tag color="gold"`，`title` 说明为本地归属缺失、数据按成员关系展示、不影响编辑）。判定抽为纯函数 `frontend-pc/src/utils/personnelQuery.js` 的 `attributionMissingBadge(record)`（接受 `true` 与字符串 `'true'`），三视图一致；商户/网点/系统行均由后端同一来源填充。
+
 **#2462 角色列与编辑页预填口径**：
 - 角色列对直属员工（无 `site_members` 行 / 无 `site_name`）显示 `商户直属员工`（`merchant_staff`），不再显示「成员」；
 - 员工编辑页（`StaffEdit.jsx`）角色初值做域判定：该用户**无网点归属**（无 `site_id`）且历史 `role` 为网点角色（`site_member`/`site_admin`）时回填 `商户直属员工`；正常网点员工保持原值。该修正只影响表单初始值，不回写后端、不改列表返回。

@@ -6265,7 +6265,7 @@ GET /api/admin/dashboard/near-transfers
 
 **ID 域（#2508）**: `sites.org_id`（= JWT `oid`，组织 ID）与 `sites.id`（= `site_members.site_id`，本地主键）是两列不同域，生产上恒不相等。凡按组织隔离的查询必须 `JOIN sites` 用 `s.org_id`；把 `oid` 直接当 `site_id` 比较会恒返回 0 行且无报错（静默空列表）。
 
-**响应行**: `{id, user_id, name, phone, email, position, role, status, iam_sub, site_id, site_name, is_technician, bio, avatar}`（#2073 增 `bio`/`avatar`）
+**响应行**: `{id, user_id, name, phone, email, position, role, status, iam_sub, site_id, site_name, is_technician, bio, avatar, attribution_missing}`（#2073 增 `bio`/`avatar`；#2526 增 `attribution_missing`——`users.tenant_id`/`org_id` 为空或 nil UUID 时 `true`，PC 在「所属网点」列显示「归属缺失」标签）
 （一行一人；多网点归属时 `site_name` 逗号聚合；`id`/`user_id` 同值，兼容既有行操作）
 
 **排序**（#2072）：按 `users.created_at DESC`（**新建用户置顶**；此前无 ORDER BY，行序不稳定致新建用户不在当前页）。
@@ -6478,6 +6478,35 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 **接口**: `POST /api/admin/bulk-import/accounts?dry_run=true`
 
 **说明**: 预览解析结果，不实际创建用户。支持 `skip_activation` 参数。
+
+#### 10.18.6 员工详情 / 保存 / 激活的可见性口径（#2526）
+
+**接口**: `GET /api/admin/staff/:id`、`PUT /api/users/:id`、`POST /api/users/:id/activate`
+
+**背景**: 人员列表以 membership 为权威（§10.18.0），但上述 by-id 动作曾按 `users.tenant_id = ?` 过滤，导致 `users.tenant_id`/`org_id` 为 nil UUID 的存量行「列表可见、点开 404」（生产样本 `linwx1978@163.com`）。三者现共用同一判定。
+
+**可见性判定（唯一口径）**:
+
+```
+可见 = 列表 membership 口径 ∪（旧 tenant/org 口径 ∧ 非顾客角色 lower(users.role) ∉ {"", "user"}）
+```
+
+| businessRole | 判定 |
+|---|---|
+| merchant_admin | `site_members→sites.tenant_id = tid`（active）或 `merchant_members.tenant_id = tid`（active）或 `technician_profiles.tenant_id = tid`；否则 `users.tenant_id = tid` 且 `lower(role) ∉ {"", "user"}` |
+| site_admin | `site_members→sites.org_id = oid`（active）；否则 `users.tenant_id = tid` + `org_id` 在可见组织内，且 `lower(role) ∉ {"", "user"}` |
+| system_admin | `users.org_id = oid` 且 `lower(role) ∈ {staff, namespace_admin, sys_admin}`；或中转网点成员（`sites.type='transit'` 且 `sites.tenant_id/org_id = oid`）；或 `tid` 非空时 `users.tenant_id = tid` |
+| 其他 | 仅旧口径：`users.tenant_id = tid` + `org_id` 在可见组织内 |
+
+**纯顾客**: `lower(users.role) ∈ {"", "user"}` 且无任何成员关系 → 一律 `404 40400`（不得通过 `users.tenant_id` 命中被当作员工打开，避免个人信息越权读取）。
+
+**不可见 vs 不存在**: 两者对外都返回 `404 40400`（不泄漏存在性），仅在服务端日志区分（`WARN` 含 actor/businessRole/tid/oid/user_role/user_tid）。非 UUID 的 `:id` 视为不存在 → `404`。
+
+**保存（PUT）**: 读路径与写路径同源——写库为显式作用域（`id + deleted_at IS NULL`，不按 `users.tenant_id` 过滤）并校验 `RowsAffected`；`0` 行 → `50000`（禁止「保存成功但没写」）。
+
+**激活（POST）**: 可见性同源；`iam_sub` 已存在仍返回 `40001 user already activated`。
+
+**`attribution_missing`（§10.18.0 响应行字段）**: `users.tenant_id` 或 `users.org_id` 为空/nil UUID 时为 `true`（三视图同源）。该标记仅表示本地归属未回填，不影响可见性与编辑；存量回填需 Owner 授权（#2527）。
 
 ---
 
