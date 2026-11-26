@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react'
 import { formatCents, yuanToCents } from '../utils/money'
-import { Table, Tag, Button, Space, Spin, Modal, Form, Input, InputNumber, Select, Radio, Upload, Descriptions, Image, message, Popconfirm, Alert } from 'antd'
+import { Table, Tag, Button, Space, Spin, Modal, Form, Input, InputNumber, Select, Radio, Upload, Descriptions, Image, message, Popconfirm, Alert, Switch } from 'antd'
 import { EditOutlined, WarningOutlined, RollbackOutlined, FileTextOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { inventoryApi, lossApi, api, pricingApi } from '../services/api'
 import PermissionGate from '../components/PermissionGate'
 import { usePermission } from '../hooks/usePermission'
 import {
-  BATCH_PRICE_OPERATOR_OPTIONS,
-  BATCH_PRICE_TYPE_OPTIONS,
+  BATCH_PRICE_FIELDS,
   batchPricingFeedback,
   buildBatchPricingPayload,
+  emptyBatchPricingValues,
 } from '../utils/batchPricing'
 import {
   INSTRUMENT_IMAGE_PLACEHOLDER,
@@ -197,9 +197,9 @@ export default function InstrumentStock() {
     }
   }
 
-  // #2043/#2514: 批量设价（服务端 RequireRole(ADMIN/OWNER/site_admin) 兜底）
+  // #2043/#2514/#2519: 批量设价（服务端 RequireRole(ADMIN/OWNER/site_admin) 兜底）
   // 路径与 payload 统一由 utils/batchPricing 生成，避免再次打到不存在的
-  // /instruments/batch/price 或发送后端不认识的 {ids, price_type, ...}。
+  // /instruments/batch/price，或发送后端不认识的旧选择器 payload。
   const handleBatchPrice = async () => {
     try {
       const values = await priceForm.validateFields()
@@ -394,30 +394,24 @@ export default function InstrumentStock() {
         onCancel={() => setPriceModalVisible(false)}
         width={500}
       >
-        <Form form={priceForm} layout="vertical">
+        <Form form={priceForm} layout="vertical" initialValues={emptyBatchPricingValues()}>
           <Alert
             type="info"
             showIcon
             style={{ marginBottom: 16 }}
-            message="当前仅支持按日租金批量设置为固定金额"
+            message="勾选要修改的项并填写金额；未勾选的项不会被改动。日租金/逾期日租金须大于 0，押金可为 0（显式零押金）。"
           />
-          <Form.Item name="price_type" label="价格类型" rules={[{ required: true, message: '请选择价格类型' }]}>
-            <Select placeholder="请选择价格类型">
-              {BATCH_PRICE_TYPE_OPTIONS.map((option) => (
-                <Select.Option key={option.value} value={option.value}>{option.label}</Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
-          <Form.Item name="operator" label="操作" rules={[{ required: true, message: '请选择操作' }]}>
-            <Select placeholder="请选择操作">
-              {BATCH_PRICE_OPERATOR_OPTIONS.map((option) => (
-                <Select.Option key={option.value} value={option.value}>{option.label}</Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
-          <Form.Item name="amount" label="金额（元）" rules={[{ required: true, message: '请输入金额' }]}>
-            <InputNumber style={{ width: '100%' }} min={0} />
-          </Form.Item>
+          {BATCH_PRICE_FIELDS.map((field) => (
+            <div key={field.key} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+              <Form.Item name={[field.key, 'enabled']} valuePropName="checked" noStyle>
+                <Switch checkedChildren="改" unCheckedChildren="不改" />
+              </Form.Item>
+              <span style={{ width: 88 }}>{field.label}</span>
+              <Form.Item name={[field.key, 'value']} noStyle>
+                <InputNumber style={{ flex: 1 }} min={0} placeholder={field.unit} />
+              </Form.Item>
+            </div>
+          ))}
         </Form>
       </Modal>
       <Space style={{ marginBottom: 8 }}>

@@ -848,6 +848,88 @@ func UpdateInstrument(c *gin.Context) {
 	})
 }
 
+// isValidInstrumentStockStatus reports whether status is one of the stock statuses
+// writable through the status endpoints (#2519: single and batch share one set).
+func isValidInstrumentStockStatus(status string) bool {
+	switch status {
+	case models.StockStatusAvailable,
+		models.StockStatusRented,
+		models.StockStatusMaintenance,
+		models.StockStatusArchived,
+		models.StockStatusLost:
+		return true
+	default:
+		return false
+	}
+}
+
+// maxBatchStatusIDs bounds one batch status request (#2519).
+const maxBatchStatusIDs = 500
+
+// BatchUpdateInstrumentStatus sets stock_status for many instruments at once.
+// PUT /api/instruments/batch/status
+//
+// #2519（Owner 1A）：替代前端已调用但后端缺失的 `/instruments/batch/status`（此前恒
+// 404）。逐条处理，单条不存在/跨租户/非法状态进 failed[]（机器可读 reason），
+// 成功计数 updated；绝不静默丢弃（D3）。
+func BatchUpdateInstrumentStatus(c *gin.Context) {
+	var req struct {
+		IDs    []string `json:"ids" binding:"required"`
+		Status string   `json:"status" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40001,
+			"message": "invalid parameters: " + err.Error(),
+		})
+		return
+	}
+	if len(req.IDs) == 0 || len(req.IDs) > maxBatchStatusIDs {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "ids must contain 1-500 entries",
+		})
+		return
+	}
+
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	tenantID := middleware.GetTenantID(ctx)
+
+	updated := 0
+	failed := make([]gin.H, 0)
+
+	for _, id := range req.IDs {
+		if !isValidInstrumentStockStatus(req.Status) {
+			failed = append(failed, gin.H{"id": id, "reason": "invalid_status"})
+			continue
+		}
+		result := db.Model(&models.Instrument{}).
+			Where("id = ? AND tenant_id = ?", id, tenantID).
+			Update("stock_status", req.Status)
+		if result.Error != nil {
+			log.Printf("[BatchUpdateInstrumentStatus] update %s failed: %v", id, result.Error)
+			failed = append(failed, gin.H{"id": id, "reason": "update_failed"})
+			continue
+		}
+		if result.RowsAffected == 0 {
+			// 不存在与跨租户同码，避免泄漏其它租户的存在性。
+			failed = append(failed, gin.H{"id": id, "reason": "not_found_or_forbidden"})
+			continue
+		}
+		updated++
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    20000,
+		"message": "success",
+		"data": gin.H{
+			"updated": updated,
+			"failed":  failed,
+		},
+	})
+}
+
 // PUT /api/instruments/:id/status - Update instrument stock status
 func UpdateInstrumentStatus(c *gin.Context) {
 	instrumentID := c.Param("id")
@@ -872,23 +954,8 @@ func UpdateInstrumentStatus(c *gin.Context) {
 		return
 	}
 
-	// Validate stock_status value
-	validStatuses := []string{
-		models.StockStatusAvailable,
-		models.StockStatusRented,
-		models.StockStatusMaintenance,
-		models.StockStatusArchived,
-		models.StockStatusLost,
-	}
-	isValid := false
-	for _, status := range validStatuses {
-		if req.StockStatus == status {
-			isValid = true
-			break
-		}
-	}
-
-	if !isValid {
+	// Validate stock_status value (#2519: shared with the batch endpoint).
+	if !isValidInstrumentStockStatus(req.StockStatus) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40003,
 			"message": "invalid stock_status. Valid values: available, reserved, shipping, rented, returning, maintenance, archived",

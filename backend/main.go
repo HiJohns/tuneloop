@@ -450,7 +450,9 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.DELETE("/instruments/:id", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:delete"), handlers.DeleteInstrument)
 		// #1798: batch delete (static path registered before :id param — httprouter static-first)
 		authRequired.DELETE("/instruments/batch", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:delete"), handlers.BatchDeleteInstruments)
-		authRequired.PUT("/instruments/:id/status", middleware.ExplicitTenantScope(), middleware.RequireDebugMode(), middleware.RequireCusPerm("instrument:update"), handlers.UpdateInstrumentStatus)
+		// #2519 D1/D5: 单条状态生产可用（去掉 RequireDebugMode）；批量状态新增端点。
+		authRequired.PUT("/instruments/:id/status", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:update"), handlers.UpdateInstrumentStatus)
+		authRequired.PUT("/instruments/batch/status", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:update"), handlers.BatchUpdateInstrumentStatus)
 		authRequired.PUT("/orders/:id/admin-update", middleware.ExplicitTenantScope(), middleware.RequireDebugMode(), handlers.AdminUpdateOrder)
 		authRequired.POST("/instruments/:id/photos/upload", middleware.ExplicitTenantScope(), handlers.UploadInstrumentPhotos)
 		authRequired.GET("/instruments/:id/photos/latest", middleware.ExplicitTenantScope(), handlers.GetLatestInstrumentPhotos)

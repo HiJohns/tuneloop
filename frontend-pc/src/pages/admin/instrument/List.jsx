@@ -1,16 +1,17 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Table, Button, Input, Space, Tag, Image, message, Popconfirm, Select, Modal, Form, InputNumber, Checkbox, Alert } from 'antd'
+import { Table, Button, Input, Space, Tag, Image, message, Popconfirm, Select, Modal, Form, InputNumber, Checkbox, Alert, Switch } from 'antd'
 import { Row, Col } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined, DollarOutlined, ImportOutlined, ExportOutlined, CloseCircleFilled } from '@ant-design/icons'
 import { api, instrumentsApi, fetchBlob, pricingApi } from '../../../services/api'
 import { formatBeijingDate } from '../../../utils/date'
 import { resolveErrorMessage } from '../../../services/errorMessages'
 import {
-  BATCH_PRICE_OPERATOR_OPTIONS,
-  BATCH_PRICE_TYPE_OPTIONS,
+  BATCH_PRICE_FIELDS,
   batchPricingFeedback,
+  batchStatusFeedback,
   buildBatchPricingPayload,
+  emptyBatchPricingValues,
 } from '../../../utils/batchPricing'
 import InstrumentForm from './Form'
 import PermissionGate from '../../../components/PermissionGate'
@@ -357,7 +358,9 @@ export default function InstrumentList() {
       })
       
       if (result.code === 20000) {
-        message.success(`已成功更新 ${selectedRowKeys.length} 个乐器状态`)
+        // #2519 D3：逐条失败必须可见（后端返回 failed[]，禁止只报「全部成功」）。
+        const feedback = batchStatusFeedback(result)
+        message[feedback.level](feedback.text)
         setSelectedRowKeys([])
         fetchInstruments(pagination.page, pagination.pageSize)
       } else {
@@ -674,44 +677,25 @@ export default function InstrumentList() {
         <Form
           form={batchPriceForm}
           layout="vertical"
+          initialValues={emptyBatchPricingValues()}
         >
           <Alert
             type="info"
             showIcon
             style={{ marginBottom: 16 }}
-            message="当前仅支持按日租金批量设置为固定金额"
+            message="勾选要修改的项并填写金额；未勾选的项不会被改动。日租金/逾期日租金须大于 0，押金可为 0（显式零押金）。"
           />
-          <Form.Item
-            name="price_type"
-            label="价格类型"
-            rules={[{ required: true, message: '请选择价格类型' }]}
-          >
-            <Select placeholder="请选择价格类型">
-              {BATCH_PRICE_TYPE_OPTIONS.map((option) => (
-                <Option key={option.value} value={option.value}>{option.label}</Option>
-              ))}
-            </Select>
-          </Form.Item>
-          
-          <Form.Item
-            name="operator"
-            label="操作"
-            rules={[{ required: true, message: '请选择操作' }]}
-          >
-            <Select placeholder="请选择操作">
-              {BATCH_PRICE_OPERATOR_OPTIONS.map((option) => (
-                <Option key={option.value} value={option.value}>{option.label}</Option>
-              ))}
-            </Select>
-          </Form.Item>
-          
-          <Form.Item
-            name="amount"
-            label="金额（元）"
-            rules={[{ required: true, message: '请输入金额' }]}
-          >
-            <InputNumber min={0} style={{ width: '100%' }} placeholder="输入金额" />
-          </Form.Item>
+          {BATCH_PRICE_FIELDS.map((field) => (
+            <div key={field.key} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+              <Form.Item name={[field.key, 'enabled']} valuePropName="checked" noStyle>
+                <Switch checkedChildren="改" unCheckedChildren="不改" />
+              </Form.Item>
+              <span style={{ width: 88 }}>{field.label}</span>
+              <Form.Item name={[field.key, 'value']} noStyle>
+                <InputNumber style={{ flex: 1 }} min={0} placeholder={field.unit} />
+              </Form.Item>
+            </div>
+          ))}
         </Form>
       </Modal>
       

@@ -1511,37 +1511,70 @@ GET /api/confirmation-sessions/:id
 
 **接口**: `PUT /api/instruments/batch-pricing`
 
-**权限**: `ADMIN` / `OWNER` / `site_admin`（服务端 `RequireRole(ADMIN, OWNER, site_admin)`；租户范围由 JWT 作用域限定，跨租户 id 会被跳过）
+**权限**: `ADMIN` / `OWNER` / `site_admin`（服务端 `RequireRole(ADMIN, OWNER, site_admin)`；租户范围由 JWT 作用域限定）
 
-**请求 Body**:
+**请求 Body**（#2519 Rev.5：三个显式字段，金额单位**元**）:
 ```json
 {
   "items": [
-    { "id": "instr-001", "base_daily_rate": 100 },
-    { "id": "instr-002", "base_daily_rate": 120, "overrides": { "deposit": 800 } }
+    { "id": "instr-001", "base_daily_rate": 100, "deposit": 800 },
+    { "id": "instr-002", "overdue_daily_fee": 120 }
   ]
 }
 ```
-- `items`: **必填**（非空数组），每项含 `id`（必填）、`base_daily_rate`（可选）、`overrides`（可选）。
-- `base_daily_rate` 单位为**元**（服务端 `models.ToCentsPtr` ×100 后存「分」）。
-- `overrides` 当前仅 `daily_rent` / `deposit` 两个键被消费（见 `backend/services/pricing.go`）。
+- `items`: **必填**（1–500 项），每项含 `id`（必填）与至少一个显式字段：
+  - `base_daily_rate`（日租金，元，必须 > 0；写 `base_daily_rate` 列 + `pricing.daily_rent` 元值）
+  - `overdue_daily_fee`（逾期日租金，元，必须 > 0；写 `pricing.overdue_daily_fee` 元值，无独立列）
+  - `deposit`（押金，元，允许 0 = 显式零押金；写 `deposit` 列 + `pricing.deposit` 元值）
+- **显式设置优先**：写入权威位置的同时删除 `pricing_overrides` 中的同名键，避免历史 override 屏蔽新值。
+- 旧的 `overrides` 入参**已废弃**：不消费；只传 `overrides` 的条目按 `no_fields` 进 `failed[]`。
 
 **响应**:
 ```json
 {
   "code": 20000,
   "message": "success",
-  "data": { "updated": 2 }
+  "data": {
+    "updated": 1,
+    "failed": [{ "id": "instr-002", "reason": "not_found_or_forbidden" }]
+  }
 }
 ```
+- `updated`: 实际更新条数。
+- `failed[]`: 逐条失败原因（机器可读），**禁止静默跳过**。取值：
+  `not_found_or_forbidden` / `invalid_base_daily_rate` / `invalid_overdue_daily_fee` /
+  `invalid_deposit` / `no_fields` / `query_failed` / `update_failed`。
 
-> `data.updated` 为**实际更新条数**，可能小于请求条数。
+**已知边界**:
+- 周租 / 月租与 `increase` / `decrease` / `multiply` 运算仍未实现（模型无字段，另立设计）。
+- 逾期费 `0` 目前无法表达「免收」（`CalculatePricing` 把 0 当未配置）。
+- 前端唯一实现为 `frontend-pc/src/utils/batchPricing.js`（`BATCH_PRICE_FIELDS` / `emptyBatchPricingValues` /
+  `buildBatchPricingPayload` / `batchPricingFeedback`），库存监控页与乐器列表页共用，禁止各页自拼 payload。
+- 历史缺陷（#2514）：旧前端调用 `PUT /api/instruments/batch/price`（不存在）并发送 `{ids, price_type, amount, operator}` → 恒 404；#2519 起 UI 改为「三项并列 + 逐项开关」。
 
-**已知边界（归 #2519）**:
-- 逐条失败（DB 错误 / 乐器不属于当前租户 / `base_daily_rate <= 0`）当前**只记服务端日志并跳过**，接口仍返回 20000；前端只能比对 `data.updated` 与请求条数，给出「部分更新」提示，无法得知失败原因。
-- 周租 / 月租 / 押金档位，以及 `increase` / `decrease` / `multiply` 运算**未实现**（后端无对应字段与读改写能力）；前端 UI 只暴露「日租金 + 设置为」。
-- 前端唯一实现为 `frontend-pc/src/utils/batchPricing.js`（`buildBatchPricingPayload` / `batchPricingFeedback`），库存监控页与乐器列表页共用，禁止各页自拼 payload。
-- 历史缺陷（#2514）：旧前端调用 `PUT /api/instruments/batch/price`（不存在）并发送 `{ids, price_type, amount, operator}` → 恒 404 且 payload 与后端的 `items` + 元 契约不同。本接口是唯一批量设价端点。
+### 5.6.3 批量修改库存状态
+
+**接口**: `PUT /api/instruments/batch/status`
+
+**权限**: `instrument:update`（cus_perm，租户作用域由 JWT 限定）。单条 `PUT /api/instruments/:id/status` 自 #2519 起不再要求 DebugMode。
+
+**请求 Body**:
+```json
+{ "ids": ["instr-001", "instr-002"], "status": "maintenance" }
+```
+- `ids`: 1–500 个乐器 ID。
+- `status`: 合法值 `available` / `rented` / `maintenance` / `archived` / `lost`。
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "success",
+  "data": { "updated": 2, "failed": [] }
+}
+```
+- 单条不存在或跨租户 → `failed[]` 的 `reason=not_found_or_forbidden`（不泄漏其它租户的存在性）。
+- 非法 `status` → 全局 `400 40003`；`ids` 为空或超过 500 → `400 40002`。
 
 ---
 

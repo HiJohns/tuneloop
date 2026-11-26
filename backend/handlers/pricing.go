@@ -8,6 +8,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"strings"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -191,16 +192,45 @@ func UpdateMerchantPricingConfig(c *gin.Context) {
 	})
 }
 
-// PUT /api/instruments/batch-pricing - Batch set instrument base daily rates
+// mergePricingFields merges the given fields into an instrument's pricing JSONB
+// while preserving unrelated keys (#2519).
+func mergePricingFields(raw string, fields map[string]interface{}) string {
+	pb := map[string]interface{}{}
+	if raw != "" {
+		_ = json.Unmarshal([]byte(raw), &pb)
+	}
+	for key, value := range fields {
+		pb[key] = value
+	}
+	b, err := json.Marshal(pb)
+	if err != nil {
+		return raw
+	}
+	return string(b)
+}
+
+// maxBatchPricingItems bounds one batch-pricing request (#2519).
+const maxBatchPricingItems = 500
+
+// PUT /api/instruments/batch-pricing - Batch set instrument pricing fields
+//
+// #2519 Rev.5：入参为「三个显式字段 + 逐项开关」——base_daily_rate / overdue_daily_fee /
+// deposit，单位元；每项至少一个字段，否则该条进 failed[]（reason=no_fields）。旧的
+// `overrides` 入参已废弃（D11）：不再消费，只传 overrides 的条目即 no_fields。
+//
+// 显式设置优先（D8）：写入权威位置（base_daily_rate / deposit 列 + pricing JSONB 元值）
+// 的同时删除 pricing_overrides 的同名键，避免遗留 override 屏蔽设置值。单条失败必须
+// 上报（D3）：`{updated, failed:[{id, reason}]}`。
 func BatchSetInstrumentPricing(c *gin.Context) {
 	ctx := c.Request.Context()
 	tenantID := middleware.GetTenantID(ctx)
 
 	var req struct {
 		Items []struct {
-			ID            string                  `json:"id" binding:"required"`
-			BaseDailyRate *float64                `json:"base_daily_rate"`
-			Overrides     *map[string]interface{} `json:"overrides,omitempty"`
+			ID              string   `json:"id" binding:"required"`
+			BaseDailyRate   *float64 `json:"base_daily_rate"`
+			OverdueDailyFee *float64 `json:"overdue_daily_fee"`
+			Deposit         *float64 `json:"deposit"`
 		} `json:"items" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -210,35 +240,91 @@ func BatchSetInstrumentPricing(c *gin.Context) {
 		})
 		return
 	}
+	if len(req.Items) == 0 || len(req.Items) > maxBatchPricingItems {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": fmt.Sprintf("items must contain 1-%d entries", maxBatchPricingItems),
+		})
+		return
+	}
 
 	db := database.GetDB().WithContext(ctx)
 	updatedCount := 0
+	failed := make([]gin.H, 0)
 
 	for _, item := range req.Items {
-		updates := map[string]interface{}{}
-		if item.BaseDailyRate != nil && *item.BaseDailyRate > 0 {
-			updates["base_daily_rate"] = models.ToCentsPtr(item.BaseDailyRate)
-		}
-		if item.Overrides != nil {
-			ovJSON, err := json.Marshal(item.Overrides)
-			if err == nil {
-				updates["pricing_overrides"] = string(ovJSON)
+		var instrument models.Instrument
+		if err := db.Where("id = ? AND tenant_id = ?", item.ID, tenantID).First(&instrument).Error; err != nil {
+			reason := "not_found_or_forbidden"
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				log.Printf("[BatchSetPricing] load instrument %s failed: %v", item.ID, err)
+				reason = "query_failed"
 			}
-		}
-		if len(updates) == 0 {
+			failed = append(failed, gin.H{"id": item.ID, "reason": reason})
 			continue
 		}
+
+		updates := map[string]interface{}{}
+		pricingFields := map[string]interface{}{}
+		overrideKeys := make([]string, 0, 3)
+		reason := ""
+
+		if item.BaseDailyRate != nil {
+			if *item.BaseDailyRate <= 0 {
+				reason = "invalid_base_daily_rate"
+			} else {
+				updates["base_daily_rate"] = models.ToCentsPtr(item.BaseDailyRate)
+				pricingFields["daily_rent"] = *item.BaseDailyRate
+				overrideKeys = append(overrideKeys, "daily_rent")
+			}
+		}
+		if reason == "" && item.OverdueDailyFee != nil {
+			if *item.OverdueDailyFee <= 0 {
+				reason = "invalid_overdue_daily_fee"
+			} else {
+				pricingFields["overdue_daily_fee"] = *item.OverdueDailyFee
+				overrideKeys = append(overrideKeys, "overdue_daily_fee")
+			}
+		}
+		if reason == "" && item.Deposit != nil {
+			if *item.Deposit < 0 {
+				reason = "invalid_deposit"
+			} else {
+				// D6：列（分）+ JSONB（元）双写，与单条编辑同语义；0 是显式零押金。
+				updates["deposit"] = models.ToCentsPtr(item.Deposit)
+				pricingFields["deposit"] = *item.Deposit
+				overrideKeys = append(overrideKeys, "deposit")
+			}
+		}
+		if reason == "" && len(pricingFields) == 0 {
+			reason = "no_fields"
+		}
+		if reason != "" {
+			failed = append(failed, gin.H{"id": item.ID, "reason": reason})
+			continue
+		}
+
+		updates["pricing"] = mergePricingFields(instrument.Pricing, pricingFields)
+		// 键名来自本函数的常量集合，不含调用方输入 → 直接内联为 text[] 字面量。
+		quoted := make([]string, 0, len(overrideKeys))
+		for _, key := range overrideKeys {
+			quoted = append(quoted, "'"+key+"'")
+		}
+		updates["pricing_overrides"] = gorm.Expr("COALESCE(pricing_overrides, '{}'::jsonb) - ARRAY[" + strings.Join(quoted, ",") + "]::text[]")
 
 		result := db.Model(&models.Instrument{}).
 			Where("id = ? AND tenant_id = ?", item.ID, tenantID).
 			Updates(updates)
 		if result.Error != nil {
 			log.Printf("[BatchSetPricing] Failed to update instrument %s: %v", item.ID, result.Error)
+			failed = append(failed, gin.H{"id": item.ID, "reason": "update_failed"})
 			continue
 		}
-		if result.RowsAffected > 0 {
-			updatedCount++
+		if result.RowsAffected == 0 {
+			failed = append(failed, gin.H{"id": item.ID, "reason": "not_found_or_forbidden"})
+			continue
 		}
+		updatedCount++
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -246,6 +332,7 @@ func BatchSetInstrumentPricing(c *gin.Context) {
 		"message": "success",
 		"data": gin.H{
 			"updated": updatedCount,
+			"failed":  failed,
 		},
 	})
 }
