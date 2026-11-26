@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"tuneloop-backend/database"
@@ -13,6 +14,7 @@ import (
 	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -43,12 +45,24 @@ func (h *MerchantMemberHandler) ListMembers(c *gin.Context) {
 	page := parseInt(c.DefaultQuery("page", "1"), 1)
 	pageSize := clampPageSize(parseInt(c.DefaultQuery("page_size", "20"), 20), 20, maxPageSize)
 
+	// #2546 D1/D3：默认口径仍是「商户管理员」（既有调用方行为不变）；
+	// include=all 返回本商户全部 active 成员，供「转让所有权」候选使用。
+	includeAll := strings.EqualFold(strings.TrimSpace(c.Query("include")), "all")
+	ownerUID := merchantOwnerUID(merchant)
+
+	applyFilters := func(q *gorm.DB) *gorm.DB {
+		q = q.Where("merchant_members.merchant_id = ? AND merchant_members.tenant_id = ?", merchantID, anchor)
+		if includeAll {
+			return q.Where("(merchant_members.status = ? OR merchant_members.status = ? OR merchant_members.status IS NULL)", "active", "")
+		}
+		return q.Where("merchant_members.role = ?", "merchant_admin")
+	}
+
 	// #2274：显式锚查询 → 关闭自动租户范围（平台管理员 tid 为共享 tenant）
 	qdb := db.WithContext(database.IdentityCtx(c.Request.Context()))
 	var total int64
-	qdb.Table("merchant_members").
-		Joins("JOIN users ON users.id = merchant_members.user_id").
-		Where("merchant_members.merchant_id = ? AND merchant_members.tenant_id = ? AND merchant_members.role = ?", merchantID, anchor, "merchant_admin").
+	applyFilters(qdb.Table("merchant_members").
+		Joins("JOIN users ON users.id = merchant_members.user_id")).
 		Count(&total)
 
 	var members []struct {
@@ -56,16 +70,22 @@ func (h *MerchantMemberHandler) ListMembers(c *gin.Context) {
 		UserName  string    `json:"user_name"`
 		UserEmail string    `json:"user_email"`
 		Role      string    `json:"role"`
+		Status    string    `json:"status"`
+		IsOwner   bool      `json:"is_owner"`
 		CreatedAt time.Time `json:"created_at"`
 	}
 
-	qdb.Table("merchant_members").
-		Select("merchant_members.user_id, users.name as user_name, users.email as user_email, merchant_members.role, merchant_members.created_at").
-		Joins("JOIN users ON users.id = merchant_members.user_id").
-		Where("merchant_members.merchant_id = ? AND merchant_members.tenant_id = ? AND merchant_members.role = ?", merchantID, anchor, "merchant_admin").
+	applyFilters(qdb.Table("merchant_members").
+		Select("merchant_members.user_id, users.name as user_name, users.email as user_email, merchant_members.role, merchant_members.status, merchant_members.created_at").
+		Joins("JOIN users ON users.id = merchant_members.user_id")).
 		Order("merchant_members.created_at DESC").
 		Offset((page - 1) * pageSize).Limit(pageSize).
 		Scan(&members)
+
+	// #2546 D1：is_owner 只是响应级计算字段（不落库），本地权威是 merchants.admin_uid。
+	for i := range members {
+		members[i].IsOwner = ownerUID != "" && members[i].UserID == ownerUID
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 20000,
@@ -74,6 +94,7 @@ func (h *MerchantMemberHandler) ListMembers(c *gin.Context) {
 			"total":     total,
 			"page":      page,
 			"page_size": pageSize,
+			"owner_uid": ownerUID,
 		},
 	})
 }
@@ -293,6 +314,16 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 			role = r
 		}
 
+		// #2546 D2：所有权只能转让，不能追加 —— 显式 OWNER 请求直接拒绝（不调 IAM、
+		// 不写本地），否则 IAM 侧必然 400（组织已有 OWNER）。
+		if isOwnerRoleRequest(role) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    40002,
+				"message": "所有人不能通过添加成员设置，请使用转让所有权",
+			})
+			return
+		}
+
 		var count int64
 		db.Model(&models.MerchantMember{}).
 			Where("merchant_id = ? AND user_id = ?", merchantID, userID).
@@ -313,7 +344,7 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 		}
 
 		normalizedRole := normalizeRole(role)
-		iamRole := toIAMRole(normalizedRole)
+		iamRole := merchantMemberIAMRole(normalizedRole)
 		templateCode := normalizedRole
 
 		// Bind to the merchant's own org (merchant.OrgID) — NOT the namespace
@@ -432,10 +463,27 @@ func (h *MerchantMemberHandler) UpdateMemberRole(c *gin.Context) {
 		return
 	}
 
+	// #2546 D2：所有权只能转让 —— 显式 OWNER 请求、以及改当前所有人角色都必须拒绝，
+	// 且不调 IAM（IAM 侧会 400/403，本地不得先行写入）。
+	if isOwnerRoleRequest(input.Role) || isOwnerRoleRequest(normalizeRole(input.Role)) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "所有人不能通过改角色设置，请使用转让所有权",
+		})
+		return
+	}
+	if ownerUID := merchantOwnerUID(merchant); ownerUID != "" && userID == ownerUID {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "所有人不能改角色，请使用转让所有权",
+		})
+		return
+	}
+
 	var iamUser models.User
 	if err := db.Where("id = ?", userID).First(&iamUser).Error; err == nil && iamUser.IAMSub != "" {
 		normalizedRole := normalizeRole(input.Role)
-		iamRole := toIAMRole(normalizedRole)
+		iamRole := merchantMemberIAMRole(normalizedRole)
 		templateCode := normalizedRole
 
 		iamClient := services.NewIAMClient()
@@ -533,6 +581,12 @@ func (h *MerchantMemberHandler) RemoveMember(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "Member not found"})
 		return
 	}
+	// #2546：所有人（OWNER）不能移除，只能转让所有权 —— 排在既有「最后负责人」
+	// 兜底之前，且不调 IAM（IAM 侧同样会 403）。
+	if ownerUID := merchantOwnerUID(merchant); ownerUID != "" && userID == ownerUID {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40303, "message": "所有人不能移除，只能转让所有权"})
+		return
+	}
 	if target.Role == "merchant_admin" {
 		var adminCount int64
 		db.Model(&models.MerchantMember{}).
@@ -587,6 +641,231 @@ func (h *MerchantMemberHandler) RemoveMember(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"code":    20000,
 		"message": "Member removed successfully",
+	})
+}
+
+// nilUUID2546 is the all-zero UUID Postgres/GORM uses for "no user".
+const nilUUID2546 = "00000000-0000-0000-0000-000000000000"
+
+// merchantOwnerUID returns the merchant's single OWNER pointer.
+//
+// Local authority for ownership is merchants.admin_uid (#2546 D1). An empty or
+// all-zero UUID means the merchant is not anchored locally (see #2553 for the
+// stored-data reconciliation), and callers must not guess an owner.
+func merchantOwnerUID(merchant models.Merchant) string {
+	uid := strings.TrimSpace(merchant.AdminUID)
+	if uid == "" || uid == nilUUID2546 {
+		return ""
+	}
+	return uid
+}
+
+// merchantMemberIAMRole maps a tuneloop business role to the IAM relation role
+// used when binding a merchant member.
+//
+// merchant_admin binds ADMIN: IAM allows at most one OWNER per organization and
+// ownership only moves through transfer-ownership (#2546 D2). toIAMRole keeps its
+// merchant_admin -> OWNER mapping for the creation/activation paths (#2540).
+func merchantMemberIAMRole(businessRole string) string {
+	if businessRole == "merchant_admin" {
+		return "ADMIN"
+	}
+	return toIAMRole(businessRole)
+}
+
+// isOwnerRoleRequest reports whether the caller explicitly asked for OWNER,
+// either with the IAM role code or the business code (case-insensitive).
+func isOwnerRoleRequest(role string) bool {
+	return strings.EqualFold(strings.TrimSpace(role), "owner")
+}
+
+// ownershipTransferError carries the HTTP status/code/message a caller must
+// return for a rejected ownership transfer.
+type ownershipTransferError struct {
+	Status  int
+	Code    int
+	Message string
+}
+
+func (e *ownershipTransferError) Error() string { return e.Message }
+
+// mapTransferOwnershipIAMError maps beaconiam's transfer-ownership status codes
+// to tuneloop's contract (#2546 D5). IAM failures are never downgraded to 200.
+func mapTransferOwnershipIAMError(iamErr *services.IAMTransferOwnershipError) (int, int, string) {
+	switch iamErr.StatusCode {
+	case http.StatusForbidden:
+		return http.StatusForbidden, 40303, "仅当前所有人可转让所有权：" + iamErr.Message
+	case http.StatusNotFound:
+		return http.StatusNotFound, 40400, "转让所有权失败（IAM）：" + iamErr.Message
+	case http.StatusConflict:
+		return http.StatusConflict, 40900, "该商户当前没有所有人，请走修复流程：" + iamErr.Message
+	case http.StatusBadRequest:
+		return http.StatusBadRequest, 40002, "转让所有权失败（IAM）：" + iamErr.Message
+	default:
+		return http.StatusBadGateway, 50200, "转让所有权失败（IAM）：" + iamErr.Message
+	}
+}
+
+// transferMerchantOwnership performs the only allowed ownership change: move the
+// single OWNER to another active member of the same merchant.
+//
+// Order (#2546 D1/D5): local preflight (target must be an active member, not the
+// current owner, and must have an IAM account) -> IAM transfer-ownership -> local
+// pointer move (merchants.admin_uid + admin_pending=false) and business role
+// promotion. IAM is the authority, so a failed transfer leaves the local pointer
+// untouched and is surfaced to the caller verbatim.
+//
+// Returns the previous owner's local user id ("" when the merchant was not
+// anchored locally).
+func transferMerchantOwnership(c *gin.Context, db *gorm.DB, merchant models.Merchant, targetUserID string) (string, error) {
+	previousOwnerID := merchantOwnerUID(merchant)
+
+	if targetUserID == "" || targetUserID == nilUUID2546 {
+		return previousOwnerID, &ownershipTransferError{
+			Status:  http.StatusBadRequest,
+			Code:    40002,
+			Message: "所有人不能清空，只能转让所有权",
+		}
+	}
+	if merchant.OrgID == "" {
+		return previousOwnerID, &ownershipTransferError{
+			Status:  http.StatusInternalServerError,
+			Code:    50000,
+			Message: "商户 org 缺失",
+		}
+	}
+	if previousOwnerID != "" && targetUserID == previousOwnerID {
+		return previousOwnerID, &ownershipTransferError{
+			Status:  http.StatusBadRequest,
+			Code:    40002,
+			Message: "目标用户已是本商户所有人",
+		}
+	}
+
+	// Target must be an active member of THIS merchant (no cross-merchant or
+	// platform-user leakage: non-members get the same 404).
+	var target models.MerchantMember
+	err := db.Where("tenant_id = ? AND merchant_id = ? AND user_id = ? AND (status = ? OR status = ? OR status IS NULL)",
+		merchant.OrgID, merchant.ID, targetUserID, "active", "").
+		First(&target).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return previousOwnerID, &ownershipTransferError{
+				Status:  http.StatusNotFound,
+				Code:    40400,
+				Message: "目标用户不是本商户的成员",
+			}
+		}
+		return previousOwnerID, &ownershipTransferError{
+			Status:  http.StatusInternalServerError,
+			Code:    50000,
+			Message: "查询目标成员失败：" + err.Error(),
+		}
+	}
+
+	var targetUser models.User
+	if err := db.Where("id = ?", targetUserID).First(&targetUser).Error; err != nil || targetUser.IAMSub == "" {
+		return previousOwnerID, &ownershipTransferError{
+			Status:  http.StatusBadRequest,
+			Code:    40002,
+			Message: "目标用户缺少 IAM 账号，无法转让所有权",
+		}
+	}
+
+	iamClient := services.NewIAMClient()
+	userToken := services.ExtractUserToken(c)
+	if err := iamClient.TransferOwnershipWithToken(userToken, merchant.OrgID, targetUser.IAMSub); err != nil {
+		var iamErr *services.IAMTransferOwnershipError
+		if errors.As(err, &iamErr) {
+			status, code, message := mapTransferOwnershipIAMError(iamErr)
+			return previousOwnerID, &ownershipTransferError{Status: status, Code: code, Message: message}
+		}
+		log.Printf("[MerchantTransferOwnership] IAM transfer failed for merchant %s org %s: %v", merchant.ID, merchant.OrgID, err)
+		return previousOwnerID, &ownershipTransferError{
+			Status:  http.StatusBadGateway,
+			Code:    50200,
+			Message: "转让所有权失败（IAM）：" + err.Error(),
+		}
+	}
+
+	// IAM committed the transfer: mirror it locally. RowsAffected must be exactly 1
+	// (a silent 0 would leave local and IAM owners diverged).
+	sync := db.Model(&models.Merchant{}).
+		Where("id = ? AND tenant_id = ?", merchant.ID, merchant.TenantID).
+		Updates(map[string]interface{}{"admin_uid": targetUserID, "admin_pending": false})
+	if sync.Error != nil || sync.RowsAffected != 1 {
+		log.Printf("[MerchantTransferOwnership] ERROR: IAM transferred merchant %s org %s to user %s but local sync failed: err=%v rows=%d",
+			merchant.ID, merchant.OrgID, targetUser.IAMSub, sync.Error, sync.RowsAffected)
+		message := "IAM 已转让，但本地同步失败，请联系平台人工核对"
+		if sync.Error != nil {
+			message = "IAM 已转让，但本地同步失败：" + sync.Error.Error() + "（请联系平台人工核对）"
+		}
+		return previousOwnerID, &ownershipTransferError{
+			Status:  http.StatusInternalServerError,
+			Code:    50000,
+			Message: message,
+		}
+	}
+
+	// Business role stays merchant_admin for both OWNER and ADMIN (#2546 D1); the
+	// target may have been a direct staff member, so promote its row explicitly.
+	if promoteErr := db.Model(&models.MerchantMember{}).
+		Where("tenant_id = ? AND merchant_id = ? AND user_id = ?", merchant.OrgID, merchant.ID, targetUserID).
+		Update("role", "merchant_admin").Error; promoteErr != nil {
+		log.Printf("[MerchantTransferOwnership] ERROR: IAM transferred merchant %s org %s to user %s but local role promotion failed: %v",
+			merchant.ID, merchant.OrgID, targetUser.IAMSub, promoteErr)
+	}
+
+	return previousOwnerID, nil
+}
+
+// TransferOwnership POST /merchants/:id/transfer-ownership - transfer the single
+// merchant OWNER to another active member (#2546).
+func (h *MerchantMemberHandler) TransferOwnership(c *gin.Context) {
+	merchantID := c.Param("id")
+	db := database.GetDB().WithContext(c.Request.Context())
+	tenantID := middleware.GetTenantID(c.Request.Context())
+
+	var input struct {
+		UserID string `json:"user_id"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "Invalid input: " + err.Error()})
+		return
+	}
+	targetUserID := strings.TrimSpace(input.UserID)
+	if targetUserID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "user_id 不能为空"})
+		return
+	}
+	if _, err := uuid.Parse(targetUserID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "user_id 必须是合法的 UUID"})
+		return
+	}
+
+	merchant, ok := loadMerchantForAccess(db, tenantID, merchantID, c)
+	if !ok {
+		return
+	}
+
+	previousOwnerID, err := transferMerchantOwnership(c, db, merchant, targetUserID)
+	if err != nil {
+		var transferErr *ownershipTransferError
+		if errors.As(err, &transferErr) {
+			c.JSON(transferErr.Status, gin.H{"code": transferErr.Code, "message": transferErr.Message})
+			return
+		}
+		c.JSON(http.StatusBadGateway, gin.H{"code": 50200, "message": "转让所有权失败（IAM）：" + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"merchant_id":       merchantID,
+			"previous_owner_id": previousOwnerID,
+			"new_owner_id":      targetUserID,
+		},
 	})
 }
 

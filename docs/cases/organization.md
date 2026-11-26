@@ -202,12 +202,15 @@ steps:
         reach: "所有人 Tab → 转让所有权"
         controls: [目标成员选择（仅本商户 active 成员）, 二次确认（展示「转让后你将成为管理员」）]
         ops:
-          - {type: api, method: POST, path: /admin/merchants/:id/transfer-ownership}
+          - {type: api, method: POST, path: /api/merchants/:id/transfer-ownership}
     # 服务器端动作：
-    #   1. IAM POST /organizations/:org/transfer-ownership（单事务：旧 OWNER→ADMIN、目标→OWNER、perm_version 递增、审计）
-    #   2. 本地 merchant_members 同步（旧 OWNER→ merchant_admin 之外的 ADMIN 语义？见下）
+    #   1. IAM POST /organizations/:org/transfer-ownership {user_id}（单事务：旧 OWNER→ADMIN、目标→OWNER、perm_version 递增、审计）
+    #   2. 本地同步（锁定口径，无未决语义）：所有权指针 = merchants.admin_uid，转让即搬指针
+    #      （admin_uid = 目标本地 id、admin_pending=false），并把目标 merchant_members.role 提升为 merchant_admin；
+    #      旧 OWNER 行保持 merchant_admin —— merchant_members.role 只表达业务角色，OWNER/ADMIN 同为 merchant_admin
     #   3. 业务角色不变：tuneloop 以 tid == oid 判定 merchant_admin（backend/middleware/iam.go），
     #      原 OWNER 降为 ADMIN 后仍是 merchant_admin，仅失去 IAM 侧「删组织/定义角色模板」
+    #   4. 失败不落本地：IAM 403/404/409/400/5xx 一律显式返回（40303/40400/40900/40002/50200）
   - seq: 3
     action: 添加管理员（非所有人）
     frontend:
@@ -220,8 +223,8 @@ steps:
         displays: [姓名/用户名/邮箱/电话表单, 跳过邮箱验证]
         ops:
           - {type: api, method: POST, path: /admin/merchants/:id/members}
-    # 服务器端动作：IAM bind role = ADMIN（toIAMRole 的商户管理员 → ADMIN），
-    # 已有 OWNER 时**禁止**再写 OWNER（返回 400，提示走转让）
+    # 服务器端动作：成员 bind 走 merchantMemberIAMRole → IAM role = ADMIN；
+    # 显式 role=OWNER/owner 请求返回 400/40002（提示走转让），不得静默写成第二个 OWNER。
 ---
 
 # O-03 商户所有人（OWNER）与管理员（ADMIN）
@@ -231,7 +234,9 @@ steps:
 
 ## 关键规则（2026-11-26 OWNER 模型）
 - **每商户恰好 1 个所有人（OWNER）**：IAM `user_org_relations` 部分唯一索引保证；负责人不再是「可多个的商户管理员」
-- **OWNER 不能删除、不能降级**：唯一合法路径是「转让所有权」——原 OWNER 自动降为 ADMIN
+- **本地所有权指针 = `merchants.admin_uid`**：`merchant_members.role` 只表达业务角色（OWNER 与 ADMIN 同为 `merchant_admin`），本地**没有** `is_owner` 列（接口下发的 `is_owner` 只是按 `admin_uid` 计算的响应字段）
+- **OWNER 不能删除、不能降级、不能清空**：唯一合法路径是「转让所有权」——原 OWNER 自动降为 ADMIN；`PUT /api/merchants/:id` 的 `admin_uid` 变化同样走转让端点，置空 → `40002`
+- **添加成员/改角色只能写 ADMIN**：成员 bind 用 `merchantMemberIAMRole`（`merchant_admin → ADMIN`）；显式 `role=OWNER` 请求 `400/40002`
 - 管理员（ADMIN）可多个；可建子组织（直营店）、加成员、分配角色、设直授权限
 - OWNER 独占：删除组织、定义/修改角色模板、改角色模板权限位
 - 业务角色不变：`tid == oid` 判定 merchant_admin，故原 OWNER 降 ADMIN 后 tuneloop 内仍是商户管理员

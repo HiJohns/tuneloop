@@ -1570,6 +1570,63 @@ func (c *IAMClient) UpdateUserRoleInOrgWithToken(token, orgID, userID, role stri
 	return nil
 }
 
+// IAMTransferOwnershipError carries a non-2xx transfer-ownership response so
+// callers can map IAM status codes precisely (403/404/409/400/5xx) instead of
+// swallowing the failure (#2546 D5).
+type IAMTransferOwnershipError struct {
+	StatusCode int
+	Message    string
+}
+
+func (e *IAMTransferOwnershipError) Error() string {
+	if e.Message != "" {
+		return fmt.Sprintf("transfer ownership failed (status %d): %s", e.StatusCode, e.Message)
+	}
+	return fmt.Sprintf("transfer ownership failed (status %d)", e.StatusCode)
+}
+
+// TransferOwnershipWithToken moves the single OWNER relation of an IAM
+// organization to targetUserID (beaconiam#508: POST
+// /api/v1/organizations/:id/transfer-ownership).
+//
+// IAM performs the transfer in one transaction (previous OWNER -> ADMIN, target
+// -> OWNER, audit log) and bumps perm_version itself, so the caller must not call
+// IncrementPermVersion() again (#2546 D6).
+func (c *IAMClient) TransferOwnershipWithToken(token, orgID, targetUserID string) error {
+	path := fmt.Sprintf("/api/v1/organizations/%s/transfer-ownership", orgID)
+	respBody, statusCode, err := c.doRequestWithToken("POST", path, token, map[string]string{"user_id": targetUserID})
+	if err != nil {
+		return fmt.Errorf("TransferOwnership request failed: %w", err)
+	}
+	if statusCode == http.StatusOK {
+		log.Printf("[IAMClient] Transferred org %s ownership to user %s (user token)", orgID, targetUserID)
+		return nil
+	}
+	return &IAMTransferOwnershipError{StatusCode: statusCode, Message: iamErrorMessage(respBody)}
+}
+
+// iamErrorMessage extracts beaconiam's `{"error": "..."}` (or `message`) payload
+// so handlers can surface the upstream reason verbatim.
+func iamErrorMessage(body []byte) string {
+	var payload struct {
+		Error   string `json:"error"`
+		Message string `json:"message"`
+	}
+	if err := json.Unmarshal(body, &payload); err == nil {
+		if payload.Error != "" {
+			return payload.Error
+		}
+		if payload.Message != "" {
+			return payload.Message
+		}
+	}
+	text := strings.TrimSpace(string(body))
+	if len(text) > 300 {
+		text = text[:300]
+	}
+	return text
+}
+
 func (c *IAMClient) DeleteUserWithToken(token, iamUserID string) error {
 	path := fmt.Sprintf("/api/v1/users/%s", iamUserID)
 	respBody, statusCode, err := c.doRequestWithToken("DELETE", path, token, nil)

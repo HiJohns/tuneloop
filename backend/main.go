@@ -494,6 +494,7 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.GET("/merchants/:id", middleware.ExplicitTenantScope(), middleware.RequireSysPerm(middleware.SysPermTenantView), merchantHandler.GetMerchant)
 		authRequired.POST("/merchants", middleware.ExplicitTenantScope(), middleware.RequireSysPerm(middleware.SysPermTenantCreate), merchantHandler.CreateMerchant)
 		authRequired.PUT("/merchants/:id", middleware.ExplicitTenantScope(), middleware.RequireSysPerm(middleware.SysPermTenantUpdate), merchantHandler.UpdateMerchant)
+		authRequired.POST("/merchants/:id/transfer-ownership", middleware.ExplicitTenantScope(), middleware.RequireSysPerm(middleware.SysPermTenantUpdate), merchantMemberHandler.TransferOwnership)
 		authRequired.DELETE("/merchants/:id", middleware.ExplicitTenantScope(), middleware.RequireSysPerm(middleware.SysPermTenantDelete), merchantHandler.DeleteMerchant)
 		authRequired.GET("/admin/merchants/:id/members", middleware.ExplicitTenantScope(), middleware.RequireSysPerm(middleware.SysPermTenantView), merchantMemberHandler.ListMembers)
 		authRequired.POST("/admin/merchants/:id/members", middleware.ExplicitTenantScope(), middleware.RequireSysPerm(middleware.SysPermTenantUpdate), merchantMemberHandler.AddMember)

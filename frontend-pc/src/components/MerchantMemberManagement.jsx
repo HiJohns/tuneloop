@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Table, Button, Space, message, Tag, Popconfirm, Modal, Input, Select, Form, Alert } from 'antd';
-import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, SearchOutlined, SwapOutlined } from '@ant-design/icons';
 import api, { invitesApi } from '../services/api';
 import { formatBeijingDate } from '../utils/date';
 import PasswordSettingFields from './PasswordSettingFields';
 import InitialPasswordModal from './InitialPasswordModal'
 import { resolveCreateFeedback } from '../utils/createFeedback';
+import { pickOwnerRow, transferCandidates, canRemoveMember, transferConfirmText } from '../utils/merchantOwnership';
 
 const ROLE_COLORS = {
   owner: 'red', merchant_admin: 'red',
@@ -32,7 +33,7 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [adding, setAdding] = useState(false);
-  const [selectedRole] = useState('merchant_admin'); // 负责人管理：只能创建商户管理员 (#1718)
+  const [selectedRole] = useState('merchant_admin'); // #2546：添加成员只能是 ADMIN；OWNER 只能通过转让获得
   // #2373：密码模式（D1）——不再暴露「跳过邮箱验证」独立开关；密码模式即直接激活。
   const [autoGenerate, setAutoGenerate] = useState(true);
   const [forcePasswordChange, setForcePasswordChange] = useState(true);
@@ -50,6 +51,22 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
   const [duplicates, setDuplicates] = useState({});
   const [checking, setChecking] = useState(false);
 
+  // #2546：所有人（唯一 OWNER）与转让所有权。
+  const [ownerUid, setOwnerUid] = useState('');
+  const [allMembers, setAllMembers] = useState([]);
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferTarget, setTransferTarget] = useState('');
+  const [transferring, setTransferring] = useState(false);
+
+  const readCurrentUserIsOwner = () => {
+    try {
+      return JSON.parse(localStorage.getItem('user_info') || '{}').isOwner === true;
+    } catch {
+      return false;
+    }
+  };
+  const currentUserIsOwner = readCurrentUserIsOwner();
+
   useEffect(() => {
     if (merchantId) {
       fetchMembers();
@@ -63,26 +80,68 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
       if (response && response.code === 20000) {
         setMembers(response.data?.list || []);
         setTotal(response.data?.total || 0);
+        setOwnerUid(response.data?.owner_uid || '');
+      }
+      // 转让候选 = 本商户全部 active 成员（排除所有人），后端 include=all 是唯一来源。
+      const all = await api.get(`/admin/merchants/${merchantId}/members`, { params: { include: 'all', page: 1, page_size: 200 } });
+      if (all && all.code === 20000) {
+        setAllMembers(all.data?.list || []);
+        if (all.data?.owner_uid !== undefined) setOwnerUid(all.data.owner_uid || '');
       }
     } catch (error) {
-      message.error('获取负责人列表失败');
+      message.error('获取所有人/管理员列表失败');
     } finally {
       setLoading(false);
     }
   };
 
-
   const handleRemoveMember = async (userId) => {
     try {
       const response = await api.delete(`/admin/merchants/${merchantId}/members/${userId}`);
       if (response.code === 20000) {
-        message.success('负责人移除成功');
+        message.success('管理员移除成功');
         fetchMembers();
         onRefresh && onRefresh();
       }
     } catch (error) {
-      message.error('移除负责人失败');
+      message.error('移除管理员失败');
     }
+  };
+
+  const handleTransferOwnership = async () => {
+    setTransferring(true);
+    try {
+      const response = await api.post(`/merchants/${merchantId}/transfer-ownership`, { user_id: transferTarget });
+      if (response && response.code === 20000) {
+        message.success('所有权已转让，你现在是该商户的管理员');
+        setTransferOpen(false);
+        setTransferTarget('');
+        fetchMembers();
+        onRefresh && onRefresh();
+      } else {
+        message.error(response?.message || '转让所有权失败');
+      }
+    } catch (error) {
+      message.error(error?.message || '转让所有权失败');
+    } finally {
+      setTransferring(false);
+    }
+  };
+
+  const confirmTransferOwnership = () => {
+    const target = transferCandidates(allMembers, ownerUid).find((member) => member.user_id === transferTarget);
+    if (!target) {
+      message.warning('请选择转让目标成员');
+      return;
+    }
+    Modal.confirm({
+      title: '确认转让所有权',
+      content: transferConfirmText(target.user_name || target.user_email),
+      okText: '确认转让',
+      cancelText: '取消',
+      okButtonProps: { danger: true },
+      onOk: handleTransferOwnership,
+    });
   };
 
   const checkField = async (field, value) => {
@@ -322,8 +381,9 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
       title: '角色',
       key: 'role',
       render: (_, record) => (
-        // 负责人管理（#1718）：所有成员均为商户管理员，无角色切换
-        <Tag color="red">{ROLE_NAMES[record.role] || '商户管理员'}</Tag>
+        record.is_owner
+          ? <Tag color="red">所有人（OWNER）</Tag>
+          : <Tag color="blue">管理员</Tag>
       ),
     },
     {
@@ -336,8 +396,12 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
       title: '操作',
       key: 'actions',
       render: (_, record) => {
-        // 最后负责人保护（#1718）：仅剩 1 个负责人时禁用移除（后端同样拒绝）
-        const isLastAdmin = members.length <= 1
+        // #2546：所有人只能转让，不能移除（后端同样 40303）。
+        if (!canRemoveMember(record, ownerUid)) {
+          return <Space />;
+        }
+        // 最后管理员保护（#1718）：仅剩 1 个管理员时禁用移除（后端同样拒绝）。
+        const isLastAdmin = members.length <= 1;
         return (
           <Space>
             <Popconfirm
@@ -354,8 +418,41 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
     },
   ];
 
+  const ownerRow = pickOwnerRow(members);
+  const candidates = transferCandidates(allMembers, ownerUid);
+  const canTransfer = currentUserIsOwner && !!ownerRow && candidates.length > 0;
+
   return (
     <div>
+      {ownerRow ? (
+        <div
+          style={{
+            marginBottom: 16, padding: 12, borderRadius: 6, background: '#fff1f0',
+            border: '1px solid #ffccc7', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          }}
+        >
+          <div>
+            <Tag color="red">所有人（OWNER）</Tag>
+            <span style={{ fontWeight: 600 }}>{ownerRow.user_name || '-'}</span>
+            <span style={{ color: '#888', marginLeft: 8 }}>{ownerRow.user_email || '-'}</span>
+            <span style={{ color: '#888', marginLeft: 8 }}>加入时间：{formatBeijingDate(ownerRow.created_at)}</span>
+          </div>
+          {canTransfer && (
+            <Button icon={<SwapOutlined />} onClick={() => { setTransferTarget(''); setTransferOpen(true); }}>
+              转让所有权
+            </Button>
+          )}
+        </div>
+      ) : (
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message="未锚定所有人"
+          description="该商户当前没有有效所有人（请联系平台核对）。为避免产生第二个 OWNER，转让入口已禁用。"
+        />
+      )}
+
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Input
           prefix={<SearchOutlined />}
@@ -372,6 +469,34 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
           添加管理员
         </Button>
       </div>
+
+      <Modal
+        title="转让所有权"
+        open={transferOpen}
+        onCancel={() => setTransferOpen(false)}
+        onOk={confirmTransferOwnership}
+        okText="转让所有权"
+        confirmLoading={transferring}
+        destroyOnClose
+      >
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message="转让后你将成为管理员"
+          description="所有权转让后，原所有人自动降为管理员；该操作不可撤销，如需取回需由新所有人再次转让。"
+        />
+        <Select
+          style={{ width: '100%' }}
+          placeholder="选择本商户的成员作为新所有人"
+          value={transferTarget || undefined}
+          onChange={setTransferTarget}
+          options={candidates.map((member) => ({
+            value: member.user_id,
+            label: `${member.user_name || member.user_email || member.user_id}（${ROLE_NAMES[member.role] || member.role}）`,
+          }))}
+        />
+      </Modal>
 
       <Modal
         title="添加管理员"
@@ -446,7 +571,7 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
         )}
 
         <div style={formMode === 'existing' ? { borderTop: '1px solid #f0f0f0', paddingTop: 16 } : {}}>
-          {/* 负责人管理（#1718）：只能创建商户管理员，无需角色选择 */}
+          {/* #2546：添加成员只能创建管理员（ADMIN），没有「设为负责人」选项 */}
           <input type="hidden" value={selectedRole} />
           {formMode !== 'existing' && (
             <Form form={pwdForm} component={false} onValuesChange={(_, vals) => setPasswordDraft(vals.password || '')}>

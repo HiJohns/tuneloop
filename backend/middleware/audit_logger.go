@@ -30,6 +30,7 @@ var auditRouteMap = map[string]auditRouteInfo{
 	"POST /api/iam/users/:user_id/invite":          {"INVITE", "user", "CRITICAL"},
 	"POST /api/merchants":                          {"CREATE", "merchant", "CRITICAL"},
 	"PUT /api/merchants/:id":                       {"UPDATE", "merchant", "CRITICAL"},
+	"POST /api/merchants/:id/transfer-ownership":   {"TRANSFER_OWNERSHIP", "merchant", "CRITICAL"},
 	"DELETE /api/merchants/:id":                    {"DELETE", "merchant", "CRITICAL"},
 	"POST /api/merchant/sites":                     {"CREATE", "site", "CRITICAL"},
 	"PUT /api/merchant/sites/:id":                  {"UPDATE", "site", "CRITICAL"},
