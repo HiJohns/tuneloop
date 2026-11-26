@@ -6,6 +6,8 @@ import { formatBeijingDate } from '../utils/date';
 import PasswordSettingFields from './PasswordSettingFields';
 import InitialPasswordModal from './InitialPasswordModal'
 import { resolveCreateFeedback } from '../utils/createFeedback';
+import FormConflictAlert from './FormConflictAlert';
+import { conflictText, isBusinessCorrectableConflict } from '../utils/formConflict';
 
 const ROLE_COLORS = {
   owner: 'red', merchant_admin: 'red',
@@ -30,6 +32,8 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
   const [pageSize, setPageSize] = useState(20);
   const [total, setTotal] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
+  // #2485（沿用 #2480 D8）：业务可纠正冲突用表单内持久提示，不用 3 秒 toast。
+  const [formConflict, setFormConflict] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
   const [adding, setAdding] = useState(false);
   const [selectedRole] = useState('merchant_admin'); // 负责人管理：只能创建商户管理员 (#1718)
@@ -137,6 +141,7 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
   };
 
   const handleSubmit = async () => {
+    setFormConflict(''); // #2485 D8：提交开始即清空
     setAdding(true);
     try {
       if (formMode === 'existing') {
@@ -148,6 +153,9 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
             message.success('已发送加入邀请，待对方确认')
             setModalVisible(false)
             resetForm()
+          } else if (isBusinessCorrectableConflict(invite)) {
+            // #2485：已有待处理邀请等冲突改为表单内持久提示。
+            setFormConflict(conflictText(invite, '发送邀请失败，请调整后重试'))
           } else {
             message.error(invite.message || '发送邀请失败')
           }
@@ -167,6 +175,8 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
             message.warning('绑定成功，但部分角色权限分配失败。');
           }
         } else {
+          // #2485 D1：POST /admin/merchants/:id/members（AddMember）只导出
+          // 40001/40901/50000，不含业务可纠正码 → 持久提示分支不可达，保持 toast。
           message.error(response.message || '绑定失败');
         }
       } else {
@@ -271,6 +281,7 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
             });
           }
         } else {
+          // #2485 D1：AddMember 不导出 40002/40004/40005/40900，持久提示不可达。
           message.error(response.message || '添加成员失败');
         }
       }
@@ -279,6 +290,7 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
   };
 
   const bindExistingUser = async (userId) => {
+    setFormConflict(''); // #2485 D8：提交开始即清空
     setAdding(true);
     try {
       const response = await api.post(`/admin/merchants/${merchantId}/members`, {
@@ -294,6 +306,7 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
           message.warning('绑定成功，但部分角色权限分配失败。');
         }
       } else {
+        // #2485 D1：AddMember 无业务可纠正码，保持瞬时 toast。
         message.error(response.message || '绑定失败');
       }
     } catch { message.error('操作失败') }
@@ -365,7 +378,7 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
           value={searchKeyword}
           onChange={(e) => setSearchKeyword(e.target.value)}
         />
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => {
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => { setFormConflict('');
           resetForm();
           setModalVisible(true);
         }}>
@@ -376,10 +389,11 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
       <Modal
         title="添加管理员"
         open={modalVisible}
-        onCancel={() => { setModalVisible(false); resetForm(); }}
+        onCancel={() => { setFormConflict(''); setModalVisible(false); resetForm(); }}
         footer={null}
         width={520}
       >
+        <FormConflictAlert text={formConflict} testId="merchant-member-form-conflict" />
         {formMode === 'existing' && existingUser ? (
           <>
             <Alert
