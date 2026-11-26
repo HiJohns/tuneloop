@@ -1,0 +1,6 @@
+# build=1.0.017bc5619 # commit=017bc5619be91047ea7acb74c93b14f1a8ae0f75 # dirty=false
+GENERATED_AT_HEAD=017bc5619be91047ea7acb74c93b14f1a8ae0f75
+== R3 合并审计（ACCOUNT_MERGE + from/to iam_sub + 来源 qr_bind） ==
+--- PASS: TestAccountMergeWritesAudit_2567 (0.92s)
+    account_merge_2567_test.go:280: AUDIT_ACTION=ACCOUNT_MERGE AUDIT_HAS_FROM_TO=1 AUDIT_SOURCE=qr_bind AUDIT_RESOURCE=user
+R3_OK

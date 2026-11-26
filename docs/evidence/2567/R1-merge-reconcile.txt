@@ -1,0 +1,6 @@
+# build=1.0.017bc5619 # commit=017bc5619be91047ea7acb74c93b14f1a8ae0f75 # dirty=false
+GENERATED_AT_HEAD=017bc5619be91047ea7acb74c93b14f1a8ae0f75
+== R1 合并后缓存镜像（A 继承组织身份 / C 废止回落顾客态） ==
+--- PASS: TestAccountMergeReconcilesCache_2567 (1.00s)
+    account_merge_2567_test.go:117: A_ROLE=merchant_staff A_TENANT=8d9eca17-f36f-4052-a7d8-831d2a477c63 A_ORG=8d9eca17-f36f-4052-a7d8-831d2a477c63 A_TENANT_NON_NIL=1 C_STATUS=obsolete C_ROLE=USER MEMBERSHIP_ROWS=1 IDEMPOTENT_ROLE=merchant_staff IDEMPOTENT_MEMBERSHIP_ROWS=1
+R1_OK

@@ -1,0 +1,50 @@
+# build=1.0.017bc5619 # commit=017bc5619be91047ea7acb74c93b14f1a8ae0f75 # dirty=false
+GENERATED_AT_HEAD=017bc5619be91047ea7acb74c93b14f1a8ae0f75
+== R5 构建/测试（go build + 定向 go test + weapp build + eslint） ==
+--- PASS: TestAccountMergeReconcilesCache_2567 (0.92s)
+--- PASS: TestListStaffHidesObsolete_2567 (0.77s)
+--- PASS: TestPersonnelMerchantViewHidesObsolete_2567 (0.76s)
+--- PASS: TestAccountMergeWritesAudit_2567 (0.76s)
+--- PASS: TestAccountMergeClosesLocalTodo_2567 (0.80s)
+--- PASS: TestListStaff_SiteNames_2449 (0.82s)
+--- PASS: TestPersonnel2065_MerchantView (0.73s)
+--- PASS: TestPersonnel_MerchantView_TenantIsolation2336 (0.76s)
+--- PASS: TestPersonnel2065_SiteView (0.75s)
+--- PASS: TestPersonnel2065_SystemView (0.77s)
+--- PASS: TestPersonnel2065_CustomerDenied (0.76s)
+--- PASS: TestPersonnel2065_MerchantSearchAndSiteFilter (0.75s)
+--- PASS: TestPersonnel2067_MembershipAnchorAndDirect (0.76s)
+--- PASS: TestPersonnel2072_NewestFirst (0.76s)
+--- PASS: TestListStaffDirectRole_2462 (0.72s)
+PASS
+ok  	tuneloop-backend/handlers	12.487s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795718814328 hold_ms=19582
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795718814449 wait_ms=71
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=71
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795718826441 hold_ms=11992
+  145:112  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+  149:38   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+  154:27   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+  157:112  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+  161:38   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+  166:27   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+
+✖ 48 problems (0 errors, 48 warnings)
+
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795718830624 hold_ms=4061
+
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795718871085 hold_ms=40307
+GO_TEST_OK=1
+GO_TEST_PASS_COUNT=15
+GO_TEST_FAIL_COUNT=0
+GO_BUILD_OK=1
+MOBILE_BUILD_OK=1
+ESLINT_OK=1
+WEAPP_NATIVE_TAG_HITS=0
+R5_OK

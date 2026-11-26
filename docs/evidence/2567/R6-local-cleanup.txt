@@ -1,0 +1,7 @@
+# build=1.0.017bc5619 # commit=017bc5619be91047ea7acb74c93b14f1a8ae0f75 # dirty=false
+GENERATED_AT_HEAD=017bc5619be91047ea7acb74c93b14f1a8ae0f75
+== R6 C 的本地待办/邀请关闭（不触碰 IAM 库） ==
+--- PASS: TestAccountMergeClosesLocalTodo_2567 (1.07s)
+    account_merge_2567_test.go:328: LOCAL_INVITES_CLOSED=1 CONFIRM_SESSIONS_CLOSED=1 IAM_DB_TOUCHED=0
+IAM_SQL_HITS=0
+R6_OK
