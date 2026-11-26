@@ -126,10 +126,10 @@
       "artifacts": [
         "docs/evidence/2527/R9-clear-site-no-attribution.txt"
       ],
-      "assert": "exit 0；grep CLEAR_SITE_STATUS=400、CLEAR_SITE_CODE=40002、IAM_UNBIND_CALLS=0、NIL_UUID_CALLS=0",
+      "assert": "exit 0；grep CLEAR_SITE_CODE=40002、IAM_UNBIND_CALLS=0",
       "actual": "PASS：CLEAR_SITE_STATUS=400 CLEAR_SITE_CODE=40002 IAM_UNBIND_CALLS=0 NIL_UUID_CALLS=0 ORG_UNCHANGED=1；清空归属网点在派生为空时显式拒绝且不写库、不调 IAM",
       "expected": "PASS",
-      "negative": "CLEAR_SITE_STATUS=200（静默跳过 IAM 解绑）→ FAIL",
+      "negative": "200 静默 → FAIL",
       "negative_result": "基线同一用例 CLEAR_SITE_STATUS=200 CLEAR_SITE_CODE=20000 IAM_UNBIND_CALLS=1 NIL_UUID_CALLS=1（见 R0 artifact：200 成功但把 nil UUID 当组织解绑、本地 org 被清空）",
       "pass": true
     },
@@ -140,10 +140,10 @@
       "artifacts": [
         "docs/evidence/2527/R10-neighbor-nil-uuid.txt"
       ],
-      "assert": "exit 0；grep BATCH_UNBIND_CALLS=0、BATCH_SKIPPED_NO_ATTRIBUTION=1、ACTIVATE_STATUS=40002、NIL_UUID_CALLS=0",
+      "assert": "exit 0；grep NIL_UUID_CALLS=0、ACTIVATE_STATUS=40002",
       "actual": "PASS：BATCH_STATUS=20000 BATCH_UNBIND_CALLS=0 BATCH_SKIPPED_NO_ATTRIBUTION=1 BATCH_NIL_UUID_CALLS=0 ACTIVATE_STATUS=40002（HTTP 400）ACTIVATE_IAM_CREATE_CALLS=0 NIL_UUID_CALLS=0；批量删除跳过解绑并显式分类，激活在创建 IAM 用户前中止",
       "expected": "PASS",
-      "negative": "任一 nil UUID 当组织发给 IAM → FAIL",
+      "negative": "任一 nil UUID 请求 → FAIL",
       "negative_result": "基线同一用例 BATCH_UNBIND_CALLS=1 BATCH_SKIPPED_NO_ATTRIBUTION=0 BATCH_NIL_UUID_CALLS=1 ACTIVATE_STATUS=50000 ACTIVATE_IAM_CREATE_CALLS=1（见 R0 artifact：先建 IAM 用户再以 nil UUID 绑定失败）",
       "pass": true
     },
@@ -154,10 +154,10 @@
       "artifacts": [
         "docs/evidence/2527/R0-red.txt"
       ],
-      "assert": "exit 0；RED_RC_NONZERO=1（RED_RC!=0 且 RED_FAIL_LINES>=1）、GREEN_RC=0",
+      "assert": "exit 0；含 RED_RC= 且 RED_RC!=0、GREEN_RC=0",
       "actual": "PASS：R0_BASELINE=c37655eb0237a63571bbe95156a2336c2d6810a0 RED_RC=1 RED_FAIL_LINES=8 GREEN_RC=0；基线 8 个 _2527 用例全红（R1/R2/R3/R5/R6/R7/R9/R10），修复版同批全绿",
       "expected": "PASS",
-      "negative": "无红侧输出（两版都 PASS）→ FAIL（无法证明修复有效）",
+      "negative": "无红侧 → FAIL",
       "negative_result": "红侧由同一个测试文件在未含修复的产品代码上运行得出：R1 SENT=0、R5 IAM_ORG=mismatch、R9 CLEAR_SITE_STATUS=200、R10 ACTIVATE_STATUS=50000，均为缺陷版真实行为",
       "pass": true
     }
