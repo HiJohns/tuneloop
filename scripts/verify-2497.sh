@@ -438,15 +438,18 @@ r6)
     ;;
 r7)
     # 全量后端回归（plan R7）：clean tree + -timeout 20m。
+    # -p 1：handlers 的 TestMain 会 DROP/CREATE 共享 run 库（TUNELOOP_TEST_DB），
+    # services 的 scratch 用例连的是同一个库名 → 并行跑包时会被 FORCE 断开（SQLSTATE 57P01）。
+    # 串行跑包保持全量覆盖不变，只是消除该库名冲突。
     full_log="$REPO_ROOT/tmp/verify-$ISSUE-r7-gotest.log"
-    ( cd "$REPO_ROOT/backend" && heavy go test ./... -count=1 -timeout 20m ) > "$full_log" 2>&1
+    ( cd "$REPO_ROOT/backend" && heavy go test ./... -count=1 -timeout 20m -p 1 ) > "$full_log" 2>&1
     full_exit=$?
     fails="$(grep -cE '^(--- FAIL|FAIL[[:space:]])' "$full_log" || true)"
     panics="$(grep -c '^panic:' "$full_log" || true)"
     [ -n "$fails" ] || fails=0
     [ -n "$panics" ] || panics=0
-    body="FULL_SUITE_CMD=cd backend && go test ./... -count=1 -timeout 20m"$'\n'
-    body+="TEST_DB_ENV=TUNELOOP_DB=$TUNELOOP_DB POSTGRES_HOST=$POSTGRES_HOST POSTGRES_PORT=$POSTGRES_PORT"$'\n'
+    body="FULL_SUITE_CMD=cd backend && go test ./... -count=1 -timeout 20m -p 1（包串行：规避 handlers run-库 DROP 与 services scratch 用例的库名冲突）"$'\n'
+    body+="TEST_DB_ENV=TUNELOOP_DB=$TUNELOOP_DB TUNELOOP_TEST_DB=$TUNELOOP_TEST_DB POSTGRES_HOST=$POSTGRES_HOST POSTGRES_PORT=$POSTGRES_PORT"$'\n'
     body+="FULL_SUITE_EXIT=$full_exit"$'\n'
     body+="FAIL_COUNT=$fails"$'\n'
     body+="PANIC_COUNT=$panics"$'\n'
