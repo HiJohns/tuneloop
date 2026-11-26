@@ -23,7 +23,7 @@ steps:
         role: [merchant_admin, site_admin]
         gate: "名称必填"
         reach: ""
-        controls: [名称输入, 类型选择(加盟/直营/合作), 地址, 电话, 管理员搜索, 创建新用户按钮]
+        controls: [名称输入, 类型选择(直营店/加盟店), 地址, 电话, 管理员搜索(直营店可选/可零成员), 创建新用户按钮, 所有人搜索(仅加盟店, 必填)]
         displays: [选中管理员姓名/邮箱, 名称重复校验结果]
         ops:
           - {type: interact}
@@ -55,9 +55,11 @@ steps:
 3. 提交 → 后端 IAM 三步绑定（org 创建 + bind + cus_perm + role 模板）
 4. 网点树更新
 
-## 关键规则
-- IAM 下级组织 parent_id = 商户 org_id
-- 管理员初始角色 site_admin
+## 关键规则（2026-11-26 组织模型）
+- **直营店**（默认唯一可直接创建的形态）：IAM 建 `parent_id = 商户 org_id` 的**分支组织**（`kind=branch`），**没有 OWNER**，只有管理员；**可以零成员**（不指定管理员也能建）
+- **加盟店**：法律上独立 → 在命名空间下建**独立组织**（`kind=franchise`）+ 绑定**所有人（OWNER，必填）** + 建 `org_link(kind=franchise)` 关联当前商户；不允许无 owner 建店
+- **合作店**：暂不做（无类型选项、无入口；后续按 `org_link.kind=partner` 扩展）
+- 管理员初始角色 site_admin；角色模板由商户 owner 定义，直营店只能分配不能定义
 - 本地 site_members 同步
 
 ## 验收
@@ -177,64 +179,66 @@ steps:
 ---
 id: O-03
 domain: organization
-flow: 商户负责人管理（#1718）
+flow: 商户所有人（OWNER）与管理员（ADMIN）
 steps:
   - seq: 1
-    action: 查看商户负责人
+    action: 查看商户所有人
     frontend:
       - platform: [pc]
         page: /merchants/:id
         role: [tenant_admin]
-        reach: "商户管理 → 商户详情 → 负责人管理 Tab"
-        controls: [负责人列表（仅 merchant_admin）, 添加管理员按钮]
-        displays: [负责人姓名/邮箱/角色（固定商户管理员）/加入时间]
+        reach: "商户管理 → 商户详情 → 所有人 Tab"
+        controls: [所有人（唯一）卡片, 转让所有权按钮, 管理员列表]
+        displays: [所有人姓名/邮箱/加入时间, 管理员姓名/邮箱/加入时间]
         ops:
           - {type: api, method: GET, path: /admin/merchants/:id/members}
   - seq: 2
-    action: 添加管理员
+    action: 转让所有权
     frontend:
       - platform: [pc]
         page: /merchants/:id
         role: [tenant_admin]
-        reach: "负责人管理 Tab → 添加管理员"
+        gate: "当前登录账号是该商户的 OWNER"
+        reach: "所有人 Tab → 转让所有权"
+        controls: [目标成员选择（仅本商户 active 成员）, 二次确认（展示「转让后你将成为管理员」）]
+        ops:
+          - {type: api, method: POST, path: /admin/merchants/:id/transfer-ownership}
+    # 服务器端动作：
+    #   1. IAM POST /organizations/:org/transfer-ownership（单事务：旧 OWNER→ADMIN、目标→OWNER、perm_version 递增、审计）
+    #   2. 本地 merchant_members 同步（旧 OWNER→ merchant_admin 之外的 ADMIN 语义？见下）
+    #   3. 业务角色不变：tuneloop 以 tid == oid 判定 merchant_admin（backend/middleware/iam.go），
+    #      原 OWNER 降为 ADMIN 后仍是 merchant_admin，仅失去 IAM 侧「删组织/定义角色模板」
+  - seq: 3
+    action: 添加管理员（非所有人）
+    frontend:
+      - platform: [pc]
+        page: /merchants/:id
+        role: [tenant_admin]
+        reach: "所有人 Tab → 添加管理员"
         controls: [添加管理员按钮, 新建用户/绑定现有用户表单]
-        # 无角色选择——只能创建商户管理员（#1718）
+        # 只能创建 ADMIN，不再有「设为负责人」选项
         displays: [姓名/用户名/邮箱/电话表单, 跳过邮箱验证]
         ops:
           - {type: api, method: POST, path: /admin/merchants/:id/members}
-    # 服务器端动作（#1718 核对）：POST 添加管理员 →
-    #   1. IAM CreateUser/CreateOrGetUser（新用户建号，skip_activation 时发初始密码）
-    #   2. IAM BindUserToOrganization 绑定到 **商户组织 merchant.org_id**（非 namespace tenant_id），
-    #      role = OWNER（merchant_admin → OWNER，经 toIAMRole）
-    #   3. IAM AssignRoleTemplate（template_code = merchant_admin）
-    #   4. 本地 users 缓存同步（iam_sub = IAM user id）
-    #   5. merchant_members 落库（role = merchant_admin）
-    #   绑定 org 若错绑 namespace（tenant_id）→ IAM 侧成员归属与既有成员不一致（#1718 修复）
-  - seq: 3
-    action: 移除负责人
-    frontend:
-      - platform: [pc]
-        page: /merchants/:id
-        role: [tenant_admin]
-        gate: "负责人数量 > 1"
-        controls: [移除按钮（唯一负责人时禁用）]
-        ops:
-          - {type: api, method: DELETE, path: /admin/merchants/:id/members/:uid}
-    # 最后负责人保护（#1718）：后端删除时校验 merchant_admin 数量 ≤1 → 拒绝
-    # "不能删除最后一个负责人"；前端列表仅 1 个时禁用移除按钮（UX 兜底）
+    # 服务器端动作：IAM bind role = ADMIN（toIAMRole 的商户管理员 → ADMIN），
+    # 已有 OWNER 时**禁止**再写 OWNER（返回 400，提示走转让）
 ---
 
-# O-03 商户负责人管理（#1718）
+# O-03 商户所有人（OWNER）与管理员（ADMIN）
 
 ## 前置条件
 - 租户管理员，已进入商户详情
 
-## 关键规则
-- 负责人 = 商户管理员（merchant_admin），可多个
-- 列表仅列负责人；无角色切换（角色固定商户管理员）
-- 添加入口 =「添加管理员」（无角色选择）
-- **不得删除最后一个负责人**：后端服务器端校验（40009），前端禁用移除按钮
-- 与网点成员「最后一名管理员保护」（O-01）语义对齐
+## 关键规则（2026-11-26 OWNER 模型）
+- **每商户恰好 1 个所有人（OWNER）**：IAM `user_org_relations` 部分唯一索引保证；负责人不再是「可多个的商户管理员」
+- **OWNER 不能删除、不能降级**：唯一合法路径是「转让所有权」——原 OWNER 自动降为 ADMIN
+- 管理员（ADMIN）可多个；可建子组织（直营店）、加成员、分配角色、设直授权限
+- OWNER 独占：删除组织、定义/修改角色模板、改角色模板权限位
+- 业务角色不变：`tid == oid` 判定 merchant_admin，故原 OWNER 降 ADMIN 后 tuneloop 内仍是商户管理员
+- 与网点成员「最后一名管理员保护」（O-01）不再同语义：网点没有 OWNER，只有管理员
+
+## 语义变更记录
+- 旧用例（#1718）：「负责人 = 商户管理员，可多个」「不得删除最后一个负责人」→ 已被 2026-11-26 OWNER 模型取代（beaconiam#508）
 
 ---
 
