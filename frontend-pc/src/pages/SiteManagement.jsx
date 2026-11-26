@@ -306,8 +306,11 @@ export default function SiteManagement() {
     } catch (err) {
       if (err.errorFields) return
       Logger.error('SITE', 'handleSubmit error:', err)
-      // #2563：HTTP 400 的业务可纠正冲突（如 40002 重名）在传输层以 Error 抛出并带 code，
+      // #2563：HTTP 400 的业务可纠正冲突（如参数不合法、商户 org 缺失、锚点网点禁止改名，
+      // 对应 backend/handlers/site.go:233/273/277/608 的 40002）在传输层以 Error 抛出并带 code，
       // 这里用共享 rubric 判定后落到表单内持久提示；其余错误保持瞬时 toast。
+      // 注意：网点重名走 HTTP 409 + 40900（site.go 的 duplicate name 分支 / IAM org 名冲突），
+      // 由 handleSubmit 的 try 内分支处理，不进入本 catch。
       if (isBusinessCorrectableConflict(err)) {
         setFormConflict(conflictText(err, '请修改后重新提交'))
         return

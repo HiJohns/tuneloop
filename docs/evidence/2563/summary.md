@@ -2,7 +2,7 @@
 
 ### 修改内容
 
-按 Accepted Plan（`## Accepted Plan — #2563`，plan_sha256=975dcebf…）逐条执行：
+按 Accepted Plan（`## Accepted Plan — #2563` Rev.2，plan_sha256=829f87e5…）逐条执行：
 
 1. **传输层唯一 owner（新增）**：`frontend-pc/src/services/apiError.js` 导出纯函数 `resolveHttpFailure(status, payload)`：
    - `404` → `{ code: 40400, data: null, status: 404 }`（与改动前逐字一致）；
@@ -99,7 +99,7 @@ GREEN（npm ci 后）:      BUILD_EXIT=0  ESLINT_EXIT=0  ESLINT_NO_UNDEF=0  → 
 
 - 命令见 `docs/evidence/2563/evidence.json` 的 R7 行（`--summary-file docs/evidence/2563/summary.md --changed-files docs/evidence/2563/changed-files.txt --evidence-file docs/evidence/2563/evidence.json --full-gate-cmd "cd frontend-pc && npm run build" --report docs/evidence/2563/pre-ready-2563.json`）。
 - 关键输出见评论末段 `### Gate 关键输出`（`RESULT: PASS`）。
-- plan_sha256 = 975dcebfac55e9413cf1556f69a7567bd7e3d3e150f4950b506a2b0e8c405281（= 计划快照 = 台账 plan_sha256）。
+- plan_sha256 = 829f87e5ef2cd3c53d4c70539fa72787a9ab02bcd897b2f2708efebb734deb66（= 计划快照 = 台账 plan_sha256 = gate 报告 plan_sha256，Rev.2）。
 
 ### Evidence Contract（7/7）
 
@@ -111,7 +111,7 @@ GREEN（npm ci 后）:      BUILD_EXIT=0  ESLINT_EXIT=0  ESLINT_NO_UNDEF=0  → 
 | R4 | PASS | `docs/evidence/2563/R4-redgreen-inventory.txt` | RED_NO_CODE=1、GREEN_CODE_ATTACHED=1、AWAIT_CALL_SITES=259、NONOK_INLINE_RETURNS=0、R4_OK |
 | R5 | PASS | `docs/evidence/2563/R5-docs-contract.txt` | DOC_CONTRACT_OK=1、DOC_SECTION_LINES=13、七个 token 全 1 |
 | R6 | PASS | `docs/evidence/2563/R6-build-lint.txt` | BUILD_EXIT=0、ESLINT_EXIT=0、ESLINT_NO_UNDEF=0、R6_OK |
-| R7 | PASS | `docs/evidence/2563/pre-ready-2563.json` | gate 全项 PASS（含 P5 构建、P12 七行、P13 远端） |
+| R7 | PASS | `docs/evidence/2563/pre-ready-2563.json` | gate 全项 PASS（含 P5 构建、P12 七行、P13 远端）；`jq -e '.overall == "PASS"' docs/evidence/2563/pre-ready-2563.json` → `true`，`exit=0` |
 
 台账：`docs/evidence/2563/evidence.json`（schema v1，build=1.0.16faa351d，commit=16faa351d…，dirty=false，7 行各恰好一条记录）。
 
@@ -170,12 +170,25 @@ GREEN（npm ci 后）:      BUILD_EXIT=0  ESLINT_EXIT=0  ESLINT_NO_UNDEF=0  → 
 
 三者一致：服务端码语义不变（40002 仍两义），客户端只新增「Error 携带 code」而不改变抛/不抛的控制流；前端只在真正可达的 catch 判定（`SiteManagement`）。
 
+### Round 2 审计修复（Rev.2 收口）
+
+Round 2 审计判 REJECT，三个阻断项均已修复，**产品逻辑零改动**：
+
+| Bug | 修复 | 证据 |
+|---|---|---|
+| Bug 1：注释/Ops-1 把「网点重名」写成 `HTTP 400 + 40002` | 注释改为真实可达的 400+40002 场景（参数不合法 / 商户 org 缺失 / 商户 org 非法 / 锚点网点禁止改名，即 `backend/handlers/site.go` 的 233、273、277、608 行），并显式声明网点重名走 `HTTP 409 + 40900` 的 try 内分支；Ops-1 同上改写，重名验证拆为 Ops-1b（40900 既有路径）与 Ops-2（#2564 分类页 400+40002） | `frontend-pc/src/pages/SiteManagement.jsx`（307-313 行）、本节 Ops-1/Ops-1b/Ops-2 |
+| Bug 2：R7 `negative_result` 仍写已废弃的 result 键，且缺 jq 实跑输出 | `negative_result` 改为 overall 键（`overall != PASS`）；jq 实跑输出（`true` / `exit=0`）写入 R7 `actual` 与本摘要 R7 行（无新增 artifact，避免与 Files 清单错位） | `docs/evidence/2563/evidence.json` 的 R7 行、本摘要 R7 行 |
+| Bug 3：summary 仍写 Rev.1 的 `plan_sha256=975dcebf…` | 两处改为 Rev.2 `829f87e5ef2cd3c53d4c70539fa72787a9ab02bcd897b2f2708efebb734deb66`，与 `docs/evidence/2563/plan.md` / `docs/evidence/2563/evidence.json` / `docs/evidence/2563/pre-ready-2563.json` 四源一致 | `docs/evidence/2563/summary.md`（第 5、102 行） |
+
+**修订说明（Ops-1 原文与后端事实不符）**：Round 1 的 Ops-1 沿用「网点重名 = HTTP 400 + 40002」，但仓库事实是 `backend/handlers/site.go` 的 343 行（IAM 组织名冲突）、625-627 行（duplicate site name）、666-668 行（`ErrIAMOrgNameConflict`）全部返回 **HTTP 409 + 40900**；`backend/handlers/site.go` 的 16 处 `40002` 中无一条是重名。原措辞会让预生产回执指向一条不可达路径，故按真实码路径改写，重名验证改由 40900 既有分支 + #2564 承担。
+
 ### 人工/部署侧
 
 | 项 | 内容 | 责任人 | 回执要求 |
 |---|---|---|---|
-| Ops-1 | 预生产：网点新建/改名重名（HTTP 400 40002）→ 表单内常驻提示截图 | Owner/运维 | 截图 + 停留形态（非 3 秒消失） |
-| Ops-2 | 预生产：分类重名在 #2564 落地后 → 常驻提示截图 | Owner/运维 | #2564 的验收 |
+| Ops-1 | 预生产：网点新建/改名业务冲突（**HTTP 400 + 40002**：参数不合法 / 商户 org 缺失 / 商户 org 非法 / 锚点网点禁止改名，即 `backend/handlers/site.go` 的 233、273、277、608 行）→ 表单内常驻提示截图 | Owner/运维 | 截图 + 停留形态（非 3 秒消失） |
+| Ops-1b | 预生产：**网点重名**（仓库事实为 **HTTP 409 + 40900**，`backend/handlers/site.go` 的 duplicate name / IAM org 名冲突分支，**不是** 400+40002）→ 既有 409 分支截图（不改逻辑） | Owner/运维 | 截图 |
+| Ops-2 | 预生产：**分类**重名（HTTP 400 + 40002，`backend/handlers/api.go` 的 874-879 行）在 #2564 落地后 → 常驻提示截图 | Owner/运维 | #2564 的验收 |
 | Ops-3 | 下游：`#2486` Batch 2 在各页 `/analyze` 时按新契约把 40002/40004/40005 行判为可转换（不再 defer） | Architect | #2486 计划更新记录 |
 
 *Model: DeepSeek V4.1 Flash 1017*

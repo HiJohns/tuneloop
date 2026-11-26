@@ -99,10 +99,10 @@
         "docs/evidence/2563/pre-ready-2563.json"
       ],
       "assert": "exit 0；GATE_RESULT=PASS；jq -e '.overall == \"PASS\"'",
-      "actual": "PASS：pre-ready-check.sh 全部检查项 PASS（P5 在干净 worktree 真实执行 `cd frontend-pc && npm run build`；P12 七行合同；P13 fix+evidence 已在 origin/issue-2563）。报告落盘 docs/evidence/2563/pre-ready-2563.json，总体判定的 JSON 键为 `.overall`（值 PASS，`.checks[]` 无 FAIL），与 plan Rev.2 的断言 `.overall == \"PASS\"` 一致。",
+      "actual": "PASS：pre-ready-check.sh 全部检查项 PASS（P5 在干净 worktree 真实执行 `cd frontend-pc && npm run build`；P12 七行合同；P13 fix+evidence 已在 origin/issue-2563）。报告落盘 docs/evidence/2563/pre-ready-2563.json，总体判定的 JSON 键为 `.overall`（值 PASS，`.checks[]` 无 FAIL），与 plan Rev.2 的断言 `.overall == \"PASS\"` 一致。jq 实跑输出（Round 2 Bug 2 补入）：`$ jq -e '.overall == \"PASS\"' docs/evidence/2563/pre-ready-2563.json` → `true`（stdout），`exit=0`；`.overall` = `PASS`。",
       "expected": "每条合同行 pass=true、dirty=false、P13 提交在 origin/issue-2563",
       "negative": "任一 P 项失败 / evidence.json 缺行 / dirty=true → gate 非 0，禁止 ready",
-      "negative_result": "gate 自身即执行器：P5 在干净树跑 cd frontend-pc && npm run build、P12 逐行比对合同（缺行/多余行/pass!=true 均失败）、P13 校验 fix commit 与证据提交已在远端；任一项失败时 gate 非 0 且报告 .result 非 PASS",
+      "negative_result": "gate 自身即执行器：P5 在干净树跑 cd frontend-pc && npm run build、P12 逐行比对合同（缺行/多余行/pass!=true 均失败）、P13 校验 fix commit 与证据提交已在远端；任一项失败时 gate 非 0 且报告 `.overall != \"PASS\"`（该键由 pre-ready-check.sh 实际产出，全仓无 `.result` 键）",
       "pass": true
     }
   ],
