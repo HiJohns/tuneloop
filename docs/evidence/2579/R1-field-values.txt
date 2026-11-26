@@ -1,0 +1,14 @@
+# build=1.0.34aba1b37 # commit=34aba1b3721d27421851c637b0aeebcc6d5b16ad # dirty=false
+GENERATED_AT_HEAD=34aba1b3721d27421851c637b0aeebcc6d5b16ad
+# 逐单元格断言：金额（分→元 2 位 / null → - / 显式 0 → 0.00）、级别 caption、分类名、表头无死字段
+GO_TEST_EXIT=0
+CATEGORY_NAME_A=大提琴
+HEADER_COUNT=7
+HEADER_JOINED=识别码|分类名称|级别|日租金|押金|逾期租金|状态
+LEVEL_CAPTION_A=专业
+MONEY_DAILY_A=100.00
+MONEY_DAILY_B=150.00
+MONEY_DAILY_C=-
+MONEY_DEPOSIT_B=0.00
+STATUS_A=available
+R1_OK

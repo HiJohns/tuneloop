@@ -1,0 +1,21 @@
+# build=1.0.34aba1b37 # commit=34aba1b3721d27421851c637b0aeebcc6d5b16ad # dirty=false
+GENERATED_AT_HEAD=34aba1b3721d27421851c637b0aeebcc6d5b16ad
+# 死字段移除（headerMap / List 字段选择器）+ 金额单一链复用（handler 注入 MoneyFields）
+DEAD_FIELDS_IN_HEADER=0
+DECLARED_FIELDS=9
+DEAD_FIELDS_IN_PC_OPTIONS=0
+SINGLE_CHAIN_REUSE=1
+MONEY_FIELDS_REF=2
+--- headerMap ---
+var headerMap = map[string]string{
+	"sn":                "识别码",
+	"category_name":     "分类名称",
+	"level":             "级别",
+	"daily_rate":        "日租金",
+	"deposit":           "押金",
+	"overdue_daily_fee": "逾期租金",
+	"status":            "状态",
+	"description":       "描述",
+	"images":            "图片URL",
+}
+R3_OK

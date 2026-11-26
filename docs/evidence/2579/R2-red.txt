@@ -1,0 +1,20 @@
+# build=1.0.bf0233bbd # commit=bf0233bbd39bd7231d02d45fe3d75b49da78e16e # dirty=false
+GENERATED_AT_HEAD=bf0233bbd39bd7231d02d45fe3d75b49da78e16e
+# 修复前红证：同一断言集（A/B/C 三台乐器的金额/级别/分类单元格）
+RED_STAGE=pre-fix
+RED_TEST_EXIT=1
+RED_BLANK_CELLS=4
+CATEGORY_NAME_A=大提琴
+HEADER_COUNT=7
+HEADER_JOINED=识别码|分类名称|级别|日租金|押金||状态
+LEVEL_CAPTION_A=pro
+MONEY_DAILY_A=
+MONEY_DAILY_B=
+MONEY_DAILY_C=
+MONEY_DEPOSIT_B=
+STATUS_A=available
+--- FAIL: TestExportFieldValues2579 (0.84s)
+FAIL
+FAIL	tuneloop-backend/handlers	1.572s
+RED_CAPTURED=1
+R1_RED_OK

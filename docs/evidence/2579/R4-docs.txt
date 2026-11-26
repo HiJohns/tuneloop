@@ -1,0 +1,8 @@
+# build=1.0.34aba1b37 # commit=34aba1b3721d27421851c637b0aeebcc6d5b16ad # dirty=false
+GENERATED_AT_HEAD=34aba1b3721d27421851c637b0aeebcc6d5b16ad
+# 文档同步：api.md 导出字段集合/金额单位/已移除字段；ui.md 两页导出字段集合
+API_EXPORT_FIELDS=1
+API_REMOVED_FIELDS=1
+API_MONEY_UNIT=1
+UI_EXPORT_FIELDS=1
+R4_OK

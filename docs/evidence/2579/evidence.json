@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "issue": 2579,
+  "build": "1.0.34aba1b37",
+  "commit": "34aba1b3721d27421851c637b0aeebcc6d5b16ad",
+  "dirty": false,
+  "plan_sha256": "9af7f98b969983c201bb935be5697395bcff2ffd8d077915fd9db56e8e1483b2",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2579 (branch issue-2579, base origin/develop bf0233bbd which includes #2578); Postgres test DB 127.0.0.1:15433; gin in-process export route; Go 1.27.4; Node 24 + vite build; host heavy-lock via heavy-run.sh; red sample captured at pre-fix commit bf0233bbd",
+  "tooling_commit": "acab7d27d28832d1ad366dd4c944ffb3e2ff9ca8",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2579.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2579/R1-field-values.txt"
+      ],
+      "assert": "exit 0；含 MONEY_DAILY_A=100.00、MONEY_DAILY_B=150.00、MONEY_DAILY_C=-、LEVEL_CAPTION_A=专业",
+      "actual": "PASS：GO_TEST_EXIT=0；MONEY_DAILY_A=100.00、MONEY_DAILY_B=150.00（override 优先）、MONEY_DEPOSIT_B=0.00、MONEY_DAILY_C=-、MONEY_DEPOSIT_C=-、LEVEL_CAPTION_A=专业、CATEGORY_NAME_A=大提琴、STATUS_A=available；HEADER_JOINED=识别码|分类名称|级别|日租金|押金|逾期租金|状态（7 列，无死字段）",
+      "expected": "PASS",
+      "negative": "金额空白/以 0 冒充缺失 → FAIL",
+      "negative_result": "金额列为空或 0.00 冒充缺失（C 应为 -）、级别取到受弃用字符串而非 caption、表头含品牌/型号/月租金/库存 → 任一即 R1_FAIL",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2579.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2579/R2-red-green.txt"
+      ],
+      "assert": "exit 0；含 RED_CAPTURED=1、RED_BLANK_CELLS>=1、GREEN_OK=1",
+      "actual": "PASS：红证 RED_CAPTURED=1、RED_BLANK_CELLS=4、RED_TEST_EXIT=1、RED_STAGE=pre-fix（commit bf0233bbd，dirty=false）；绿证 GREEN_OK=1、GREEN_TEST_EXIT=0（commit 34aba1b37）——同一断言集",
+      "expected": "PASS",
+      "negative": "无红证或红绿断言集不一致 → FAIL",
+      "negative_result": "未采集红证（只有绿证）、或红证与绿证断言集不一致（红证必须来自 fix 前实现且 RED_BLANK_CELLS≥1）→ R2_FAIL",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2579.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2579/R3-fields-static.txt"
+      ],
+      "assert": "exit 0；含 DEAD_FIELDS_IN_HEADER=0、DEAD_FIELDS_IN_PC_OPTIONS=0、SINGLE_CHAIN_REUSE=1",
+      "actual": "PASS：DEAD_FIELDS_IN_HEADER=0、DECLARED_FIELDS=9、DEAD_FIELDS_IN_PC_OPTIONS=0、SINGLE_CHAIN_REUSE=1（handler 调 instrumentListPriceFields）、MONEY_FIELDS_REF=2（service 定义 + 取值）",
+      "expected": "PASS",
+      "negative": "死字段残留/导出侧自解析定价 → FAIL",
+      "negative_result": "死字段残留（headerMap 仍含 brand/model/monthly_rate/stock 或 PC 选择器仍有其选项）、或导出侧自解析定价（SINGLE_CHAIN_REUSE=0）→ R3_FAIL",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2579.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2579/R4-docs.txt"
+      ],
+      "assert": "exit 0；含 API_EXPORT_FIELDS=1、API_REMOVED_FIELDS=1、API_MONEY_UNIT=1",
+      "actual": "PASS：API_EXPORT_FIELDS=1（overdue_daily_fee + 逾期租金）、API_REMOVED_FIELDS=1（brand + 已移除）、API_MONEY_UNIT=1（分 + 2 位小数）、UI_EXPORT_FIELDS=1（固定字段集合逐字）",
+      "expected": "PASS",
+      "negative": "文档未同步 → FAIL",
+      "negative_result": "文档仍列 monthly_rate/brand/stock、或未写金额单位（分→元 2 位）与已移除字段 → R4_FAIL",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2579.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2579/R5-build.txt"
+      ],
+      "assert": "exit 0；含 ESLINT_OK=1、PC_BUILD_OK=1、GO_BUILD_OK=1、LEGACY_EXPORT_TEST_OK=1",
+      "actual": "PASS：GO_BUILD_OK=1、GO_TEST_2579_OK=1（含既有 TestExportInstruments sqlmock 回归）、ESLINT_NOUNDEF=0、PC_BUILD_OK=1",
+      "expected": "PASS",
+      "negative": "任一 lint/build/test 失败 → FAIL",
+      "negative_result": "任一 lint no-undef / 构建失败 / 定向测试（含既有 TestExportInstruments）失败 → R5_FAIL",
+      "pass": true
+    }
+  ]
+}

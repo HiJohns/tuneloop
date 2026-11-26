@@ -1,0 +1,31 @@
+# build=1.0.34aba1b37 # commit=34aba1b3721d27421851c637b0aeebcc6d5b16ad # dirty=false
+GENERATED_AT_HEAD=34aba1b3721d27421851c637b0aeebcc6d5b16ad
+GO_BUILD_CMD=cd backend && go build ./...
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s107-p107-350703 at_ms=1795729661138 wait_ms=72
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s107-p107-350703 wait_ms=72
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795729671670 hold_ms=10532
+GO_BUILD_EXIT=0
+GO_TEST_2579_CMD=cd backend && go test ./handlers -run 'TestExportFieldValues2579|TestExportInstruments' -count=1
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s107-p107-350703 wait_ms=76
+ok  	tuneloop-backend/handlers	1.679s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795729677868 hold_ms=6079
+GO_TEST_2579_EXIT=0
+ESLINT_CMD=cd frontend-pc && npx eslint src/pages/admin/instrument/List.jsx src/pages/InstrumentStock.jsx
+   78:6   warning  React Hook useEffect has missing dependencies: 'fetchInstruments' and 'pagination.pageSize'. Either include them or remove the dependency array                      react-hooks/exhaustive-deps
+  290:32  warning  'deleteInstrument' was used before it was defined                                                                                                                    no-use-before-define
+
+✖ 10 problems (0 errors, 10 warnings)
+
+ESLINT_EXIT=0
+ESLINT_NOUNDEF=0
+PC_BUILD_CMD=cd frontend-pc && npm run build
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 19.30s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795729701576 hold_ms=20120
+PC_BUILD_EXIT=0
+GO_BUILD_OK=1
+GO_TEST_2579_OK=1
+ESLINT_NOUNDEF=0
+PC_BUILD_OK=1
+R5_OK
