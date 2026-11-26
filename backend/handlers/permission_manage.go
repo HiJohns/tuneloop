@@ -237,19 +237,10 @@ func parsePQArray(s string) []string {
 	return parts
 }
 
+// toIAMRole maps a tuneloop role/role-template code to the IAM organization
+// relation role. Thin wrapper over services.ToIAMRole so the mapping lives in one
+// place (#2540 D1). Callers writing to IAM must normalize the result (see
+// services.NormalizeIAMRelationRole); this function returns unknown codes as-is.
 func toIAMRole(tuneloopCode string) string {
-	switch tuneloopCode {
-	case "merchant_admin":
-		return "OWNER"
-	case "site_admin":
-		return "ADMIN"
-	case "site_member":
-		return "STAFF"
-	case "repair_technician":
-		return "repair_technician"
-	case "merchant_staff":
-		return "STAFF" // #2129：商户直属员工 → 商户组织 STAFF 关系
-	default:
-		return tuneloopCode
-	}
+	return services.ToIAMRole(tuneloopCode)
 }

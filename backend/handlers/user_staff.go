@@ -602,6 +602,31 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	})
 }
 
+// activationRoleTemplates 是激活路径允许采纳的**员工级**角色模板（#2540 D2 / Rev.3）。
+//
+// 员工激活产出的 IAM 关系角色只有 OWNER/ADMIN/STAFF/repair_technician 四种语义，
+// 因此模板必须同属员工层：平台级模板（`namespace_admin` / `sys_admin`）、商户级
+// （`merchant_admin`）与顾客（`customer`）不参与员工激活——把平台模板与员工关系
+// 角色混搭会让权限面与组织位置不一致。白名单是 `services.AllRoleTemplates` 的
+// 真子集，未知码同样落空。
+var activationRoleTemplates = map[string]struct{}{
+	"site_admin":        {},
+	"site_member":       {},
+	"merchant_staff":    {},
+	"repair_technician": {},
+}
+
+// resolveActivationRoleTemplate 返回激活时使用的业务角色模板码：
+// 仅采用**员工级**白名单内的模板；空/非法/平台级/商户级/客户 → "site_member"
+// （legacy 兜底）。纯函数，便于脱 DB 单测（#2540）。
+func resolveActivationRoleTemplate(userRole string) string {
+	role := strings.TrimSpace(userRole)
+	if _, ok := activationRoleTemplates[role]; ok {
+		return role
+	}
+	return "site_member"
+}
+
 // ActivateUser creates IAM user for an existing local user that has no iam_sub
 // POST /api/users/:id/activate
 func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
@@ -675,10 +700,11 @@ func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
 		orgID = tenantID
 	}
 
-	iamRole := services.GetBusinessRole("site_member")
-	if iamRole == "" {
-		iamRole = "staff"
-	}
+	// #2540：关系角色与客户权限模板必须同源取自 users.role。
+	// 旧写法固定 GetBusinessRole("site_member") → IAM 关系角色被写成业务码 "user"
+	// （beaconiam 不识别 → 权限 None），且权限模板硬编码 site_member，激活 site_admin 会实质降权。
+	roleTemplate := resolveActivationRoleTemplate(user.Role)
+	iamRole := services.NormalizeIAMRelationRole(toIAMRole(roleTemplate))
 	if err := iamClient.BindUserToOrganization(iamResp.UserID, orgID, iamRole, ""); err != nil {
 		if purgeErr := iamClient.PurgeUser(iamResp.UserID); purgeErr != nil {
 			log.Printf("[ActivateUser] rollback purge failed for %s: %v", iamResp.UserID, purgeErr)
@@ -687,7 +713,7 @@ func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
 		return
 	}
 
-	template := services.AllRoleTemplates["site_member"]
+	template := services.AllRoleTemplates[roleTemplate]
 	if len(template.CusPermCodes) > 0 {
 		cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(template.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
 		if err := iamClient.SetUserCustomerPermissions(orgID, iamResp.UserID, cusPerm, cusPermExt); err != nil {
@@ -698,6 +724,46 @@ func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "IAM set user permissions failed: " + err.Error()})
 			return
 		}
+	}
+
+	// #2540（审计 Bug 1 修复）：功能角色模板必须与客户权限位同源取自同一个 roleTemplate。
+	// 只写关系角色 + 客户权限位而不分配功能角色模板，IAM 侧 RoleTemplate.SysPermBits 不会落库，
+	// JWT fn_roles 为空 → 依赖职能角色的入口（维修师工作台、员工入口）出现缺口；
+	// CreateUser / MerchantAddMember 都会分配模板，激活路径必须与二者一致。
+	templateCode := ""
+	templates, listErr := iamClient.ListRoleTemplates(middleware.GetNamespaceID(ctx))
+	if listErr == nil {
+		for _, t := range templates {
+			if t.Code == roleTemplate {
+				templateCode = t.Code
+				break
+			}
+		}
+	}
+	var assignErr error
+	if listErr == nil && templateCode != "" {
+		assignErr = iamClient.AssignRoleTemplateToUserWithToken(
+			services.ExtractUserToken(c), iamResp.UserID, orgID, templateCode)
+	}
+	if listErr != nil || templateCode == "" || assignErr != nil {
+		reason := ""
+		switch {
+		case listErr != nil:
+			reason = "list role templates failed: " + listErr.Error()
+		case templateCode == "":
+			reason = "role template " + roleTemplate + " not found in namespace"
+		default:
+			reason = assignErr.Error()
+		}
+		log.Printf("[ActivateUser] assign role template %s failed for %s: %s", roleTemplate, iamResp.UserID, reason)
+		if unbindErr := iamClient.UnbindUserFromOrganization(iamResp.UserID, orgID, ""); unbindErr != nil {
+			log.Printf("[ActivateUser] rollback unbind failed for %s: %v", iamResp.UserID, unbindErr)
+		}
+		if purgeErr := iamClient.PurgeUser(iamResp.UserID); purgeErr != nil {
+			log.Printf("[ActivateUser] rollback purge failed for %s: %v", iamResp.UserID, purgeErr)
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "IAM assign role template failed: " + reason})
+		return
 	}
 
 	status := iamResp.Status
