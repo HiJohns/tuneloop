@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": "2487",
-  "build": "1.0.a18849559",
-  "commit": "a188495591a7c3eb1506f093deebb6ceef137c2f",
+  "build": "1.0.3b8bdf18e",
+  "commit": "3b8bdf18e8955cd9dc57f4da53bc0a4eb8598a94",
   "dirty": false,
   "plan_sha256": "a4c585e8fbf7f168538392ff53dd7255407162d3e601b5863d34d83fea8d2bde",
   "tooling_commit": "acab7d27d28832d1ad366dd4c944ffb3e2ff9ca8",
@@ -14,10 +14,10 @@
         "docs/evidence/2487/R1-classify.txt"
       ],
       "assert": "exit 0；含 UNCLASSIFIED=0",
-      "actual": "exit=0；UNCLASSIFIED_ROWS=0；SCAN_ROWS=26；CONVERTED_ROWS=3；FILES_SCANNED=3；RESULT=PASS",
+      "actual": "exit=0；UNCLASSIFIED_ROWS=0；SCAN_ROWS=26；CONVERTED_ROWS=4；FILES_SCANNED=3；REASON_GENERIC_PHRASE=0；RESULT=PASS",
       "expected": "PASS",
-      "negative": "出现无结论行 → FAIL",
-      "negative_result": "RED 实证：删掉 platform-staff handleCreate 的「先拿回 code」分支后 r1 仍列全行但 r2 CODE_FIRST=0、r4 BUSINESS_TOAST_RESIDUAL=1 → RESULT: FAIL；恢复后 PASS",
+      "negative": "出现无结论行 → FAIL；keep:instant 理由用「前端 Form required 已拦（不可达）」泛称 → FAIL",
+      "negative_result": "RED 实证（Round 2 Bug 2 复核）：把 handleGrant 判定理由还原为泛称「前端 Form required + InputNumber min 已拦（不可达）」→ REASON_GENERIC_PHRASE=1、RESULT: FAIL；改回具体机制（rubric 分支先拦 + 真实可达证明）后 REASON_GENERIC_PHRASE=0、RESULT: PASS",
       "pass": true,
       "exit": 0
     },
@@ -28,10 +28,10 @@
         "docs/evidence/2487/R2-converted.txt"
       ],
       "assert": "exit 0；含 CONVERTED_ROWS>=1 与 CODE_FIRST=1",
-      "actual": "exit=0；CONVERTED_ROWS=3；CODE_FIRST=1；PERSIST_ALERT=1；RESULT=PASS",
+      "actual": "exit=0；CONVERTED_ROWS=4；CODE_FIRST=1；PERSIST_ALERT=1；CONVERT_FAILURES=0；RESULT=PASS（含 handleGrant 40002 → user-points-conflict）",
       "expected": "PASS",
       "negative": "缺 code 判定 → FAIL",
-      "negative_result": "RED 实证：移除 handleCreate 的 rubric 分支后 rubric_checks=0、CODE_FIRST=0、CONVERT_FAILURES=1 → FAIL；恢复后 CODE_FIRST=1 PASS",
+      "negative_result": "RED 实证（Round 2 Bug 2）：移除 handleGrant 的 rubric 分支后 rubric_checks=0、CODE_FIRST=0、CONVERT_FAILURES=1 → FAIL；恢复后 CODE_FIRST=1、CONVERT_FAILURES=0 → PASS",
       "pass": true,
       "exit": 0
     },
@@ -56,10 +56,10 @@
         "docs/evidence/2487/R4-residual.txt"
       ],
       "assert": "exit 0；含 BUSINESS_TOAST_RESIDUAL=0",
-      "actual": "exit=0；BUSINESS_TOAST_RESIDUAL=0；KEEP_WITH_REASON=26/26；RESULT=PASS",
+      "actual": "exit=0；PERSISTED_FUNCTIONS=4；BUSINESS_TOAST_RESIDUAL=0；KEEP_WITH_REASON=26/26；CLASSIFY_KEYS_MATCHED=26/26；CLEAR_ON_OPEN=1；CLEAR_ON_CANCEL=1；CLEAR_ON_EDIT=1；CLEAR_ON_SUCCESS=1；RESULT=PASS",
       "expected": "PASS",
-      "negative": "残留 >0 → FAIL",
-      "negative_result": "RED 实证：移除 rubric 分支后 BUSINESS_TOAST_RESIDUAL=1（handleCreate）→ FAIL；恢复后 0",
+      "negative": "残留 >0 → FAIL；D8 任一清空点缺失（CLEAR_ON_* = 0）→ FAIL",
+      "negative_result": "RED 实证（Round 2 Bug 1）：删掉 openDetail 的 setIdCardConflict('') 与详情 Modal onCancel 的清空 → CLEAR|surface=idcard|open=0|cancel=0、CLEAR_ON_OPEN=0、CLEAR_ON_CANCEL=0、CLEAR_ALL=0 → RESULT: FAIL；恢复后 8/8 清空点 =1 → PASS。RED 实证（Bug 2）：移除 handleGrant rubric 分支 → BUSINESS_TOAST_RESIDUAL=1（RESIDUAL|…handleGrant）→ FAIL；恢复后 0",
       "pass": true,
       "exit": 0
     },

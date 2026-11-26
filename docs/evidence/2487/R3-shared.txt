@@ -1,5 +1,5 @@
-# build=1.0.a18849559 # commit=a188495591a7c3eb1506f093deebb6ceef137c2f # dirty=false
-# tree=a188495591a7c3eb1506f093deebb6ceef137c2f
+# build=1.0.3b8bdf18e # commit=3b8bdf18e8955cd9dc57f4da53bc0a4eb8598a94 # dirty=false
+# tree=3b8bdf18e8955cd9dc57f4da53bc0a4eb8598a94
 # scanner=verify-2487.sh r3
 REUSE|frontend-pc/src/pages/System/UserManagement.jsx
 REUSE|frontend-pc/src/pages/admin/platform-staff/index.jsx

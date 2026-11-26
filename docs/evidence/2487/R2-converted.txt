@@ -1,10 +1,11 @@
-# build=1.0.a18849559 # commit=a188495591a7c3eb1506f093deebb6ceef137c2f # dirty=false
-# tree=a188495591a7c3eb1506f093deebb6ceef137c2f
+# build=1.0.3b8bdf18e # commit=3b8bdf18e8955cd9dc57f4da53bc0a4eb8598a94 # dirty=false
+# tree=3b8bdf18e8955cd9dc57f4da53bc0a4eb8598a94
 # scanner=verify-2487.sh r2  (converted branches only)
-CONVERT|frontend-pc/src/pages/System/UserManagement.jsx|fn=handleSaveIdCard|endpoint=PUT /admin/user-management/:id/id-card|rubric_code=40002|alert_testid=user-idcard-conflict|import=1|render=1|rubric_checks=2|last_rubric=329|last_toast=332|code_first=1|reason=40002「身份证号格式不正确」用户改输入即可重试（user_management_idcard.go:46）
+CONVERT|frontend-pc/src/pages/System/UserManagement.jsx|fn=handleSaveIdCard|endpoint=PUT /admin/user-management/:id/id-card|rubric_code=40002|alert_testid=user-idcard-conflict|import=1|render=1|rubric_checks=2|last_rubric=346|last_toast=349|code_first=1|reason=40002「身份证号格式不正确」用户改输入即可重试（user_management_idcard.go:46）
 CONVERT|frontend-pc/src/pages/admin/platform-staff/index.jsx|fn=handleCreate|endpoint=POST /admin/platform-staff|rubric_code=40900|alert_testid=platform-staff-form-conflict|import=1|render=1|rubric_checks=2|last_rubric=82|last_toast=85|code_first=1|reason=40900 用户名/手机号重复（platform_staff.go:185/189）
 CONVERT|frontend-pc/src/pages/System/TechnicianProfiles.jsx|fn=submit|endpoint=POST /technician-profiles|rubric_code=40900|alert_testid=technician-form-conflict|import=1|render=1|rubric_checks=2|last_rubric=126|last_toast=129|code_first=1|reason=40900 同一商户下该员工已是维修师（technician_profile.go:171）
-CONVERTED_ROWS=3
+CONVERT|frontend-pc/src/pages/System/UserManagement.jsx|fn=handleGrant|endpoint=POST /admin/user-management/:id/points-grant|rubric_code=40002|alert_testid=user-points-conflict|import=1|render=1|rubric_checks=2|last_rubric=190|last_toast=193|code_first=1|reason=40002「reason is required / amount must be positive」用户改输入即可重试（user_management.go:391-403）；reason 只填空格可绕过 antd required（async-validator 仅把 '' 视为空）→ 该 40002 真实可达
+CONVERTED_ROWS=4
 PERSIST_ALERT=1
 CODE_FIRST=1
 CODE_FIRST_DEF=rubric_check_precedes_terminal_fallback_toast

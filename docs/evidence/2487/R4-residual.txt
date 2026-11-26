@@ -1,11 +1,20 @@
-# build=1.0.a18849559 # commit=a188495591a7c3eb1506f093deebb6ceef137c2f # dirty=false
-# tree=a188495591a7c3eb1506f093deebb6ceef137c2f
+# build=1.0.3b8bdf18e # commit=3b8bdf18e8955cd9dc57f4da53bc0a4eb8598a94 # dirty=false
+# tree=3b8bdf18e8955cd9dc57f4da53bc0a4eb8598a94
 # scanner=verify-2487.sh r4
-PERSISTED|frontend-pc/src/pages/System/UserManagement.jsx|fn=handleSaveIdCard|rubric_precedes_terminal_toast=1|last_rubric=329|last_toast=332
+PERSISTED|frontend-pc/src/pages/System/UserManagement.jsx|fn=handleSaveIdCard|rubric_precedes_terminal_toast=1|last_rubric=346|last_toast=349
 PERSISTED|frontend-pc/src/pages/admin/platform-staff/index.jsx|fn=handleCreate|rubric_precedes_terminal_toast=1|last_rubric=82|last_toast=85
 PERSISTED|frontend-pc/src/pages/System/TechnicianProfiles.jsx|fn=submit|rubric_precedes_terminal_toast=1|last_rubric=126|last_toast=129
-PERSISTED_FUNCTIONS=3
+PERSISTED|frontend-pc/src/pages/System/UserManagement.jsx|fn=handleGrant|rubric_precedes_terminal_toast=1|last_rubric=190|last_toast=193
+CLEAR|surface=idcard|open=1|cancel=1|edit=1|success=1
+CLEAR|surface=grant|open=1|cancel=1|edit=1|success=1
+CLEAR_ON_OPEN=1
+CLEAR_ON_CANCEL=1
+CLEAR_ON_EDIT=1
+CLEAR_ON_SUCCESS=1
+PERSISTED_FUNCTIONS=4
 BUSINESS_TOAST_RESIDUAL=0
 KEEP_ROWS=26
 KEEP_WITH_REASON=26
+CLASSIFY_KEYS_MATCHED=26/26
+CLEAR_ALL=1
 RESULT: PASS
