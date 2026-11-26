@@ -1,5 +1,15 @@
 ## Work Summary — #2512 S4 游客下单：orders.org_id 回退链改为「站点 → sites.org_id」反查（禁止写站点 ID）
 
+### Rev.2 增量（验收侧，产品代码不变）
+
+> 来源：Round 1 Audit（Bug 2 阻断 + Observation 1/2）+ Investigation Packet 选项 1；计划 Rev.2 修订记录 1–4。
+
+- **R1 红侧可判定**：`scripts/verify-2512.sh r1` 产物新增 `--- pre-fix code ---` 段与 `PRE_FIX_SITE_ID_AS_ORG_LINES`（旧实现 `effectiveOrgID = instrument.SiteID/CurrentSiteID.String()` 的行数；本轮 = 4，取自 origin/develop，分支并入修复后回退 fix commit 父提交）。红侧不再只靠 `RED_CONFIRMED` 常量推导。
+- **Provenance 可追溯**：R1–R6 产物在首行之后统一写 `GENERATED_AT_HEAD`（生成时的 HEAD），首行 `# build= # commit= # dirty=` 格式不变（P14 依赖首行）。
+- **R5 合同补登**：`RESOLVER_CALLS=2`、`SQL_SET_SEMANTICS=1`（AC4 集合语义 SQL：`orders.org_id::text NOT IN (sites.org_id ∪ merchants.org_id)`）已在 `d89212234`/`b27a959ee` 落地，本轮按 Rev.2 合同登记并重新生成产物。
+- **R7 断言修正**：`pre-ready` 报告根键是 `overall`（无 `result` 键）→ 判定谓词改 `jq -e '.overall == "PASS"'`（审计 Bug 2 的直接成因）。
+- 本轮 fix commit：`b67d95af4`（harness + plan 快照；产品代码仍为 `7013596d2` 的实现）。
+
 ### 修改内容
 
 - `backend/handlers/user_rental.go`
@@ -25,7 +35,7 @@ Commit：
   - 定向回归：`go test ./handlers -run 'CreateOrder|BatchCreateOrder' -count=1` → `REG_RC=0`。
   - 构建：`cd backend && go build ./...` → `BUILD_RC=0`。
   - 父任务 #2509 / 批次全量 `go test ./...` 由父批次 gate 承担（本单未重复执行）。
-- 证据在本轮 fix commit `7013596d2` 之后整体重新生成：R1–R6 首行均为 `# build=1.0.7013596d # commit=7013596d2496b751ad6345220f71db8d8e1a4088 # dirty=false`。
+- 证据在 Rev.2 fix commit `b67d95af4` 之后整体重新生成：R1–R6 首行均为 `# build=1.0.b67d95af # commit=b67d95af40c50eca38a8d95f6531367a7710aadb # dirty=false`，次行 `GENERATED_AT_HEAD=b67d95af…`。
 
 ### Remote
 
@@ -82,24 +92,24 @@ Commit：
 
 ### Evidence Contract（7/7 PASS）
 
-- R1 → PASS → `docs/evidence/2512/R1-guest-org-from-site.txt`（`ORDER_ORG_MATCHES_SITE_ORG=1`、`OLD_FALLBACK_IS_SITE_ID=1`、`RED_CONFIRMED=1`）
+- R1 → PASS → `docs/evidence/2512/R1-guest-org-from-site.txt`（`ORDER_ORG_MATCHES_SITE_ORG=1`、`OLD_FALLBACK_IS_SITE_ID=1`、`RED_CONFIRMED=1`、`PRE_FIX_SITE_ID_AS_ORG_LINES=4` + `--- pre-fix code ---` 段）
 - R2 → PASS → `docs/evidence/2512/R2-current-site.txt`（`RESOLVED_FROM_CURRENT_SITE=1`）
 - R3 → PASS → `docs/evidence/2512/R3-reject.txt`（`STATUS=400`、`CODE=40002`、`ORDERS_AFTER=0`）
 - R4 → PASS → `docs/evidence/2512/R4-batch.txt`（`BATCH_ORGS_UNIQUE=1`、`REJECT_STATUS=400`、`BATCH_ORDERS_AFTER=0`）
-- R5 → PASS → `docs/evidence/2512/R5-scan-sql.txt`（`SITE_ID_AS_ORG=0`、`CURRENT_SITE_AS_ORG=0`、`RESOLVER_CALLS=2`、`SQL_PRESENT=1`）
+- R5 → PASS → `docs/evidence/2512/R5-scan-sql.txt`（`SITE_ID_AS_ORG=0`、`CURRENT_SITE_AS_ORG=0`、`RESOLVER_CALLS=2`、`SQL_PRESENT=1`、`SQL_SET_SEMANTICS=1`）
 - R6 → PASS → `docs/evidence/2512/R6-build-regression.txt`（`BUILD_RC=0`、`REG_RC=0`、`NESTED_LOCK_REFS=0`）
 - R7 → PASS → `docs/evidence/2512/pre-ready-2512.json`
-- 账本：`docs/evidence/2512/evidence.json`（schema v1，build=1.0.7013596d、commit=`7013596d2496b751ad6345220f71db8d8e1a4088`、dirty=false、plan_sha256=`9e7ca42277b7…`）。
+- 账本：`docs/evidence/2512/evidence.json`（schema v1，build=1.0.b67d95af、commit=`b67d95af40c50eca38a8d95f6531367a7710aadb`、dirty=false、plan_sha256=`ef7db582abc1…`＝Accepted Plan Rev.2）。
 
 ### G0 Golden Acceptance
 
-- R1：fixture site A(`id=aID, org_id=aOrg`, `aID≠aOrg`) + 乐器(`org_id=NULL, site_id=aID`) + 游客上下文；入口 `POST /api/user/orders`；断言 `ORDER_ORG=aOrg`（负例 `aID` → FAIL）。
+- R1：fixture site A(`id=aID, org_id=aOrg`, `aID≠aOrg`) + 乐器(`org_id=NULL, site_id=aID`) + 游客上下文；入口 `POST /api/user/orders`；断言 `ORDER_ORG=aOrg` + `PRE_FIX_SITE_ID_AS_ORG_LINES>=1`（产物 `--- pre-fix code ---` 段命中旧实现）（负例 `aID` 或缺旧实现段 → FAIL）。
 - R2：fixture 乐器(`org_id=NULL, site_id=NULL, current_site_id=bID`)；入口同上；断言 `ORDER_ORG=bOrg`（负例 `bID` → FAIL）。
 - R3：fixture 乐器三者全空；入口同上；断言 `STATUS=400`、`CODE=40002`、`ORDERS_AFTER=0`（负例 201 且落库 → FAIL）。
 - R4：批量两件（`site_id=aID`）→ `BATCH_ORG=aOrg`、`BATCH_ORGS_UNIQUE=1`；另一批含不可解析件 → `400/40002` 且 `BATCH_ORDERS_AFTER=0`。
-- R5：user_rental.go 静态扫描 `SITE_ID_AS_ORG=0`、`CURRENT_SITE_AS_ORG=0`、`RESOLVER_CALLS=2`；只读 SQL 文本存在（`SQL_PRESENT=1`，未执行）。
+- R5：user_rental.go 静态扫描 `SITE_ID_AS_ORG=0`、`CURRENT_SITE_AS_ORG=0`、`RESOLVER_CALLS=2`；只读 SQL 文本存在（`SQL_PRESENT=1`，未执行）且含集合语义查询（`SQL_SET_SEMANTICS=1`）。
 - R6：`go build ./...` = 0、`CreateOrder|BatchCreateOrder` 定向回归 = 0、`NESTED_LOCK_REFS=0`（harness 内无锁调用）。
-- R7：gate `overall=PASS`、零 FAIL、`dirty=false`、P13 在 `origin/issue-2512`。
+- R7：gate 报告 `.overall == "PASS"`（命令 `jq -e '.overall == "PASS"'`，不使用不存在的 .result 键）、零 FAIL、`dirty=false`、P13 在 `origin/issue-2512`。
 
 ### Verification Matrix n/n
 

@@ -1,4 +1,5 @@
-# build=1.0.7013596d # commit=7013596d2496b751ad6345220f71db8d8e1a4088 # dirty=false
+# build=1.0.b67d95af # commit=b67d95af40c50eca38a8d95f6531367a7710aadb # dirty=false
+GENERATED_AT_HEAD=b67d95af40c50eca38a8d95f6531367a7710aadb
 TEST_CMD=cd backend && go test ./handlers -run '^TestCreateOrder2512_UnresolvableRejected$' -count=1 -v
 TEST_EXIT=0
 SENTINEL_R3_OK=1
@@ -6,9 +7,9 @@ STATUS=400
 CODE=40002
 ORDERS_AFTER=0
 --- go test tail ---
---- PASS: TestCreateOrder2512_UnresolvableRejected (1.81s)
+--- PASS: TestCreateOrder2512_UnresolvableRejected (1.39s)
 PASS
-ok  	tuneloop-backend/handlers	2.901s
+ok  	tuneloop-backend/handlers	2.541s
 --- go test kv ---
 user_rental_2512_test.go:205: STATUS=400
 user_rental_2512_test.go:206: CODE=40002
