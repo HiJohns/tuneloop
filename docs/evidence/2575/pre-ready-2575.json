@@ -1,6 +1,6 @@
 {
   "issue": 2575,
-  "overall": "FAIL",
+  "overall": "PASS",
   "plan": "docs/evidence/2575/plan.md",
   "plan_sha256": "d087bfc25c7d713d1fafd59cb1ef2745cb6177672498f5b78fa6d5a24a366f29",
   "config_sha": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
@@ -10,7 +10,7 @@
     "dirty": false
   },
   "summary": "docs/evidence/2575/summary.md",
-  "timestamp": "20261126-184956",
+  "timestamp": "20261126-185031",
   "checks": [
     {
       "id": "P1",
@@ -24,8 +24,8 @@
     },
     {
       "id": "P3",
-      "status": "FAIL",
-      "detail": "evidence paths do not exist: db.Save(&session)"
+      "status": "PASS",
+      "detail": "all referenced evidence paths exist and are durable"
     },
     {
       "id": "P4",
@@ -74,8 +74,8 @@
     },
     {
       "id": "P7",
-      "status": "FAIL",
-      "detail": "contract-affecting change requires '### 契约三向核对' (Plan/API, docs, handler/frontend)"
+      "status": "PASS",
+      "detail": "contract three-way section present"
     },
     {
       "id": "P8",
@@ -99,8 +99,8 @@
     },
     {
       "id": "P13",
-      "status": "FAIL",
-      "detail": "remote ref not found: origin/issue-2575"
+      "status": "PASS",
+      "detail": "fix commit and evidence artifacts are on origin/issue-2575"
     }
   ]
 }
