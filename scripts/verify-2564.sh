@@ -131,9 +131,11 @@ r1)
 r2)
   NAME="R2-code-first.txt"
   FILE="$REPO/$SRC"
-  GREEN="$(git show "$FIX_SHA:$SRC" 2>/dev/null || cat "$FILE")"
-  if git rev-parse --verify "$FIX_SHA^" >/dev/null 2>&1; then
-    RED="$(git show "$FIX_SHA^:$SRC" 2>/dev/null || true)"
+  # 红样锚点 = 该文件最近一次变更提交（禁止手写 sha）；绿样 = 工作树当前内容。
+  FILE_FIX="$(git log -1 --format=%H -- "$SRC" 2>/dev/null || true)"
+  GREEN="$(cat "$FILE")"
+  if [ -n "$FILE_FIX" ] && git rev-parse --verify "$FILE_FIX^" >/dev/null 2>&1; then
+    RED="$(git show "$FILE_FIX^:$SRC" 2>/dev/null || true)"
   else
     RED=""
   fi
@@ -172,7 +174,7 @@ r2)
     mark RED_NO_CATCH_BRANCH 1 0
   fi
 
-  echo "RED_SAMPLE=$FIX_SHA^:$SRC"
+  echo "RED_SAMPLE=${FILE_FIX:-unknown}^:$SRC" | tee -a "$LOG"
   if [ "$FAIL" = "0" ]; then echo "R2_OK" | tee -a "$LOG"; else echo "R2_FAIL" | tee -a "$LOG"; fi
   ;;
 
