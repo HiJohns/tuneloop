@@ -5,6 +5,8 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { sitesApi, api } from '../services/api'
 import Logger from '../utils/logger'
 import SiteMemberManagement from '../components/SiteMemberManagement'
+import FormConflictAlert from '../components/FormConflictAlert'
+import { conflictText, isBusinessCorrectableConflict } from '../utils/formConflict'
  
 const { Option } = Select
 
@@ -57,6 +59,8 @@ export default function SiteManagement() {
   const [searchText, setSearchText] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [conflictMessage, setConflictMessage] = useState('')
+  // #2480 v2（D5/D8）：业务可纠正冲突（40900 等）用持久提示，不用 3 秒 toast。
+  const [formConflict, setFormConflict] = useState('')
   const [isMerchantAdmin, setIsMerchantAdmin] = useState(false)
   const [merchantOptions, setMerchantOptions] = useState([])
 
@@ -257,6 +261,7 @@ export default function SiteManagement() {
       
       setSaving(true)
       setConflictMessage('')
+      setFormConflict('') // #2480 D8：提交开始即清空陈旧冲突提示
       
       let result;
       if (formMode === 'edit' && editingSite?.id) {
@@ -276,19 +281,22 @@ export default function SiteManagement() {
         return
       }
       
-      if (result.code === 40900) {
-        message.error(result.message || '网点名称已存在')
+      // #2480 v2：409 业务冲突改为表单内持久提示（D7 共享件），并清除旧提示后重新设置。
+      if (isBusinessCorrectableConflict(result)) {
+        setFormConflict(conflictText(result, '网点名称已存在'))
         return
       }
       
       if (formMode === 'edit') {
         if (result.data?.updated) {
           message.success('更新成功')
+          setFormConflict('') // #2480 D8：成功后清空
           setViewMode('detail')
         }
       } else if (result.data?.id) {
         Logger.state('SiteManagement', { action: 'siteCreated', siteId: result.data.id })
         await refreshAndSelectTreeNode(result.data.id)
+        setFormConflict('') // #2480 D8：成功后清空
         setViewMode('detail')
       }
       
@@ -298,6 +306,15 @@ export default function SiteManagement() {
     } catch (err) {
       if (err.errorFields) return
       Logger.error('SITE', 'handleSubmit error:', err)
+      // #2563：HTTP 400 的业务可纠正冲突（如参数不合法、商户 org 缺失、锚点网点禁止改名，
+      // 对应 backend/handlers/site.go:233/273/277/608 的 40002）在传输层以 Error 抛出并带 code，
+      // 这里用共享 rubric 判定后落到表单内持久提示；其余错误保持瞬时 toast。
+      // 注意：网点重名走 HTTP 409 + 40900（site.go 的 duplicate name 分支 / IAM org 名冲突），
+      // 由 handleSubmit 的 try 内分支处理，不进入本 catch。
+      if (isBusinessCorrectableConflict(err)) {
+        setFormConflict(conflictText(err, '请修改后重新提交'))
+        return
+      }
       message.error('操作失败: ' + err.message)
     } finally {
       setSaving(false)
@@ -458,6 +475,7 @@ filterTreeNode={(node) => {
                     setManagerInfo({ name: '', id: null, email: '', phone: '' })
                     setLookupError({ message: '', visible: false })
                     setConflictMessage('')
+                    setFormConflict('') // #2480 D8：取消时清空
                   }}>取消</Button>
                   <Button 
                     type="primary" 
@@ -477,8 +495,14 @@ filterTreeNode={(node) => {
                   rules={[{ required: true, message: '请输入网点名称' }]}
                   data-testid="site-form-name"
                 >
-                  <Input placeholder="请输入网点名称" />
+                  <Input
+                    placeholder="请输入网点名称"
+                    onChange={() => { if (formConflict) setFormConflict('') }} // #2480 D8：改名即清空
+                  />
                 </Form.Item>
+
+                {/* #2480 v2：业务冲突持久提示（D7 共享件；40900 不再走 toast） */}
+                <FormConflictAlert text={formConflict} testId="site-form-conflict" />
 
                 {!isMerchantAdmin && (
                   <Form.Item

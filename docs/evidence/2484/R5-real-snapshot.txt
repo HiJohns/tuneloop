@@ -1,0 +1,17 @@
+# build=1.0.827f9d1d # commit=827f9d1dc70e496d4ed08b49499fc1309e3b63e9 # dirty=false
+ACTION=align user_id=10101010-0000-4000-8000-000000000001 mm_role=site_member users_role= merchant_id=cccccccc-1111-4111-8111-111111111111
+ACTION=align user_id=10101010-0000-4000-8000-000000000002 mm_role=site_member users_role=site_member merchant_id=cccccccc-1111-4111-8111-111111111111
+ACTION=align user_id=10101010-0000-4000-8000-000000000003 mm_role=site_member users_role= merchant_id=cccccccc-1111-4111-8111-111111111111
+ACTION=align user_id=10101010-0000-4000-8000-000000000004 mm_role=site_member users_role=site_member merchant_id=
+ACTION=align user_id=10101010-0000-4000-8000-000000000005 mm_role=site_member users_role= merchant_id=cccccccc-1111-4111-8111-111111111111
+ACTION=none user_id=10101010-0000-4000-8000-000000000006 mm_role=site_member users_role= merchant_id=cccccccc-1111-4111-8111-111111111111
+ACTION=none user_id=10101010-0000-4000-8000-000000000007 mm_role=site_member users_role=site_member merchant_id=cccccccc-1111-4111-8111-111111111111
+ACTION=none user_id=10101010-0000-4000-8000-000000000008 mm_role=site_member users_role= merchant_id=
+ACTION=none user_id=10101010-0000-4000-8000-000000000009 mm_role=merchant_staff users_role=merchant_staff merchant_id=cccccccc-1111-4111-8111-111111111111
+ALIGN_ROWS=5
+NONE_ROWS=4
+DB_WRITES=0
+READONLY=1
+RESULT: PASS
+FIXTURE_EXIT=0
+

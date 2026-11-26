@@ -1,0 +1,8 @@
+# build=1.0.f6174f7ee # commit=f6174f7ee7b852e9873a5eb7737b781217d41ee1 # dirty=false
+# 跨商户同名：两次 201 + 2 个 tenant（唯一性 scope = 商户内，防预检过宽）
+GO_TEST_EXIT=0
+site_create_conflict_2581_test.go:182: CROSS_FIRST=201
+site_create_conflict_2581_test.go:183: CROSS_SECOND=201
+site_create_conflict_2581_test.go:184: CROSS_TENANTS=2
+site_create_conflict_2581_test.go:185: CROSS_SAME_NAME=1
+R2_OK

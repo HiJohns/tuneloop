@@ -374,10 +374,14 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	orgResp, err := iamClient.CreateOrganizationWithToken(userToken, iamReq)
 	if err != nil {
 		log.Printf("[CreateSite] IAM CreateOrganization failed: %v", err)
-		if strings.Contains(err.Error(), "name conflict") || strings.Contains(err.Error(), "already exists") {
+		// #2581：重名判定以哨兵 errors.Is(err, ErrOrganizationNameConflict) 为准（#2552 口径），
+		// 保留字符串匹配兜底以兼容历史 IAM message；message 必须是含 CJK 的具体原因，
+		// 否则前端「CJK 优先透传」口径会把 40900 降级成通用「数据冲突，请刷新后重试」。
+		if errors.Is(err, services.ErrOrganizationNameConflict) ||
+			strings.Contains(err.Error(), "name conflict") || strings.Contains(err.Error(), "already exists") {
 			c.JSON(http.StatusConflict, gin.H{
 				"code":    40900,
-				"message": "organization name already exists: " + err.Error(),
+				"message": fmt.Sprintf("该商户下已存在同名网点「%s」，请换一个名称", strings.TrimSpace(req.Name)),
 			})
 			return
 		}
@@ -394,9 +398,20 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	}
 
 	// Admin ID from IAM cascading bind response
-	adminID := orgResp.AdminID
+	adminID := strings.TrimSpace(orgResp.AdminID)
+	// #2479：未指定负责人时 IAM 返回 nil UUID（非空串，旧守卫只判空串），
+	// 空白/非法值同样不得作为 AssignRoleTemplate 的目标（不把非法值传给 IAM）。
+	// 判空口径与 merchant.go 的 nil UUID 判定保持一致。
+	hasAdmin := adminID != "" && adminID != uuid.Nil.String()
+	if hasAdmin {
+		if _, parseErr := uuid.Parse(adminID); parseErr != nil {
+			hasAdmin = false
+		}
+	}
 
-	if adminID != "" {
+	if !hasAdmin {
+		log.Printf("[CreateSite] skip role template assignment: no admin (site=%s org=%s)", req.Name, siteOrgID)
+	} else {
 		nsID := middleware.GetNamespaceID(c.Request.Context())
 		if templates, err := iamClient.ListRoleTemplates(nsID); err == nil {
 			for _, t := range templates {
@@ -430,9 +445,15 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	if managerUUID != nil {
 		var mgrUser models.User
 		if err := db.Where("id = ?", managerUUID.String()).First(&mgrUser).Error; err != nil {
+			// #2479：manager_id 由调用方给出、但 IAM 未返回有效负责人（nil UUID /
+			// 空白 / 非法值）时，users.iam_sub 不得落 nil UUID（D5 同一判定）。
+			iamSub := ""
+			if hasAdmin {
+				iamSub = adminID
+			}
 			localUser := models.User{
 				ID:       managerUUID.String(),
-				IAMSub:   adminID,
+				IAMSub:   iamSub,
 				TenantID: anchorOrgID,
 				OrgID:    siteOrgID,
 				Name:     req.ManagerName,
@@ -443,7 +464,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 				log.Printf("[CreateSite] Failed to create local user record for manager %s: %v", managerUUID.String(), err)
 			}
 		}
-	} else if adminID != "" && req.ManagerName != "" {
+	} else if hasAdmin && req.ManagerName != "" {
 		uuidVal, parseErr := uuid.Parse(adminID)
 		if parseErr == nil {
 			managerUUID = &uuidVal
@@ -682,22 +703,22 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 			case errors.Is(iamErr, services.ErrIAMForbidden):
 				c.JSON(http.StatusForbidden, gin.H{
 					"code":    40301,
-					"message": "IAM 拒绝修改组织名（权限不足）: " + iamErr.Error(),
+					"message": "IAM 拒绝修改组织名（权限不足）",
 				})
 			case errors.Is(iamErr, services.ErrIAMOrgNotFound):
 				c.JSON(http.StatusNotFound, gin.H{
 					"code":    40400,
-					"message": "IAM 组织不存在（org_id 失效）: " + iamErr.Error(),
+					"message": "IAM 组织不存在（org_id 失效）",
 				})
 			case errors.Is(iamErr, services.ErrIAMOrgNameConflict):
 				c.JSON(http.StatusConflict, gin.H{
 					"code":    40900,
-					"message": "网点名已存在（IAM 组织名冲突）: " + iamErr.Error(),
+					"message": "网点名已存在（IAM 组织名冲突）",
 				})
 			default:
 				c.JSON(http.StatusBadGateway, gin.H{
 					"code":    50000,
-					"message": "IAM 更新组织名失败: " + iamErr.Error(),
+					"message": "IAM 更新组织名失败，请稍后重试",
 				})
 			}
 			// IAM 失败 → 不写本地（D3）。
@@ -725,9 +746,11 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 	if result.Error != nil {
 		if nameChanged {
 			// IAM 已改名、本地失败：显式告知可重试（重试走同名分支补本地，D4）。
+			// #2497：改名已生效但本地写入失败，detail 只进日志。
+			log.Printf("[UpdateSite] local sync after IAM rename failed site=%s: %v", siteID, result.Error)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"code":    50000,
-				"message": "IAM 已改名，本地同步失败，请重试: " + result.Error.Error(),
+				"message": "IAM 已改名，本地同步失败，请重试",
 			})
 			return
 		}

@@ -1,0 +1,73 @@
+# build=1.0.16faa351d # commit=16faa351de3842a750f8f09c4bb0fe6f063d32a0 # dirty=false
+# SiteManagement.handleSubmit catch：先判共享 rubric → 持久提示，其余保持瞬时 toast
+CONFLICT_BRANCH_IN_CATCH=1
+CONFLICT_TEXT_FALLBACK=1
+FALLBACK_TOAST=1
+ALERT_RENDERED=1
+# rubric 对 Error 实例的判定（node --test frontend-pc/tests/formConflict.test.mjs）
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795705351914 wait_ms=76
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=76
+TAP version 13
+# TRUE_40900=1
+# TRUE_40002=1
+# TRUE_40004=1
+# TRUE_40005=1
+# FALSE_50000=1
+# FALSE_20000=1
+# FALSE_NULL=1
+# FALSE_UNDEFINED=1
+# FALSE_40901=1
+# FALSE_40902=1
+# TEXT_MESSAGE=网点名称已存在
+# TEXT_FALLBACK=请修改后重新提交
+# TEXT_OBJECT_FALLBACK=请修改后重新提交
+# TRUE_ENRICHED_ERROR=1
+# FALSE_PLAIN_ERROR=1
+# TEXT_ERROR_MESSAGE=分类名称已存在
+# Subtest: 40900 / 40002 are business-correctable conflicts
+ok 1 - 40900 / 40002 are business-correctable conflicts
+  ---
+  duration_ms: 1.865758
+  type: 'test'
+  ...
+# Subtest: server faults / success / null are not correctable conflicts
+ok 2 - server faults / success / null are not correctable conflicts
+  ---
+  duration_ms: 0.727294
+  type: 'test'
+  ...
+# Subtest: 40901 (existing account, Modal guided) is excluded
+ok 3 - 40901 (existing account, Modal guided) is excluded
+  ---
+  duration_ms: 0.879997
+  type: 'test'
+  ...
+# Subtest: conflictText prefers the backend message
+ok 4 - conflictText prefers the backend message
+  ---
+  duration_ms: 0.339457
+  type: 'test'
+  ...
+# Subtest: conflictText falls back when message is empty or not a string
+ok 5 - conflictText falls back when message is empty or not a string
+  ---
+  duration_ms: 1.49169
+  type: 'test'
+  ...
+# Subtest: enriched Error is a correctable conflict, plain Error is not
+ok 6 - enriched Error is a correctable conflict, plain Error is not
+  ---
+  duration_ms: 0.380748
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 89.782095
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795705352077 hold_ms=163
+R3_OK

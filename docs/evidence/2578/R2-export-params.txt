@@ -1,0 +1,15 @@
+# build=1.0.7842aed44 # commit=7842aed4499fc4b01e34c2de0783cdfa09d5d048 # dirty=false
+GENERATED_AT_HEAD=7842aed4499fc4b01e34c2de0783cdfa09d5d048
+# buildStockExportParams：sn / category_id / status 透传；显式 lost 不叠加 exclude_status；字段清单固定
+NODE_TEST_EXIT=0
+TESTS_PASS=24
+TESTS_FAIL=0
+EXPORT_EXCLUDE_NONMGR=lost,archived,sold
+EXPORT_FIELDS=sn,category_name,status
+EXPORT_SN=CVZ-104
+EXPORT_CATEGORY=c1
+EXPORT_STATUS=available
+EXPORT_EXCLUDE_WITH_STATUS=
+EXPORT_EXPLICIT_LOST=lost
+EXPORT_EXCLUDE_MGR=
+R2_OK

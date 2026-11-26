@@ -24,9 +24,9 @@ import (
 // #1948 乐器丢失与找回：分场景结算 + 冲正 + M-08 联动（LS-03/03a/03b/05/05a/06）。
 
 type lossFixture struct {
-	tenantID, siteID, customerSub, staffSub string
-	router                                  *gin.Engine
-	db                                      *gorm.DB
+	tenantID, siteID, siteOrg, customerSub, staffSub string
+	router                                           *gin.Engine
+	db                                               *gorm.DB
 }
 
 func setupLossFixture(t *testing.T) lossFixture {
@@ -47,18 +47,24 @@ func setupLossFixture(t *testing.T) lossFixture {
 	siteUUID := uuid.New()
 	siteID := siteUUID.String()
 	testfixtures.SeedSiteFK(t, db, siteID, tenantID) // #2443: instruments.current_site_id FK
+	// #2510：夹具必须区分 ID 域——sites.org_id（= JWT oid）独立于 sites.id
+	// （= instruments.current_site_id）。旧夹具用 tenant_id 充当 org_id 且
+	// staff oid=siteID，缺陷被掩盖。
+	siteOrg := uuid.New().String()
+	require.NoError(t, db.Model(&models.Site{}).Where("id = ?", siteID).
+		Update("org_id", siteOrg).Error)
 	customerSub := uuid.New().String()
 	staffSub := uuid.New().String()
 	for _, u := range []string{customerSub, staffSub} {
 		require.NoError(t, db.Create(&models.User{
-			ID: u, IAMSub: u, TenantID: tenantID, OrgID: siteID,
+			ID: u, IAMSub: u, TenantID: tenantID, OrgID: siteOrg,
 			Username: "u-" + u[:8], Name: "用户", Status: "active",
 		}).Error)
 	}
 
 	h := NewInstrumentLossHandler()
 	r := gin.New()
-	staff := testutil.TestActor{TenantID: tenantID, OrgID: siteID, UserID: staffSub, Role: "site_member"}
+	staff := testutil.TestActor{TenantID: tenantID, OrgID: siteOrg, UserID: staffSub, Role: "site_member"}
 	r.Use(func(c *gin.Context) {
 		c.Request = c.Request.WithContext(staff.InjectContext(c.Request.Context()))
 		c.Next()
@@ -68,7 +74,7 @@ func setupLossFixture(t *testing.T) lossFixture {
 	r.GET("/instrument-loss", h.List)
 	r.POST("/api/pay/prepay", PrepayOrder)
 
-	return lossFixture{tenantID: tenantID, siteID: siteID, customerSub: customerSub,
+	return lossFixture{tenantID: tenantID, siteID: siteID, siteOrg: siteOrg, customerSub: customerSub,
 		staffSub: staffSub, router: r, db: db}
 }
 
@@ -332,4 +338,169 @@ func TestInstrumentLoss_ShortfallPayCallback(t *testing.T) {
 	require.NoError(t, f.db.Model(&models.OrderPaymentRecord{}).
 		Where("order_id = ? AND order_type = ? AND status = ?", orderID, "loss", "pending").Count(&cnt).Error)
 	assert.Equal(t, int64(0), cnt, "M-08 解除")
+}
+
+// ---------------------------------------------------------------------------
+// #2510：网点归属判定的 ID 域回归（JWT oid = sites.org_id；current_site_id = sites.id）
+// ---------------------------------------------------------------------------
+
+func lossBoolToInt2510(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
+}
+
+// lossRouterWithOrg 构造指定 oid/角色的路由器（用于跨组织与旧口径负例）。
+func lossRouterWithOrg(f lossFixture, orgID, role string) *gin.Engine {
+	h := NewInstrumentLossHandler()
+	r := gin.New()
+	actor := testutil.TestActor{TenantID: f.tenantID, OrgID: orgID, UserID: f.staffSub, Role: role}
+	r.Use(func(c *gin.Context) {
+		c.Request = c.Request.WithContext(actor.InjectContext(c.Request.Context()))
+		c.Next()
+	})
+	r.POST("/instruments/:id/lost", h.Register)
+	r.POST("/instruments/:id/restore", h.Restore)
+	return r
+}
+
+func lossPostWithRouter2510(t *testing.T, r *gin.Engine, path string, body interface{}) (int, map[string]interface{}) {
+	t.Helper()
+	raw, _ := json.Marshal(body)
+	req := httptest.NewRequest(http.MethodPost, path, bytes.NewReader(raw))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	var resp map[string]interface{}
+	_ = json.Unmarshal(w.Body.Bytes(), &resp)
+	return w.Code, resp
+}
+
+func lossRegisterBody2510() gin.H {
+	return gin.H{
+		"description": "网点登记丢失", "responsible_party": "site",
+		"user_ratio": 0, "compensation_cents": 0,
+	}
+}
+
+// R1：夹具必须区分 ID 域（旧字符串谓词不成立），新集合成员判定成立。
+func TestInstrumentLoss2510_IDDomainRootCause(t *testing.T) {
+	f := setupLossFixture(t)
+	oldMatch := f.siteID == f.siteOrg
+	var n int64
+	require.NoError(t, f.db.Model(&models.Site{}).
+		Where("id = ? AND org_id = ?", f.siteID, f.siteOrg).Count(&n).Error)
+	red := 0
+	if !oldMatch && n == 1 {
+		red = 1
+	}
+	t.Logf("SITE_ID=%s", f.siteID)
+	t.Logf("SITE_ORG=%s", f.siteOrg)
+	t.Logf("OLD_PREDICATE_MATCH=%d", lossBoolToInt2510(oldMatch))
+	t.Logf("NEW_RULE_MATCH=%d", lossBoolToInt2510(n == 1))
+	t.Logf("RED_CONFIRMED=%d", red)
+	assert.NotEqual(t, f.siteID, f.siteOrg, "夹具必须让 sites.id != sites.org_id，否则 #2510 缺陷不可见")
+	assert.EqualValues(t, 1, n, "新判定：current_site_id 是本组织的站点")
+	assert.Equal(t, 1, red)
+}
+
+// R2：网点账号（oid = sites.org_id）可登记丢失。
+func TestInstrumentLoss2510_RegisterBySiteOrg(t *testing.T) {
+	f := setupLossFixture(t)
+	instID, _ := mkLossInstrument(t, f, models.StockStatusAvailable, false, "", "", "", 0, 0)
+
+	code, resp := lossPost(t, f, "/instruments/"+instID+"/lost", lossRegisterBody2510())
+	require.Equal(t, http.StatusOK, code, "resp=%v", resp)
+
+	var recCount int64
+	require.NoError(t, f.db.Model(&models.InstrumentLossRecord{}).
+		Where("instrument_id = ? AND restored_at IS NULL", instID).Count(&recCount).Error)
+	var inst models.Instrument
+	require.NoError(t, f.db.First(&inst, "id = ?", instID).Error)
+
+	t.Logf("STATUS=%d", code)
+	t.Logf("CODE=%v", resp["code"])
+	t.Logf("LOSS_RECORD_CREATED=%d", lossBoolToInt2510(recCount == 1))
+	t.Logf("INSTRUMENT_LOST=%d", lossBoolToInt2510(inst.StockStatus == models.StockStatusLost))
+	assert.EqualValues(t, 20000, resp["code"])
+	assert.EqualValues(t, 1, recCount)
+	assert.Equal(t, models.StockStatusLost, inst.StockStatus)
+}
+
+// R3：网点账号可执行找回。
+func TestInstrumentLoss2510_RestoreBySiteOrg(t *testing.T) {
+	f := setupLossFixture(t)
+	instID, _ := mkLossInstrument(t, f, models.StockStatusAvailable, false, "", "", "", 0, 0)
+	code, resp := lossPost(t, f, "/instruments/"+instID+"/lost", lossRegisterBody2510())
+	require.Equal(t, http.StatusOK, code, "register resp=%v", resp)
+
+	code, resp = lossPost(t, f, "/instruments/"+instID+"/restore", gin.H{"damaged": false})
+	require.Equal(t, http.StatusOK, code, "restore resp=%v", resp)
+
+	var rec models.InstrumentLossRecord
+	require.NoError(t, f.db.First(&rec, "instrument_id = ?", instID).Error)
+	var inst models.Instrument
+	require.NoError(t, f.db.First(&inst, "id = ?", instID).Error)
+
+	t.Logf("STATUS=%d", code)
+	t.Logf("RESTORED_DAMAGED=%d", lossBoolToInt2510(rec.RestoredDamaged))
+	t.Logf("INSTRUMENT_AVAILABLE=%d", lossBoolToInt2510(inst.StockStatus == models.StockStatusAvailable))
+	assert.False(t, rec.RestoredDamaged)
+	assert.Equal(t, models.StockStatusAvailable, inst.StockStatus)
+}
+
+// R4：跨组织（乐器在他组织站点）仍被拒，且不落库、不改进乐器状态。
+func TestInstrumentLoss2510_CrossOrgDenied(t *testing.T) {
+	f := setupLossFixture(t)
+	otherOrg := uuid.New().String()
+	otherSiteID := uuid.New().String()
+	require.NoError(t, f.db.Create(&models.Site{
+		ID: otherSiteID, TenantID: f.tenantID, OrgID: otherOrg, Name: "other-site", Type: "normal",
+	}).Error)
+
+	instID := uuid.New().String()
+	otherSiteUUID, err := uuid.Parse(otherSiteID)
+	require.NoError(t, err)
+	require.NoError(t, f.db.Create(&models.Instrument{
+		ID: instID, TenantID: f.tenantID, OrgID: &f.tenantID,
+		CurrentSiteID: &otherSiteUUID, SN: "LOSS-CROSS-" + instID[:8],
+		StockStatus: models.StockStatusAvailable,
+	}).Error)
+
+	lostCode, _ := lossPost(t, f, "/instruments/"+instID+"/lost", lossRegisterBody2510())
+	restoreCode, _ := lossPost(t, f, "/instruments/"+instID+"/restore", gin.H{"damaged": false})
+
+	var recCount int64
+	require.NoError(t, f.db.Model(&models.InstrumentLossRecord{}).
+		Where("instrument_id = ?", instID).Count(&recCount).Error)
+	var inst models.Instrument
+	require.NoError(t, f.db.First(&inst, "id = ?", instID).Error)
+
+	t.Logf("LOST_STATUS=%d", lostCode)
+	t.Logf("RESTORE_STATUS=%d", restoreCode)
+	t.Logf("LEAK_RECORDS=%d", recCount)
+	t.Logf("STOCK_STATUS_UNCHANGED=%d", lossBoolToInt2510(inst.StockStatus == models.StockStatusAvailable))
+	assert.Equal(t, http.StatusForbidden, lostCode)
+	assert.Equal(t, http.StatusForbidden, restoreCode)
+	assert.Zero(t, recCount)
+	assert.Equal(t, models.StockStatusAvailable, inst.StockStatus)
+}
+
+// R5：旧错误口径（actor oid = sites.id）不再被放行——字符串相等语义已消失。
+func TestInstrumentLoss2510_OldOidConventionDenied(t *testing.T) {
+	f := setupLossFixture(t)
+	instID, _ := mkLossInstrument(t, f, models.StockStatusAvailable, false, "", "", "", 0, 0)
+
+	oldRouter := lossRouterWithOrg(f, f.siteID, "site_member")
+	lostCode, _ := lossPostWithRouter2510(t, oldRouter, "/instruments/"+instID+"/lost", lossRegisterBody2510())
+	restoreCode, _ := lossPostWithRouter2510(t, oldRouter, "/instruments/"+instID+"/restore", gin.H{"damaged": false})
+	allowed := lossBoolToInt2510(lostCode == http.StatusOK || restoreCode == http.StatusOK)
+
+	t.Logf("OLD_OID_LOST_STATUS=%d", lostCode)
+	t.Logf("OLD_OID_RESTORE_STATUS=%d", restoreCode)
+	t.Logf("OLD_OID_ALLOWED=%d", allowed)
+	assert.Equal(t, http.StatusForbidden, lostCode, "旧口径（oid=siteID）不得被当作本组织")
+	assert.Equal(t, http.StatusForbidden, restoreCode)
+	assert.Zero(t, allowed)
 }

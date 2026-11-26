@@ -1,0 +1,14 @@
+# build=1.0.5a9d550c8 # commit=5a9d550c8230756ed92537700adc5d8d154e1e5c # dirty=false
+# tree=5a9d550c8230756ed92537700adc5d8d154e1e5c
+BUILD_CMD=cd backend && go build ./...
+BUILD_EXIT=0
+BUILD_OK=1
+SUITE_CMD=cd backend && go test ./handlers -count=1 -timeout 20m
+HANDLERS_EXIT=0
+HANDLERS_FAIL_COUNT=0
+HANDLERS_NEW_FAILURES=0
+BASELINE_REF=origin/develop
+BASELINE_KNOWN_FAILURES=TestActivateUser2309_BindFailurePurgesIAM,TestActivateUser2309_PermissionFailurePurgesIAM,TestActivateUser2309_LocalUpdateFailurePurgesIAM
+TAIL: [heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=184
+TAIL: ok  	tuneloop-backend/handlers	661.819s
+TAIL: [heavy-lock] released scope=host slot=0 rc=0 at_ms=1795703276523 hold_ms=671712

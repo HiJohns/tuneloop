@@ -1,0 +1,8 @@
+# build=1.0.bc544a810 # commit=bc544a8102335e50ccd4e4820ab25ccdcb9c05d8 # dirty=false
+GENERATED_AT_HEAD=bc544a8102335e50ccd4e4820ab25ccdcb9c05d8
+== R5 docs ==
+DOC_SUMMARY=1
+DOC_JOIN_DATE=1
+DOC_REDIRECT=1
+DOC_LOGS=1
+R5_OK

@@ -1,0 +1,9 @@
+# build=1.0.ddd45358 # commit=ddd45358060d6e403dccb83596e07a38cf3b1475 # dirty=false
+TEST_PATTERN=^TestCreateSite_(EmptyAdmin|InvalidAdmin)SkipsTemplate_2479$
+TEST_EXIT=0
+TEST_PASS=1
+NIL_UUID_ASSIGN_REF=0
+STATUS=201
+ASSIGN_CALLS=0
+RESULT: PASS
+

@@ -23,7 +23,7 @@ steps:
         role: [merchant_admin, site_admin]
         gate: "名称必填"
         reach: ""
-        controls: [名称输入, 类型选择(加盟/直营/合作), 地址, 电话, 管理员搜索, 创建新用户按钮]
+        controls: [名称输入, 类型选择(直营店/加盟店), 地址, 电话, 管理员搜索(直营店可选/可零成员), 创建新用户按钮, 所有人搜索(仅加盟店, 必填)]
         displays: [选中管理员姓名/邮箱, 名称重复校验结果]
         ops:
           - {type: interact}
@@ -55,10 +55,25 @@ steps:
 3. 提交 → 后端 IAM 三步绑定（org 创建 + bind + cus_perm + role 模板）
 4. 网点树更新
 
-## 关键规则
-- IAM 下级组织 parent_id = 商户 org_id
-- 管理员初始角色 site_admin
+## 关键规则（2026-11-26 组织模型）
+- **直营店**（默认唯一可直接创建的形态）：IAM 建 `parent_id = 商户 org_id` 的**分支组织**（`kind=branch`），**没有 OWNER**，只有管理员；**可以零成员**（不指定管理员也能建）
+- **加盟店**：法律上独立 → 在命名空间下建**独立组织**（`kind=franchise`）+ 绑定**所有人（OWNER，必填）** + 建 `org_link(kind=franchise)` 关联当前商户；不允许无 owner 建店
+- **合作店**：暂不做（无类型选项、无入口；后续按 `org_link.kind=partner` 扩展）
+- 管理员初始角色 site_admin；角色模板由商户 owner 定义，直营店只能分配不能定义
 - 本地 site_members 同步
+
+### 组织所有人不变量（Owner 2026-11-26 最终口径）
+
+| 组织类型 | 典型对象 | active OWNER |
+|---|---|:---:|
+| `namespace` 命名空间组织 | 平台（系统管理员） | **恰好 1** |
+| `tenant` 商户组织 | 商户 / 租户 | **恰好 1** |
+| `franchise` 加盟网点 | 加盟店 | **恰好 1** |
+| `branch` 直营网点 | 直营店、平台直属中转网点 | **必须 0**（只有 admin） |
+| `partner` 合作店 | 暂不做 | 启用时按独立组织 = 1 |
+
+- 「有没有 owner」即「独立组织 / 分支机构」的判据；owner 的唯一权威在 **IAM**（本地表只是缓存，不得自行判定谁是所有人）。
+- OWNER 唯一、不能删除，只能**转让**（转让后原 OWNER 降 ADMIN）；转让入口在 **PC 后台 → 商户详情 → 所有人**。
 
 ## 验收
 - `go test -run TestOrgManagement ./handlers/ -v`
@@ -127,7 +142,9 @@ steps:
   - 目标是**本系统既有用户**（已在 users/relations 中）→ 绑定即时生效，无需确认
   - 目标是**手机号已注册但未在本组织**的人 → **不得由管理员挂接**（一人一号）：返回 40902「请让本人登录后自助加入」；身份追加仅限本人自助
 - **角色（#2035）**：成员可具**多个角色**（一店多角色，如 员工 + 维修师傅）；`PUT /sites/:id/members/:uid` 接受 `roles[]`（`role` 为主角色，兼容单角色旧调用）；IAM `functional_roles` 承载全集
-- **移除成员（#2025 D4 裁定）**：删除的是**网点 relation**（IAM UnbindUser + 本地 site_members），**用户记录保留**、可重新加回；确认文案「将移除其 XX 身份，账户保留」
+- **移除成员 = 离职解绑（#2025 D4 + Owner 2026-11-26）**：只解除与组织的 IAM 关系（`unbind`）+ 删除本地成员行，**users 记录保留**、账号可继续以顾客身份登录、可重新加回；确认文案「将移除其 XX 身份，账户保留」。
+  - 只有**姓名空间管理员（系统管理员）**可真正删除用户；商户管理员的入口文案与 API 一律是「移除成员（离职）」，**不得**调用 IAM 全局删除。
+  - 离职时其在办维修单（`inspecting/quoted/repairing/return_pending`）**挂空**（`worker_id=NULL` + 记录原因），调度显示「待接手」；完整转派手续见 #2568 设计稿。
 - **加入网点门禁（#2114，各级管各级）**：网点管理员**只能直接添加/邀请「已是本商户成员」的用户**（P1）；对**非商户成员**（P2 已注册 / P3 未注册）→ 弹「您没有权限邀请该用户，需商户管理员同意，是否提出申请？」→「是」则提交**邀请申请**（`POST /sites/:id/members/apply`），由商户管理员在「邀请管理」审批
 - **各级管各级（#2114）**：网点解绑**只解除本网点关系**（IAM 不再上溯删除商户根 member）；商户「开除」= 解绑**商户级**关系并**级联解绑该商户全部网点**；**删除用户仅系统管理员**（namespace_admin）；用户不跨 namespace
 - **判定「是否商户成员」**：以 IAM 上**商户根组织关系存在**为准（`member` 或 `staff` 均算；`member` 是平凡角色，仅用于枚举）
@@ -177,64 +194,74 @@ steps:
 ---
 id: O-03
 domain: organization
-flow: 商户负责人管理（#1718）
+flow: 商户所有人（OWNER）与管理员（ADMIN）
 steps:
   - seq: 1
-    action: 查看商户负责人
+    action: 查看商户所有人
     frontend:
       - platform: [pc]
         page: /merchants/:id
-        role: [tenant_admin]
-        reach: "商户管理 → 商户详情 → 负责人管理 Tab"
-        controls: [负责人列表（仅 merchant_admin）, 添加管理员按钮]
-        displays: [负责人姓名/邮箱/角色（固定商户管理员）/加入时间]
+        role: [merchant_admin]
+        reach: "菜单「商户管理」（businessRole=merchant_admin 可见，列表收窄到本商户）→ 本商户详情 → 所有人 Tab"
+        controls: [所有人（唯一）卡片, 转让所有权按钮, 管理员列表]
+        displays: [所有人姓名/邮箱/加入时间, 管理员姓名/邮箱/加入时间]
         ops:
           - {type: api, method: GET, path: /admin/merchants/:id/members}
   - seq: 2
-    action: 添加管理员
+    action: 转让所有权
+    frontend:
+      - platform: [pc]
+        page: /merchants/:id
+        role: [merchant_admin]
+        gate: "viewer_is_owner=true（归一化 merchants.admin_uid = 当前登录账号的本地 users.id；禁止用平台级 JWT is_owner）"
+        reach: "菜单「商户管理」→ 本商户详情 → 所有人 Tab → 转让所有权"
+        controls: [目标成员选择（仅本商户 active 成员）, 二次确认（展示「转让后你将成为管理员」）]
+        empty_states: ["admin_uid 无值 → 未锚定所有人（请联系平台核对）", "admin_uid 有值但两种 ID 空间都不命中 → 成员记录缺失，请联系平台"]
+        ops:
+          - {type: api, method: POST, path: /api/merchants/:id/transfer-ownership}
+    # 服务器端动作：
+    #   1. IAM POST /organizations/:org/transfer-ownership {user_id}（单事务：旧 OWNER→ADMIN、目标→OWNER、perm_version 递增、审计）
+    #   2. 本地同步（单事务）：所有权指针 = merchants.admin_uid，转让即搬指针
+    #      （admin_uid = 目标本地 id、admin_pending=false），并把目标 merchant_members.role 提升为 merchant_admin；
+    #      两者必须同事务成功，任一 RowsAffected != 1 或报错 → 回滚 + 500/50000（请联系平台人工核对）；
+    #      旧 OWNER 行保持 merchant_admin —— merchant_members.role 只表达业务角色，OWNER/ADMIN 同为 merchant_admin
+    #   3. 业务角色不变：tuneloop 以 tid == oid 判定 merchant_admin（backend/middleware/iam.go），
+    #      原 OWNER 降为 ADMIN 后仍是 merchant_admin，仅失去 IAM 侧「删组织/定义角色模板」
+    #   4. 失败不落本地：IAM 403/404/409/400/5xx 一律显式返回（40303/40400/40900/40002/50200）
+  - seq: 3
+    action: 添加管理员（非所有人）
     frontend:
       - platform: [pc]
         page: /merchants/:id
         role: [tenant_admin]
-        reach: "负责人管理 Tab → 添加管理员"
+        reach: "所有人 Tab → 添加管理员"
         controls: [添加管理员按钮, 新建用户/绑定现有用户表单]
-        # 无角色选择——只能创建商户管理员（#1718）
+        # 只能创建 ADMIN，不再有「设为负责人」选项
         displays: [姓名/用户名/邮箱/电话表单, 跳过邮箱验证]
         ops:
           - {type: api, method: POST, path: /admin/merchants/:id/members}
-    # 服务器端动作（#1718 核对）：POST 添加管理员 →
-    #   1. IAM CreateUser/CreateOrGetUser（新用户建号，skip_activation 时发初始密码）
-    #   2. IAM BindUserToOrganization 绑定到 **商户组织 merchant.org_id**（非 namespace tenant_id），
-    #      role = OWNER（merchant_admin → OWNER，经 toIAMRole）
-    #   3. IAM AssignRoleTemplate（template_code = merchant_admin）
-    #   4. 本地 users 缓存同步（iam_sub = IAM user id）
-    #   5. merchant_members 落库（role = merchant_admin）
-    #   绑定 org 若错绑 namespace（tenant_id）→ IAM 侧成员归属与既有成员不一致（#1718 修复）
-  - seq: 3
-    action: 移除负责人
-    frontend:
-      - platform: [pc]
-        page: /merchants/:id
-        role: [tenant_admin]
-        gate: "负责人数量 > 1"
-        controls: [移除按钮（唯一负责人时禁用）]
-        ops:
-          - {type: api, method: DELETE, path: /admin/merchants/:id/members/:uid}
-    # 最后负责人保护（#1718）：后端删除时校验 merchant_admin 数量 ≤1 → 拒绝
-    # "不能删除最后一个负责人"；前端列表仅 1 个时禁用移除按钮（UX 兜底）
+    # 服务器端动作：成员 bind 走 merchantMemberIAMRole → IAM role = ADMIN；
+    # 显式 role=OWNER/owner 请求返回 400/40002（提示走转让），不得静默写成第二个 OWNER。
 ---
 
-# O-03 商户负责人管理（#1718）
+# O-03 商户所有人（OWNER）与管理员（ADMIN）
 
 ## 前置条件
 - 租户管理员，已进入商户详情
 
-## 关键规则
-- 负责人 = 商户管理员（merchant_admin），可多个
-- 列表仅列负责人；无角色切换（角色固定商户管理员）
-- 添加入口 =「添加管理员」（无角色选择）
-- **不得删除最后一个负责人**：后端服务器端校验（40009），前端禁用移除按钮
-- 与网点成员「最后一名管理员保护」（O-01）语义对齐
+## 关键规则（2026-11-26 OWNER 模型）
+- **每商户恰好 1 个所有人（OWNER）**：IAM `user_org_relations` 部分唯一索引保证；负责人不再是「可多个的商户管理员」
+- **本地所有权指针 = `merchants.admin_uid`**：`merchant_members.role` 只表达业务角色（OWNER 与 ADMIN 同为 `merchant_admin`），本地**没有** `is_owner` 列（接口下发的 `is_owner` 只是按 `admin_uid` 计算的响应字段）
+- **`admin_uid` 读取侧 ID 空间归一化**（#2546 D1b）：命中 `users.id` 直接用；否则按 `users.iam_sub = admin_uid` 解析本地 id；两者都不命中 → `owner_uid=""` 且前端提示「成员记录缺失」（与「未锚定所有人」区分）；存量写入侧不一致由 #2553 收敛
+- **OWNER 不能删除、不能降级、不能清空**：唯一合法路径是「转让所有权」——原 OWNER 自动降为 ADMIN；`PUT /api/merchants/:id` 的 `admin_uid` 变化同样走转让端点，置空 → `40002`
+- **添加成员/改角色只能写 ADMIN**：成员 bind 用 `merchantMemberIAMRole`（`merchant_admin → ADMIN`）；显式 `role=OWNER` 请求 `400/40002`
+- 管理员（ADMIN）可多个；可建子组织（直营店）、加成员、分配角色、设直授权限
+- OWNER 独占：删除组织、定义/修改角色模板、改角色模板权限位
+- 业务角色不变：`tid == oid` 判定 merchant_admin，故原 OWNER 降 ADMIN 后 tuneloop 内仍是商户管理员
+- 与网点成员「最后一名管理员保护」（O-01）不再同语义：网点没有 OWNER，只有管理员
+
+## 语义变更记录
+- 旧用例（#1718）：「负责人 = 商户管理员，可多个」「不得删除最后一个负责人」→ 已被 2026-11-26 OWNER 模型取代（beaconiam#508）
 
 ---
 
@@ -298,6 +325,14 @@ steps:
 - 未接受前账户不可登录（IAM 拒绝 `init` 登录）
 
 ## 微信绑定冲突与合并（登录期，对应 P-05）
+
+> **2026-11-26 裁定（Owner + Ken）**：扫码绑定 = 账户合并，语义「顾客账户吃掉员工账户」，权威定义见 #2567。
+> - 组织 B 的员工账户 C 的绑定二维码发给顾客 A → A 扫码后提示「将绑定到 {组织}（原员工 {C}），原员工账户将**废止**」→ A 确认；
+> - 确认后：**C 置 `obsolete`（废止，保留可追溯、不再登录/不再出现在成员列表）**；**A 绑定到组织 B**，组织 B 成员列表显示 **A**；`users.role/tenant_id/org_id` 经 `reconcileUserCache` 镜像；
+> - **密码**：A 尚无密码 → 合并确认后提示「设置登录密码 + 确认密码」；A 已有密码 → 跳过；
+> - **审计**：写 `audit_logs`（`ACCOUNT_MERGE`，含 from/to `iam_sub`、组织、来源 `qr_bind`）；
+> - **本地待办/邀请**：C 的 `staff_invites(pending)` → `rejected(reason=account_merged)`、`confirmation_sessions(waiting)` → `cancelled`；IAM 的 `user_task_queues` 归运维侧（tuneloop 不直连 IAM 库）。
+
 - 用户以用户名/密码登录后绑定微信，若该微信**已绑定另一账户 Y**：
   1. 提示「发现您已使用此微信号注册有账户，将合并」→ **拒绝**＝放弃绑定（当前账户不变）；**同意**＝执行合并
   2. **合并**：将当前账户 X 的**组织绑定**改为绑定到 Y；X 标记 **`obsolete`（废弃）**；**密码随迁**（X→Y）；**自动登出**

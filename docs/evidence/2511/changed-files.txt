@@ -1,0 +1,15 @@
+backend/handlers/warehouse.go
+backend/handlers/warehouse_2511_test.go
+docs/cases/cases.md
+docs/evidence/2511/R1-inspect-return.txt
+docs/evidence/2511/R2-assess-damage.txt
+docs/evidence/2511/R3-unresolvable.txt
+docs/evidence/2511/R4-deterministic.txt
+docs/evidence/2511/R5-scan-sql.txt
+docs/evidence/2511/R6-build-regression.txt
+docs/evidence/2511/changed-files.txt
+docs/evidence/2511/evidence.json
+docs/evidence/2511/plan.md
+docs/evidence/2511/pre-ready-2511.json
+docs/evidence/2511/summary.md
+scripts/verify-2511.sh

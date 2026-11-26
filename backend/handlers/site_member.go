@@ -322,7 +322,8 @@ func (h *SiteMemberHandler) RemoveMember(c *gin.Context) {
 		// #2114：解绑传 IAM sub（而非本地 users.id）；失败显式返回（不静默吞错）
 		iamSub := resolveIAMSub(db, userID)
 		if err := iamClient.UnbindUserFromOrganizationWithToken(memberToken, iamSub, site.OrgID, operatorID); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "解除成员失败（IAM）：" + err.Error()})
+			log.Printf("[SiteMemberRemove] IAM unbind failed: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "解除成员失败，请稍后再试"})
 			return
 		}
 	}

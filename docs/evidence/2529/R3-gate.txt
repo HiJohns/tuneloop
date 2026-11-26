@@ -1,0 +1,36 @@
+# build=1.0.ed39cccd4 # commit=ed39cccd43d217124b5886a89bf90769bb7898cb # dirty=false
+== R3 build / targeted regression / eslint / PC build / plan source ==
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed at_ms=1795649158222 wait_ms=-122
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed wait_ms=-122
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795649182238 hold_ms=24016
+--- PASS: TestGetInstruments_MultiSiteTechnician (1.22s)
+--- PASS: TestGetInstruments_DefaultGroupedOrder (1.18s)
+--- PASS: TestInstrumentDetail_ExplicitScope_2276 (1.25s)
+--- PASS: TestInstrumentDetail_RepairFields_PendingNoWorker (1.14s)
+--- PASS: TestInstrumentDetail_RepairFields_InProgressWithWorker (1.28s)
+--- PASS: TestInstrumentDetail_RepairFields_Completed (1.28s)
+--- PASS: TestInstrumentDetail_RepairFields_CrossTenant404 (1.10s)
+--- PASS: TestInstrumentDetail_RepairWorkerName_ByIAMSub (1.27s)
+PASS
+ok  	tuneloop-backend/handlers	13.355s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795649450855 hold_ms=19291
+
+✖ 4 problems (0 errors, 4 warnings)
+
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 35.41s
+PLAN_SOURCE: FRESH sha=c8bf466f3b2f538c972f82ec095269c6f2ef79856406e241d6392fe509a35a34
+BUILD_RC=0
+TEST_TARGETED_RC=0
+TEST_FAIL_COUNT=0
+TEST_PASS_COUNT=11
+ESLINT_RC=0
+ESLINT_NO_UNDEF=0
+PC_BUILD_RC=0
+PLAN_SOURCE=PASS
+GATE_RESULT=PASS
+R3_OK

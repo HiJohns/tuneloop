@@ -1,0 +1,13 @@
+# build=1.0.7842aed44 # commit=7842aed4499fc4b01e34c2de0783cdfa09d5d048 # dirty=false
+GENERATED_AT_HEAD=7842aed4499fc4b01e34c2de0783cdfa09d5d048
+# GET /api/instruments/export == GET /api/instruments（sn / 后代分类 / 排除状态 / 网点范围）
+GO_TEST_EXIT=0
+instrument_export_scope_2578_test.go:240: EXPORT_SN_FILTER=1
+instrument_export_scope_2578_test.go:241: EXPORT_CATEGORY_DESC=2
+instrument_export_scope_2578_test.go:242: EXPORT_EXCLUDE=3
+instrument_export_scope_2578_test.go:243: EXPORT_SCOPE_SITE=2
+instrument_export_scope_2578_test.go:244: EXPORT_HEADER_SN=1
+instrument_export_scope_2578_test.go:245: EXPORT_ROWS_EQ_LIST=1
+--- PASS: TestExportScope2578 (0.93s)
+--- PASS: TestExportInstruments (0.01s)
+R1_OK

@@ -33,3 +33,18 @@ export function personnelQueryString(params = {}) {
     Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')
   ).toString()
 }
+
+// #2526：人员列表「归属缺失」标记（本地 users.tenant_id / org_id 为 nil UUID 的存量行）。
+// 后端 `attribution_missing` 为布尔；JSON 经代理/导出后可能是字符串 'true'
+// （历史采集脚本会做字符串化），两者都必须识别，避免标记静默失效。
+export function attributionMissingBadge(record) {
+  if (!record) return null
+  const raw = record.attribution_missing
+  const missing = raw === true || raw === 'true' || raw === 1 || raw === '1'
+  if (!missing) return null
+  return {
+    label: '归属缺失',
+    color: 'gold',
+    title: '该员工的商户/组织归属缺失（存量数据），列表按成员关系展示，编辑不受影响'
+  }
+}

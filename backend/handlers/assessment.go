@@ -131,10 +131,13 @@ func (h *AssessmentHandler) SubmitAssessment(c *gin.Context) {
 		// site; fall back to the order's site.
 		if siteID := resolveOperatorSiteID(h.db, middleware.GetUserID(c.Request.Context())); siteID != nil {
 			instUpdates["current_site_id"] = *siteID
-		} else if order.OrgID != "" {
-			instUpdates["current_site_id"] = order.OrgID
+		} else if resolved := resolveSiteIDByOrg(h.db, order.OrgID); resolved != "" {
+			// #2511/#2532: order.OrgID is an organization ID; resolve it to a
+			// sites.id before writing, never write the org ID itself.
+			instUpdates["current_site_id"] = resolved
 		} else {
-			log.Printf("[WARN] #1889: no site resolved for instrument %s entering repair", order.InstrumentID)
+			// #1889/#2511/#2532: unresolvable → keep the existing value and WARN.
+			log.Printf("[WARN] #2532: no site resolved for instrument %s entering repair (operator has no site membership; order org %q maps to no site)", order.InstrumentID, order.OrgID)
 		}
 		if err := h.db.Table("instruments").Where("id = ?", order.InstrumentID).
 			Updates(instUpdates).Error; err != nil {

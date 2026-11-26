@@ -1,0 +1,52 @@
+# build=1.0.c931502a0 # commit=c931502a0152238d6f5a70c4a0a310dda8410db0 # dirty=false
+# tree=c931502a0152238d6f5a70c4a0a310dda8410db0
+NODE_TEST_CMD=node --test frontend-pc/tests/formConflict.test.mjs
+TAP version 13
+# TRUE_40900=1
+# TRUE_40002=1
+# TRUE_40004=1
+# TRUE_40005=1
+# FALSE_50000=1
+# FALSE_20000=1
+# FALSE_NULL=1
+# FALSE_UNDEFINED=1
+# FALSE_40901=1
+# FALSE_40902=1
+# TEXT_MESSAGE=网点名称已存在
+# TEXT_FALLBACK=请修改后重新提交
+# TEXT_OBJECT_FALLBACK=请修改后重新提交
+# Subtest: 40900 / 40002 are business-correctable conflicts
+ok 1 - 40900 / 40002 are business-correctable conflicts
+  ---
+  duration_ms: 31.837573
+  ...
+# Subtest: server faults / success / null are not correctable conflicts
+ok 2 - server faults / success / null are not correctable conflicts
+  ---
+  duration_ms: 5.786071
+  ...
+# Subtest: 40901 (existing account, Modal guided) is excluded
+ok 3 - 40901 (existing account, Modal guided) is excluded
+  ---
+  duration_ms: 8.817665
+  ...
+# Subtest: conflictText prefers the backend message
+ok 4 - conflictText prefers the backend message
+  ---
+  duration_ms: 5.015307
+  ...
+# Subtest: conflictText falls back when message is empty or not a string
+ok 5 - conflictText falls back when message is empty or not a string
+  ---
+  duration_ms: 0.903688
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 565.863963
+NODE_TEST_EXIT=0

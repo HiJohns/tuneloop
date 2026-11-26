@@ -1,0 +1,87 @@
+# build=1.0.29eea1dae # commit=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b # dirty=false
+GENERATED_AT_HEAD=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b
+# R2 IAM 失败映射 403/404/409/400/5xx + 本地指针不变（不得吞成 200）
+# build=1.0.29eea1dae # commit=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b # dirty=false
+GENERATED_AT_HEAD=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b
+# CMD go test -count=1 -run 'TestTransferOwnershipIAMErrorMapping_2546' ./handlers/
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s107-p107-350703 at_ms=1795730677736 wait_ms=68
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s107-p107-350703 wait_ms=68
+[DEBUG] Loaded .env from: ../.env
+2026/11/26 22:04:43 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e sslmode=disable
+2026/11/26 22:04:44 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e
+2026/11/26 22:04:44 [DB] Connected to database 'tuneloop_test_node_opencode_s107_p107_350703_ff978a8e'
+=== RUN   TestTransferOwnershipIAMErrorMapping_2546
+=== RUN   TestTransferOwnershipIAMErrorMapping_2546/Forbidden
+2026/11/26 22:04:44 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e sslmode=disable
+2026/11/26 22:04:44 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e
+2026/11/26 22:04:44 [DB] Connected to database 'tuneloop_test_node_opencode_s107_p107_350703_ff978a8e'
+
+2026/11/26 22:04:45 [32m/tmp/opencode/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[609.867ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/26 22:04:45 [TenantScope][observe] auto-scope injected for table=merchant_members (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/26 22:04:45 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/26 22:04:45 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:36951, clientID=test-ns, namespace=test-ns
+    merchant_ownership_2546_test.go:411: IAM403_STATUS=403 IAM403_CODE=40303
+=== RUN   TestTransferOwnershipIAMErrorMapping_2546/Not_Found
+
+2026/11/26 22:04:45 [32m/tmp/opencode/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[536.393ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchant_members", "merchants", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
+2026/11/26 22:04:45 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:40047, clientID=test-ns, namespace=test-ns
+    merchant_ownership_2546_test.go:411: IAM404_STATUS=404 IAM404_CODE=40400
+=== RUN   TestTransferOwnershipIAMErrorMapping_2546/Conflict
+
+2026/11/26 22:04:46 [32m/tmp/opencode/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[531.024ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchant_members", "merchants", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
+2026/11/26 22:04:46 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:43097, clientID=test-ns, namespace=test-ns
+    merchant_ownership_2546_test.go:411: IAM409_STATUS=409 IAM409_CODE=40900
+=== RUN   TestTransferOwnershipIAMErrorMapping_2546/Bad_Request
+
+2026/11/26 22:04:47 [32m/tmp/opencode/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[534.248ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchant_members", "merchants", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
+2026/11/26 22:04:47 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:36613, clientID=test-ns, namespace=test-ns
+    merchant_ownership_2546_test.go:411: IAM400_STATUS=400 IAM400_CODE=40002
+=== RUN   TestTransferOwnershipIAMErrorMapping_2546/Internal_Server_Error
+
+2026/11/26 22:04:48 [32m/tmp/opencode/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[534.818ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchant_members", "merchants", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
+2026/11/26 22:04:48 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:46769, clientID=test-ns, namespace=test-ns
+    merchant_ownership_2546_test.go:411: IAM500_STATUS=502 IAM500_CODE=50200
+=== NAME  TestTransferOwnershipIAMErrorMapping_2546
+    merchant_ownership_2546_test.go:416: IAM403_STATUS=403 IAM403_CODE=40303 IAM404_STATUS=404 IAM404_CODE=40400 IAM409_STATUS=409 IAM409_CODE=40900 IAM400_CODE=40002 IAM500_STATUS=502 IAM500_CODE=50200 LOCAL_OWNER_UNCHANGED=1
+--- PASS: TestTransferOwnershipIAMErrorMapping_2546 (3.73s)
+    --- PASS: TestTransferOwnershipIAMErrorMapping_2546/Forbidden (0.88s)
+    --- PASS: TestTransferOwnershipIAMErrorMapping_2546/Not_Found (0.71s)
+    --- PASS: TestTransferOwnershipIAMErrorMapping_2546/Conflict (0.71s)
+    --- PASS: TestTransferOwnershipIAMErrorMapping_2546/Bad_Request (0.71s)
+    --- PASS: TestTransferOwnershipIAMErrorMapping_2546/Internal_Server_Error (0.71s)
+PASS
+ok  	tuneloop-backend/handlers	4.511s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795730688353 hold_ms=10617
+GO_TEST_RC=0
+# build=1.0.29eea1dae # commit=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b # dirty=false
+GENERATED_AT_HEAD=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b
+# CMD go test -count=1 -run 'TestTransferOwnershipClientErrorMapping_2546' ./services/
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s107-p107-350703 at_ms=1795730688464 wait_ms=67
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s107-p107-350703 wait_ms=67
+[DEBUG] Loaded .env from: ../.env
+=== RUN   TestTransferOwnershipClientErrorMapping_2546
+=== RUN   TestTransferOwnershipClientErrorMapping_2546/Forbidden
+    iam_transfer_2546_test.go:107: IAM_STATUS=403 IAM_ERROR=only the current owner can transfer ownership
+=== RUN   TestTransferOwnershipClientErrorMapping_2546/Not_Found
+    iam_transfer_2546_test.go:107: IAM_STATUS=404 IAM_ERROR=target user is not an active member of this organization
+=== RUN   TestTransferOwnershipClientErrorMapping_2546/Conflict
+    iam_transfer_2546_test.go:107: IAM_STATUS=409 IAM_ERROR=organization has no active owner
+=== RUN   TestTransferOwnershipClientErrorMapping_2546/Bad_Request
+    iam_transfer_2546_test.go:107: IAM_STATUS=400 IAM_ERROR=user is already the owner
+=== RUN   TestTransferOwnershipClientErrorMapping_2546/Internal_Server_Error
+    iam_transfer_2546_test.go:107: IAM_STATUS=500 IAM_ERROR=failed to commit ownership transfer
+--- PASS: TestTransferOwnershipClientErrorMapping_2546 (0.00s)
+    --- PASS: TestTransferOwnershipClientErrorMapping_2546/Forbidden (0.00s)
+    --- PASS: TestTransferOwnershipClientErrorMapping_2546/Not_Found (0.00s)
+    --- PASS: TestTransferOwnershipClientErrorMapping_2546/Conflict (0.00s)
+    --- PASS: TestTransferOwnershipClientErrorMapping_2546/Bad_Request (0.00s)
+    --- PASS: TestTransferOwnershipClientErrorMapping_2546/Internal_Server_Error (0.00s)
+PASS
+ok  	tuneloop-backend/services	0.018s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795730691995 hold_ms=3531
+GO_TEST_RC=0

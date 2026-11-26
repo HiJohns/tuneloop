@@ -36,19 +36,22 @@ const SysPermBits = {
   'permission:delete': 29,
 }
 
-function checkPermission(perm, sysPerm, cusPerm, cusPermMapping) {
+function checkPermission(perm, sysPerm, cusPerm, cusPermMapping, userInfo) {
   if (!perm) return true
-  const { sysPermBits, cusPermCodes, requireAll, requireAllGroups } = perm
-  if ((!sysPermBits || sysPermBits.length === 0) && (!cusPermCodes || cusPermCodes.length === 0)) return true
+  const { sysPermBits, cusPermCodes, requireAll, requireAllGroups, businessRoles } = perm
+  const hasSysBits = Array.isArray(sysPermBits) && sysPermBits.length > 0
+  const hasCusCodes = Array.isArray(cusPermCodes) && cusPermCodes.length > 0
+  const hasBusinessRoles = Array.isArray(businessRoles) && businessRoles.length > 0
+  if (!hasSysBits && !hasCusCodes && !hasBusinessRoles) return true
 
   let sysMatch = false
   let cusMatch = false
 
-  if (sysPermBits && sysPermBits.length > 0) {
+  if (hasSysBits) {
     sysMatch = sysPermBits.some(bit => (sysPerm & (1 << bit)) !== 0)
   }
 
-  if (cusPermCodes && cusPermCodes.length > 0) {
+  if (hasCusCodes) {
     cusMatch = cusPermCodes.some(code => {
       const bit = cusPermMapping[code]
       if (bit === undefined || bit < 0) return false
@@ -56,9 +59,17 @@ function checkPermission(perm, sysPerm, cusPerm, cusPermMapping) {
     })
   }
 
+  // #2546 D13：业务角色（如商户管理员）命中即放行，与 sys/cus 为 OR 关系。
+  // 仅写 businessRoles 的条目不会再「无条件放行」给所有登录用户。
+  if (hasBusinessRoles) {
+    const businessRole = userInfo && userInfo.businessRole
+    if (businessRole && businessRoles.includes(businessRole)) return true
+  }
+
+  if (!hasSysBits && !hasCusCodes) return false // 只有 businessRoles，且未命中
   if (requireAll || requireAllGroups) return sysMatch && cusMatch
-  if (sysPermBits?.length && cusPermCodes?.length) return sysMatch || cusMatch
-  if (sysPermBits?.length) return sysMatch
+  if (hasSysBits && hasCusCodes) return sysMatch || cusMatch
+  if (hasSysBits) return sysMatch
   return cusMatch
 }
 

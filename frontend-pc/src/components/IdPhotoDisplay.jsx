@@ -3,6 +3,7 @@ import { Upload, Button, message, Image } from 'antd'
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons'
 import { api } from '../services/api'
 import { uploadToApi } from '../utils/upload'
+import { IMAGE_PLACEHOLDER } from '../utils/instrumentDisplay'
 
 // IdPhotoDisplay — PC 端身份证查看/替换/删除组件 (#1599)
 // Props:
@@ -63,7 +64,7 @@ export default function IdPhotoDisplay({ side, label: labelOverride = '', initia
             width={160}
             height={100}
             style={{ objectFit: 'cover', borderRadius: 8, cursor: 'pointer' }}
-            fallback="/placeholder.png"
+            fallback={IMAGE_PLACEHOLDER}
           />
         ) : (
           <div style={{

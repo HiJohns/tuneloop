@@ -1,0 +1,43 @@
+# build=1.0.29eea1dae # commit=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b # dirty=false
+GENERATED_AT_HEAD=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b
+# R1 转让成功：IAM 契约（method/path/body）+ 本地指针与业务角色同步
+# build=1.0.29eea1dae # commit=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b # dirty=false
+GENERATED_AT_HEAD=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b
+# CMD go test -count=1 -run 'TestTransferOwnershipSuccess_2546' ./handlers/
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s107-p107-350703 at_ms=1795730663191 wait_ms=69
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s107-p107-350703 wait_ms=69
+[DEBUG] Loaded .env from: ../.env
+2026/11/26 22:04:32 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e sslmode=disable
+2026/11/26 22:04:32 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e
+2026/11/26 22:04:32 [DB] Connected to database 'tuneloop_test_node_opencode_s107_p107_350703_ff978a8e'
+=== RUN   TestTransferOwnershipSuccess_2546
+2026/11/26 22:04:32 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e sslmode=disable
+2026/11/26 22:04:32 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e
+2026/11/26 22:04:32 [DB] Connected to database 'tuneloop_test_node_opencode_s107_p107_350703_ff978a8e'
+
+2026/11/26 22:04:33 [32m/tmp/opencode/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[624.654ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/26 22:04:34 [TenantScope][observe] auto-scope injected for table=merchant_members (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/26 22:04:34 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/26 22:04:34 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:43277, clientID=test-ns, namespace=test-ns
+2026/11/26 22:04:34 [IAMClient] Transferred org e2544de4-2e15-46ec-b160-c4aec67c9093 ownership to user 422f7872-bd89-4d85-90d6-c9240f2c77d4 (user token)
+    merchant_ownership_2546_test.go:359: TRANSFER_STATUS=200 IAM_METHOD=POST IAM_PATH_SUFFIX=/transfer-ownership IAM_BODY_USER_ID=1 LOCAL_OWNER_UPDATED=1 OLD_OWNER_LOCAL_ROLE=merchant_admin TARGET_LOCAL_ROLE=merchant_admin ADMIN_PENDING_CLEARED=1 OWNER_FIELD_PRESENT=1
+--- PASS: TestTransferOwnershipSuccess_2546 (1.05s)
+PASS
+ok  	tuneloop-backend/handlers	1.834s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795730674239 hold_ms=11048
+GO_TEST_RC=0
+# build=1.0.29eea1dae # commit=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b # dirty=false
+GENERATED_AT_HEAD=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b
+# CMD go test -count=1 -run 'TestTransferOwnershipClientContract_2546' ./services/
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s107-p107-350703 at_ms=1795730674347 wait_ms=69
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s107-p107-350703 wait_ms=69
+[DEBUG] Loaded .env from: ../.env
+=== RUN   TestTransferOwnershipClientContract_2546
+2026/11/26 22:04:37 [IAMClient] Transferred org org-2546 ownership to user iam-sub-2546 (user token)
+    iam_transfer_2546_test.go:77: IAM_TRANSFER_CALLS=1 IAM_METHOD=POST IAM_PATH=/api/v1/organizations/org-2546/transfer-ownership
+--- PASS: TestTransferOwnershipClientContract_2546 (0.00s)
+PASS
+ok  	tuneloop-backend/services	0.016s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795730677591 hold_ms=3244
+GO_TEST_RC=0

@@ -1,0 +1,7 @@
+docs/evidence/2514/plan.md
+docs/spec/api/api.md
+frontend-pc/src/pages/InstrumentStock.jsx
+frontend-pc/src/pages/admin/instrument/List.jsx
+frontend-pc/src/utils/batchPricing.js
+frontend-pc/tests/batchPricing.test.mjs
+scripts/verify-2514.sh

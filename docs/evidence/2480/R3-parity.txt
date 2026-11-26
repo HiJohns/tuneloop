@@ -1,0 +1,16 @@
+# build=1.0.c931502a0 # commit=c931502a0152238d6f5a70c4a0a310dda8410db0 # dirty=false
+# tree=c931502a0152238d6f5a70c4a0a310dda8410db0
+CASE=40900+中文 PARITY=1 LAYER=human_message PC="网点名称已存在" MOBILE="网点名称已存在"
+CASE=40900+ASCII PARITY=1 LAYER=code_map PC="数据冲突，请刷新后重试" MOBILE="数据冲突，请刷新后重试"
+CASE=40900+空串 PARITY=1 LAYER=code_map PC="数据冲突，请刷新后重试" MOBILE="数据冲突，请刷新后重试"
+CASE=40900+无message PARITY=1 LAYER=code_map PC="数据冲突，请刷新后重试" MOBILE="数据冲突，请刷新后重试"
+CASE=40901+中文 PARITY=1 LAYER=human_message PC="该用户已有待处理的邀请申请" MOBILE="该用户已有待处理的邀请申请"
+CASE=40901+空白 PARITY=1 LAYER=code_map PC="数据冲突，请刷新后重试" MOBILE="数据冲突，请刷新后重试"
+CASE=49999+ASCII PARITY=1 LAYER=raw_message PC="unknown conflict" MOBILE="unknown conflict"
+CASE=49999+中文 PARITY=1 LAYER=human_message PC="未知冲突" MOBILE="未知冲突"
+CASE=null PARITY=1 LAYER=fallback PC="操作失败，请重试" MOBILE="操作失败，请重试"
+CASE=无code+空串 PARITY=1 LAYER=fallback PC="操作失败，请重试" MOBILE="操作失败，请重试"
+CASES=10
+DIFFS=0
+PARITY=1
+PARITY_EXIT=0

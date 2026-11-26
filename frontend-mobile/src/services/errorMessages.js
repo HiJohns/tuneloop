@@ -1,9 +1,13 @@
 // #2214: 集中拦截——三层回退出口统一经 t()（覆盖全部 resolveErrorMessage 调用点）
 import { t } from '../i18n'
+// #2480: 解析层序收敛到纯核心（无 i18n/Taro 依赖，可被 node --test 覆盖）。
+import { resolveErrorCore } from './errorMessageResolution.mjs'
 
 // 后端错误消息统一解析器（#1675）
 // 后端 message 是机器可读稳定标识（英文），前端在此集中翻译为用户友好中文。
-// 三层回退：L1 message 精确匹配 → L2 code 家族映射 → L3 调用点 fallback。
+// 层序 owner = errorMessageResolution.mjs（#2480 / #2504）：
+//   L1 message 精确匹配 → L2 CJK 可读文案 → L3 code 家族映射 → L4 CJK 兜底透传 → L5 调用点 fallback。
+// #2504：ASCII 机器串不外溢（如 `access denied` 由 40303 → 「暂无权限访问该页面」）。
 
 // L2: code 家族 → 通用中文（兜底）
 export const ERROR_CODE_MAP = {
@@ -22,6 +26,7 @@ export const ERROR_CODE_MAP = {
   40104: '登录状态异常，请重新登录',
   40300: '暂无权限执行此操作',
   40301: '暂无权限执行此操作',
+  40303: '暂无权限访问该页面', // #2504：personnel/权限中间件「权限范围不匹配」
   40400: '未找到相关数据',
   40900: '数据冲突，请刷新后重试',
   40901: '数据冲突，请刷新后重试',
@@ -91,10 +96,17 @@ export const ERROR_MESSAGE_MAP = {
 }
 
 // 解析器（唯一出口）
+// #2480：层序 owner = 纯核心 errorMessageResolution.mjs（PC 同序，跨包漂移由平价脚本兜住）。
+// 仅 map 命中层与 fallback 走 t()（源中文串即 key，#2214）；后端原文（human_message /
+// raw_message）原样返回——对用户文案做字典查找没有意义，也会掩盖真实内容。
 export function resolveErrorMessage(result, fallback = '操作失败，请重试') {
-  if (!result) return t(fallback)
-  const { code, message } = result
-  if (message && ERROR_MESSAGE_MAP[message]) return t(ERROR_MESSAGE_MAP[message])
-  if (code && ERROR_CODE_MAP[code]) return t(ERROR_CODE_MAP[code])
-  return t(fallback)
+  const core = resolveErrorCore(result, {
+    codeMap: ERROR_CODE_MAP,
+    messageMap: ERROR_MESSAGE_MAP,
+    fallback,
+  })
+  if (core.layer === 'human_message' || core.layer === 'raw_message') {
+    return core.text
+  }
+  return t(core.text)
 }

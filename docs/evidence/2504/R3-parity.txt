@@ -1,0 +1,10 @@
+# build=1.0.9ee0eef8 # commit=9ee0eef85e77817fae9c6e84278d8e862724876f # dirty=false
+PARITY_SCRIPT=scripts/check-error-message-parity-2480.mjs
+PARITY_EXIT=0
+PARITY=1
+DIFFS=0
+LAYER_DIFFS=0
+CASES=12
+NEG_CASE=CASE=49999+ASCII PARITY=1 LAYER=fallback PC_LAYER=fallback PC="操作失败，请重试" MOBILE="操作失败，请重试"
+RESULT: PASS
+

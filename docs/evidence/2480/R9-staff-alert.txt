@@ -1,0 +1,24 @@
+# build=1.0.c931502a0 # commit=c931502a0152238d6f5a70c4a0a310dda8410db0 # dirty=false
+# tree=c931502a0152238d6f5a70c4a0a310dda8410db0
+PERSIST_ALERT=1
+NO_40900_TOAST=1
+CLEAR_ON_TYPING=1
+CLEAR_ON_SUBMIT=1
+CLEAR_ON_CANCEL=1
+TYPING_CLEAR_SITES=3
+RAW_40900_TOAST_LINES=0
+--- 409 branch ---
+7:import { isBusinessCorrectableConflict } from '../utils/formConflict'
+8-import PasswordSettingFields from '../components/PasswordSettingFields'
+9-import InitialPasswordModal from '../components/InitialPasswordModal'
+10-import { resolveCreateFeedback } from '../utils/createFeedback'
+11-import { buildPersonnelQuery } from '../utils/personnelQuery'
+12-import { checkPermission, isSystemLevelRole, SysPermBits } from '../config/menuPermissions'
+13-import 'react-quill/dist/quill.snow.css'
+--
+340:      } else if (isBusinessCorrectableConflict(result)) {
+341-        // #2480 v2：业务冲突改为表单内持久提示（D7 共享件），不再用 3 秒 toast。
+342-        const users = Array.isArray(result.data) ? result.data : []
+343-        const names = users.map(u => `${u.name}(${u.phone})`).join(', ')
+344-        setFormConflict(
+345-          names

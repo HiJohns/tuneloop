@@ -1,0 +1,21 @@
+# build=1.0.5a695fef # commit=5a695fefb262ba0e78ead79b4f28275c85229f50 # dirty=false
+PARITY_SCRIPT=scripts/check-error-message-parity-2480.mjs
+PARITY_EXIT=0
+PARITY=1
+CASES=12
+DIFFS=0
+PARITY_5XX_TEST=frontend-pc/tests/errorMessages-5xx-2497.test.mjs
+PARITY_5XX_EXIT=0
+PARITY_5XX_PASS=5
+PARITY_5XX_FAIL=0
+PARITY_5XX_CASES=5
+MOBILE_PROD_PATH=1
+PARITY_5XX_TAIL:
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 357.267599
+RESULT: PASS
+

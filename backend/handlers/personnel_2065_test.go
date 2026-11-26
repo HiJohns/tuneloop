@@ -24,6 +24,7 @@ type personnel2065Fixture struct {
 	tid, oid, otherTid string
 	rootOrg            string
 	siteA, siteB       string
+	siteBOrg           string // #2508: siteB 自身的组织 ID（≠ siteB，生产 1 组织 = 1 网点且 id ≠ org_id）
 	transitSite        string
 	merchantAdmin      string
 	siteAdminAcct      string
@@ -50,6 +51,7 @@ func setupPersonnel2065(t *testing.T) (*gin.Engine, personnel2065Fixture) {
 		rootOrg:          uuid.New().String(),
 		siteA:            uuid.New().String(),
 		siteB:            uuid.New().String(),
+		siteBOrg:         uuid.New().String(),
 		transitSite:      uuid.New().String(),
 		merchantAdmin:    uuid.New().String(),
 		siteAdminAcct:    uuid.New().String(),
@@ -75,7 +77,7 @@ func setupPersonnel2065(t *testing.T) (*gin.Engine, personnel2065Fixture) {
 	mkUser(f.merchantAdmin, f.tid, f.tid, "商户管理员", "admin")
 	mkUser(f.siteAdminAcct, f.tid, f.oid, "网点管理员", "admin")
 	mkUser(f.siteMemberA, f.tid, f.oid, "网点A成员", "member")
-	mkUser(f.siteMemberB, f.tid, f.siteB, "网点B成员", "member")
+	mkUser(f.siteMemberB, f.tid, f.siteBOrg, "网点B成员", "member")
 	mkUser(f.technician, f.tid, f.tid, "维修张师傅", "member")
 	mkUser(f.platformStaff, f.rootOrg, f.rootOrg, "平台员工", "staff")
 	mkUser(f.transitMember, f.tid, f.transitSite, "中转成员", "member")
@@ -86,8 +88,10 @@ func setupPersonnel2065(t *testing.T) (*gin.Engine, personnel2065Fixture) {
 	mkUser(f.directMember, f.tid, f.tid, "直属员工", "member")
 
 	// 网点（含一个中转网点，归属根组织）
-	require.NoError(t, db.Create(&models.Site{ID: f.siteA, TenantID: f.tid, OrgID: f.tid, Name: "网点A", Type: "normal"}).Error)
-	require.NoError(t, db.Create(&models.Site{ID: f.siteB, TenantID: f.tid, OrgID: f.tid, Name: "网点B", Type: "normal"}).Error)
+	// #2508: sites.org_id 是网点自身的 IAM 组织 ID，与 sites.id（PK）**不同域**。
+	// 夹具必须保持 id ≠ org_id，否则「oid 当 site_id 用」的缺陷在测试里不可见。
+	require.NoError(t, db.Create(&models.Site{ID: f.siteA, TenantID: f.tid, OrgID: f.oid, Name: "网点A", Type: "normal"}).Error)
+	require.NoError(t, db.Create(&models.Site{ID: f.siteB, TenantID: f.tid, OrgID: f.siteBOrg, Name: "网点B", Type: "normal"}).Error)
 	require.NoError(t, db.Create(&models.Site{ID: f.transitSite, TenantID: f.rootOrg, OrgID: f.rootOrg, Name: "中转网点", Type: "transit"}).Error)
 
 	// 成员关系
@@ -128,8 +132,8 @@ func actorOf(f personnel2065Fixture, c *gin.Context) testutil.TestActor {
 	case "merchant":
 		return testutil.TestActor{TenantID: f.tid, OrgID: f.tid, UserID: f.merchantAdmin, Role: "ADMIN"}
 	case "site":
-		// 生产约定：site 级账号 JWT oid == site.id（MakeSiteMember 同口径）
-		return testutil.TestActor{TenantID: f.tid, OrgID: f.siteA, UserID: f.siteAdminAcct, Role: "ADMIN"}
+		// #2508: site 级账号 JWT `oid` == `sites.org_id`（组织 ID），**不是** `sites.id`。
+		return testutil.TestActor{TenantID: f.tid, OrgID: f.oid, UserID: f.siteAdminAcct, Role: "ADMIN"}
 	case "system":
 		return testutil.TestActor{TenantID: "", OrgID: f.rootOrg, UserID: f.platformStaff, Role: "ADMIN"}
 	default:

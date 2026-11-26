@@ -2015,7 +2015,15 @@ make weapp-upload-prod VERSION=x.x.x DESC="release"
 |---------|---------|------|
 | JS/JSX (前端) | ESLint `no-undef` 零错误（`no-use-before-define` 为 warning，仅观察不阻塞） | `npx eslint "src/**/*.{js,jsx}"` |
 | 移动端页面 (frontend-mobile/src) | 页面渲染冒烟：构建通过 ≠ 页面可打开 | `cd frontend-mobile && npm run smoke` |
-| Go (后端) | 编译通过 | `go build .` |
+| Go (后端) | 编译通过 | `go build ./...` |
+| Go 单 Issue 验收 | **定向测试**（受影响包/符号）+ 编译冒烟；**不再逐 Issue 跑全量** | `go test ./<pkg> -run '<affected>' -count=1` + `go test ./... -run '^$' -count=1`（≈2–3 分钟） |
+| 批次验收（每个批次一次） | **全量** `go build ./... && go test ./...`，产物供各 Issue 计划引用 | `bash scripts/batch-gate.sh --batch <id>` |
+
+> **#2651 吞吐规则（Owner 2026-11-26）**：逐 Issue 跑全量（且 `pre-ready` P5 还要跑 baseline 第二遍）实测 10–30 分钟/单，是吞吐瓶颈。改为：
+> 1. 单 Issue gate 只跑 `go build ./...` + 定向测试 + 编译冒烟（`-run '^$'`，全包编译 ≈148s）；
+> 2. 一批合并到集成分支后跑一次 `bash scripts/batch-gate.sh`，产出 `docs/evidence/batch/<id>/full-gate.txt`；
+> 3. 计划里用 `### Batch Gate Reference`（`source/source_tree/result/timeout/marker: BATCH_GATE_REF_OK`）引用它，`pre-ready` 的 P15 校验该引用、**P5 直接采信不再重跑**；
+> 4. 批次 gate 失败 → 该批次所有 Issue 暂停 ready/合并，失败修复后重跑。
 
 ### 验证原则
 

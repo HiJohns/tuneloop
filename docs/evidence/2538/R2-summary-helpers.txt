@@ -1,0 +1,26 @@
+# build=1.0.bc544a810 # commit=bc544a8102335e50ccd4e4820ab25ccdcb9c05d8 # dirty=false
+GENERATED_AT_HEAD=bc544a8102335e50ccd4e4820ab25ccdcb9c05d8
+== R2 header summary helpers ==
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 510.920448
+LABELS=6
+DAILY=¥100.00/天
+OVERDUE=¥36.00/天
+DEPOSIT=¥500.00
+REDUCED_EMPTY=未配置
+TOTAL_PRICE=¥3600.00
+JOIN_DATE=1月2日 11:04
+OVERDUE_ZERO=-
+OVERDUE_MISSING=-
+JOIN_DATE_UNPARSABLE=-
+TESTS_PASS=9
+TESTS_FAIL=0
+TOTAL_PRICE_CENTS=1
+JOIN_DATE_FROM_CREATED_AT=1
+R2_OK

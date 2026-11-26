@@ -1,6 +1,6 @@
 import Logger from '../utils/logger'
 import { isIdleTimeoutPayload } from '../utils/pcSession'
-import { resolveErrorMessage } from './errorMessages'
+import { resolveHttpFailure } from './apiError'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
@@ -329,27 +329,12 @@ async function request(endpoint, options = {}, retryCount = 0) {
   }
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Request failed' }))
-    
-    if (response.status === 404) {
-      return {
-        code: 40400,
-        message: resolveErrorMessage({ code: 40400, message: error.message }, '未找到相关数据'),
-        data: null,
-        status: 404
-      }
-    }
-
-    if (response.status === 409) {
-      return {
-        code: error.code || 40900,
-        message: resolveErrorMessage({ code: error.code || 40900, message: error.message }, '数据冲突，请刷新后重试'),
-        data: error.data,
-        status: 409
-      }
-    }
-    
-    throw new Error(resolveErrorMessage({ code: error.code, message: error.message }, '请求失败，请重试'))
+    // #2563：非 2xx 映射的唯一 owner 是 services/apiError.js（404/409 返回对象，其余抛 Error
+    // 并带 code/status/data）；本处只做适配，不再内联 status→形态的分支。
+    const payload = await response.json().catch(() => ({ message: 'Request failed' }))
+    const failure = resolveHttpFailure(response.status, payload)
+    if (failure.kind === 'result') return failure.value
+    throw failure.value
   }
 
   const data = await response.json()
@@ -646,21 +631,6 @@ export const bulkImportApi = {
       headers: {}
     })
   },
-}
-
-export const iamAdminApi = {
-  // Client Management
-  getClients: () => api.get('/system/clients'),
-  createClient: (data) => api.post('/system/clients', data),
-  updateClient: (id, data) => api.put(`/system/clients/${id}`, data),
-  deleteClient: (id) => api.delete(`/system/clients/${id}`),
-  
-  // Tenant Management
-  getTenants: () => api.get('/system/tenants'),
-  createTenant: (data) => api.post('/system/tenants', data),
-  getTenant: (id) => api.get(`/system/tenants/${id}`),
-  updateTenant: (id, data) => api.put(`/system/tenants/${id}`, data),
-  deleteTenant: (id) => api.delete(`/system/tenants/${id}`),
 }
 
 export const categoriesApi = {
