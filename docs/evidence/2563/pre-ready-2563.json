@@ -1,7 +1,7 @@
 {
   "issue": 2563,
-  "overall": "FAIL",
-  "plan": "/home/coder/worktrees/tuneloop/wt-2563/tmp/pre-ready-2563.ClCKbG/plan.md",
+  "overall": "PASS",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2563/tmp/pre-ready-2563.xzVnuQ/plan.md",
   "plan_sha256": "975dcebfac55e9413cf1556f69a7567bd7e3d3e150f4950b506a2b0e8c405281",
   "config_sha": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
   "provenance": {
@@ -10,7 +10,7 @@
     "dirty": false
   },
   "summary": "docs/evidence/2563/summary.md",
-  "timestamp": "20261126-140931",
+  "timestamp": "20261126-141630",
   "checks": [
     {
       "id": "P1",
@@ -29,8 +29,8 @@
     },
     {
       "id": "P4",
-      "status": "N/A",
-      "detail": "--dry-run: skipped 1 affected command(s)"
+      "status": "PASS",
+      "detail": "all 1 affected command(s) passed"
     },
     {
       "id": "P12",
@@ -64,8 +64,8 @@
     },
     {
       "id": "P5",
-      "status": "N/A",
-      "detail": "--dry-run: skipped full gate (cd frontend-pc && npm run build)"
+      "status": "PASS",
+      "detail": "full gate clean worktree; HEAD failures are a subset of baseline (eb6579802e7f1083586a6428fef344c4c6c110bc); source head=run baseline=run"
     },
     {
       "id": "P6",
@@ -99,8 +99,8 @@
     },
     {
       "id": "P13",
-      "status": "FAIL",
-      "detail": "remote ref not found: origin/issue-2563"
+      "status": "PASS",
+      "detail": "fix commit and evidence artifacts are on origin/issue-2563"
     }
   ]
 }
