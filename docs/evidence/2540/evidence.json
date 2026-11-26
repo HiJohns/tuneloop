@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2540,
-  "build": "1.0.511ef74db",
-  "commit": "511ef74dbac7e98a2359c9ec75f7a1f09991a1e1",
+  "build": "1.0.12cc82cec",
+  "commit": "12cc82cec5a4c798ea1a0216550a003bb2c2a5ca",
   "dirty": false,
   "rows": [
     {
@@ -13,10 +13,10 @@
         "docs/evidence/2540/R1-activate-role.txt"
       ],
       "assert": "exit 0；含 ADMIN_BIND_ROLE=ADMIN、LEGACY_BIND_ROLE=STAFF",
-      "actual": "MEMBER_BIND_ROLE=STAFF ADMIN_BIND_ROLE=ADMIN LEGACY_BIND_ROLE=STAFF CUSTOMER_BIND_ROLE=STAFF UNKNOWN_BIND_ROLE=STAFF ILLEGAL_ROLE_COUNT=0 ADMIN_PERM_TEMPLATE=site_admin PERM_TEMPLATE=site_member CUS_PERM_MATCH=1",
+      "actual": "MEMBER_BIND_ROLE=STAFF MEMBER_ROLE_TEMPLATE=site_member ADMIN_BIND_ROLE=ADMIN ADMIN_ROLE_TEMPLATE=site_admin LEGACY_BIND_ROLE=STAFF LEGACY_ROLE_TEMPLATE=site_member CUSTOMER_BIND_ROLE=STAFF CUSTOMER_ROLE_TEMPLATE=site_member UNKNOWN_BIND_ROLE=STAFF UNKNOWN_ROLE_TEMPLATE=site_member ILLEGAL_ROLE_COUNT=0 ILLEGAL_TEMPLATE_COUNT=0 ADMIN_PERM_TEMPLATE=site_admin PERM_TEMPLATE=site_member CUS_PERM_MATCH=1 ROLE_TEMPLATE_MISMATCH=0",
       "expected": "PASS",
-      "negative": "非法角色 → FAIL",
-      "negative_result": "修复前调用点复跑：ILLEGAL_ROLE_COUNT=5（bind role 写成 user/organization_admin）、site_admin 权限位等于 site_member 位图（CUS_PERM 断言 NotEqual 失败）→ FAIL",
+      "negative": "非法角色 / 未分配功能角色模板 → FAIL",
+      "negative_result": "缺陷版复跑（仅旧 handler，新测试）：5/5 子用例 FAIL — 'site_member: 激活必须分配一次功能角色模板（只写权限位不够）'（site_member/site_admin/legacy_empty/customer/unknown）；更早缺陷版调用点另见 ILLEGAL_ROLE_COUNT=5、site_admin 权限位等于 site_member 位图 → FAIL",
       "pass": true
     },
     {
@@ -69,10 +69,10 @@
         "docs/evidence/2540/R4-docs.txt"
       ],
       "assert": "exit 0；含 DOC_TOIAMROLE=1",
-      "actual": "DOC_TOIAMROLE=2 DOC_STAFF_FALLBACK=2 DOC_ACTIVATE_SECTION=1 DOC_MERCHANT_OWNER=1",
+      "actual": "DOC_TOIAMROLE=2 DOC_STAFF_FALLBACK=2 DOC_ACTIVATE_SECTION=1 DOC_MERCHANT_OWNER=1 DOC_ROLE_TEMPLATE=1",
       "expected": "PASS",
       "negative": "缺文档 → FAIL",
-      "negative_result": "文档未补 activate 小节 / 商户管理员 OWNER 口径时，r4 报 “docs 缺 activate 口径小节”→“缺商户管理员绑定 OWNER 口径”→ FAIL",
+      "negative_result": "文档未补 activate 小节 / 商户管理员 OWNER 口径 / 功能角色模板口径时，r4 报 “docs 缺 activate 口径小节”→“缺商户管理员绑定 OWNER 口径”→“缺「功能角色模板同样来自 roleTemplate」口径”→ FAIL",
       "pass": true
     },
     {

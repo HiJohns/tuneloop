@@ -1,4 +1,5 @@
-# build=1.0.511ef74db # commit=511ef74dbac7e98a2359c9ec75f7a1f09991a1e1 # dirty=false
+# build=1.0.12cc82cec # commit=12cc82cec5a4c798ea1a0216550a003bb2c2a5ca # dirty=false
+GENERATED_AT_HEAD=12cc82cec5a4c798ea1a0216550a003bb2c2a5ca
 == R6 商户管理员确认：关系角色 OWNER ==
 BIND_ROLE=OWNER
 PERM_TEMPLATE=merchant_admin

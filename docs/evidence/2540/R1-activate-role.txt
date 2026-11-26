@@ -1,13 +1,21 @@
-# build=1.0.511ef74db # commit=511ef74dbac7e98a2359c9ec75f7a1f09991a1e1 # dirty=false
-== R1 激活：关系角色 + 权限模板同源 ==
+# build=1.0.12cc82cec # commit=12cc82cec5a4c798ea1a0216550a003bb2c2a5ca # dirty=false
+GENERATED_AT_HEAD=12cc82cec5a4c798ea1a0216550a003bb2c2a5ca
+== R1 激活：关系角色 + 权限模板 + 功能角色模板同源 ==
 MEMBER_BIND_ROLE=STAFF
+MEMBER_ROLE_TEMPLATE=site_member
 ADMIN_BIND_ROLE=ADMIN
+ADMIN_ROLE_TEMPLATE=site_admin
 LEGACY_BIND_ROLE=STAFF
+LEGACY_ROLE_TEMPLATE=site_member
 CUSTOMER_BIND_ROLE=STAFF
+CUSTOMER_ROLE_TEMPLATE=site_member
 UNKNOWN_BIND_ROLE=STAFF
+UNKNOWN_ROLE_TEMPLATE=site_member
 ILLEGAL_ROLE_COUNT=0
+ILLEGAL_TEMPLATE_COUNT=0
 ADMIN_PERM_TEMPLATE=site_admin
 PERM_TEMPLATE=site_member
 CUS_PERM_MATCH=1
---- PASS: TestActivateUser2540_RoleMapping (0.05s)
+ROLE_TEMPLATE_MISMATCH=0
+--- PASS: TestActivateUser2540_RoleMapping (0.06s)
 R1_OK

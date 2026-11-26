@@ -1,7 +1,9 @@
-# build=1.0.511ef74db # commit=511ef74dbac7e98a2359c9ec75f7a1f09991a1e1 # dirty=false
+# build=1.0.12cc82cec # commit=12cc82cec5a4c798ea1a0216550a003bb2c2a5ca # dirty=false
+GENERATED_AT_HEAD=12cc82cec5a4c798ea1a0216550a003bb2c2a5ca
 == R4 文档：关系角色口径 ==
 DOC_TOIAMROLE=2
 DOC_STAFF_FALLBACK=2
 DOC_ACTIVATE_SECTION=1
 DOC_MERCHANT_OWNER=1
+DOC_ROLE_TEMPLATE=1
 R4_OK
