@@ -3,7 +3,7 @@ import { formatCents, yuanToCents } from '../utils/money'
 import { Table, Tag, Button, Space, Spin, Modal, Form, Input, InputNumber, Select, Radio, Upload, Descriptions, Image, message, Popconfirm, Alert } from 'antd'
 import { EditOutlined, WarningOutlined, RollbackOutlined, FileTextOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { inventoryApi, lossApi, api, pricingApi } from '../services/api'
+import { inventoryApi, lossApi, api, pricingApi, ApiError } from '../services/api'
 import PermissionGate from '../components/PermissionGate'
 import FormConflictAlert from '../components/FormConflictAlert'
 import { conflictText, isBusinessCorrectableConflict } from '../utils/formConflict'
@@ -234,7 +234,16 @@ export default function InstrumentStock() {
       setSelectedRowKeys([])
       loadData()
     } catch (e) {
-      if (!e?.errorFields) message.error(e?.message || '批量修改价格失败')
+      if (!e?.errorFields) {
+        // #2488（D2/Rev.5 Bug D）：传输层 ApiError 也走同一 rubric 判定，
+        // 保持与 res 分支结构一致；后端当前仅返回 40001（无可达 rubric 码），
+        // 但分类口径不得前后不一。
+        if (isBusinessCorrectableConflict(e)) {
+          setPriceConflict(conflictText(e, '批量修改价格失败，请调整后重试'))
+        } else {
+          message.error(e instanceof ApiError && e.message ? e.message : '批量修改价格失败')
+        }
+      }
     }
   }
 
@@ -431,7 +440,8 @@ export default function InstrumentStock() {
         width={500}
       >
         <FormConflictAlert text={priceConflict} testId="stock-price-conflict" />
-        <Form form={priceForm} layout="vertical">
+        {/* #2488 Rev.5（CLEAR_FIELDS）：price_type/operator/amount 任一变更即清空陈旧冲突提示。 */}
+        <Form form={priceForm} layout="vertical" onValuesChange={() => { if (priceConflict) setPriceConflict('') }}>
           <Alert
             type="info"
             showIcon
@@ -526,9 +536,11 @@ export default function InstrumentStock() {
       <Modal title={`丢失登记 — ${lostTarget?.name || ''}`} open={!!lostTarget}
         onCancel={() => { setLostConflict(''); setLostTarget(null); }} onOk={submitLost} confirmLoading={submitting} okText="提交登记">
         <FormConflictAlert text={lostConflict} testId="stock-lost-conflict" />
-        <Form form={lossForm} layout="vertical">
+        {/* #2488 Rev.5（CLEAR_FIELDS）：description/responsible_party/user_ratio/
+            compensation_yuan/user_burden_yuan 任一变更即清空陈旧冲突提示。 */}
+        <Form form={lossForm} layout="vertical" onValuesChange={() => { if (lostConflict) setLostConflict('') }}>
           <Form.Item name="description" label="丢失描述" rules={[{ required: true, message: '请填写丢失描述' }]}>
-            <Input.TextArea rows={3} placeholder="描述丢失经过" onChange={() => { if (lostConflict) setLostConflict(''); }} />
+            <Input.TextArea rows={3} placeholder="描述丢失经过" />
           </Form.Item>
           <Form.Item name="responsible_party" label="责任方" rules={[{ required: true }]}>
             <Select options={[
@@ -552,7 +564,8 @@ export default function InstrumentStock() {
       <Modal title={`乐器恢复 — ${restoreTarget?.name || ''}`} open={!!restoreTarget}
         onCancel={() => { setRestoreConflict(''); setRestoreTarget(null); }} onOk={submitRestore} confirmLoading={submitting} okText="确认恢复">
         <FormConflictAlert text={restoreConflict} testId="stock-restore-conflict" />
-        <Form form={restoreForm} layout="vertical">
+        {/* #2488 Rev.5（CLEAR_FIELDS）：damaged/description 任一变更即清空陈旧冲突提示。 */}
+        <Form form={restoreForm} layout="vertical" onValuesChange={() => { if (restoreConflict) setRestoreConflict('') }}>
           <Form.Item name="damaged" label="是否有损坏">
             <Radio.Group>
               <Radio value={false}>无损坏</Radio>

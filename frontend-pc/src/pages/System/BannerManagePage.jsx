@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Table, Card, Button, Space, Modal, Form, Input, Upload, Image, Popconfirm, message, ColorPicker } from 'antd';
 import { PlusOutlined, UploadOutlined, EditOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
-import { bannerApi } from '../../services/api';
+import { bannerApi, ApiError } from '../../services/api';
 import { antdUploadProps } from '../../utils/upload';
 import FormConflictAlert from '../../components/FormConflictAlert';
 import { conflictText, isBusinessCorrectableConflict } from '../../utils/formConflict';
@@ -130,7 +130,9 @@ export default function BannerManagePage() {
         setFormConflict(conflictText(e, editingBanner ? '更新失败，请调整后重试' : '创建失败，请调整后重试'));
         return;
       }
-      message.error('操作失败');
+      // #2488 Rev.5（Bug B）：非业务 ApiError 透出后端中文 message；
+      // 网络/未知错误（非 ApiError）仍用友好兜底，避免技术串直出。
+      message.error(e instanceof ApiError && e.message ? e.message : '操作失败');
     }
   };
 
@@ -198,13 +200,17 @@ export default function BannerManagePage() {
         cancelText="取消"
       >
         <FormConflictAlert text={formConflict} testId="banner-form-conflict" />
-        <Form form={form} layout="vertical">
+        {/* #2488 Rev.5（CLEAR_FIELDS）：任一可编辑字段变更即清空陈旧冲突提示，
+            一次覆盖 image_url/link_url/title/bg_color（含 ColorPicker）。 */}
+        <Form form={form} layout="vertical" onValuesChange={() => { if (formConflict) setFormConflict(''); }}>
           <Form.Item label="图片" extra="支持上传或输入图片URL">
             <Upload
               showUploadList={false}
               {...antdUploadProps(
                 (result) => {
                   form.setFieldsValue({ image_url: result.url });
+                  // setFieldsValue 不触发 onValuesChange，上传成功需显式清空。
+                  setFormConflict('');
                   message.success('上传成功');
                 },
                 { onError: (e) => message.error(e.message || '上传失败') }
@@ -214,7 +220,7 @@ export default function BannerManagePage() {
             </Upload>
           </Form.Item>
           <Form.Item name="image_url" label="图片URL" rules={[{ required: true, message: '请上传或输入图片URL' }]}>
-            <Input placeholder="图片URL" onChange={() => { if (formConflict) setFormConflict(''); }} />
+            <Input placeholder="图片URL" />
           </Form.Item>
           <Form.Item name="link_url" label="跳转链接">
             <Input placeholder="可选：点击轮播图跳转的链接" />
