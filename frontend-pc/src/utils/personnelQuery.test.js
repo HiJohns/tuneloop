@@ -42,3 +42,28 @@ test('R1: name 去空白，空串省略；page/page_size 保留', () => {
   assert.equal(params.page_size, 50)
   assert.equal(buildPersonnelQuery({ page: 1 }).page, 1, 'page=1 不得被当作空值丢弃')
 })
+
+// #2526：归属缺失标记（true / false / 缺失 / 字符串 'true' 四类 fixture）
+import { attributionMissingBadge } from './personnelQuery.js'
+
+test('R9: attribution_missing=true 时返回标记', () => {
+  const badge = attributionMissingBadge({ attribution_missing: true })
+  assert.equal(badge.label, '归属缺失')
+  assert.equal(badge.color, 'gold')
+  assert.equal(typeof badge.title, 'string')
+  assert.ok(badge.title.length > 0)
+})
+
+test('R9: attribution_missing=false 时不标记', () => {
+  assert.equal(attributionMissingBadge({ attribution_missing: false }), null)
+})
+
+test('R9: 字段缺失时不标记', () => {
+  assert.equal(attributionMissingBadge({ name: '网点A成员' }), null)
+  assert.equal(attributionMissingBadge(null), null)
+})
+
+test('R9: 字符串 "true"（代理/导出字符串化）同样识别', () => {
+  assert.equal(attributionMissingBadge({ attribution_missing: 'true' }).label, '归属缺失')
+  assert.equal(attributionMissingBadge({ attribution_missing: 'false' }), null)
+})

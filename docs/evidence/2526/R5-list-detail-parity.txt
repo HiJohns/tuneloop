@@ -1,0 +1,7 @@
+# build=1.0.44f9368c7 # commit=44f9368c757143396bcaf0dabe3db2d3f2741441 # dirty=false
+== R5 列表 ↔ 详情逐行一致性 ==
+PARITY_LIST_ROWS=5
+PARITY_DETAIL_OK=5
+PARITY_MISMATCH=0
+--- PASS: TestStaffDetail2526_ListDetailParity (0.84s)
+R5_OK

@@ -1,0 +1,8 @@
+# build=1.0.44f9368c7 # commit=44f9368c757143396bcaf0dabe3db2d3f2741441 # dirty=false
+== R6 保存：零租户行真正落库 + 跨租户不可写 ==
+UPDATE_ZERO_STATUS=200
+UPDATE_ZERO_NAME_PERSISTED=1
+UPDATE_CROSS_TENANT_STATUS=404
+UPDATE_CROSS_TENANT_UNCHANGED=1
+--- PASS: TestStaffUpdate2526_ZeroTenantPersists (0.89s)
+R6_OK

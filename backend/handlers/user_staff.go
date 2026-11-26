@@ -615,13 +615,22 @@ func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
 	}
 
 	db := database.GetDB().WithContext(ctx)
-	var user models.User
-	if err := db.Where("id = ? AND tenant_id = ? AND deleted_at IS NULL", userID, tenantID).First(&user).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query user: " + err.Error()})
-		}
+	// #2526：激活同样是 by-id 行操作，可见性判定与列表/详情同源。
+	user, lookup, lookupErr := loadVisibleStaffUser(db, ctx, userID)
+	if lookupErr != nil {
+		log.Printf("[ActivateUser] ERROR: %v", lookupErr)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query user: " + lookupErr.Error()})
+		return
+	}
+	switch lookup {
+	case staffUserMissing:
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
+		return
+	case staffUserInvisible:
+		log.Printf("[ActivateUser] WARN: invisible staff user=%s actor=%s role=%s tid=%s oid=%s user_role=%s user_tid=%s",
+			userID, middleware.GetUserID(ctx), middleware.GetBusinessRole(ctx), tenantID,
+			middleware.GetOrgID(ctx), user.Role, user.TenantID)
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
 		return
 	}
 
@@ -695,15 +704,25 @@ func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
 	if status == "" {
 		status = "active"
 	}
-	if err := db.Model(&user).Updates(map[string]interface{}{
-		"iam_sub": iamResp.UserID,
-		"status":  status,
-	}).Error; err != nil {
+	// #2526（同根路径对称扫描）：本地回写与详情/保存同源——显式作用域 + RowsAffected 校验。
+	// 零租户存量行若仍按 users.tenant_id 过滤会静默 0 行（IAM 已创建、本地未回写 → 重复激活）。
+	act := db.WithContext(database.ExplicitTenantScopeOnly(ctx)).
+		Model(&models.User{}).
+		Where("id = ? AND deleted_at IS NULL", user.ID).
+		Updates(map[string]interface{}{
+			"iam_sub": iamResp.UserID,
+			"status":  status,
+		})
+	if act.Error != nil || act.RowsAffected == 0 {
+		reason := "no row updated"
+		if act.Error != nil {
+			reason = act.Error.Error()
+		}
 		iamClient.UnbindUserFromOrganization(iamResp.UserID, orgID, "")
 		if purgeErr := iamClient.PurgeUser(iamResp.UserID); purgeErr != nil {
 			log.Printf("[ActivateUser] rollback purge failed for %s: %v", iamResp.UserID, purgeErr)
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update user iam_sub: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update user iam_sub: " + reason})
 		return
 	}
 
@@ -952,22 +971,28 @@ func performSiteTransfer(c *gin.Context, db *gorm.DB, tenantID, userID string, u
 // 同时返回归属网点（site_members 权威）与直属商户/维修师傅标识，供前端按类型渲染字段。
 func (h *UserStaffHandler) GetStaffUser(c *gin.Context) {
 	ctx := c.Request.Context()
-	tenantID := middleware.GetTenantID(ctx)
 	userID := c.Param("id")
 
 	db := database.GetDB().WithContext(ctx)
 
-	var user models.User
-	q := db.Where("id = ? AND tenant_id = ? AND deleted_at IS NULL", userID, tenantID)
-	if scoped, err := middleware.ApplyOrgScope(q, ctx); err == nil {
-		q = scoped
+	// #2526：可见性交给人员列表同源判定（membership ∪ 员工角色旧口径）。
+	// 零租户存量行（users.tenant_id 为 nil UUID）此前按 tenant 过滤查不到 → 列表可见、
+	// 点开 404。不存在与不可见对外统一 404（不泄漏存在性），仅日志区分。
+	user, lookup, err := loadVisibleStaffUser(db, ctx, userID)
+	if err != nil {
+		log.Printf("[GetStaffUser] ERROR: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query user: " + err.Error()})
+		return
 	}
-	if err := q.First(&user).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query user: " + err.Error()})
-		}
+	switch lookup {
+	case staffUserMissing:
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
+		return
+	case staffUserInvisible:
+		log.Printf("[GetStaffUser] WARN: invisible staff user=%s actor=%s role=%s tid=%s oid=%s user_role=%s user_tid=%s",
+			userID, middleware.GetUserID(ctx), middleware.GetBusinessRole(ctx),
+			middleware.GetTenantID(ctx), middleware.GetOrgID(ctx), user.Role, user.TenantID)
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
 		return
 	}
 
@@ -1061,14 +1086,22 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 
 	db := database.GetDB().WithContext(ctx)
 
-	// Check if user exists
-	var existingUser models.User
-	if err := db.Where("id = ? AND tenant_id = ? AND deleted_at IS NULL", userID, tenantID).First(&existingUser).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query user: " + err.Error()})
-		}
+	// #2526：存在性/可见性走人员列表同源判定（零租户存量行不再 404）。
+	existingUser, lookup, lookupErr := loadVisibleStaffUser(db, ctx, userID)
+	if lookupErr != nil {
+		log.Printf("[UpdateUser] ERROR: %v", lookupErr)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query user: " + lookupErr.Error()})
+		return
+	}
+	switch lookup {
+	case staffUserMissing:
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
+		return
+	case staffUserInvisible:
+		log.Printf("[UpdateUser] WARN: invisible staff user=%s actor=%s role=%s tid=%s oid=%s user_role=%s user_tid=%s",
+			userID, middleware.GetUserID(ctx), middleware.GetBusinessRole(ctx), tenantID,
+			middleware.GetOrgID(ctx), existingUser.Role, existingUser.TenantID)
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
 		return
 	}
 
@@ -1185,7 +1218,7 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 				c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "target site is not active"})
 				return
 			}
-			status, body := performSiteTransfer(c, db, tenantID, userID, &existingUser, newSite)
+			status, body := performSiteTransfer(c, db, tenantID, userID, existingUser, newSite)
 			if status != 0 {
 				c.JSON(status, body)
 				return
@@ -1216,8 +1249,19 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 		}
 	}
 
-	if err := db.Model(&models.User{}).Where("id = ? AND tenant_id = ?", userID, tenantID).Updates(updates).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update user: " + err.Error()})
+	// #2526 D4：写库与读路径同源——显式作用域（不按 users.tenant_id 过滤，零租户行
+	// 否则会静默 0 行更新），并校验 RowsAffected：0 行必须 50000，禁止「保存成功但没写」。
+	upd := db.WithContext(database.ExplicitTenantScopeOnly(ctx)).
+		Model(&models.User{}).
+		Where("id = ? AND deleted_at IS NULL", userID).
+		Updates(updates)
+	if upd.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update user: " + upd.Error.Error()})
+		return
+	}
+	if upd.RowsAffected == 0 {
+		log.Printf("[UpdateUser] ERROR: no row updated user=%s actor=%s (rows_affected=0)", userID, middleware.GetUserID(ctx))
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update user: no row updated"})
 		return
 	}
 
