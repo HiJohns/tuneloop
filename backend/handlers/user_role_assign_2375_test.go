@@ -24,12 +24,16 @@ import (
 )
 
 type iamRoleMock2375 struct {
-	mu         sync.Mutex
-	roleCalls  int
-	tmplCalls  int
-	lastOrgID  string
-	lastRole   string
-	roleStatus int
+	mu            sync.Mutex
+	roleCalls     int
+	tmplCalls     int
+	getRolesCalls int
+	setRolesCalls int
+	lastOrgID     string
+	lastRole      string
+	lastSetRoles  []string
+	lastSetPath   string
+	roleStatus    int
 }
 
 func setupRoleMock2375(t *testing.T, rec *iamRoleMock2375, templatesStatus int) {
@@ -56,6 +60,17 @@ func setupRoleMock2375WithRoleStatus(t *testing.T, rec *iamRoleMock2375, templat
 		writeJSON(w, map[string]interface{}{"user_id": uuid.New().String(), "status": "pending"})
 	})
 	mux.HandleFunc("/api/v1/users/", func(w http.ResponseWriter, r *http.Request) {
+		// #2505：集合覆盖需要先 GET 当前功能角色集（beaconiam `GET /users/:id/roles?org_id=`）。
+		if r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/roles") {
+			rec.mu.Lock()
+			rec.getRolesCalls++
+			rec.mu.Unlock()
+			writeJSON(w, []map[string]interface{}{{
+				"org_id":           r.URL.Query().Get("org_id"),
+				"functional_roles": []string{"site_member"},
+			}})
+			return
+		}
 		if r.Method == http.MethodPost {
 			rec.mu.Lock()
 			rec.tmplCalls++
@@ -66,6 +81,20 @@ func setupRoleMock2375WithRoleStatus(t *testing.T, rec *iamRoleMock2375, templat
 		writeJSON(w, map[string]interface{}{"code": 20000})
 	})
 	mux.HandleFunc("/api/v1/organizations/", func(w http.ResponseWriter, r *http.Request) {
+		// #2505：PUT functional-roles（集合覆盖）取代 POST /users/{id}/roles（ADD-only）。
+		if r.Method == http.MethodPut && strings.HasSuffix(r.URL.Path, "/functional-roles") {
+			var req struct {
+				Roles []string `json:"roles"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&req)
+			rec.mu.Lock()
+			rec.setRolesCalls++
+			rec.lastSetRoles = req.Roles
+			rec.lastSetPath = r.URL.Path
+			rec.mu.Unlock()
+			writeJSON(w, map[string]interface{}{"code": 20000})
+			return
+		}
 		if r.Method == http.MethodPut && bytes.Contains([]byte(r.URL.Path), []byte("/role")) {
 			parts := strings.Split(r.URL.Path, "/")
 			orgID := ""
@@ -185,10 +214,15 @@ func TestUpdateUserRole_2375(t *testing.T) {
 	assert.Equal(t, "repair_technician", got.Role)
 
 	rec.mu.Lock()
-	roleCalls, tmplCalls := rec.roleCalls, rec.tmplCalls
+	roleCalls, tmplCalls, getRolesCalls, setRolesCalls := rec.roleCalls, rec.tmplCalls, rec.getRolesCalls, rec.setRolesCalls
+	setRoles := append([]string(nil), rec.lastSetRoles...)
 	rec.mu.Unlock()
 	assert.Equal(t, 1, roleCalls, "IAM role call once")
-	assert.Equal(t, 1, tmplCalls, "IAM template call once")
+	// #2505 语义翻转：ADD-only 模板分配退场（tmplCalls=0），改由 GET → PUT 集合覆盖接管。
+	assert.Equal(t, 0, tmplCalls, "legacy ADD-only template assign must not be called")
+	assert.Equal(t, 1, getRolesCalls, "IAM functional roles GET once")
+	assert.Equal(t, 1, setRolesCalls, "IAM functional roles PUT once")
+	assert.Equal(t, []string{"repair_technician"}, setRoles, "PUT body = 集合覆盖目标")
 
 	var audit int64
 	require.NoError(t, db.Model(&models.AuditLog{}).Where("action = ? AND resource_id = ?", "user.role_update", targetID).Count(&audit).Error)

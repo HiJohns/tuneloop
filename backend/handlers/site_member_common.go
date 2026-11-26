@@ -6,6 +6,7 @@ package handlers
 //       new_users:[{username,name,email,phone,role,password,auto_generate,force_password_change}] + skip_activation。
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -467,4 +468,228 @@ func siteMemberRolesExpr(roles []string) (clause.Expr, error) {
 		return clause.Expr{}, fmt.Errorf("encode site_member roles: %w", err)
 	}
 	return gorm.Expr("?::jsonb", string(encoded)), nil
+}
+
+// ============================================================================
+// #2505 S1：IAM 功能角色「集合语义」地基
+//
+// 根因：#2482 之后本地 `site_members.roles` 已经保留并存身份，但 IAM 侧仍只调用
+// `AssignRoleTemplateToUserWithToken`（ADD-only），降级（site_admin→site_member）
+// 后旧模板留在 `user_org_relations.functional_roles` 里 → 权限回收失效。
+//
+// 修复：GET current → 计算目标集合 → PUT 集合覆盖。目标集合 = 本 org 合并后的
+// 受管角色 ∪ 新主角色，并**保留非受管模板**（customer / namespace_admin / 自定义），
+// 避免集合覆盖误删顾客上下文（D2）。
+// ============================================================================
+
+// managedFunctionalRoleCodes 是 tuneloop 受管的功能角色模板码（D3）。
+// 只有这些码会被集合覆盖「回收」；其它码（customer / namespace_admin / 自定义）
+// 一律保留。
+var managedFunctionalRoleCodes = []string{
+	"site_admin",
+	"site_member",
+	"merchant_staff",
+	"repair_technician",
+	"merchant_admin",
+}
+
+// isManagedFunctionalRoleCode 判定模板码是否属于 tuneloop 受管集合。
+func isManagedFunctionalRoleCode(code string) bool {
+	code = strings.TrimSpace(code)
+	for _, managed := range managedFunctionalRoleCodes {
+		if code == managed {
+			return true
+		}
+	}
+	return false
+}
+
+// normalizeFunctionalRoleCodes 去空白 + 去重保序（空串丢弃）。
+func normalizeFunctionalRoleCodes(codes []string) []string {
+	out := make([]string, 0, len(codes))
+	seen := make(map[string]struct{}, len(codes))
+	for _, code := range codes {
+		code = strings.TrimSpace(code)
+		if code == "" {
+			continue
+		}
+		if _, ok := seen[code]; ok {
+			continue
+		}
+		seen[code] = struct{}{}
+		out = append(out, code)
+	}
+	return out
+}
+
+// functionalRoleTargetSet 计算 PUT functional-roles 的目标集合。
+//
+// 规则（D2）：
+//  1. desired（新目标，如合并后的本地角色集）在前，去空白/去重保序；
+//  2. 随后追加 current 中**非受管**且未出现过的码（customer / namespace_admin /
+//     自定义模板无条件保留，不受模板列表影响）。
+//
+// 受管码只以 desired 为准 → 降级即回收；非受管码只增不减 → 不破坏顾客上下文。
+func functionalRoleTargetSet(current, desired []string) []string {
+	target := normalizeFunctionalRoleCodes(desired)
+	seen := make(map[string]struct{}, len(target))
+	for _, code := range target {
+		seen[code] = struct{}{}
+	}
+	for _, code := range normalizeFunctionalRoleCodes(current) {
+		if isManagedFunctionalRoleCode(code) {
+			continue
+		}
+		if _, ok := seen[code]; ok {
+			continue
+		}
+		seen[code] = struct{}{}
+		target = append(target, code)
+	}
+	return target
+}
+
+// functionalRoleTargetSetWithout 从 current 精确移除指定码（保序、去重）。
+// S2（#2507）换管理员降级等路径复用；本单只提供纯函数与被测语义。
+func functionalRoleTargetSetWithout(current []string, remove ...string) []string {
+	removeSet := make(map[string]struct{}, len(remove))
+	for _, code := range remove {
+		code = strings.TrimSpace(code)
+		if code == "" {
+			continue
+		}
+		removeSet[code] = struct{}{}
+	}
+	out := make([]string, 0, len(current))
+	for _, code := range normalizeFunctionalRoleCodes(current) {
+		if _, drop := removeSet[code]; drop {
+			continue
+		}
+		out = append(out, code)
+	}
+	return out
+}
+
+// functionalRoleSetEqual 忽略顺序比较两个角色集合。
+func functionalRoleSetEqual(a, b []string) bool {
+	as := normalizeFunctionalRoleCodes(a)
+	bs := normalizeFunctionalRoleCodes(b)
+	if len(as) != len(bs) {
+		return false
+	}
+	seen := make(map[string]struct{}, len(as))
+	for _, code := range as {
+		seen[code] = struct{}{}
+	}
+	for _, code := range bs {
+		if _, ok := seen[code]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// functionalRoleErrorCode 为 role_errors 条目挑一个「标识码」：
+// 目标集合首位（通常是新主角色），空集合时用固定占位，保证前端可展示。
+func functionalRoleErrorCode(desired []string) string {
+	if codes := normalizeFunctionalRoleCodes(desired); len(codes) > 0 {
+		return codes[0]
+	}
+	return "functional_roles"
+}
+
+// syncFunctionalRoles 把 IAM 功能角色集合同步为 `desired`（集合覆盖）。
+//
+// 流程（D1/D4/D7/D10）：
+//
+//	a) GET current —— 失败则**不**发 PUT（无法保真非受管码），以 role_errors 暴露；
+//	b) nsID 非空时拉模板列表并按 `is_active` 过滤**受管**失效码（剔除并记
+//	   role_errors，避免把失效码发给对端触发整组 400 invalid_role）；
+//	   非受管码不受模板列表影响；列表拉取失败/nsID 空 → 跳过过滤；
+//	c) 目标集合与 current 集合相等（忽略顺序）→ 跳过 PUT；
+//	d) PUT —— 失败以 role_errors 暴露。
+//
+// 返回值为 role_errors 条目（空切片 = 全部成功）。
+func syncFunctionalRoles(ctx context.Context, iamClient *services.IAMClient, userToken, iamSub, orgID string, desired []string) []gin.H {
+	roleErrors := make([]gin.H, 0)
+	desired = normalizeFunctionalRoleCodes(desired)
+
+	if iamClient == nil {
+		return append(roleErrors, gin.H{"code": functionalRoleErrorCode(desired), "error": "sync functional roles: IAM client is nil"})
+	}
+	if strings.TrimSpace(iamSub) == "" {
+		return append(roleErrors, gin.H{"code": functionalRoleErrorCode(desired), "error": "sync functional roles: user has no iam_sub"})
+	}
+	if strings.TrimSpace(orgID) == "" {
+		return append(roleErrors, gin.H{"code": functionalRoleErrorCode(desired), "error": "sync functional roles: org_id is empty"})
+	}
+
+	current, err := iamClient.GetUserFunctionalRolesWithToken(userToken, iamSub, orgID)
+	if err != nil {
+		// D4：读不到当前集合就写 = 可能删掉并存/非受管角色 → 直接短路。
+		log.Printf("[syncFunctionalRoles] read IAM functional roles failed user=%s org=%s: %v", iamSub, orgID, err)
+		return append(roleErrors, gin.H{"code": functionalRoleErrorCode(desired), "error": "read IAM functional roles: " + err.Error()})
+	}
+
+	filteredCurrent := normalizeFunctionalRoleCodes(current)
+	var activeTemplates map[string]struct{}
+	if nsID := strings.TrimSpace(middleware.GetNamespaceID(ctx)); nsID != "" {
+		if templates, err := iamClient.ListRoleTemplates(nsID); err == nil {
+			activeTemplates = make(map[string]struct{}, len(templates))
+			for _, tmpl := range templates {
+				if tmpl.IsActive != nil && !*tmpl.IsActive {
+					continue
+				}
+				activeTemplates[strings.TrimSpace(tmpl.Code)] = struct{}{}
+			}
+			kept := make([]string, 0, len(filteredCurrent))
+			for _, code := range filteredCurrent {
+				if !isManagedFunctionalRoleCode(code) {
+					kept = append(kept, code)
+					continue
+				}
+				if _, ok := activeTemplates[code]; !ok {
+					log.Printf("[syncFunctionalRoles] dropping inactive managed role template user=%s org=%s code=%s", iamSub, orgID, code)
+					roleErrors = append(roleErrors, gin.H{
+						"code":  code,
+						"error": "role template is inactive or unavailable: " + code,
+					})
+					continue
+				}
+				kept = append(kept, code)
+			}
+			filteredCurrent = kept
+		} else {
+			log.Printf("[syncFunctionalRoles] list role templates failed ns=%s (skip filtering): %v", nsID, err)
+		}
+	}
+
+	target := functionalRoleTargetSet(filteredCurrent, desired)
+	if activeTemplates != nil {
+		// 目标侧的受管码同样不能被失效模板带进 PUT（beaconiam 会整组 400 invalid_role）。
+		kept := make([]string, 0, len(target))
+		for _, code := range target {
+			if isManagedFunctionalRoleCode(code) {
+				if _, ok := activeTemplates[code]; !ok {
+					log.Printf("[syncFunctionalRoles] dropping inactive desired role template user=%s org=%s code=%s", iamSub, orgID, code)
+					roleErrors = append(roleErrors, gin.H{
+						"code":  code,
+						"error": "role template is inactive or unavailable: " + code,
+					})
+					continue
+				}
+			}
+			kept = append(kept, code)
+		}
+		target = kept
+	}
+	if functionalRoleSetEqual(target, current) {
+		return roleErrors
+	}
+
+	if err := iamClient.SetUserFunctionalRolesWithToken(userToken, iamSub, orgID, target); err != nil {
+		log.Printf("[syncFunctionalRoles] set IAM functional roles failed user=%s org=%s roles=%v: %v", iamSub, orgID, target, err)
+		return append(roleErrors, gin.H{"code": functionalRoleErrorCode(desired), "error": "set IAM functional roles: " + err.Error()})
+	}
+	return roleErrors
 }

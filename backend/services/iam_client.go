@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -1751,9 +1752,15 @@ func (c *IAMClient) SyncRoleTemplateSysPerm(namespaceID, roleCode string, sysPer
 }
 
 // ListRoleTemplates returns the role templates for a namespace.
+//
+// #2505 S1 / D7：beaconiam 的列表接口**同时返回 `is_active=false` 的模板**；
+// 消费方必须解析 IsActive 才能过滤已失效模板（否则把失效码发给
+// PUT functional-roles 会整组 400 invalid_role）。IsActive 为指针：旧版本/
+// 精简响应缺字段时视为「未知但可用」，不主动剔除（不静默误删）。
 func (c *IAMClient) ListRoleTemplates(namespaceID string) ([]struct {
-	ID   string `json:"id"`
-	Code string `json:"code"`
+	ID       string `json:"id"`
+	Code     string `json:"code"`
+	IsActive *bool  `json:"is_active"`
 }, error) {
 	path := fmt.Sprintf("/api/v1/namespaces/%s/role-templates", namespaceID)
 	respBody, statusCode, err := c.doRequest("GET", path, nil)
@@ -1765,14 +1772,16 @@ func (c *IAMClient) ListRoleTemplates(namespaceID string) ([]struct {
 	}
 
 	var result []struct {
-		ID   string `json:"id"`
-		Code string `json:"code"`
+		ID       string `json:"id"`
+		Code     string `json:"code"`
+		IsActive *bool  `json:"is_active"`
 	}
 	// Try wrapped format first, then plain array
 	var wrapped struct {
 		Templates []struct {
-			ID   string `json:"id"`
-			Code string `json:"code"`
+			ID       string `json:"id"`
+			Code     string `json:"code"`
+			IsActive *bool  `json:"is_active"`
 		} `json:"role_templates"`
 	}
 	if err := json.Unmarshal(respBody, &wrapped); err == nil && len(wrapped.Templates) > 0 {
@@ -1880,6 +1889,90 @@ func (c *IAMClient) AssignRoleTemplateToUserWithToken(token, userID, orgID, role
 		return fmt.Errorf("AssignRoleTemplateToUserWithToken returned status %d: %s", statusCode, string(respBody))
 	}
 	log.Printf("[IAMClient] Assigned role template %s to user %s (via user token)", roleCode, userID)
+	return nil
+}
+
+// GetUserFunctionalRolesWithToken reads the functional role codes a user holds in
+// one organization (beaconiam `GET /api/v1/users/{id}/roles?org_id=`).
+//
+// The endpoint returns `[{org_id, functional_roles}]`; only the entry matching
+// orgID is returned. A missing entry yields an empty slice (never a fabricated
+// set). #2505 S1: set semantics require reading the current set before writing.
+func (c *IAMClient) GetUserFunctionalRolesWithToken(token, userID, orgID string) ([]string, error) {
+	if strings.TrimSpace(userID) == "" {
+		return nil, fmt.Errorf("GetUserFunctionalRolesWithToken: user_id is required")
+	}
+	if strings.TrimSpace(orgID) == "" {
+		return nil, fmt.Errorf("GetUserFunctionalRolesWithToken: org_id is required")
+	}
+	path := fmt.Sprintf("/api/v1/users/%s/roles?org_id=%s", url.PathEscape(userID), url.QueryEscape(orgID))
+	respBody, statusCode, err := c.doRequestWithToken("GET", path, token, nil)
+	if err != nil {
+		return nil, fmt.Errorf("GetUserFunctionalRolesWithToken request failed: %w", err)
+	}
+	switch statusCode {
+	case http.StatusOK:
+	case http.StatusForbidden:
+		return nil, fmt.Errorf("permission denied: %s", string(respBody))
+	case http.StatusNotFound:
+		return nil, fmt.Errorf("user not found: user=%s org=%s: %s", userID, orgID, string(respBody))
+	default:
+		return nil, fmt.Errorf("GetUserFunctionalRolesWithToken returned status %d: %s", statusCode, string(respBody))
+	}
+
+	var result []struct {
+		OrgID           string   `json:"org_id"`
+		FunctionalRoles []string `json:"functional_roles"`
+	}
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("GetUserFunctionalRolesWithToken: failed to parse response: %w (body=%s)", err, string(respBody))
+	}
+	roles := make([]string, 0)
+	for _, entry := range result {
+		if entry.OrgID == orgID {
+			roles = append(roles, entry.FunctionalRoles...)
+			break
+		}
+	}
+	return roles, nil
+}
+
+// SetUserFunctionalRolesWithToken overwrites the user's functional role set in one
+// organization (beaconiam `PUT /api/v1/organizations/{org}/users/{user}/functional-roles`,
+// body `{"roles":[...]}`). The endpoint is an overwrite, not a merge: callers must
+// read the current set first (see GetUserFunctionalRolesWithToken).
+//
+// #2505 S1 / D10: 403/404/400 are returned as errors carrying the upstream body —
+// never swallowed, never downgraded to the ADD-only endpoint.
+func (c *IAMClient) SetUserFunctionalRolesWithToken(token, userID, orgID string, codes []string) error {
+	if strings.TrimSpace(userID) == "" {
+		return fmt.Errorf("SetUserFunctionalRolesWithToken: user_id is required")
+	}
+	if strings.TrimSpace(orgID) == "" {
+		return fmt.Errorf("SetUserFunctionalRolesWithToken: org_id is required")
+	}
+	if codes == nil {
+		codes = []string{}
+	}
+	path := fmt.Sprintf("/api/v1/organizations/%s/users/%s/functional-roles", orgID, userID)
+	req := map[string]interface{}{"roles": codes}
+	respBody, statusCode, err := c.doRequestWithToken("PUT", path, token, req)
+	if err != nil {
+		return fmt.Errorf("SetUserFunctionalRolesWithToken request failed: %w", err)
+	}
+	switch statusCode {
+	case http.StatusOK:
+	case http.StatusForbidden:
+		return fmt.Errorf("permission denied: %s", string(respBody))
+	case http.StatusNotFound:
+		return fmt.Errorf("user or organization not found: user=%s org=%s: %s", userID, orgID, string(respBody))
+	case http.StatusBadRequest:
+		return fmt.Errorf("invalid functional roles: %s", string(respBody))
+	default:
+		return fmt.Errorf("SetUserFunctionalRolesWithToken returned status %d: %s", statusCode, string(respBody))
+	}
+	log.Printf("[IAMClient] Set user functional roles: user=%s org=%s roles=%v", userID, orgID, codes)
+	c.IncrementPermVersion()
 	return nil
 }
 

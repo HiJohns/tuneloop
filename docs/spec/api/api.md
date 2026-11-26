@@ -7398,3 +7398,35 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
   - `40001`：目标网点不存在/跨租户/非 active；
   - `50200`（HTTP 502，body `code=50000`）：IAM 重绑或模板同步失败，本地不变（含「切换网点失败」）；
   - `50000`（HTTP 500）：IAM 补偿失败，需人工核对组织关系。
+
+### `PUT /api/users/:id` 的角色同步 = 集合语义（#2505 S1）
+
+> 根因：#2505「编辑员工 → 改角色」后 IAM `functional_roles` 只追加旧模板（`site_admin→site_member` 仍留 `site_admin`），权限回收失效。
+
+**请求**：`{"role": "site_admin|site_member|merchant_staff|repair_technician"}`（白名单，越界 → HTTP 403 `40301`）。
+`role` 与现值相同 = **未变更**：不写 `users.role`、不写域表、不触发 IAM 同步（#2462 D3）。
+
+**服务端同步顺序**（任一 IAM 失败都进 `role_errors`，不阻断本地落库，HTTP 仍 `20000`）：
+
+1. 读取本租户 `site_members` 行并按 #2482 语义**逐行合并**角色全集（保留其它身份，仅原位替换主角色）；
+2. `PUT /api/v1/organizations/{org}/users/{user}/role`（顶层 role，`toIAMRole` 映射）；
+3. **功能角色集合覆盖**——`GET /api/v1/users/{user}/roles?org_id={org}` 取当前集合 → 计算目标集合 → `PUT /api/v1/organizations/{org}/users/{user}/functional-roles`，body `{"roles":[...]}`（整体覆盖，非追加）。
+
+**目标集合口径**：
+
+| 组成 | 规则 |
+|------|------|
+| 受管模板码（`site_admin` / `site_member` / `merchant_staff` / `repair_technician` / `merchant_admin`） | **以本地合并结果为唯一真源**（降级即回收）；命中 `is_active=false` 的模板码被剔除并记 `role_errors`（不发会导致对端整组 `400 invalid_role`） |
+| 非受管模板码（`customer` / `namespace_admin` / 自定义模板） | **无条件保留**（集合覆盖不得删除顾客上下文等身份） |
+| 集合相等（忽略顺序） | 跳过 PUT（幂等，不产生无意义 perm_version 递增） |
+
+**失败语义（红线：不静默）**：
+
+- `GET` 失败 → **不发 PUT**（无法保真非受管码），`role_errors` 可见（`PUT_CALLS=0`）；
+- `PUT` 403 / 404 / 400 → `role_errors` 带对端响应体（不吞、不降级回 `POST /users/{id}/roles`）；
+- 本地 `site_members.roles` 读取失败 → 跳过集合覆盖（避免目标集合退化成 `{newRole}` 而破坏性删除并存角色），`role_errors` 可见。
+
+**授权前提**：调 `PUT functional-roles` 的调用方需为目标组织的 OWNER/ADMIN，**或**其**直接父组织**的 OWNER/ADMIN（beaconiam#506 例外，用于「商户管理员管理网点成员角色」）；其余关系（子管父 / 兄弟 / 隔代 / inactive 关系 / 跨 namespace）一律 403 → 落 `role_errors`。
+
+`role_errors` 形状沿用 #2375：`data.role_errors = [{"code": "<角色码或 functional_roles>", "error": "<原因>"}]`。
+

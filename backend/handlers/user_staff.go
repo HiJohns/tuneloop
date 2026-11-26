@@ -1296,21 +1296,76 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 	// 不触发 IAM 角色同步（此前「只改职位」也会同步并失败）。
 	roleChanged := newRole != "" && newRole != existingUser.Role
 
+	// #2505 S1：改主角色 = 本地角色全集变更 + IAM 功能角色**集合覆盖**。
+	//
+	// #2482 的「逐行读取 site_members.roles + mergeSiteMemberRoles」必须**提前**到
+	// IAM 同步之前：集合覆盖的目标集合来自本地合并结果，否则只能退化成 {newRole}
+	// 并静默删除并存身份（Bug Reflection B12）。合并结果同时复用于后面的本地写库。
+	type siteMemberUpdate struct {
+		ID    string
+		Roles []string
+	}
+	siteMemberPlan := make([]siteMemberUpdate, 0, 1)
+	roleSyncOrgID := ""
 	if roleChanged {
 		updates["role"] = newRole
+		roleSyncOrgID = existingUser.OrgID
+		if roleSyncOrgID == "" {
+			// D6：沿用既有 tenantID fallback，不扩范围。
+			roleSyncOrgID = tenantID
+		}
+
+		// #2475：roles 是 jsonb，map Update 不走 serializer，必须显式序列化；
+		// #2482：逐行合并（不同网点行可有不同 roles），保留其它身份，仅原位替换主角色。
+		type siteMemberRow struct {
+			ID        string
+			RolesJSON string
+		}
+		var rows []siteMemberRow
+		localRolesReady := true
+		if err := db.Raw(
+			"SELECT id, roles::text AS roles_json FROM site_members WHERE user_id = ? AND tenant_id = ? ORDER BY site_id",
+			userID, tenantID,
+		).Scan(&rows).Error; err != nil {
+			// B12：读取失败不得当作空集合继续（集合覆盖会破坏性删除并存角色）。
+			log.Printf("[UpdateUser] site_members roles load failed user=%s: %v", userID, err)
+			roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "load site_members roles: " + err.Error()})
+			localRolesReady = false
+		}
+		for _, row := range rows {
+			var existingRoles []string
+			if row.RolesJSON != "" {
+				if err := json.Unmarshal([]byte(row.RolesJSON), &existingRoles); err != nil {
+					log.Printf("[UpdateUser] site_members roles parse failed user=%s site_member=%s: %v", userID, row.ID, err)
+					roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "parse site_members roles: " + err.Error()})
+					localRolesReady = false
+					continue
+				}
+			}
+			merged := mergeSiteMemberRoles(existingRoles, existingUser.Role, newRole)
+			siteMemberPlan = append(siteMemberPlan, siteMemberUpdate{ID: row.ID, Roles: merged})
+		}
+
 		// IAM 同步：失败进 role_errors（不阻断本地更新，D3/#2375）。
 		if existingUser.IAMSub != "" {
-			orgID := existingUser.OrgID
-			if orgID == "" {
-				orgID = tenantID
-			}
 			userToken := services.ExtractUserToken(c)
 			iamClient := services.NewIAMClient()
-			if err := iamClient.UpdateUserRoleInOrgWithToken(userToken, orgID, existingUser.IAMSub, toIAMRole(newRole)); err != nil {
+			if err := iamClient.UpdateUserRoleInOrgWithToken(userToken, roleSyncOrgID, existingUser.IAMSub, toIAMRole(newRole)); err != nil {
 				roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "update IAM role: " + err.Error()})
 			}
-			if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, existingUser.IAMSub, orgID, newRole); err != nil {
-				roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "assign role template: " + err.Error()})
+			if !localRolesReady {
+				// D4/B12：本地角色读不全 → 不写集合覆盖（否则静默删除并存角色）。
+				log.Printf("[UpdateUser] skip IAM functional role sync user=%s: local site_members roles unreadable", userID)
+			} else {
+				// 目标集合 = 本 org 各网点行合并集合的并集 ∪ {newRole}；
+				// 非受管模板（customer 等）由 syncFunctionalRoles 保留（D2）。
+				desired := make([]string, 0, len(siteMemberPlan)+1)
+				for _, plan := range siteMemberPlan {
+					desired = append(desired, plan.Roles...)
+				}
+				desired = append(desired, newRole)
+				roleErrors = append(roleErrors, syncFunctionalRoles(
+					c.Request.Context(), iamClient, userToken, existingUser.IAMSub, roleSyncOrgID, desired)...)
 			}
 		}
 	}
@@ -1333,41 +1388,19 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 
 	// #2375：本地目标域同步（网点/商户直属）；#2482：改主角色 = 合并角色全集。
 	if roleChanged {
-		// #2475：roles 是 jsonb，map Update 不走 serializer，必须显式序列化；
-		// #2482：逐行合并（不同网点行可有不同 roles），保留其它身份，仅原位替换主角色。
-		type siteMemberRow struct {
-			ID        string
-			RolesJSON string
-		}
-		var rows []siteMemberRow
-		if err := db.Raw(
-			"SELECT id, roles::text AS roles_json FROM site_members WHERE user_id = ? AND tenant_id = ? ORDER BY site_id",
-			userID, tenantID,
-		).Scan(&rows).Error; err != nil {
-			log.Printf("[UpdateUser] site_members roles load failed user=%s: %v", userID, err)
-			roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "load site_members roles: " + err.Error()})
-			rows = nil
-		}
-		for _, row := range rows {
-			var existingRoles []string
-			if row.RolesJSON != "" {
-				if err := json.Unmarshal([]byte(row.RolesJSON), &existingRoles); err != nil {
-					log.Printf("[UpdateUser] site_members roles parse failed user=%s site_member=%s: %v", userID, row.ID, err)
-					roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "parse site_members roles: " + err.Error()})
-					continue
-				}
-			}
-			merged := mergeSiteMemberRoles(existingRoles, existingUser.Role, newRole)
-			rolesExpr, rolesErr := siteMemberRolesExpr(merged)
+		// #2505：合并结果已在 IAM 同步前算好（siteMemberPlan），此处只写库，
+		// 保证「本地 roles」与「IAM functional_roles」同源（逐行 WHERE id = ? 不回归）。
+		for _, plan := range siteMemberPlan {
+			rolesExpr, rolesErr := siteMemberRolesExpr(plan.Roles)
 			if rolesErr != nil {
-				log.Printf("[UpdateUser] site_members roles encode failed user=%s site_member=%s: %v", userID, row.ID, rolesErr)
+				log.Printf("[UpdateUser] site_members roles encode failed user=%s site_member=%s: %v", userID, plan.ID, rolesErr)
 				roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "encode site_members roles: " + rolesErr.Error()})
 				continue
 			}
 			if err := db.Model(&models.SiteMember{}).
-				Where("id = ?", row.ID).
+				Where("id = ?", plan.ID).
 				Updates(map[string]interface{}{"role": newRole, "roles": rolesExpr}).Error; err != nil {
-				log.Printf("[UpdateUser] site_members role sync failed user=%s site_member=%s: %v", userID, row.ID, err)
+				log.Printf("[UpdateUser] site_members role sync failed user=%s site_member=%s: %v", userID, plan.ID, err)
 				roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "sync site_members: " + err.Error()})
 			}
 		}

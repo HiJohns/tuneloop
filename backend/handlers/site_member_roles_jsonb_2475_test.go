@@ -46,6 +46,11 @@ func fakeIAMRoles2475(t *testing.T) *httptest.Server {
 			})
 		case r.Method == http.MethodPut && strings.Contains(r.URL.Path, "/users/") && strings.HasSuffix(r.URL.Path, "/role"):
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{"ok": true})
+		case r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/users/") && strings.HasSuffix(r.URL.Path, "/roles"):
+			// #2505：集合覆盖先读取当前功能角色集合（这里返回空集 → 直接按目标集合写入）。
+			_ = json.NewEncoder(w).Encode([]map[string]interface{}{})
+		case r.Method == http.MethodPut && strings.HasSuffix(r.URL.Path, "/functional-roles"):
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"ok": true})
 		case r.Method == http.MethodPost && strings.Contains(r.URL.Path, "/users/") && strings.HasSuffix(r.URL.Path, "/roles"):
 			w.WriteHeader(http.StatusCreated)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{"ok": true})

@@ -227,6 +227,21 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 > 编辑时角色**未变化**（`role` 提交值等于现值）视为未变更：不写 `users.role`、不写域表、不触发 IAM 角色同步。
 > 存量脏数据（`merchant_members.role='site_member'` 且无 `site_members` 行）只出**只读清单**（`scripts/report-merchant-direct-role-drift-2462.sh`），回填需 Owner 显式授权（`OWNER_APPROVED_MERCHANT_DIRECT_ROLE=1`），禁止静默改名。
 
+### 4.2.1 角色 → IAM 功能角色模板映射（#2505）
+
+> 有效权限 = **直授 ∪ 角色**（`beaconiam/internal/service/permission_calc.go` 四层按位或）。因此「角色降级」必须**覆盖 IAM 功能角色集合**，否则旧模板权限无法回收（#2505 根因：只 ADD 不减）。
+
+| 分类 | 模板码 | 集合覆盖时的处理 |
+|------|--------|------------------|
+| **受管（tuneloop 业务角色）** | `site_admin`、`site_member`、`merchant_staff`、`repair_technician`、`merchant_admin` | 以本地角色集合（`site_members.roles` 合并结果 ∪ 新主角色）为唯一真源；不在目标集合中的受管码**被移除** |
+| **非受管（身份/平台/自定义）** | `customer`、`namespace_admin`、以及任何自定义模板码 | **无条件保留**（不得因业务角色变更被删除，否则破坏顾客上下文 #2027/#2031） |
+
+**并存组合白名单**：以本地 `site_members.roles` 为准——`repair_technician` 可与 `site_member` / `site_admin` 并存（#2482 合并语义）；`merchant_staff` 与网点角色可并存（同一用户在多个域）。业务角色变更只**原位替换主角色**，不整体清空。
+
+**失效模板**：`is_active=false` 的受管模板不进入目标集合（对端 `PUT functional-roles` 会整组 `400 invalid_role`），剔除动作必须写入 `role_errors`（可见，不静默）。
+
+**实施位置**：`backend/handlers/site_member_common.go`（`managedFunctionalRoleCodes` / `functionalRoleTargetSet` / `functionalRoleTargetSetWithout` / `syncFunctionalRoles`）+ `backend/services/iam_client.go`（`GetUserFunctionalRolesWithToken` / `SetUserFunctionalRolesWithToken`）。接口契约见 `docs/spec/api/api.md` §`PUT /api/users/:id` 的角色同步 = 集合语义。
+
 ### 4.3 系统级角色对 cus_perm 门控路由的放行（#1964）
 
 > `RequireCusPerm` / `RequireAnyCusPerm`（`backend/middleware/permissions.go`）在检查

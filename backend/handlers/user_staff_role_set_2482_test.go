@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 
@@ -33,12 +34,18 @@ import (
 const siteMemberRolesTenant2482 = "22222222-2222-4222-8222-222222222222"
 
 type fakeIAMCounters2482 struct {
+	mu            sync.Mutex
 	roleCalls     int32
 	assignCalls   int32
 	unassignCalls int32
+	getRolesCalls int32
+	setRolesCalls int32
+	lastSetRoles  []string
 }
 
 // fakeIAMRoles2482 覆盖 UpdateUser 角色同步所需的 IAM 端点，并统计 assign/unassign 调用。
+// #2505：集合覆盖接管后，功能角色同步 = GET /users/:id/roles + PUT functional-roles；
+// POST /users/:id/roles（ADD-only）必须为 0。
 func fakeIAMRoles2482(t *testing.T) *fakeIAMCounters2482 {
 	t.Helper()
 	c := &fakeIAMCounters2482{}
@@ -51,6 +58,22 @@ func fakeIAMRoles2482(t *testing.T) *fakeIAMCounters2482 {
 			})
 		case r.Method == http.MethodPut && strings.Contains(r.URL.Path, "/users/") && strings.HasSuffix(r.URL.Path, "/role"):
 			atomic.AddInt32(&c.roleCalls, 1)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"ok": true})
+		case r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/users/") && strings.HasSuffix(r.URL.Path, "/roles"):
+			atomic.AddInt32(&c.getRolesCalls, 1)
+			_ = json.NewEncoder(w).Encode([]map[string]interface{}{{
+				"org_id":           r.URL.Query().Get("org_id"),
+				"functional_roles": []string{"site_member", "repair_technician"},
+			}})
+		case r.Method == http.MethodPut && strings.HasSuffix(r.URL.Path, "/functional-roles"):
+			var req struct {
+				Roles []string `json:"roles"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&req)
+			c.mu.Lock()
+			c.lastSetRoles = req.Roles
+			c.mu.Unlock()
+			atomic.AddInt32(&c.setRolesCalls, 1)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{"ok": true})
 		case r.Method == http.MethodPost && strings.Contains(r.URL.Path, "/users/") && strings.HasSuffix(r.URL.Path, "/roles"):
 			atomic.AddInt32(&c.assignCalls, 1)
@@ -173,6 +196,11 @@ func TestUpdateUser_RoleChangeKeepsOtherRoles_2482(t *testing.T) {
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp), "body=%s", w.Body.String())
 	require.Equal(t, http.StatusOK, w.Code, "%v", resp)
 	require.NotContains(t, w.Body.String(), "22P02")
+	// #2505：集合覆盖成功 → 不得出现 role_errors（失败必须可见，成功不得虚报）
+	if data, ok := resp["data"].(map[string]interface{}); ok {
+		_, hasRoleErrors := data["role_errors"]
+		require.False(t, hasRoleErrors, "role_errors 必须为空: %v", data["role_errors"])
+	}
 
 	rows := readRoles2482(t, db, userID)
 	require.Len(t, rows, 1)
@@ -191,9 +219,14 @@ func TestUpdateUser_RoleChangeKeepsOtherRoles_2482(t *testing.T) {
 	}
 	require.Equal(t, 1, invariant, "roles 必须包含主角色")
 
-	// R6：IAM 仍只 assign 新主角色，不调用 unassign（本地保留 → 双源一致）
-	require.EqualValues(t, 1, atomic.LoadInt32(&iam.assignCalls))
+	// R6（#2505 语义翻转）：IAM 功能角色走 GET → PUT 集合覆盖，不再 ADD-only 分配。
+	require.EqualValues(t, 0, atomic.LoadInt32(&iam.assignCalls), "ADD-only assign 必须退场")
 	require.EqualValues(t, 0, atomic.LoadInt32(&iam.unassignCalls))
+	require.EqualValues(t, 1, atomic.LoadInt32(&iam.getRolesCalls))
+	require.EqualValues(t, 1, atomic.LoadInt32(&iam.setRolesCalls))
+	iam.mu.Lock()
+	iamRoles := append([]string(nil), iam.lastSetRoles...)
+	iam.mu.Unlock()
 
 	t.Logf("ROLES_JSON=%s", rolesJSON)
 	t.Logf("ROLE=%s", rows[0].Role)
@@ -202,7 +235,14 @@ func TestUpdateUser_RoleChangeKeepsOtherRoles_2482(t *testing.T) {
 	t.Logf("ROLES_NOT_NULL=1")
 	t.Logf("IAM_ASSIGN_CALLS=%d", atomic.LoadInt32(&iam.assignCalls))
 	t.Logf("IAM_UNASSIGN_CALLS=%d", atomic.LoadInt32(&iam.unassignCalls))
-	t.Logf("DUAL_SOURCE_OK=1")
+	t.Logf("IAM_SET_ROLES=%s", strings.Join(iamRoles, ","))
+	// DUAL_SOURCE_OK：IAM 目标集合 == 本地合并后的受管集合（双源一致，不再只增不减）
+	dualSourceOK := 0
+	if containsAllRoles2482(iamRoles, rows[0].RolesJSON) {
+		dualSourceOK = 1
+	}
+	require.Equal(t, 1, dualSourceOK, "IAM roles=%v local=%s", iamRoles, rows[0].RolesJSON)
+	t.Logf("DUAL_SOURCE_OK=%d", dualSourceOK)
 	// 旧实现（写 []string{newRole}）的结果，用于证明该断言能抓缺陷
 	oldImpl := compactJSON2482(t, `["site_admin"]`)
 	if oldImpl != rolesJSON {
@@ -210,6 +250,24 @@ func TestUpdateUser_RoleChangeKeepsOtherRoles_2482(t *testing.T) {
 	} else {
 		t.Logf("RED_GREEN=0")
 	}
+}
+
+// containsAllRoles2482 断言 IAM 集合包含本地 roles 的全部码（顺序无关）。
+func containsAllRoles2482(iamRoles []string, localRolesJSON string) bool {
+	var local []string
+	if err := json.Unmarshal([]byte(localRolesJSON), &local); err != nil {
+		return false
+	}
+	set := make(map[string]struct{}, len(iamRoles))
+	for _, code := range iamRoles {
+		set[code] = struct{}{}
+	}
+	for _, code := range local {
+		if _, ok := set[code]; !ok {
+			return false
+		}
+	}
+	return true
 }
 
 // R3：多网点逐行合并（不同行可有不同 roles）。
