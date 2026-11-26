@@ -473,6 +473,16 @@ func TestSyncOrganizations_SiteTenantID(t *testing.T) {
 	})
 
 	t.Run("update existing site with wrong tenant_id", func(t *testing.T) {
+		// #2455：uq_sites_tenant_name 把「同 tenant_id + 同名（lower, 未软删）」钉为非法。
+		// 上一子用例已在同一 org 建过 "test-site"（tenant = merchantOrgID），本子用例再把
+		// 同名网点纠正到同一 tenant 会先撞唯一索引，而不再是验证 sync 的 tenant 纠正语义。
+		// fixture 因此先软删上一子用例的行（索引只约束 deleted_at IS NULL 的活跃行），
+		// 「sync 把错误 tenant_id 纠正为商户 org」的断言目标保持不变。
+		require.NoError(t, db.Exec(
+			"UPDATE sites SET deleted_at = NOW() WHERE org_id = ? AND deleted_at IS NULL",
+			siteOrgID,
+		).Error)
+
 		existingSite := models.Site{
 			ID:       uuid.New().String(),
 			Name:     "test-site",
@@ -513,7 +523,8 @@ func TestSyncOrganizations_SiteTenantID(t *testing.T) {
 		assert.Equal(t, 20000, resp.Code)
 
 		var site models.Site
-		err = db.Where("org_id = ?", siteOrgID).First(&site).Error
+		// 按 ID 断言本子用例刚建的网点：软删的上一子用例行不参与，避免命中陈旧行。
+		err = db.Where("id = ?", existingSite.ID).First(&site).Error
 		require.NoError(t, err)
 		assert.Equal(t, merchantOrgID, site.TenantID, "site.tenant_id should be corrected to merchant org")
 	})

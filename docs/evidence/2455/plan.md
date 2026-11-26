@@ -1,4 +1,6 @@
-## Accepted Plan — #2455（v2：Owner 授权落地 + 依赖口径按 O1=A/O4 修正 + gate 行）
+## Accepted Plan — #2455（v3：Owner 授权落地 + 依赖口径按 O1=A/O4 修正 + gate 行）
+
+> **v3 说明（修 Investigation Packet 的计划 Files 缺口）**：R1 把「同商户同名网点」定为非法后，既有用例 `TestSyncOrganizations_SiteTenantID` 的 fixture（在同 tenant 造两条同名 site 再断言 sync 纠正 tenant）前提失效 → `23505` 使全量套件出现新失败。按 **option 1**（最小、保留用例原意）：把 `backend/handlers/iam_proxy_test.go` 登记进 Files，并只修 fixture（改用独立 org 或先软删同 org 站点）；同时新增「被翻转的既有断言」小节。
 
 > **v2 变更（采纳 2026-11-24 Owner 裁定）**：
 > ① **O2 授权**：DDL（唯一部分索引）与存量对齐（方向 **IAM→本地**）**已获 Owner 批准**；D1/D3 由「待批准」转为 `owner_approved`；执行仍在部署侧（ops）。
@@ -8,6 +10,12 @@
 
 **分阶段 gate**：Phase A（R1–R5 数据完整性：索引/拦截/清单）必须先全绿，才允许进入 Phase B（R6–R9 身份上下文可辨识 + 构建回归）。
 **前置依赖**：#2457（`sites.name` = IAM 组织名镜像 + UpdateSite 先写 IAM）必须先落地；本单不改 IAM 同步逻辑。
+
+## 语义变更：被翻转的既有断言
+
+| 位置 | 旧断言 | 新预期 | 理由 |
+|---|---|---|---|
+| `backend/handlers/iam_proxy_test.go:475-500`（`TestSyncOrganizations_SiteTenantID/update_existing_site_with_wrong_tenant_id`） | 在**同一 tenant** 下造两条同名 `site`（`test-site`），断言 sync 把错租户那条的 `tenant_id` 纠正为商户 org | fixture 改为不产生「同 tenant 同名」：第二条站点使用独立 `org_id`，或先软删第一条（断言「纠正 tenant」的目标不变） | R1 的 `uq_sites_tenant_name` 明确禁止同商户同名，旧 fixture 前提非法（AGENTS.md §语义变更：必须翻转并登记） |
 
 ## Verification Matrix
 
@@ -154,6 +162,7 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 - `backend/handlers/site.go`
 - `backend/handlers/auth.go`
 - `backend/handlers/site_name_unique_2455_test.go`
+- `backend/handlers/iam_proxy_test.go`
 - `backend/handlers/wx_accounts_context_label_2455_test.go`
 - `frontend-mobile/src/pages-weapp/account-select/AccountSelect.jsx`
 - `frontend-pc/src/pages/UserProfile.jsx`
@@ -189,5 +198,6 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 - **部署侧**：存量对齐执行与回执由 `[Ops-Followup of #2455]`（`waitForConfirm`）承载。
 
 *Model: DeepSeek V4.1 Flash 1017*
+
 
 
