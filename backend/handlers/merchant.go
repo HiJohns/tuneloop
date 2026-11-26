@@ -618,7 +618,9 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 		// #2546 D1b/D14：所有权比较统一在本地 users.id 空间。
 		oldOwner, _, ownerErr := merchantOwnerLocalUID(c.Request.Context(), db, merchant)
 		if ownerErr != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "解析商户所有人失败：" + ownerErr.Error()})
+			// #2592：诊断只进日志，5xx 文案必须是固定字面量。
+			log.Printf("[UpdateMerchant] owner resolution failed merchant=%s: %v", merchant.ID, ownerErr)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "读取商户所有人信息失败，请稍后重试"})
 			return
 		}
 		if requestedOwner != oldOwner {
@@ -629,7 +631,9 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 					c.JSON(typed.Status, gin.H{"code": typed.Code, "message": typed.Message})
 					return
 				}
-				c.JSON(http.StatusBadGateway, gin.H{"code": 50200, "message": "转让所有权失败（IAM）：" + transferErr.Error()})
+				// #2592：非类型化转让错误（防御分支）同样只回固定文案。
+				log.Printf("[UpdateMerchant] ownership transfer failed merchant=%s new_owner=%s: %v", merchant.ID, requestedOwner, transferErr)
+				c.JSON(http.StatusBadGateway, gin.H{"code": 50200, "message": "转让所有权失败（IAM），请稍后重试"})
 				return
 			}
 			log.Printf("[UpdateMerchant] ownership transferred merchant=%s previous_owner=%s new_owner=%s", merchant.ID, previousOwnerID, requestedOwner)

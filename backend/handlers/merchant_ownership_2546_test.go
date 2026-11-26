@@ -805,7 +805,11 @@ func TestTransferOwnershipLocalSyncFailure_2546(t *testing.T) {
 	require.Equal(t, http.StatusInternalServerError, w.Code, w.Body.String())
 	resp := decodeOwnership2546(t, w)
 	assert.Equal(t, 50000, resp.Code, "PROMOTE_FAIL_CODE=50000")
-	assert.Contains(t, resp.Message, "人工核对", "MSG_HAS_MANUAL_CHECK=1")
+	// #2592：文案收敛为固定字面量（旧断言只 Contains "人工核对"，容忍诊断/UUID 回显）。
+	assert.Equal(t, litSync2592, resp.Message, "PROMOTE_FAIL_MSG_FIXED=1")
+	assert.NotContains(t, resp.Message, "injected", "PROMOTE_FAIL_MSG_NO_DIAG=1")
+	assert.NotContains(t, w.Body.String(), f.ownerID, "PROMOTE_FAIL_MSG_NO_PREVIOUS_OWNER_ID=1")
+	assert.NotContains(t, w.Body.String(), f.staffID, "PROMOTE_FAIL_MSG_NO_TARGET_ID=1")
 
 	var merchant models.Merchant
 	require.NoError(t, db.Where("id = ?", f.merchantID).First(&merchant).Error)
@@ -815,6 +819,6 @@ func TestTransferOwnershipLocalSyncFailure_2546(t *testing.T) {
 	require.NoError(t, db.Where("merchant_id = ? AND user_id = ?", f.merchantID, f.staffID).First(&staff).Error)
 	assert.Equal(t, "merchant_staff", staff.Role, "ROLE_UNCHANGED=1")
 
-	t.Logf("PROMOTE_FAIL_STATUS=%d PROMOTE_FAIL_CODE=%d ADMIN_UID_UNCHANGED=1 ROLE_UNCHANGED=1 MSG_HAS_MANUAL_CHECK=1",
+	t.Logf("PROMOTE_FAIL_STATUS=%d PROMOTE_FAIL_CODE=%d ADMIN_UID_UNCHANGED=1 ROLE_UNCHANGED=1 MSG_FIXED_LITERAL=1 UUID_LEAK=0",
 		w.Code, resp.Code)
 }
