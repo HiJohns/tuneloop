@@ -1,0 +1,7 @@
+# build=1.0.0275ebc84 # commit=0275ebc843ea3087dcf9a9f316adb33619baadf2 # dirty=false
+== R3 primary branch unchanged ==
+STATUS=200
+PRIMARY_EQUALS_OPERATOR_SITE=1
+PRIMARY_NOT_ORG=1
+--- PASS: TestSubmitAssessment2532_PrimaryBranchUnchanged (0.81s)
+R3_OK
