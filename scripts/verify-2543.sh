@@ -177,11 +177,15 @@ case "$ROW" in
       ( cd "$ROOT/backend" && heavy go test ./database -run 'Artifact' -count=1 ) > "$WORK_TMP/r5-artifacts.log" 2>&1
       rc3=$?
       if [ "$rc3" = "0" ]; then echo "GO_ARTIFACT_TESTS_OK=1"; else echo "GO_ARTIFACT_TESTS_OK=0"; tail -40 "$WORK_TMP/r5-artifacts.log"; fi
-      echo "GO_BUILD_RC=$rc GO_TEST_RC=$rc2 GO_ARTIFACT_RC=$rc3"
+      ( cd "$ROOT/backend" && heavy go test ./handlers -run 'TestConfirmationSessionsMigration_2543' -count=1 ) > "$WORK_TMP/r5-migration.log" 2>&1
+      rc4=$?
+      if [ "$rc4" = "0" ]; then echo "MIGRATION_ROUNDTRIP=1"; else echo "MIGRATION_ROUNDTRIP=0"; tail -40 "$WORK_TMP/r5-migration.log"; fi
+      echo "GO_BUILD_RC=$rc GO_TEST_RC=$rc2 GO_ARTIFACT_RC=$rc3 MIGRATION_RC=$rc4"
     } | collect
     assert_token "GO_BUILD_OK=1"
     assert_token "GO_TEST_OK=1"
     assert_token "GO_ARTIFACT_TESTS_OK=1"
+    assert_token "MIGRATION_ROUNDTRIP=1"
     ;;
 
 esac
