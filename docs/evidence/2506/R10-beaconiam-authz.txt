@@ -1,4 +1,4 @@
-# build=1.0.85256e637b24 # commit=85256e637b24b1ce29fff9e2772b07bcb0aa2c8d # dirty=false
+# build=1.0.c0605f32a108 # commit=c0605f32a108b0c982203554f5594fc96fb3ed4e # dirty=false
 # row=r10 command=git -C /home/coder/beaconiam worktree add --detach + go test ./internal/handler -run TestUpdateUserFunctionalRoles_
 # beaconiam_ref=61f8a8fa64b09ae90a099a34e0578b2631db06ba
 AUTHZ_PARENT_CHILD_OK=1

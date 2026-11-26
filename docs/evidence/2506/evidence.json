@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2506,
-  "build": "1.0.85256e637b24",
-  "commit": "85256e637b24b1ce29fff9e2772b07bcb0aa2c8d",
+  "build": "1.0.c0605f32a108",
+  "commit": "c0605f32a108b0c982203554f5594fc96fb3ed4e",
   "dirty": false,
   "rows": [
     {
@@ -201,5 +201,7 @@
       "negative_result": "仍调用 POST /users/{id}/roles 时 LEGACY_ASSIGN_CALLS=1 → 断言失败",
       "pass": true
     }
-  ]
+  ],
+  "plan_sha256": "4ec15712f4fc009946097704f25e66a74bbb117b37b9cdde63622a8564287ffd",
+  "tooling_commit": "a017a25d46fec75ebb30fd9e19eb220c51fb166a"
 }

@@ -1,6 +1,7 @@
-# build=1.0.85256e637b24 # commit=85256e637b24b1ce29fff9e2772b07bcb0aa2c8d # dirty=false
+# build=1.0.c0605f32a108 # commit=c0605f32a108b0c982203554f5594fc96fb3ed4e # dirty=false
 # row=r12 command=go test ./handlers -run ^TestUpdateUserFixtureFidelity_2505$ -count=1 -v
-OPERATOR_ORG=merchant
+OPERATOR_ORG=49f069f4-b78c-4849-b9ca-918aadca5eec
 PUT_ORG=site_org
+PUT_PATH=/api/v1/organizations/a44c3200-e1a9-451c-8633-d9906dc7d9c5/users/iam-sub-2505/functional-roles
 SITE_ORG_NE_TENANT=1
 USERS_ORG_IS_TENANT=0
