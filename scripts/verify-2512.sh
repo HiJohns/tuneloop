@@ -41,14 +41,18 @@ if [ -n "$(git status --porcelain --untracked-files=no -- . ":(exclude)docs/evid
     DIRTY=true
 fi
 PROVENANCE="# build=1.0.$SHORT # commit=$FIX_SHA # dirty=$DIRTY"
+# Rev.2：首行格式不变（P14 依赖），另起一行记录「产物生成树」，区分锚点 commit 与 HEAD。
+GENERATED_AT_HEAD="$(git rev-parse HEAD)"
 
 finish() { # artifact-file exit-code body
     local name=$1 rc=$2 body=$3
     {
         printf '%s\n' "$PROVENANCE"
+        printf 'GENERATED_AT_HEAD=%s\n' "$GENERATED_AT_HEAD"
         printf '%s\n' "$body"
     } > "$OUT_DIR/$name"
     printf '%s\n' "$PROVENANCE"
+    printf 'GENERATED_AT_HEAD=%s\n' "$GENERATED_AT_HEAD"
     printf '%s\n' "$body"
     [ "$rc" = "0" ] || return 1
 }
@@ -104,6 +108,10 @@ run_go_row() { # artifact test-regex sentinel key=value...
     body+="--- go test kv ---"$'\n'
     body+="$(grep -E '(^|[[:space:]])(ORDER_ORG|SITE_ORG|SITE_ID_IS|BATCH_ORG|STATUS|CODE|ORDERS_AFTER|BATCH_ORDERS_AFTER)=' "$log" \
         | sed -E 's/^[[:space:]]+//' | sort -u | head -20)"$'\n'
+    if [ -n "${EXTRA_BODY:-}" ]; then
+        body+="$EXTRA_BODY"$'\n'
+        [ "${EXTRA_RC:-0}" = "0" ] || rc=1
+    fi
     [ "$rc" = "0" ] && body+="$sentinel"$'\n'
     body+="RESULT: $([ "$rc" = "0" ] && echo PASS || echo FAIL)"$'\n'
     finish "$artifact" "$rc" "$body"
@@ -111,6 +119,22 @@ run_go_row() { # artifact test-regex sentinel key=value...
 
 case "$ROW" in
 r1)
+    # Rev.2 修订 3：红侧不得只靠 RED_CONFIRMED 常量推导 —— 产物必须含旧实现片段与
+    # 可判定行数 PRE_FIX_SITE_ID_AS_ORG_LINES（>=1 即通过）。优先取 origin/develop 的
+    # 旧实现；若该分支已并入修复（行数归零），回退到本单 fix commit 的父提交（语义等价且稳定）。
+    PRE_FIX_REF="origin/develop"
+    PRE_FIX_PATTERN='effectiveOrgID = .*(SiteID|CurrentSiteID)\.String\(\)'
+    pre_fix_src="$(git show "$PRE_FIX_REF:backend/handlers/user_rental.go" 2>/dev/null || true)"
+    pre_fix_lines="$(printf '%s' "$pre_fix_src" | grep -cE "$PRE_FIX_PATTERN" || true)"
+    if [ "${pre_fix_lines:-0}" -lt 1 ]; then
+        PRE_FIX_REF="$(git rev-parse "${FIX_SHA}^")"
+        pre_fix_src="$(git show "$PRE_FIX_REF:backend/handlers/user_rental.go" 2>/dev/null || true)"
+        pre_fix_lines="$(printf '%s' "$pre_fix_src" | grep -cE "$PRE_FIX_PATTERN" || true)"
+    fi
+    pre_fix_snippet="$(printf '%s' "$pre_fix_src" | grep -nE "$PRE_FIX_PATTERN" || true)"
+    EXTRA_RC=0
+    [ "${pre_fix_lines:-0}" -ge 1 ] || EXTRA_RC=1
+    EXTRA_BODY="PRE_FIX_REF=$PRE_FIX_REF"$'\n'"PRE_FIX_SITE_ID_AS_ORG_LINES=$pre_fix_lines"$'\n'"--- pre-fix code ---"$'\n'"$pre_fix_snippet"
     run_go_row R1-guest-org-from-site.txt '^TestCreateOrder2512_GuestOrgFromSite$' R1_OK \
         'OLD_FALLBACK_IS_SITE_ID=1' 'RED_CONFIRMED=1' \
         'ORDER_ORG_MATCHES_SITE_ORG=1'
@@ -227,6 +251,7 @@ gate)
     ) > "$log" 2>&1
     rc=$?
     printf '%s\n' "$PROVENANCE"
+    printf 'GENERATED_AT_HEAD=%s\n' "$GENERATED_AT_HEAD"
     printf 'GATE_CMD=cd backend && go build ./... && go test ./handlers -count=1 -timeout 30m\n'
     printf 'FULL_SUITE_EXIT=%d\n' "$rc"
     tail -20 "$log"

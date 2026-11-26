@@ -1,6 +1,19 @@
-## Accepted Plan — #2512 S4 游客下单：`orders.org_id` 回退链改为「站点 → `sites.org_id`」反查（禁止写站点 ID）
+## Accepted Plan — #2512 S4 游客下单：`orders.org_id` 回退链改为「站点 → `sites.org_id`」反查（禁止写站点 ID）｜Rev.2
 
 > Parent: #2509（同族 ID 域审计）｜关联：#2508（夹具口径）、#2511（S3 warehouse 同类，另单）
+
+### 修订记录（Rev.1 → Rev.2，仅验收侧，产品代码不变）
+
+来源：Round 1 Audit（Bug 2 阻断 + Observation 1/2）+ Investigation Packet（选项 1）。
+
+| # | 修订项 | Rev.1 | Rev.2 |
+|---|---|---|---|
+| 1 | R7 断言 | `jq -e '.result == "PASS"'`（`pre-ready` 报告无 `result` 键 → 断言不可执行） | `jq -e '.overall == "PASS"'`（报告根键）；三处（Matrix / G0 / Evidence Contract）同文 |
+| 2 | R5 合同 | 只登记 `SQL_PRESENT=1` | 补登 `RESOLVER_CALLS=2`、`SQL_SET_SEMANTICS=1`（AC4 集合语义：`orders.org_id::text NOT IN (sites.org_id ∪ merchants.org_id)`），缺失即 `R5_FAIL` |
+| 3 | R1 红侧 | 仅 `RED_CONFIRMED=1`（常量推导） | 追加 `PRE_FIX_SITE_ID_AS_ORG_LINES>=1`：产物含 `--- pre-fix code ---` 段并命中旧实现行；`RED_CONFIRMED` 键名不变 |
+| 4 | Provenance | 仅首行 `# build= # commit= # dirty=` | 首行格式不变，另起一行 `GENERATED_AT_HEAD=<40 位 sha>`（产物生成树），区分锚点与生成树 |
+
+不在本次修订范围：产品代码（`user_rental.go` 已按 Rev.1 D1/D2/D4 实现且审计通过）、R5 只读 SQL 集合语义实现（已在 `origin/issue-2512` 落地：`d89212234` + `b27a959ee`）。
 
 ### 背景与现状核对（代码为据）
 
@@ -69,7 +82,10 @@ if effectiveTenantID == "" {
 7. `docs/spec/api/api.md` §6.2 / §6.3 游客说明补：`org_id` 派生顺序 = `instruments.org_id` → `sites.org_id`（按 `site_id`/`current_site_id` 反查）；均不可解析 → `400/40002`（不得写入 `sites.id`）。
 
 **D. 证据**
-8. 新增 `scripts/verify-2512.sh`（`r1`–`r6` + `gate`，首行写 provenance）；`r5` 输出**只读**存量排查 SQL（不执行写操作）。
+8. 新增 `scripts/verify-2512.sh`（`r1`–`r6` + `gate`，首行写 provenance）。
+9. `r1` 产物除既有键外，追加 `--- pre-fix code ---` 段与 `PRE_FIX_SITE_ID_AS_ORG_LINES=<n>`（从 `origin/develop` 的旧实现中 grep `effectiveOrgID = instrument.SiteID.String()`，`n>=1` 即通过），使红侧不再只靠 `RED_CONFIRMED` 常量推导。
+10. `r5` 输出**只读**存量排查 SQL（不执行写操作），必须同时包含两类查询：① `orders.org_id` 命中某个 `sites.id` 的细分项；② AC4 集合语义 `orders.org_id::text NOT IN (sites.org_id ∪ merchants.org_id)`；脚本输出可判定键 `SQL_PRESENT=1` 与 `SQL_SET_SEMANTICS=1`（缺②即 `R5_FAIL`）。
+11. `r7`/gate 判定谓词统一为 `pre-ready` 报告的 `.overall == "PASS"`（报告不写 `.result` 键）。
 
 - Tags: bug, code:go, scope:backend
 
@@ -104,13 +120,13 @@ if effectiveTenantID == "" {
 
 | 变更点 | 文件/组件 | 入口/路由 | 触发状态 | 目标平台 | 期望结果 | 证据（命令/日志/截图） |
 |---|---|---|---|---|---|---|
-| R1 游客下单 org 取 `sites.org_id`（红绿） | `backend/handlers/user_rental.go`、`backend/handlers/user_rental_2512_test.go` | `POST /api/user/orders` | 游客（tid/oid 空）+ `org_id NULL` + `site_id=aID` | backend（Postgres 测试库） | `ORDER_ORG=aOrg`、`SITE_ID_IS= aID`、`OLD_FALLBACK_IS_SITE_ID=1`、`RED_CONFIRMED=1` | R1 |
+| R1 游客下单 org 取 `sites.org_id`（红绿） | `backend/handlers/user_rental.go`、`backend/handlers/user_rental_2512_test.go` | `POST /api/user/orders` | 游客（tid/oid 空）+ `org_id NULL` + `site_id=aID` | backend（Postgres 测试库） | `ORDER_ORG=aOrg`、`SITE_ID_IS= aID`、`OLD_FALLBACK_IS_SITE_ID=1`、`RED_CONFIRMED=1`、`PRE_FIX_SITE_ID_AS_ORG_LINES>=1`（产物含 `--- pre-fix code ---` 段） | R1 |
 | R2 `current_site_id` 回退同样按 org 反查 | 同上 | 同上 | `org_id NULL`、`site_id NULL`、`current_site_id=bID` | backend | `ORDER_ORG=bOrg`、`RESOLVED_FROM_CURRENT_SITE=1` | R2 |
 | R3 不可解析 → 拒绝且不落库（负例） | 同上 | 同上 | 三者全空 | backend | `STATUS=400`、`CODE=40002`、`ORDERS_AFTER=0` | R3 |
 | R4 批量下单同口径（含拒绝不落库） | 同上 | `POST /api/user/orders/batch` | 首件 `org_id NULL + site_id=aID`；另批含不可解析件 | backend | `BATCH_ORGS_UNIQUE=1`、`BATCH_ORG=aOrg`、`REJECT_STATUS=400`、`BATCH_ORDERS_AFTER=0` | R4 |
-| R5 同类扫描 + 只读存量排查 SQL | `scripts/verify-2512.sh` | grep + SQL 文本 | 修后工作树 | backend | `SITE_ID_AS_ORG=0`（无 `SiteID.String()` 赋给 org）、`CURRENT_SITE_AS_ORG=0`、`SQL_PRESENT=1` | R5 |
+| R5 同类扫描 + 只读存量排查 SQL | `scripts/verify-2512.sh` | grep + SQL 文本 | 修后工作树 | backend | `SITE_ID_AS_ORG=0`（无 `SiteID.String()` 赋给 org）、`CURRENT_SITE_AS_ORG=0`、`RESOLVER_CALLS=2`、`SQL_PRESENT=1`、`SQL_SET_SEMANTICS=1` | R5 |
 | R6 构建 + 定向回归 | `scripts/verify-2512.sh` | `cd backend` 构建 + 定向套件 | 修后工作树 | backend | `BUILD_RC=0`、`REG_RC=0`（`CreateOrder`/`BatchCreateOrder` 既有用例） | R6 |
-| R7 pre-ready gate（四源 + 定向测试 + 构建） | `docs/evidence/2512/pre-ready-2512.json` | `pre-ready-check.sh 2512` | 修后干净树 + 最新 Accepted Plan | backend | `GATE_RESULT=PASS`、P12 完整、P13 在 `origin/issue-2512` | R7 |
+| R7 pre-ready gate（四源 + 定向测试 + 构建） | `docs/evidence/2512/pre-ready-2512.json` | `pre-ready-check.sh 2512` | 修后干净树 + 最新 Accepted Plan | backend | `GATE_RESULT=PASS`（报告 `.overall == "PASS"`）、P12 完整、P13 在 `origin/issue-2512`；禁止引用不存在的 `.result` 键 | R7 |
 
 ## Input Truth & Tool Preflight
 
@@ -149,25 +165,25 @@ if effectiveTenantID == "" {
 
 | 行 ID | fixture（输入/seed） | entry（生产入口） | artifact（路径/类型） | assertions（含负例） |
 |---|---|---|---|---|
-| R1 | tenant T；site A(`id=aID, org_id=aOrg`)，`aID≠aOrg`；乐器(`tenant=T, org_id=NULL, site_id=aID, stock_status=available`)；游客上下文（`tid/oid` 空，`SeedVerifiedCustomer`） | `POST /api/user/orders` | `docs/evidence/2512/R1-guest-org-from-site.txt` | `ORDER_ORG=aOrg`、`SITE_ID_IS=aID`、`OLD_FALLBACK_IS_SITE_ID=1`、`RED_CONFIRMED=1`；负例：`ORDER_ORG=aID` → FAIL |
+| R1 | tenant T；site A(`id=aID, org_id=aOrg`)，`aID≠aOrg`；乐器(`tenant=T, org_id=NULL, site_id=aID, stock_status=available`)；游客上下文（`tid/oid` 空，`SeedVerifiedCustomer`） | `POST /api/user/orders` | `docs/evidence/2512/R1-guest-org-from-site.txt` | `ORDER_ORG=aOrg`、`SITE_ID_IS=aID`、`OLD_FALLBACK_IS_SITE_ID=1`、`RED_CONFIRMED=1`、`PRE_FIX_SITE_ID_AS_ORG_LINES>=1`（`--- pre-fix code ---` 段命中旧实现 `effectiveOrgID = instrument.SiteID.String()`）；负例：`ORDER_ORG=aID` → FAIL |
 | R2 | 同上；乐器(`org_id=NULL, site_id=NULL, current_site_id=bID`)，site B(`id=bID, org_id=bOrg`) | 同上 | `docs/evidence/2512/R2-current-site.txt` | `ORDER_ORG=bOrg`、`RESOLVED_FROM_CURRENT_SITE=1`；负例：`ORDER_ORG=bID` → FAIL |
 | R3 | 同上；乐器(`org_id=NULL, site_id=NULL, current_site_id=NULL`) | 同上 | `docs/evidence/2512/R3-reject.txt` | `STATUS=400`、`CODE=40002`、`ORDERS_AFTER=0`；负例：201/20000 且落库 → FAIL |
 | R4 | 同上；批量两件（首件 `org_id=NULL, site_id=aID`）；另一批含不可解析件 | `POST /api/user/orders/batch` | `docs/evidence/2512/R4-batch.txt` | `BATCH_ORG=aOrg`、`BATCH_ORGS_UNIQUE=1`、`REJECT_STATUS=400`、`BATCH_ORDERS_AFTER=0`；负例：批量写入站点 ID 或部分落库 → FAIL |
-| R5 | 修后 `user_rental.go` + 只读 SQL | grep + 文本 | `docs/evidence/2512/R5-scan-sql.txt` | `SITE_ID_AS_ORG=0`、`CURRENT_SITE_AS_ORG=0`、`RESOLVER_CALLS=2`、`SQL_PRESENT=1`；负例：残留 `effectiveOrgID = instrument.SiteID.String()` → FAIL |
+| R5 | 修后 `user_rental.go` + 只读 SQL | grep + 文本 | `docs/evidence/2512/R5-scan-sql.txt` | `SITE_ID_AS_ORG=0`、`CURRENT_SITE_AS_ORG=0`、`RESOLVER_CALLS=2`、`SQL_PRESENT=1`、`SQL_SET_SEMANTICS=1`（只读 SQL 含 `orders.org_id::text NOT IN (sites.org_id ∪ merchants.org_id)`）；负例：残留 `effectiveOrgID = instrument.SiteID.String()` 或缺集合语义查询 → FAIL |
 | R6 | 修后工作树 | `cd backend` | `docs/evidence/2512/R6-build-regression.txt` | `BUILD_RC=0`、`REG_RC=0`（`CreateOrder`/`BatchCreateOrder` 既有用例通过）；负例：任一失败 → FAIL |
-| R7 | 修后干净树 + 最新 Accepted Plan + evidence.json | `pre-ready-check.sh 2512` | `docs/evidence/2512/pre-ready-2512.json` | `GATE_RESULT=PASS`、每行 `pass=true`、`dirty=false`、P13 在 `origin/issue-2512`；负例：任一 P 失败/evidence 缺行 → 不得 ready |
+| R7 | 修后干净树 + 最新 Accepted Plan + evidence.json | `pre-ready-check.sh 2512` | `docs/evidence/2512/pre-ready-2512.json` | `jq -e '.overall == "PASS"'`（报告根键）、每行 `pass=true`、`dirty=false`、P13 在 `origin/issue-2512`；负例：`.overall != "PASS"` 或任一 P 失败 / evidence 缺行 → 不得 ready |
 
 ### Evidence Contract
 
 | 行 ID | 命令 | 产物 | 断言 | 期望 | 负例 | 责任人 |
 |---|---|---|---|---|---|---|
-| R1 | `bash scripts/verify-2512.sh r1 > docs/evidence/2512/R1-guest-org-from-site.txt` | `docs/evidence/2512/R1-guest-org-from-site.txt` | exit 0；`grep -q '^R1_OK$'` 且 `grep -q 'ORDER_ORG=aOrg'` | `OLD_FALLBACK_IS_SITE_ID=1`、`RED_CONFIRMED=1` | 落库为 `aID` → `R1_FAIL` 且非 0 退出 | dev |
+| R1 | `bash scripts/verify-2512.sh r1 > docs/evidence/2512/R1-guest-org-from-site.txt` | `docs/evidence/2512/R1-guest-org-from-site.txt` | exit 0；`grep -q '^R1_OK$'` 且 `grep -q 'ORDER_ORG=aOrg'` | `OLD_FALLBACK_IS_SITE_ID=1`、`RED_CONFIRMED=1`、`PRE_FIX_SITE_ID_AS_ORG_LINES>=1` | 落库为 `aID`，或缺 `--- pre-fix code ---` 段 → `R1_FAIL` 且非 0 退出 | dev |
 | R2 | `bash scripts/verify-2512.sh r2 > docs/evidence/2512/R2-current-site.txt` | `docs/evidence/2512/R2-current-site.txt` | exit 0；`grep -q '^R2_OK$'` 且 `grep -q 'ORDER_ORG=bOrg'` | `RESOLVED_FROM_CURRENT_SITE=1` | 落库为 `bID` → `R2_FAIL` 且非 0 退出 | dev |
 | R3 | `bash scripts/verify-2512.sh r3 > docs/evidence/2512/R3-reject.txt` | `docs/evidence/2512/R3-reject.txt` | exit 0；`grep -q '^R3_OK$'` 且 `grep -q 'CODE=40002'` | `STATUS=400`、`ORDERS_AFTER=0` | 成功下单或落库 → `R3_FAIL` 且非 0 退出 | dev |
 | R4 | `bash scripts/verify-2512.sh r4 > docs/evidence/2512/R4-batch.txt` | `docs/evidence/2512/R4-batch.txt` | exit 0；`grep -q '^R4_OK$'` 且 `grep -q 'BATCH_ORG=aOrg'` | `BATCH_ORGS_UNIQUE=1`、`REJECT_STATUS=400`、`BATCH_ORDERS_AFTER=0` | 批量站点 ID 或部分落库 → `R4_FAIL` 且非 0 退出 | dev |
-| R5 | `bash scripts/verify-2512.sh r5 > docs/evidence/2512/R5-scan-sql.txt` | `docs/evidence/2512/R5-scan-sql.txt` | exit 0；`grep -q '^R5_OK$'` 且 `grep -q 'SITE_ID_AS_ORG=0'` | `CURRENT_SITE_AS_ORG=0`、`RESOLVER_CALLS=2`、`SQL_PRESENT=1` | 残留站点 ID 兜底 → `R5_FAIL` 且非 0 退出 | dev |
+| R5 | `bash scripts/verify-2512.sh r5 > docs/evidence/2512/R5-scan-sql.txt` | `docs/evidence/2512/R5-scan-sql.txt` | exit 0；`grep -q '^R5_OK$'` 且 `grep -q 'SITE_ID_AS_ORG=0'` | `CURRENT_SITE_AS_ORG=0`、`RESOLVER_CALLS=2`、`SQL_PRESENT=1`、`SQL_SET_SEMANTICS=1` | 残留站点 ID 兜底，或缺集合语义查询（`SQL_SET_SEMANTICS=0`） → `R5_FAIL` 且非 0 退出 | dev |
 | R6 | `bash scripts/verify-2512.sh r6 > docs/evidence/2512/R6-build-regression.txt` | `docs/evidence/2512/R6-build-regression.txt` | exit 0；`grep -q '^R6_OK$'` 且 `grep -q 'BUILD_RC=0'` | `REG_RC=0` | 构建或定向回归失败 → `R6_FAIL` 且非 0 退出 | dev |
-| R7 | `~/.config/opencode/scripts/pre-ready-check.sh 2512 --summary-file docs/evidence/2512/summary.md --changed-files docs/evidence/2512/changed-files.txt --evidence-file docs/evidence/2512/evidence.json --affected-cmd "bash scripts/verify-2512.sh r6" --full-gate-cmd "bash scripts/verify-2512.sh gate" --report docs/evidence/2512/pre-ready-2512.json` | `docs/evidence/2512/pre-ready-2512.json` | exit 0；`GATE_RESULT=PASS`，`jq -e '.result == "PASS"'`，evidence 每行 `pass=true` | `dirty=false`、P13 提交在 `origin/issue-2512` | 任一 P 项失败 / evidence 缺行 / `dirty=true` → gate 非 0，禁止 ready | dev |
+| R7 | `~/.config/opencode/scripts/pre-ready-check.sh 2512 --summary-file docs/evidence/2512/summary.md --changed-files docs/evidence/2512/changed-files.txt --evidence-file docs/evidence/2512/evidence.json --affected-cmd "bash scripts/verify-2512.sh r6" --full-gate-cmd "bash scripts/verify-2512.sh gate" --report docs/evidence/2512/pre-ready-2512.json` | `docs/evidence/2512/pre-ready-2512.json` | exit 0；`GATE_RESULT=PASS`，`jq -e '.overall == "PASS"'`，evidence 每行 `pass=true` | `dirty=false`、P13 提交在 `origin/issue-2512` | 任一 P 项失败 / evidence 缺行 / `dirty=true` → gate 非 0，禁止 ready | dev |
 
 ### Files（变更文件清单）
 
@@ -193,6 +209,9 @@ if effectiveTenantID == "" {
 
 - 生成器：`scripts/verify-2512.sh`（`r1`–`r6` + `gate`），每个文本 artifact 首行必须是
   `# build=1.0.<短码> # commit=<40 位 sha> # dirty=false`（锚定本单 fix commit；证据收尾提交不改变锚点）。
+- 生成树可追溯（Rev.2）：每个文本 artifact 在首行之后另起一行写 `GENERATED_AT_HEAD=<40 位 sha>`
+  （生成时 `git rev-parse HEAD`），用于区分「锚点 commit」与「产物生成树」；**首行格式不得改动**
+  （P14 依赖首行）。
 - 逐条清单（全部位于 `docs/evidence/2512/`）：
   - `docs/evidence/2512/R1-guest-org-from-site.txt`
   - `docs/evidence/2512/R2-current-site.txt`
@@ -206,4 +225,5 @@ if effectiveTenantID == "" {
 - 证据重生成纪律：fix commit 之后统一重跑 `bash scripts/verify-2512.sh r1` … `r6`，禁止只改 `build/commit` 冒充新证据。
 
 *Model: DeepSeek V4.1 Flash 1017*
+
 
