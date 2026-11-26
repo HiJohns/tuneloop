@@ -202,7 +202,7 @@ row_r8() {
   ( cd "$ROOT/frontend-pc" && node --test src/utils/merchantOwnership.test.js ) >>"$a" 2>&1
   node_rc=$?
 
-  local tab_renamed=0 transfer_ui=0 owner_remove=0 owner_card=0
+  local tab_renamed=0 transfer_ui=0 owner_remove=0 owner_card=0 candidate_page_size=0
   grep -qF 'Tabs.TabPane tab="所有人"' "$page" && tab_renamed=1
   grep -qF '负责人管理' "$page" && tab_renamed=0
   grep -qF 'transfer-ownership' "$component" && grep -qF '转让所有权' "$component" \
@@ -210,6 +210,12 @@ row_r8() {
   grep -qF 'canRemoveMember(record, ownerUid)' "$component" && owner_remove=1
   grep -qF 'pickOwnerRow(members)' "$component" && grep -qF '未锚定所有人' "$component" \
     && grep -qF '转让后你将成为管理员' "$component" && owner_card=1
+  # R8 由「源码出现字符串」升级为「门控真值 + 纯函数」：门控必须读后端 viewer_is_owner，
+  # 且候选分页不得再要 page_size=200（后端 maxPageSize=100 会静默截断）。
+  grep -qF 'canTransferOwnership({ viewerIsOwner, ownerUid, viewerUid, candidates })' "$component" \
+    && ! grep -qF 'user_info' "$component" && ! grep -qF 'isOwner' "$component" \
+    && transfer_ui=1 || transfer_ui=0
+  grep -qF 'const CANDIDATE_PAGE_SIZE = 100;' "$component" && candidate_page_size=1
 
   ( cd "$ROOT/frontend-pc" && npx eslint src/components/MerchantMemberManagement.jsx src/pages/MerchantManagement.jsx src/utils/merchantOwnership.js ) >>"$a" 2>&1
   lint_rc=$?
@@ -223,12 +229,14 @@ row_r8() {
     echo "TRANSFER_UI_WIRED=$transfer_ui"
     echo "OWNER_REMOVE_DISABLED=$owner_remove"
     echo "OWNER_CARD_RENDERED=$owner_card"
+    echo "CANDIDATE_PAGE_SIZE=$candidate_page_size"
     echo "FRONTEND_LINT_RC=$lint_rc"
     echo "FRONTEND_BUILD_RC=$build_rc"
   } >>"$a"
 
   assert_grep "$a" 'NODE_TEST_RC=0' 'TAB_RENAMED=1' 'TRANSFER_UI_WIRED=1' \
-    'OWNER_REMOVE_DISABLED=1' 'OWNER_CARD_RENDERED=1' 'FRONTEND_LINT_RC=0' 'FRONTEND_BUILD_RC=0'
+    'OWNER_REMOVE_DISABLED=1' 'OWNER_CARD_RENDERED=1' 'CANDIDATE_PAGE_SIZE=1' \
+    'FRONTEND_LINT_RC=0' 'FRONTEND_BUILD_RC=0'
   # 纯函数消费方必须存在，否则后端端点/字段没有前端入口（死代码）。
   [ -f "$util" ] || { echo "MISSING: $util" >&2; FAILURES=$((FAILURES + 1)); }
 }
@@ -277,31 +285,174 @@ row_r11() {
   local ui_doc="$ROOT/docs/spec/ui/ui.md"
   local db_doc="$ROOT/docs/spec/database/database.md"
   local case_doc="$ROOT/docs/cases/organization.md"
+  local perm_doc="$ROOT/docs/spec/permissions.md"
 
-  local api_transfer=0 api_members=0 ui_owner=0 db_owner=0 case_path=0
+  local api_transfer=0 api_members=0 api_bit8=0 ui_owner=0 ui_ma=0 db_owner=0 case_path=0 perm_scoped=0
   grep -qF 'POST /api/merchants/:id/transfer-ownership' "$api_doc" \
     && grep -qF 'TRANSFER_OWNERSHIP' "$api_doc" && api_transfer=1
   grep -qF 'GET /api/admin/merchants/:id/members' "$api_doc" \
-    && grep -qF 'is_owner' "$api_doc" && grep -qF 'owner_uid' "$api_doc" && api_members=1
+    && grep -qF 'is_owner' "$api_doc" && grep -qF 'owner_uid' "$api_doc" \
+    && grep -qF 'viewer_is_owner' "$api_doc" && grep -qF 'viewer_uid' "$api_doc" && api_members=1
+  # Low-1：租户更新是 bit 8（tenant:update），bit 5 是 tenant:view。
+  grep -qF 'bit 8' "$api_doc" && ! grep -qF 'bit 5（`tenant:update`）' "$api_doc" && api_bit8=1
   grep -qF '「所有人」Tab（#2546）' "$ui_doc" \
-    && grep -qF '转让后你将成为管理员' "$ui_doc" && ui_owner=1
+    && grep -qF '转让后你将成为管理员' "$ui_doc" \
+    && grep -qF 'viewer_is_owner' "$ui_doc" && ui_owner=1
+  grep -qF '商户管理员视角（#2546 D13）' "$ui_doc" && ui_ma=1
   grep -qF '所有人（OWNER）用户 ID' "$db_doc" && db_owner=1
   grep -qF '/api/merchants/:id/transfer-ownership' "$case_doc" \
     && ! grep -qF '/admin/merchants/:id/transfer-ownership' "$case_doc" \
+    && grep -qF 'viewer_is_owner' "$case_doc" \
     && ! grep -qF 'ADMIN 语义？见下' "$case_doc" && case_path=1
+  grep -qF 'businessRole: merchant_admin' "$perm_doc" \
+    && grep -qF 'RequireSysPermOrRole' "$perm_doc" && perm_scoped=1
 
   {
     echo "$PROVENANCE"
-    echo "# R11 契约文档落字（api/ui/database/cases）"
+    echo "# R11 契约文档落字（api/ui/database/cases/permissions）"
     echo "DOC_API_TRANSFER=$api_transfer"
     echo "DOC_API_MEMBERS_OWNER=$api_members"
+    echo "DOC_API_BIT8=$api_bit8"
     echo "DOC_UI_OWNER_TAB=$ui_owner"
+    echo "DOC_UI_MERCHANT_ADMIN_VIEW=$ui_ma"
     echo "DOC_DB_ADMIN_UID=$db_owner"
     echo "DOC_CASE_PATH_ALIGNED=$case_path"
+    echo "DOC_PERM_MERCHANTS_SCOPED=$perm_scoped"
   } >"$a"
 
-  assert_grep "$a" 'DOC_API_TRANSFER=1' 'DOC_API_MEMBERS_OWNER=1' 'DOC_UI_OWNER_TAB=1' \
-    'DOC_DB_ADMIN_UID=1' 'DOC_CASE_PATH_ALIGNED=1'
+  assert_grep "$a" 'DOC_API_TRANSFER=1' 'DOC_API_MEMBERS_OWNER=1' 'DOC_API_BIT8=1' \
+    'DOC_UI_OWNER_TAB=1' 'DOC_UI_MERCHANT_ADMIN_VIEW=1' 'DOC_DB_ADMIN_UID=1' \
+    'DOC_CASE_PATH_ALIGNED=1' 'DOC_PERM_MERCHANTS_SCOPED=1'
+}
+
+row_r12() {
+  local a="$OUT/R12-owner-gate.txt"
+  local component="$ROOT/frontend-pc/src/components/MerchantMemberManagement.jsx"
+  {
+    echo "$PROVENANCE"
+    echo "# R12 转让门控真值：后端 viewer_is_owner + 纯函数 canTransferOwnership（四类 fixture）"
+  } >"$a"
+
+  go_test_row "$a" 'TestListMembersViewerOwnerGate_2546' ./handlers/
+
+  local node_rc gate_owner=0 gate_demoted=0 gate_unanchored=0 gate_no_candidate=0 userinfo_usage=1
+  ( cd "$ROOT/frontend-pc" && node --test src/utils/merchantOwnership.test.js ) >>"$a" 2>&1
+  node_rc=$?
+
+  ( cd "$ROOT/frontend-pc" && node --input-type=module -e '
+import { canTransferOwnership } from "./src/utils/merchantOwnership.js";
+const owner = { viewerIsOwner: true, ownerUid: "u1", viewerUid: "u1", candidates: [{ user_id: "u2" }] };
+const demoted = { viewerIsOwner: false, ownerUid: "u2", viewerUid: "u1", candidates: [{ user_id: "u1" }] };
+const unanchored = { viewerIsOwner: false, ownerUid: "", viewerUid: "u1", candidates: [{ user_id: "u2" }] };
+const noCandidate = { viewerIsOwner: true, ownerUid: "u1", viewerUid: "u1", candidates: [] };
+console.log("GATE_OWNER_TRUE=" + (canTransferOwnership(owner) === true ? 1 : 0));
+console.log("GATE_DEMOTED_FALSE=" + (canTransferOwnership(demoted) === false ? 1 : 0));
+console.log("GATE_UNANCHORED_FALSE=" + (canTransferOwnership(unanchored) === false ? 1 : 0));
+console.log("GATE_NO_CANDIDATE_FALSE=" + (canTransferOwnership(noCandidate) === false ? 1 : 0));
+' ) >>"$a" 2>&1
+
+  grep -qF 'GATE_OWNER_TRUE=1' "$a" && gate_owner=1
+  grep -qF 'GATE_DEMOTED_FALSE=1' "$a" && gate_demoted=1
+  grep -qF 'GATE_UNANCHORED_FALSE=1' "$a" && gate_unanchored=1
+  grep -qF 'GATE_NO_CANDIDATE_FALSE=1' "$a" && gate_no_candidate=1
+  grep -qE 'user_info|isOwner' "$component" || userinfo_usage=0
+  grep -qF 'viewer_is_owner' "$component" && grep -qF 'setViewerIsOwner' "$component"
+
+  {
+    echo "NODE_TEST_RC=$node_rc"
+    echo "GATE_OWNER_TRUE=$gate_owner"
+    echo "GATE_DEMOTED_FALSE=$gate_demoted"
+    echo "GATE_UNANCHORED_FALSE=$gate_unanchored"
+    echo "GATE_NO_CANDIDATE_FALSE=$gate_no_candidate"
+    echo "GATE_USERINFO_OWNER_USAGE=$userinfo_usage"
+  } >>"$a"
+
+  assert_grep "$a" 'GATE_FIELD=viewer_is_owner' 'BE_VIEWER_IS_OWNER_TRUE=1' 'BE_VIEWER_IS_OWNER_FALSE=1' \
+    'GATE_OWNER_TRUE=1' 'GATE_DEMOTED_FALSE=1' 'GATE_UNANCHORED_FALSE=1' 'GATE_NO_CANDIDATE_FALSE=1' \
+    'GATE_USERINFO_OWNER_USAGE=0' 'NODE_TEST_RC=0'
+}
+
+row_r13() {
+  local a="$OUT/R13-put-combined-fields.txt"
+  {
+    echo "$PROVENANCE"
+    echo "# R13 PUT /merchants/:id 组合字段（name/phone/admin_uid）三者同时落库"
+  } >"$a"
+  go_test_row "$a" 'TestUpdateMerchantCombinedFields_2546' ./handlers/
+  assert_grep "$a" 'COMBINED_STATUS=200' 'NAME_PERSISTED=1' 'PHONE_PERSISTED=1' 'ADMIN_UID_SWITCHED=1'
+}
+
+row_r14() {
+  local a="$OUT/R14-promote-failure.txt"
+  {
+    echo "$PROVENANCE"
+    echo "# R14 转让本地同步单事务：成员行更新失败 → 500/50000 + 整体回滚（无半同步）"
+  } >"$a"
+  go_test_row "$a" 'TestTransferOwnershipLocalSyncFailure_2546' ./handlers/
+  assert_grep "$a" 'PROMOTE_FAIL_STATUS=500' 'PROMOTE_FAIL_CODE=50000' 'ADMIN_UID_UNCHANGED=1' \
+    'ROLE_UNCHANGED=1' 'MSG_HAS_MANUAL_CHECK=1'
+}
+
+row_r15() {
+  local a="$OUT/R15-actor-authz.txt"
+  {
+    echo "$PROVENANCE"
+    echo "# R15 actor 授权矩阵：4 条路由对 merchant_admin 放行（数据面收窄），平台专属写路由仍 403"
+  } >"$a"
+  go_test_row "$a" 'TestMerchantAdminActorAuthorization_2546' ./handlers/
+  go_test_row "$a" 'TestRequireSysPermOrRole_2546' ./middleware/
+  assert_grep "$a" 'MA_LIST_STATUS=200' 'MA_LIST_ROWS=1' 'MA_GET_OWN_STATUS=200' 'MA_GET_OTHER_STATUS=404' \
+    'MA_MEMBERS_STATUS=200' 'MA_TRANSFER_STATUS=200' 'MA_CREATE_MERCHANT_STATUS=403' \
+    'MA_UPDATE_MERCHANT_STATUS=403' 'MA_DELETE_MERCHANT_STATUS=403' 'MA_ADD_MEMBER_STATUS=403' \
+    'MA_ROLE_PASS=1' 'MA_ROLE_DENY_STATUS=403' 'MA_ZERO_PASSTHROUGH=1'
+}
+
+row_r16() {
+  local a="$OUT/R16-merchant-admin-entry.txt"
+  local app="$ROOT/frontend-pc/src/App.jsx"
+  local page="$ROOT/frontend-pc/src/pages/MerchantManagement.jsx"
+  {
+    echo "$PROVENANCE"
+    echo "# R16 商户管理员入口接线：checkPermission businessRoles + 菜单/路由 + 平台操作隐藏"
+  } >"$a"
+
+  local node_rc lint_rc menu_roles=0 route_roles=0 new_platform=0 actions_hidden=0
+  ( cd "$ROOT/frontend-pc" && node --test src/config/menuPermissions.test.js ) >>"$a" 2>&1
+  node_rc=$?
+
+  grep -qF "label: '商户管理', permission: { sysPermBits: [6], businessRoles: ['merchant_admin'] }" "$app" \
+    && menu_roles=1
+  grep -qF 'requiredPermission={{ sysPermBits: [6], businessRoles: ['"'"'merchant_admin'"'"'] }}' "$app" \
+    && grep -qF 'requiredPermission={{ sysPermBits: [5], businessRoles: ['"'"'merchant_admin'"'"'] }}' "$app" \
+    && route_roles=1
+  # /merchants/new 必须仍是平台专属：该行不得出现 businessRoles。
+  if grep -qF '/merchants/new' "$app"; then
+    if grep -F '/merchants/new' "$app" | grep -qF 'businessRoles'; then
+      new_platform=0
+    else
+      new_platform=1
+    fi
+  fi
+  grep -qF "const isMerchantAdmin = businessRole === 'merchant_admin'" "$page" \
+    && [ "$(grep -cF '!isMerchantAdmin' "$page")" -ge 4 ] && actions_hidden=1
+
+  ( cd "$ROOT/frontend-pc" && npx eslint src/config/menuPermissions.js src/pages/MerchantManagement.jsx ) >>"$a" 2>&1
+  lint_rc=$?
+
+  {
+    echo "NODE_TEST_RC=$node_rc"
+    echo "CHECKPERM_MA=$(grep -qF 'CHECKPERM_MA' "$a" && echo 1 || echo 0)"
+    echo "CHECKPERM_PLATFORM=$(grep -qF 'CHECKPERM_PLATFORM' "$a" && echo 1 || echo 0)"
+    echo "MENU_BUSINESS_ROLES=$menu_roles"
+    echo "ROUTE_BUSINESS_ROLES=$route_roles"
+    echo "NEW_ROUTE_PLATFORM_ONLY=$new_platform"
+    echo "PLATFORM_ACTIONS_HIDDEN=$actions_hidden"
+    echo "FRONTEND_LINT_RC=$lint_rc"
+  } >>"$a"
+
+  assert_grep "$a" 'NODE_TEST_RC=0' 'CHECKPERM_MA=1' 'CHECKPERM_PLATFORM=1' \
+    'MENU_BUSINESS_ROLES=1' 'ROUTE_BUSINESS_ROLES=1' 'NEW_ROUTE_PLATFORM_ONLY=1' \
+    'PLATFORM_ACTIONS_HIDDEN=1' 'FRONTEND_LINT_RC=0'
 }
 
 case "$ROW" in
@@ -316,8 +467,13 @@ case "$ROW" in
   r9) row_r9 ;;
   r10) row_r10 ;;
   r11) row_r11 ;;
+  r12) row_r12 ;;
+  r13) row_r13 ;;
+  r14) row_r14 ;;
+  r15) row_r15 ;;
+  r16) row_r16 ;;
   *)
-    echo "Usage: bash scripts/verify-2546.sh r1..r11" >&2
+    echo "Usage: bash scripts/verify-2546.sh r1..r16" >&2
     exit 2
     ;;
 esac

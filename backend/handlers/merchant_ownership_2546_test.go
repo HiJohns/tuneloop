@@ -11,10 +11,14 @@ package handlers
 //   R5 OWNER 移除/降级保护 + 非 owner 管理员回归
 //   R6 编辑商户改所有人走转让（含置空拒绝）
 //   R7 列表 owner 标记 + include=all 候选
+//   R12 转让门控真值 = viewer_is_owner（不是平台级 is_owner）
+//   R13 PUT 组合字段（name/phone/admin_uid）三者同时落库
+//   R14 转让本地同步单事务：成员行更新失败 → 500/50000 且整体回滚
 
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -26,6 +30,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 
 	"tuneloop-backend/database"
 	"tuneloop-backend/handlers/testfixtures"
@@ -229,10 +234,17 @@ func seedOwnershipFixture2546(t *testing.T) ownershipFixture2546 {
 
 func ownershipRouter2546(t *testing.T, tenantID, orgID string) *gin.Engine {
 	t.Helper()
+	return ownershipRouterWithActor2546(t, tenantID, orgID, uuid.NewString())
+}
+
+// ownershipRouterWithActor2546 lets a test pin the logged-in user id so that
+// viewer_is_owner (merchant.admin_uid == current user) can be exercised.
+func ownershipRouterWithActor2546(t *testing.T, tenantID, orgID, actorUserID string) *gin.Engine {
+	t.Helper()
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
-		actor := testutil.TestActor{TenantID: tenantID, OrgID: orgID, UserID: uuid.NewString(), Role: "OWNER"}
+		actor := testutil.TestActor{TenantID: tenantID, OrgID: orgID, UserID: actorUserID, Role: "OWNER"}
 		c.Request = c.Request.WithContext(actor.InjectContext(c.Request.Context()))
 		c.Next()
 	})
@@ -269,6 +281,8 @@ type ownershipResponse2546 struct {
 		PreviousOwnerID string `json:"previous_owner_id"`
 		NewOwnerID      string `json:"new_owner_id"`
 		OwnerUID        string `json:"owner_uid"`
+		ViewerUID       string `json:"viewer_uid"`
+		ViewerIsOwner   bool   `json:"viewer_is_owner"`
 		Total           int64  `json:"total"`
 		List            []struct {
 			UserID  string `json:"user_id"`
@@ -653,4 +667,103 @@ func TestListMembersOwnerFlag_2546(t *testing.T) {
 
 	t.Logf("OWNER_FLAG_HITS=%d OWNER_UID_MATCH=1 DEFAULT_ROWS=%d ALL_ROWS=%d OWNER_FIELD_PRESENT=1",
 		ownerHits, defaultList.Data.Total, allList.Data.Total)
+}
+
+// R12：转让门控真值 —— 后端下发 viewer_is_owner（merchants.admin_uid == 当前登录
+// 账号），不是平台级 users.is_owner（JWT is_owner）。被降级的原所有人必须为 false。
+func TestListMembersViewerOwnerGate_2546(t *testing.T) {
+	f := seedOwnershipFixture2546(t)
+
+	// 当前登录者 = 本地所有人 A。
+	rOwner := ownershipRouterWithActor2546(t, f.orgID, f.orgID, f.ownerID)
+	wOwner := doOwnershipRequest2546(t, rOwner, http.MethodGet, "/admin/merchants/"+f.merchantID+"/members", "")
+	require.Equal(t, http.StatusOK, wOwner.Code, wOwner.Body.String())
+	ownerView := decodeOwnership2546(t, wOwner)
+
+	require.True(t, ownerView.Data.ViewerIsOwner, "BE_VIEWER_IS_OWNER_TRUE=1")
+	assert.Equal(t, f.ownerID, ownerView.Data.ViewerUID, "VIEWER_UID_MATCHED=1")
+	assert.Equal(t, f.ownerID, ownerView.Data.OwnerUID, "GATE_FIELD=viewer_is_owner")
+	gateFieldsPresent := strings.Contains(wOwner.Body.String(), `"viewer_is_owner"`) &&
+		strings.Contains(wOwner.Body.String(), `"viewer_uid"`)
+	assert.True(t, gateFieldsPresent, "GATE_FIELDS_PRESENT=1")
+
+	// 转让后 A 被降为 ADMIN，新所有人是 B：A 再读列表必须 false（入口隐藏）。
+	mock := &ownershipIAMMock2546{}
+	setupOwnershipIAMMock2546(t, mock)
+	wTransfer := doOwnershipRequest2546(t, ownershipRouterWithActor2546(t, f.orgID, f.orgID, f.ownerID),
+		http.MethodPost, "/merchants/"+f.merchantID+"/transfer-ownership", `{"user_id":"`+f.adminID+`"}`)
+	require.Equal(t, http.StatusOK, wTransfer.Code, wTransfer.Body.String())
+
+	rDemoted := ownershipRouterWithActor2546(t, f.orgID, f.orgID, f.ownerID)
+	wDemoted := doOwnershipRequest2546(t, rDemoted, http.MethodGet, "/admin/merchants/"+f.merchantID+"/members", "")
+	require.Equal(t, http.StatusOK, wDemoted.Code, wDemoted.Body.String())
+	demotedView := decodeOwnership2546(t, wDemoted)
+	assert.False(t, demotedView.Data.ViewerIsOwner, "BE_VIEWER_IS_OWNER_FALSE=1")
+	assert.Equal(t, f.adminID, demotedView.Data.OwnerUID, "OWNER_UID_MOVED=1")
+
+	// 新所有人 B 读列表为 true（二次转让可达）。
+	rNewOwner := ownershipRouterWithActor2546(t, f.orgID, f.orgID, f.adminID)
+	wNewOwner := doOwnershipRequest2546(t, rNewOwner, http.MethodGet, "/admin/merchants/"+f.merchantID+"/members", "")
+	require.Equal(t, http.StatusOK, wNewOwner.Code, wNewOwner.Body.String())
+	assert.True(t, decodeOwnership2546(t, wNewOwner).Data.ViewerIsOwner, "BE_VIEWER_IS_OWNER_NEW_OWNER_TRUE=1")
+
+	t.Logf("GATE_FIELD=viewer_is_owner BE_VIEWER_IS_OWNER_TRUE=1 BE_VIEWER_IS_OWNER_FALSE=1 VIEWER_UID_MATCHED=1")
+}
+
+// R13：PUT /merchants/:id 组合字段（name + phone + admin_uid）三者同时落库。
+// 转让后不得重载覆盖内存字段再 Save（#2546 D15 / Bug 2）。
+func TestUpdateMerchantCombinedFields_2546(t *testing.T) {
+	f := seedOwnershipFixture2546(t)
+	mock := &ownershipIAMMock2546{}
+	setupOwnershipIAMMock2546(t, mock)
+	r := ownershipRouter2546(t, f.orgID, f.orgID)
+
+	body := `{"name":"N2-2546","phone":"13900002546","admin_uid":"` + f.adminID + `"}`
+	w := doOwnershipRequest2546(t, r, http.MethodPut, "/merchants/"+f.merchantID, body)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+
+	var merchant models.Merchant
+	require.NoError(t, database.GetDB().Where("id = ?", f.merchantID).First(&merchant).Error)
+	assert.Equal(t, "N2-2546", merchant.Name, "NAME_PERSISTED=1")
+	assert.Equal(t, "13900002546", merchant.Phone, "PHONE_PERSISTED=1")
+	assert.Equal(t, f.adminID, merchant.AdminUID, "ADMIN_UID_SWITCHED=1")
+
+	t.Logf("COMBINED_STATUS=%d NAME_PERSISTED=1 PHONE_PERSISTED=1 ADMIN_UID_SWITCHED=1", w.Code)
+}
+
+// R14：转让成功后本地同步（admin_uid + 目标业务角色提升）是单事务；成员行更新
+// 失败必须整体回滚并返回 500/50000 + 人工核对文案，不得半同步或 log-only 200。
+func TestTransferOwnershipLocalSyncFailure_2546(t *testing.T) {
+	f := seedOwnershipFixture2546(t)
+	mock := &ownershipIAMMock2546{}
+	setupOwnershipIAMMock2546(t, mock)
+
+	db := database.GetDB()
+	cbName := "test:inject_merchant_members_update_failure_2546"
+	require.NoError(t, db.Callback().Update().Before("gorm:update").Register(cbName, func(tx *gorm.DB) {
+		if tx.Statement != nil && tx.Statement.Table == "merchant_members" {
+			_ = tx.AddError(errors.New("injected merchant_members update failure"))
+		}
+	}))
+	defer func() { _ = db.Callback().Update().Remove(cbName) }()
+
+	r := ownershipRouter2546(t, f.orgID, f.orgID)
+	// 目标是直属员工（merchant_staff）：提升失败才可观测（role 变化）。
+	w := doOwnershipRequest2546(t, r, http.MethodPost, "/merchants/"+f.merchantID+"/transfer-ownership",
+		`{"user_id":"`+f.staffID+`"}`)
+	require.Equal(t, http.StatusInternalServerError, w.Code, w.Body.String())
+	resp := decodeOwnership2546(t, w)
+	assert.Equal(t, 50000, resp.Code, "PROMOTE_FAIL_CODE=50000")
+	assert.Contains(t, resp.Message, "人工核对", "MSG_HAS_MANUAL_CHECK=1")
+
+	var merchant models.Merchant
+	require.NoError(t, db.Where("id = ?", f.merchantID).First(&merchant).Error)
+	assert.Equal(t, f.ownerID, merchant.AdminUID, "ADMIN_UID_UNCHANGED=1")
+
+	var staff models.MerchantMember
+	require.NoError(t, db.Where("merchant_id = ? AND user_id = ?", f.merchantID, f.staffID).First(&staff).Error)
+	assert.Equal(t, "merchant_staff", staff.Role, "ROLE_UNCHANGED=1")
+
+	t.Logf("PROMOTE_FAIL_STATUS=%d PROMOTE_FAIL_CODE=%d ADMIN_UID_UNCHANGED=1 ROLE_UNCHANGED=1 MSG_HAS_MANUAL_CHECK=1",
+		w.Code, resp.Code)
 }

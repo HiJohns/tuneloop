@@ -6,7 +6,11 @@ import { formatBeijingDate } from '../utils/date';
 import PasswordSettingFields from './PasswordSettingFields';
 import InitialPasswordModal from './InitialPasswordModal'
 import { resolveCreateFeedback } from '../utils/createFeedback';
-import { pickOwnerRow, transferCandidates, canRemoveMember, transferConfirmText } from '../utils/merchantOwnership';
+import { pickOwnerRow, transferCandidates, canRemoveMember, canTransferOwnership, transferConfirmText } from '../utils/merchantOwnership';
+
+// #2546 Low-2：后端 maxPageSize=100（backend/handlers/pagination_helpers.go），
+// 候选必须按此分页补拉，禁止一次要 200（会被静默截断）。
+const CANDIDATE_PAGE_SIZE = 100;
 
 const ROLE_COLORS = {
   owner: 'red', merchant_admin: 'red',
@@ -52,26 +56,42 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
   const [checking, setChecking] = useState(false);
 
   // #2546：所有人（唯一 OWNER）与转让所有权。
+  // 门控真值来自后端 viewer_is_owner（D14），不使用平台级 user_info.isOwner。
   const [ownerUid, setOwnerUid] = useState('');
+  const [viewerUid, setViewerUid] = useState('');
+  const [viewerIsOwner, setViewerIsOwner] = useState(false);
   const [allMembers, setAllMembers] = useState([]);
   const [transferOpen, setTransferOpen] = useState(false);
   const [transferTarget, setTransferTarget] = useState('');
   const [transferring, setTransferring] = useState(false);
-
-  const readCurrentUserIsOwner = () => {
-    try {
-      return JSON.parse(localStorage.getItem('user_info') || '{}').isOwner === true;
-    } catch {
-      return false;
-    }
-  };
-  const currentUserIsOwner = readCurrentUserIsOwner();
 
   useEffect(() => {
     if (merchantId) {
       fetchMembers();
     }
   }, [merchantId, page, pageSize]);
+
+  // 候选 = 本商户全部 active 成员（排除所有人），逐页补拉到 total（Low-2）。
+  const fetchAllMembers = async () => {
+    const collected = [];
+    let current = 1;
+    let expected = 0;
+    for (;;) {
+      const resp = await api.get(`/admin/merchants/${merchantId}/members`, {
+        params: { include: 'all', page: current, page_size: CANDIDATE_PAGE_SIZE },
+      });
+      if (!resp || resp.code !== 20000) break;
+      const rows = resp.data?.list || [];
+      collected.push(...rows);
+      expected = resp.data?.total || collected.length;
+      if (resp.data?.owner_uid !== undefined) setOwnerUid(resp.data.owner_uid || '');
+      if (resp.data?.viewer_uid !== undefined) setViewerUid(resp.data.viewer_uid || '');
+      if (resp.data?.viewer_is_owner !== undefined) setViewerIsOwner(resp.data.viewer_is_owner === true);
+      if (rows.length === 0 || collected.length >= expected) break;
+      current += 1;
+    }
+    return collected;
+  };
 
   const fetchMembers = async () => {
     setLoading(true);
@@ -81,13 +101,11 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
         setMembers(response.data?.list || []);
         setTotal(response.data?.total || 0);
         setOwnerUid(response.data?.owner_uid || '');
+        setViewerUid(response.data?.viewer_uid || '');
+        setViewerIsOwner(response.data?.viewer_is_owner === true);
       }
-      // 转让候选 = 本商户全部 active 成员（排除所有人），后端 include=all 是唯一来源。
-      const all = await api.get(`/admin/merchants/${merchantId}/members`, { params: { include: 'all', page: 1, page_size: 200 } });
-      if (all && all.code === 20000) {
-        setAllMembers(all.data?.list || []);
-        if (all.data?.owner_uid !== undefined) setOwnerUid(all.data.owner_uid || '');
-      }
+      const all = await fetchAllMembers();
+      setAllMembers(all);
     } catch (error) {
       message.error('获取所有人/管理员列表失败');
     } finally {
@@ -420,7 +438,7 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
 
   const ownerRow = pickOwnerRow(members);
   const candidates = transferCandidates(allMembers, ownerUid);
-  const canTransfer = currentUserIsOwner && !!ownerRow && candidates.length > 0;
+  const canTransfer = canTransferOwnership({ viewerIsOwner, ownerUid, viewerUid, candidates });
 
   return (
     <div>

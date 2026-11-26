@@ -551,33 +551,44 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 		return
 	}
 
-	// Update fields
+	// #2546 D15：普通字段更新与所有权转让分离且有序。
+	// 1) 先只写请求中出现的普通字段（map Updates，避免 Save 回写整行）。
+	updates := map[string]interface{}{}
 	if input.Name != "" {
-		merchant.Name = input.Name
+		updates["name"] = input.Name
 	}
 	if input.Phone != "" {
-		merchant.Phone = input.Phone
+		updates["phone"] = input.Phone
 	}
 	if input.Address != "" {
-		merchant.Address = input.Address
+		updates["address"] = input.Address
 	}
 	if input.MerchantType != "" {
-		merchant.MerchantType = input.MerchantType
+		updates["merchant_type"] = input.MerchantType
 	}
 	if input.TransitAddress != "" {
-		merchant.TransitAddress = input.TransitAddress
+		updates["transit_address"] = input.TransitAddress
 	}
 	if input.TransitPhone != "" {
-		merchant.TransitPhone = input.TransitPhone
+		updates["transit_phone"] = input.TransitPhone
 	}
 	if input.TransitContactName != "" {
-		merchant.TransitContactName = input.TransitContactName
+		updates["transit_contact_name"] = input.TransitContactName
+	}
+	if len(updates) > 0 {
+		upd := db.Model(&models.Merchant{}).
+			Where("id = ? AND tenant_id = ?", merchant.ID, merchant.TenantID).
+			Updates(updates)
+		if upd.Error != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50000,
+				"message": "Failed to update merchant: " + upd.Error.Error(),
+			})
+			return
+		}
 	}
 
-	// Handle admin_uid change
-	//
-	// #2546 D4：admin_uid 变化 = 所有权转让，复用同一个 IAM 转让 helper（不再
-	// bind 新 OWNER + 降级旧 OWNER，那条路径在 beaconiam#508 下必然失败）。
+	// 2) 再转让所有权（唯一写入路径，见 transferMerchantOwnership）。
 	// 用指针区分「字段缺省（不动所有权）」与「显式清空（拒绝）」。
 	if input.AdminUID != nil {
 		requestedOwner := strings.TrimSpace(*input.AdminUID)
@@ -601,20 +612,12 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 				return
 			}
 			log.Printf("[UpdateMerchant] ownership transferred merchant=%s previous_owner=%s new_owner=%s", merchant.ID, previousOwnerID, requestedOwner)
-			// transferMerchantOwnership 已写库，重新读取以返回最新指针。
-			if err := db.Where("id = ?", merchant.ID).First(&merchant).Error; err != nil {
-				log.Printf("[UpdateMerchant] reload after ownership transfer failed merchant=%s: %v", merchant.ID, err)
-			}
 		}
 	}
 
-	result = db.Save(&merchant)
-	if result.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    50000,
-			"message": "Failed to update merchant: " + result.Error.Error(),
-		})
-		return
+	// 3) 转让已写库，仅重新读取用于响应快照（不再 Save，避免覆盖内存字段）。
+	if err := db.Where("id = ?", merchant.ID).First(&merchant).Error; err != nil {
+		log.Printf("[UpdateMerchant] reload after update failed merchant=%s: %v", merchant.ID, err)
 	}
 
 	resp := gin.H{

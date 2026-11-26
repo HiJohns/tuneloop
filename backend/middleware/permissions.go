@@ -151,6 +151,37 @@ func RequireSysPerm(bit int) gin.HandlerFunc {
 	}
 }
 
+// RequireSysPermOrRole is RequireSysPerm plus a business-role escape hatch
+// (#2546 D13): the route passes when the caller holds the sys_perm bit OR when
+// the caller's business role (JWT claims, see GetBusinessRole) is one of roles.
+//
+// The legacy sys_perm==0 pass-through is kept unchanged; platform-only writes
+// must keep RequireSysPerm so a merchant admin can never reach them.
+func RequireSysPermOrRole(bit int, roles ...string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		sysPerm := GetSysPerm(c.Request.Context())
+		if sysPerm == 0 {
+			c.Next()
+			return
+		}
+		if sysPerm&(1<<bit) != 0 {
+			c.Next()
+			return
+		}
+		role := GetBusinessRole(c.Request.Context())
+		for _, allowed := range roles {
+			if role == allowed {
+				c.Next()
+				return
+			}
+		}
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+			"code":    40303,
+			"message": "insufficient system permission",
+		})
+	}
+}
+
 // RequireCusPerm checks whether the user has a specific cus_perm bit set.
 // Uses the global PermissionRegistry to resolve name to bit position.
 // When cus_perm is 0 (no bitmap from IAM yet), passes through for compatibility.

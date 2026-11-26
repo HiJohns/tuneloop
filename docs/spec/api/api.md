@@ -6755,6 +6755,8 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 - `40900`: 该商户当前没有所有人（IAM 409，需走修复流程）
 - `50200`: IAM 不可用/5xx（转让单事务失败，本地指针不变）
 
+> **组合请求顺序（#2546 D15）**：普通字段（name/phone/address/merchant_type/transit_*）先以 `Updates` 落库，再执行所有权转让；禁止「转让后重载整行再 Save」（会把同请求的普通字段覆盖回旧值）。响应中的商户对象为更新后的重新读取快照，不再写库。
+
 **响应**: 常规成功响应 `{ code: 20000, data: { ... } }`
 
 #### 12.3.4 删除商户
@@ -6773,7 +6775,9 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 
 **接口**: `GET /api/admin/merchants/:id/members`
 
-**权限**: sys_perm bit 5（`tenant:view`）+ 本商户访问锚（org）
+**权限**: sys_perm bit 5（`tenant:view`）**或** `businessRole=merchant_admin`（本商户，数据面按 org 收窄）
+
+> **路由授权口径（#2546 D13）**：仅 4 条路由对 `businessRole=merchant_admin` 放行——`GET /api/merchants`、`GET /api/merchants/:id`、`GET /api/admin/merchants/:id/members`、`POST /api/merchants/:id/transfer-ownership`；创建/删除/编辑商户与成员增删改仍仅 `sys_perm`（商户管理员 `40303`）。
 
 **查询参数**:
 | 参数 | 类型 | 默认 | 说明 |
@@ -6801,7 +6805,9 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
     "total": 1,
     "page": 1,
     "page_size": 20,
-    "owner_uid": "uuid"
+    "owner_uid": "uuid",
+    "viewer_uid": "uuid",
+    "viewer_is_owner": true
   }
 }
 ```
@@ -6810,7 +6816,9 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 | 字段 | 说明 |
 |------|------|
 | is_owner | 该行是否为当前所有人（由 `merchants.admin_uid` 计算，不落库） |
-| owner_uid | 本地所有人指针；空串 = 未锚定（前端显示「未锚定所有人」并禁用转让）。
+| owner_uid | 本地所有人指针；空串 = 未锚定（前端显示「未锚定所有人」并禁用转让）。 |
+| viewer_uid | 当前登录账号（`middleware.GetUserID`），前端门控的对照值。 |
+| viewer_is_owner | **转让门控唯一真值**：`owner_uid == viewer_uid`。禁止用平台级 JWT `is_owner`（= `users.is_owner` 遗留标记，与组织 OWNER 无关）。
 
 ##### 12.3.5.2 添加商户成员
 
@@ -6845,7 +6853,7 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 
 **接口**: `POST /api/merchants/:id/transfer-ownership`
 
-**权限**: sys_perm bit 5（`tenant:update`）+ IAM 侧必须是当前 OWNER（或平台超管）
+**权限**: sys_perm **bit 8**（`tenant:update`）**或** `businessRole=merchant_admin`（本商户）；IAM 侧必须是当前 OWNER（或平台超管）
 
 **请求 Body**:
 ```json
@@ -6855,7 +6863,7 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 **服务端动作**（顺序固定，失败不落本地）:
 1. 本地前置校验：目标必须是本商户 active `merchant_members` 行（否则 `40400`，**不调 IAM**）、不得等于当前所有人（`40002`）、必须有 `users.iam_sub`（`40002`）；
 2. IAM `POST /api/v1/organizations/:org_id/transfer-ownership {user_id: <iam_sub>}`（单事务：旧 OWNER→ADMIN、目标→OWNER、audit、perm_version 递增）；
-3. 本地同步：`merchants.admin_uid = 目标本地 id`、`admin_pending=false`，并把目标 `merchant_members.role` 提升为 `merchant_admin`；
+3. 本地同步（**单事务**）：`merchants.admin_uid = 目标本地 id`、`admin_pending=false`，并把目标 `merchant_members.role` 提升为 `merchant_admin`；任一 `RowsAffected != 1` 或报错 → **整体回滚** 并返回 `500/50000`「IAM 已转让，但本地同步失败…请联系平台人工核对」（禁止 log-only 半同步 + 200）；
 4. 审计由 `auditRouteMap` 表项（`TRANSFER_OWNERSHIP` / `merchant` / `CRITICAL`）自动落 `audit_logs`，handler 不手写审计。
 
 **响应**:

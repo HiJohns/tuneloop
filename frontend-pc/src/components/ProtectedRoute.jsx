@@ -153,7 +153,8 @@ export function ProtectedRoute({ children, requiredRoles = [], requiredPermissio
         requiredPermission,
         sysPerm,
         cusPerm,
-        cusPermMapping
+        cusPermMapping,
+        userInfo
       )
       
       if (!hasPermission) {

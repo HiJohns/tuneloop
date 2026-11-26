@@ -49,6 +49,10 @@ func (h *MerchantMemberHandler) ListMembers(c *gin.Context) {
 	// include=all 返回本商户全部 active 成员，供「转让所有权」候选使用。
 	includeAll := strings.EqualFold(strings.TrimSpace(c.Query("include")), "all")
 	ownerUID := merchantOwnerUID(merchant)
+	// #2546 D14：转让门控真值 = 本商户 admin_uid 是否等于当前登录账号。
+	// 平台级 users.is_owner（JWT is_owner）与组织 OWNER 无关，禁止作为门控。
+	viewerUID := middleware.GetUserID(c.Request.Context())
+	viewerIsOwner := ownerUID != "" && viewerUID == ownerUID
 
 	applyFilters := func(q *gorm.DB) *gorm.DB {
 		q = q.Where("merchant_members.merchant_id = ? AND merchant_members.tenant_id = ?", merchantID, anchor)
@@ -95,6 +99,9 @@ func (h *MerchantMemberHandler) ListMembers(c *gin.Context) {
 			"page":      page,
 			"page_size": pageSize,
 			"owner_uid": ownerUID,
+			// #2546 D14：前端「转让所有权」入口的唯一门控真值。
+			"viewer_uid":      viewerUID,
+			"viewer_is_owner": viewerIsOwner,
 		},
 	})
 }
@@ -788,32 +795,42 @@ func transferMerchantOwnership(c *gin.Context, db *gorm.DB, merchant models.Merc
 		}
 	}
 
-	// IAM committed the transfer: mirror it locally. RowsAffected must be exactly 1
-	// (a silent 0 would leave local and IAM owners diverged).
-	sync := db.Model(&models.Merchant{}).
-		Where("id = ? AND tenant_id = ?", merchant.ID, merchant.TenantID).
-		Updates(map[string]interface{}{"admin_uid": targetUserID, "admin_pending": false})
-	if sync.Error != nil || sync.RowsAffected != 1 {
-		log.Printf("[MerchantTransferOwnership] ERROR: IAM transferred merchant %s org %s to user %s but local sync failed: err=%v rows=%d",
-			merchant.ID, merchant.OrgID, targetUser.IAMSub, sync.Error, sync.RowsAffected)
-		message := "IAM 已转让，但本地同步失败，请联系平台人工核对"
+	// IAM committed the transfer: mirror it locally in ONE transaction (#2546 D16).
+	// admin_uid and the target's business role must both land, otherwise roll back
+	// and surface 500/50000. A log-only half-sync would leave the local pointer on a
+	// member row that is not merchant_admin (owner card would read "未锚定所有人").
+	syncErr := db.Transaction(func(tx *gorm.DB) error {
+		sync := tx.Model(&models.Merchant{}).
+			Where("id = ? AND tenant_id = ?", merchant.ID, merchant.TenantID).
+			Updates(map[string]interface{}{"admin_uid": targetUserID, "admin_pending": false})
 		if sync.Error != nil {
-			message = "IAM 已转让，但本地同步失败：" + sync.Error.Error() + "（请联系平台人工核对）"
+			return fmt.Errorf("商户所有人指针更新失败: %w", sync.Error)
 		}
+		if sync.RowsAffected != 1 {
+			return fmt.Errorf("商户所有人指针未更新（rows=%d）", sync.RowsAffected)
+		}
+		// Business role stays merchant_admin for both OWNER and ADMIN (#2546 D1); the
+		// target may have been a direct staff member, so promote its row explicitly.
+		promote := tx.Model(&models.MerchantMember{}).
+			Where("tenant_id = ? AND merchant_id = ? AND user_id = ?", merchant.OrgID, merchant.ID, targetUserID).
+			Update("role", "merchant_admin")
+		if promote.Error != nil {
+			return fmt.Errorf("目标成员业务角色提升失败: %w", promote.Error)
+		}
+		if promote.RowsAffected != 1 {
+			return fmt.Errorf("目标成员业务角色未提升（rows=%d）", promote.RowsAffected)
+		}
+		return nil
+	})
+	if syncErr != nil {
+		log.Printf("[MerchantTransferOwnership] ERROR: IAM transferred merchant %s org %s (previous owner %s -> target user %s) but the local transaction rolled back: %v",
+			merchant.ID, merchant.OrgID, previousOwnerID, targetUserID, syncErr)
 		return previousOwnerID, &ownershipTransferError{
-			Status:  http.StatusInternalServerError,
-			Code:    50000,
-			Message: message,
+			Status: http.StatusInternalServerError,
+			Code:   50000,
+			Message: fmt.Sprintf("IAM 已转让，但本地同步失败（旧所有人：%s，新所有人：%s），请联系平台人工核对：%v",
+				previousOwnerID, targetUserID, syncErr),
 		}
-	}
-
-	// Business role stays merchant_admin for both OWNER and ADMIN (#2546 D1); the
-	// target may have been a direct staff member, so promote its row explicitly.
-	if promoteErr := db.Model(&models.MerchantMember{}).
-		Where("tenant_id = ? AND merchant_id = ? AND user_id = ?", merchant.OrgID, merchant.ID, targetUserID).
-		Update("role", "merchant_admin").Error; promoteErr != nil {
-		log.Printf("[MerchantTransferOwnership] ERROR: IAM transferred merchant %s org %s to user %s but local role promotion failed: %v",
-			merchant.ID, merchant.OrgID, targetUser.IAMSub, promoteErr)
 	}
 
 	return previousOwnerID, nil

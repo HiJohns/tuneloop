@@ -186,8 +186,8 @@ steps:
     frontend:
       - platform: [pc]
         page: /merchants/:id
-        role: [tenant_admin]
-        reach: "商户管理 → 商户详情 → 所有人 Tab"
+        role: [merchant_admin]
+        reach: "菜单「商户管理」（businessRole=merchant_admin 可见，列表收窄到本商户）→ 本商户详情 → 所有人 Tab"
         controls: [所有人（唯一）卡片, 转让所有权按钮, 管理员列表]
         displays: [所有人姓名/邮箱/加入时间, 管理员姓名/邮箱/加入时间]
         ops:
@@ -197,16 +197,17 @@ steps:
     frontend:
       - platform: [pc]
         page: /merchants/:id
-        role: [tenant_admin]
-        gate: "当前登录账号是该商户的 OWNER"
-        reach: "所有人 Tab → 转让所有权"
+        role: [merchant_admin]
+        gate: "viewer_is_owner=true（本商户 merchants.admin_uid = 当前登录账号；禁止用平台级 JWT is_owner）"
+        reach: "菜单「商户管理」→ 本商户详情 → 所有人 Tab → 转让所有权"
         controls: [目标成员选择（仅本商户 active 成员）, 二次确认（展示「转让后你将成为管理员」）]
         ops:
           - {type: api, method: POST, path: /api/merchants/:id/transfer-ownership}
     # 服务器端动作：
     #   1. IAM POST /organizations/:org/transfer-ownership {user_id}（单事务：旧 OWNER→ADMIN、目标→OWNER、perm_version 递增、审计）
-    #   2. 本地同步（锁定口径，无未决语义）：所有权指针 = merchants.admin_uid，转让即搬指针
+    #   2. 本地同步（单事务）：所有权指针 = merchants.admin_uid，转让即搬指针
     #      （admin_uid = 目标本地 id、admin_pending=false），并把目标 merchant_members.role 提升为 merchant_admin；
+    #      两者必须同事务成功，任一 RowsAffected != 1 或报错 → 回滚 + 500/50000（请联系平台人工核对）；
     #      旧 OWNER 行保持 merchant_admin —— merchant_members.role 只表达业务角色，OWNER/ADMIN 同为 merchant_admin
     #   3. 业务角色不变：tuneloop 以 tid == oid 判定 merchant_admin（backend/middleware/iam.go），
     #      原 OWNER 降为 ADMIN 后仍是 merchant_admin，仅失去 IAM 侧「删组织/定义角色模板」

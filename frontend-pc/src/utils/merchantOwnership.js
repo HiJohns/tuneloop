@@ -54,3 +54,21 @@ export function transferConfirmText(targetName) {
   const who = name || '所选成员';
   return `确定将商户所有权转让给 ${who} 吗？转让后你将成为管理员，且无法撤销。`;
 }
+
+/**
+ * 「转让所有权」入口门控（#2546 D14）。
+ *
+ * 真值来自后端成员列表的 `viewer_is_owner`（merchants.admin_uid == 当前登录账号），
+ * 不是平台级 `user_info.isOwner`（那是 users.is_owner 遗留标记，与组织 OWNER 无关）。
+ * 四个条件全部满足才允许转让：后端判定「我是所有人」、本地已锚定所有人、
+ * 锚定指针指向我本人、且存在除我之外的候选成员。
+ *
+ * @param {{viewerIsOwner?: boolean, ownerUid?: string, viewerUid?: string, candidates?: Array<object>}} input
+ * @returns {boolean}
+ */
+export function canTransferOwnership({ viewerIsOwner, ownerUid, viewerUid, candidates } = {}) {
+  if (viewerIsOwner !== true) return false;
+  if (!ownerUid || !viewerUid) return false;
+  if (ownerUid !== viewerUid) return false;
+  return Array.isArray(candidates) && candidates.length > 0;
+}

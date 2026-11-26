@@ -10,6 +10,9 @@ const MerchantManagement = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
+  // #2546 D13：商户管理员（本商户 OWNER/ADMIN）只读本商户；平台专属写操作隐藏。
+  const businessRole = localStorage.getItem('user_business_role') || '';
+  const isMerchantAdmin = businessRole === 'merchant_admin';
   const [merchants, setMerchants] = useState([]);
   // #2154：服务端分页
   const [page, setPage] = useState(1);
@@ -224,20 +227,22 @@ const MerchantManagement = () => {
               </Space>
             </div>
             <Space wrap>
-              <Popconfirm
-                title="确定要删除此商户吗？"
-                onConfirm={() => handleDelete(m.id)}
-                okText="确定"
-                cancelText="取消"
-              >
-                <Button danger icon={<DeleteOutlined />}>删除</Button>
-              </Popconfirm>
+              {!isMerchantAdmin && (
+                <Popconfirm
+                  title="确定要删除此商户吗？"
+                  onConfirm={() => handleDelete(m.id)}
+                  okText="确定"
+                  cancelText="取消"
+                >
+                  <Button danger icon={<DeleteOutlined />}>删除</Button>
+                </Popconfirm>
+              )}
             </Space>
           </div>
         </Card>
 
         <Card>
-          <Tabs defaultActiveKey="info" onChange={(key) => { if (key === 'settlement') openSettlement(m); }}>
+          <Tabs defaultActiveKey={isMerchantAdmin ? 'members' : 'info'} onChange={(key) => { if (key === 'settlement') openSettlement(m); }}>
             <Tabs.TabPane tab="编辑信息" key="info">
               <Descriptions column={2} bordered size="small">
                 <Descriptions.Item label="商户ID">{m.id}</Descriptions.Item>
@@ -247,11 +252,14 @@ const MerchantManagement = () => {
                 <Descriptions.Item label="商户类型">{m.merchant_type === 'controlled' ? '受控商户' : '全权商户'}</Descriptions.Item>
                 <Descriptions.Item label="参与返点">{m.rebate_opt_in ? '是' : '否'}</Descriptions.Item>
               </Descriptions>
-              <div style={{ marginTop: 16 }}>
-                <Button type="primary" onClick={() => handleEdit(m)}>编辑基本信息</Button>
-              </div>
+              {!isMerchantAdmin && (
+                <div style={{ marginTop: 16 }}>
+                  <Button type="primary" onClick={() => handleEdit(m)}>编辑基本信息</Button>
+                </div>
+              )}
             </Tabs.TabPane>
 
+            {!isMerchantAdmin && (
             <Tabs.TabPane tab="分账配置" key="settlement">
               <Form
                 form={settlementForm}
@@ -276,6 +284,7 @@ const MerchantManagement = () => {
                 <Button type="primary" htmlType="submit" loading={settlementLoading}>保存分账配置</Button>
               </Form>
             </Tabs.TabPane>
+            )}
 
             <Tabs.TabPane tab="所有人" key="members">
               <MerchantMemberManagement merchantId={m.id} onRefresh={() => {}} />
@@ -379,9 +388,11 @@ const MerchantManagement = () => {
       <Card
         title="商户管理"
         extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-            创建商户
-          </Button>
+          !isMerchantAdmin && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+              创建商户
+            </Button>
+          )
         }
       >
         <Table
