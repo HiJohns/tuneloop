@@ -1,0 +1,20 @@
+# build=1.0.8ebc823e5 # commit=8ebc823e51c5eff4f15a0e2cf9352ed378abbb1d # dirty=false
+GENERATED_AT_HEAD=8ebc823e51c5eff4f15a0e2cf9352ed378abbb1d
+# PC 入口门控：List 导入按钮 / batch-import 路由 / 库存监控既有 gate（回归）
+PC_LIST_IMPORT_BUTTON_GATED=1
+PC_LIST_IMPORT_BUTTON_UNGATED=0
+PC_BATCH_IMPORT_ROUTE_GATED=1
+PC_STOCK_EXPORT_GATE=1
+PC_STOCK_BATCH_IMPORT_GATE=1
+--- import button block ---
+              onClick={() => navigate('/instruments/batch-import')}
+            >
+              导入
+--- stock gates ---
+261:  // #2578: 导出 Excel 跟随当前筛选（识别码/分类/状态/可见性），与列表同一套参数口径。
+454:        {/* #2043/#2578: 导出 Excel（跟随当前筛选；需 instrument:read） */}
+455:        <PermissionGate code="instrument:read">
+457:            <Button onClick={handleExport}>导出 Excel</Button>
+461:        <PermissionGate code="instrument:create">
+463:            <Button onClick={() => navigate('/instruments/batch-import')}>批量导入</Button>
+R4_OK

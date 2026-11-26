@@ -1,0 +1,10 @@
+# build=1.0.8ebc823e5 # commit=8ebc823e51c5eff4f15a0e2cf9352ed378abbb1d # dirty=false
+GENERATED_AT_HEAD=8ebc823e51c5eff4f15a0e2cf9352ed378abbb1d
+# 路由注册行结构断言（backend/instrument_route_guard_2586_test.go）+ fix^ 红样
+GO_TEST_EXIT=0
+instrument_route_guard_2586_test.go:104: ROUTE_EXPORT_GUARDED=1
+instrument_route_guard_2586_test.go:105: ROUTE_IMPORT_FAMILY_GUARDED=6
+instrument_route_guard_2586_test.go:106: ROUTE_INSTRUMENT_IO_UNGUARDED=0
+RED_PRE_FIX_UNGUARDED_EXPORT=1
+RED_PRE_FIX_UNGUARDED_IMPORT=6
+R3_OK

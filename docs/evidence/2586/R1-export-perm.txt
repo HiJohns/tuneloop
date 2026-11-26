@@ -1,0 +1,12 @@
+# build=1.0.8ebc823e5 # commit=8ebc823e51c5eff4f15a0e2cf9352ed378abbb1d # dirty=false
+GENERATED_AT_HEAD=8ebc823e51c5eff4f15a0e2cf9352ed378abbb1d
+# GET /api/instruments/export + RequireCusPerm(instrument:read)
+GO_TEST_EXIT=0
+instrument_perm_2586_test.go:161: EXPORT_NO_READ_PERM_STATUS=403
+instrument_perm_2586_test.go:162: EXPORT_NO_READ_PERM_CODE=40305
+instrument_perm_2586_test.go:163: EXPORT_NO_READ_PERM_XLSX=0
+instrument_perm_2586_test.go:164: EXPORT_WITH_READ_PERM_STATUS=200
+instrument_perm_2586_test.go:165: EXPORT_WITH_READ_PERM_SNS=2
+instrument_perm_2586_test.go:166: EXPORT_ZERO_CUSPERM_STATUS=200
+instrument_perm_2586_test.go:167: EXPORT_SYSTEM_ADMIN_STATUS=200
+R1_OK

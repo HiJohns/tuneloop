@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "issue": 2586,
+  "build": "1.0.8ebc823e5",
+  "commit": "8ebc823e51c5eff4f15a0e2cf9352ed378abbb1d",
+  "dirty": false,
+  "plan_sha256": "6fbd6680aa72e7888562d5b5f2910db3e0e4301b9f2780d48fd99604a31823a9",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2586 (branch issue-2586, base origin/develop c9df6e0d7); Postgres test DB 127.0.0.1:15433; real PermissionRegistry (services.NewPermissionRegistry); gin in-process routes; Go 1.27.4; Node 24 + vite build; host heavy-lock via heavy-run.sh",
+  "tooling_commit": "acab7d27d28832d1ad366dd4c944ffb3e2ff9ca8",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2586.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2586/R1-export-perm.txt"
+      ],
+      "assert": "exit 0 且含 GO_TEST_EXIT=0 EXPORT_NO_READ_PERM_STATUS=403 EXPORT_NO_READ_PERM_CODE=40305 EXPORT_NO_READ_PERM_XLSX=0 EXPORT_WITH_READ_PERM_STATUS=200 EXPORT_WITH_READ_PERM_SNS=2 EXPORT_ZERO_CUSPERM_STATUS=200 EXPORT_SYSTEM_ADMIN_STATUS=200",
+      "actual": "PASS：GO_TEST_EXIT=0；EXPORT_NO_READ_PERM_STATUS=403、EXPORT_NO_READ_PERM_CODE=40305、EXPORT_NO_READ_PERM_XLSX=0、EXPORT_WITH_READ_PERM_STATUS=200、EXPORT_WITH_READ_PERM_SNS=2、EXPORT_ZERO_CUSPERM_STATUS=200、EXPORT_SYSTEM_ADMIN_STATUS=200（真实 PermissionRegistry；fixture 复用 seedExportFixture2578）",
+      "expected": "PASS（8 项 token 全为期望值）",
+      "negative": "无 read 位返回 200 xlsx、403 后仍写 xlsx、有 read 位行数 ≠ 2、legacy/system 被误拒 → FAIL",
+      "negative_result": "无 read 位返回 200 xlsx（则 EXPORT_NO_READ_PERM_STATUS=200）、403 后仍写 xlsx（XLSX=1）、有 read 位 SN≠2（#2578 可见性回退）、legacy/system 被误拒 → 任一 token 不符即 R1_FAIL",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2586.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2586/R2-import-family-perm.txt"
+      ],
+      "assert": "exit 0 且含 GO_TEST_EXIT=0 IMPORT_FAMILY_ENDPOINTS=6 IMPORT_FAMILY_403=6 IMPORT_FAMILY_40305=6 IMPORT_FAMILY_WITH_CREATE_NOT403=6",
+      "actual": "PASS：GO_TEST_EXIT=0；IMPORT_FAMILY_ENDPOINTS=6、IMPORT_FAMILY_403=6、IMPORT_FAMILY_40305=6、IMPORT_FAMILY_WITH_CREATE_NOT403=6",
+      "expected": "PASS（5 项 token 全为期望值）",
+      "negative": "任一端点无 create 位仍非 403、或有 create 位被误拒 → FAIL",
+      "negative_result": "任一端点无 create 位仍非 403（IMPORT_FAMILY_403<6）或 code≠40305，或有 create 位被误拒（NOT403<6）→ R2_FAIL",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2586.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2586/R3-route-wiring.txt"
+      ],
+      "assert": "exit 0 且含 GO_TEST_EXIT=0 ROUTE_EXPORT_GUARDED=1 ROUTE_IMPORT_FAMILY_GUARDED=6 ROUTE_INSTRUMENT_IO_UNGUARDED=0 RED_PRE_FIX_UNGUARDED_EXPORT=1 RED_PRE_FIX_UNGUARDED_IMPORT=6",
+      "actual": "PASS：GO_TEST_EXIT=0；ROUTE_EXPORT_GUARDED=1、ROUTE_IMPORT_FAMILY_GUARDED=6、ROUTE_INSTRUMENT_IO_UNGUARDED=0、RED_PRE_FIX_UNGUARDED_EXPORT=1、RED_PRE_FIX_UNGUARDED_IMPORT=6",
+      "expected": "PASS（6 项 token 全为期望值）",
+      "negative": "无守卫残留、红样为 0（红绿失效）→ FAIL",
+      "negative_result": "修后仍有乐器进/出路由无守卫（ROUTE_INSTRUMENT_IO_UNGUARDED>0）、或 fix^ 红样为 0（说明红绿失效）→ R3_FAIL。反向守卫另断言导出不得挂 create/update、导入不得挂 read",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2586.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2586/R4-pc-gates.txt"
+      ],
+      "assert": "exit 0 且含 PC_LIST_IMPORT_BUTTON_GATED=1 PC_LIST_IMPORT_BUTTON_UNGATED=0 PC_BATCH_IMPORT_ROUTE_GATED=1 PC_STOCK_EXPORT_GATE=1 PC_STOCK_BATCH_IMPORT_GATE=1",
+      "actual": "PASS：PC_LIST_IMPORT_BUTTON_GATED=1、PC_LIST_IMPORT_BUTTON_UNGATED=0、PC_BATCH_IMPORT_ROUTE_GATED=1、PC_STOCK_EXPORT_GATE=1、PC_STOCK_BATCH_IMPORT_GATE=1",
+      "expected": "PASS（5 项 token 全为期望值）",
+      "negative": "按钮/路由未门控、既有 gate 被删 → FAIL",
+      "negative_result": "导入按钮仍裸挂（GATE_BEFORE=0）、路由仍无 requiredPermission、库存监控既有 gate 被删 → 任一即 R4_FAIL",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2586.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2586/R5-build-lint.txt"
+      ],
+      "assert": "exit 0 且含 GO_BUILD_OK=1 GO_COMPILE_SMOKE_OK=1 GO_TEST_2586_OK=1 ESLINT_NOUNDEF=0 PC_BUILD_OK=1",
+      "actual": "PASS：GO_BUILD_OK=1、GO_COMPILE_SMOKE_OK=1（go test ./... -run '^$'）、GO_TEST_2586_OK=1、ESLINT_NOUNDEF=0、PC_BUILD_OK=1（vite build）",
+      "expected": "PASS（5 项 token 全为期望值）",
+      "negative": "编译失败、eslint no-undef > 0、vite build 失败 → FAIL",
+      "negative_result": "任一编译/lint no-undef/构建失败 → 对应 *_OK=0 → R5_FAIL",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2586.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2586/R6-docs.txt"
+      ],
+      "assert": "exit 0 且含 API_EXPORT_PERM=1 API_IMPORT_PERM=1 API_TEMPLATE_PERM=1 PERM_ENDPOINT_ROWS=7",
+      "actual": "PASS：API_EXPORT_PERM=1、API_IMPORT_PERM=1、API_TEMPLATE_PERM=1、PERM_ENDPOINT_ROWS=7",
+      "expected": "PASS（4 项 token 全为期望值）",
+      "negative": "文档未同步或对照表行数 ≠ 7 → FAIL",
+      "negative_result": "文档缺任一端点/权限口径，或对照表行数≠7 → R6_FAIL",
+      "pass": true
+    }
+  ]
+}

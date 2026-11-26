@@ -1,0 +1,8 @@
+# build=1.0.8ebc823e5 # commit=8ebc823e51c5eff4f15a0e2cf9352ed378abbb1d # dirty=false
+GENERATED_AT_HEAD=8ebc823e51c5eff4f15a0e2cf9352ed378abbb1d
+# 文档：api.md 三段权限口径 + permissions.md 端点-权限对照表
+API_EXPORT_PERM=1
+API_IMPORT_PERM=1
+API_TEMPLATE_PERM=1
+PERM_ENDPOINT_ROWS=7
+R6_OK

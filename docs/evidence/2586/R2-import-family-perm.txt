@@ -1,0 +1,9 @@
+# build=1.0.8ebc823e5 # commit=8ebc823e51c5eff4f15a0e2cf9352ed378abbb1d # dirty=false
+GENERATED_AT_HEAD=8ebc823e51c5eff4f15a0e2cf9352ed378abbb1d
+# 导入族 6 端点 + RequireCusPerm(instrument:create)
+GO_TEST_EXIT=0
+instrument_perm_2586_test.go:222: IMPORT_FAMILY_ENDPOINTS=6
+instrument_perm_2586_test.go:223: IMPORT_FAMILY_403=6
+instrument_perm_2586_test.go:224: IMPORT_FAMILY_40305=6
+instrument_perm_2586_test.go:225: IMPORT_FAMILY_WITH_CREATE_NOT403=6
+R2_OK
