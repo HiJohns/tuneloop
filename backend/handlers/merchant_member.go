@@ -445,13 +445,13 @@ func (h *MerchantMemberHandler) UpdateMemberRole(c *gin.Context) {
 		if normalizedRole == "merchant_admin" {
 			if bindErr := iamClient.BindUserToOrganizationWithToken(userToken, iamUser.IAMSub, anchor, iamRole, middleware.GetUserID(c.Request.Context())); bindErr != nil {
 				log.Printf("[MerchantUpdateRole] BindUser failed for %s: %v", iamUser.IAMSub, bindErr)
-				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "更新成员角色失败（IAM）：" + bindErr.Error()})
+				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "更新成员角色失败，请稍后重试"})
 				return
 			}
 		} else {
 			if demoteErr := iamClient.UpdateUserRoleInOrgWithToken(userToken, anchor, iamUser.IAMSub, iamRole); demoteErr != nil {
 				log.Printf("[MerchantUpdateRole] UpdateRole failed for %s: %v", iamUser.IAMSub, demoteErr)
-				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "更新成员角色失败（IAM）：" + demoteErr.Error()})
+				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "更新成员角色失败，请稍后重试"})
 				return
 			}
 		}

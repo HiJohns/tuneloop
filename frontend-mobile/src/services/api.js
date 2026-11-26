@@ -1,5 +1,7 @@
 import { storage, session, cookie, request as platformRequest, dialog, navigation, env, wxLogin as wxLoginCode, eventBus } from '../platform'
 import { isContextDrift } from '../utils/sessionContext'
+// #2497：错误出口必须经统一解析层，5xx 内部诊断（code>=50000 的中文 err 串）不得透传。
+import { resolveErrorMessage } from './errorMessages'
 import { computeExpiryMs } from './sessionToken.mjs'
 import { isPublicPath, shouldDegrade } from './authRouting.mjs'
 
@@ -496,7 +498,14 @@ export async function request(endpoint, options = {}) {
       navigation.redirect(env.isMiniProgram ? '/pages-weapp/face-verify/index' : '/face-verify')
       return []
     }
-    throw new Error(error.message || error.code || 'Request failed')
+    // #2497：走集中解析（code>=50000 忽略内部中文串，改 code 家族文案）。
+    const resolvedMessage = resolveErrorMessage(
+      { code: error.code, message: error.message },
+      '请求失败，请重试',
+    )
+    const requestError = new Error(resolvedMessage)
+    if (error.code !== undefined) requestError.code = error.code
+    throw requestError
   }
 
   const data = await response.json()

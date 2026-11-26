@@ -7,23 +7,25 @@
 # 断言键值；任一行断言不成立以非 0 退出。
 #
 # 判定口径（Accepted Plan）：
-#   R1 后端 CJK+err.Error() 拼接归零（正则即唯一口径，基线 12 文件）
+#   R1 后端 CJK+任意 .Error() 拼接归零（正则即唯一口径，基线 15 文件 / 31 处）
 #   R2 内部错误仍进日志（LOG_PRESENT >= 22，且无 detail 丢失）
 #   R3 5xx 中文内部串不得回显（PC 解析器输出通用文案）
 #   R4 业务码中文仍原样透传（#2480 不回退）
 #   R5 PC/mobile 平价（PARITY=1）
 #   R6 go build + eslint + PC 全量构建
+#   R7 全量后端回归（go test ./... -timeout 20m）
 set -uo pipefail
 
 ROW="${1:-}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT_DIR="$REPO_ROOT/docs/evidence/2497"
 ISSUE=2497
-SCAN_RE='"message":\s*"[^"]*[\x{4e00}-\x{9fff}][^"]*"\s*\+\s*err\.Error\(\)'
+SCAN_RE='"message":\s*"[^"]*[\x{4e00}-\x{9fff}][^"]*"\s*\+\s*[A-Za-z_][\w.]*\.Error\(\)'
 BACKEND_FILES=(
     invoice.go merchant.go merchant_invoice.go merchant_member.go payscore_handler.go
     registration_session.go site_member.go smtp_config.go transit_site_admin.go
     user_management.go user_staff.go webhook_config.go
+    site.go wechat_bind.go member_invite_2114.go
 )
 PC_FILES=(
     frontend-pc/src/services/errorMessages.js
@@ -47,7 +49,7 @@ export TMPDIR="${TMPDIR:-$REPO_ROOT/tmp/gobuild}"
 export GOCACHE="${GOCACHE:-$REPO_ROOT/tmp/gocache}"
 mkdir -p "$TMPDIR" "$GOCACHE"
 
-usage() { echo "usage: $0 <r1|r2|r3|r4|r5|r6>" >&2; exit 2; }
+usage() { echo "usage: $0 <r1|r2|r3|r4|r5|r6|r7|r8>" >&2; exit 2; }
 [ -n "$ROW" ] || usage
 
 FIX_SHA="$(git log --format=%H --grep="^fix(issue-$ISSUE)" -1 2>/dev/null || true)"
@@ -192,15 +194,66 @@ r6)
     npm_log="$REPO_ROOT/tmp/verify-$ISSUE-r6-npm.log"
     ( cd "$REPO_ROOT/frontend-pc" && npm run build ) > "$npm_log" 2>&1
     npm_exit=$?
+    # #2497 v2：mobile 生产 chokepoint 必须经解析层（5xx 守卫在移动端可达）。
+    mobile_api="frontend-mobile/src/services/api.js"
+    mobile_calls=0
+    grep -q 'resolveErrorMessage(' "$mobile_api" && mobile_calls=1
+    mobile_raw_throw=0
+    grep -q "throw new Error(error.message || error.code" "$mobile_api" && mobile_raw_throw=1
+    mobile_syntax=1
+    cp "$mobile_api" "$REPO_ROOT/tmp/mobile-api-2497.mjs"
+    node --check "$REPO_ROOT/tmp/mobile-api-2497.mjs" >/dev/null 2>&1 || mobile_syntax=0
     body="BUILD_CMD=cd backend && go build ./..."$'\n'
     body+="BUILD_EXIT=$build_exit"$'\n'
     body+="ESLINT_EXIT=$lint_exit"$'\n'
     body+="NPM_BUILD_EXIT=$npm_exit"$'\n'
+    body+="MOBILE_CHOKEPOINT_CALLS=$mobile_calls"$'\n'
+    body+="MOBILE_RAW_THROW=$mobile_raw_throw"$'\n'
+    body+="MOBILE_SYNTAX_OK=$mobile_syntax"$'\n'
     [ "$build_exit" = "0" ] && body+="BUILD_OK"$'\n' || rc=1
     [ "$lint_exit" = "0" ] && body+="ESLINT_OK"$'\n' || rc=1
     [ "$npm_exit" = "0" ] && body+="NPM_BUILD_OK"$'\n' || rc=1
+    [ "$mobile_calls" = "1" ] && [ "$mobile_raw_throw" = "0" ] && [ "$mobile_syntax" = "1" ] || rc=1
     body+="RESULT: $([ "$rc" = "0" ] && echo PASS || echo FAIL)"$'\n'
     finish R6-build.txt "$rc" "$body"
+    ;;
+r7)
+    # 全量后端回归（plan R7）：clean tree + -timeout 20m。
+    full_log="$REPO_ROOT/tmp/verify-$ISSUE-r7-gotest.log"
+    ( cd "$REPO_ROOT/backend" && go test ./... -count=1 -timeout 20m ) > "$full_log" 2>&1
+    full_exit=$?
+    fails="$(grep -cE '^(--- FAIL|FAIL[[:space:]])' "$full_log" || true)"
+    panics="$(grep -c '^panic:' "$full_log" || true)"
+    [ -n "$fails" ] || fails=0
+    [ -n "$panics" ] || panics=0
+    body="FULL_SUITE_CMD=cd backend && go test ./... -count=1 -timeout 20m"$'\n'
+    body+="FULL_SUITE_EXIT=$full_exit"$'\n'
+    body+="FAIL_COUNT=$fails"$'\n'
+    body+="PANIC_COUNT=$panics"$'\n'
+    tail -5 "$full_log" | sed 's/^/LOG_TAIL: /' | tee -a "$full_log" >/dev/null || true
+    body+="$(tail -5 "$full_log" | sed 's/^/LOG_TAIL: /')"$'\n'
+    [ "$full_exit" = "0" ] || rc=1
+    [ "$fails" = "0" ] || rc=1
+    [ "$panics" = "0" ] || rc=1
+    body+="RESULT: $([ "$rc" = "0" ] && echo PASS || echo FAIL)"$'\n'
+    finish R7-gotest.txt "$rc" "$body"
+    ;;
+r8)
+    # 四源可复现（plan R8）：latest Accepted Plan 评论 ↔ docs/evidence/2497/plan.md。
+    plan_out="$(bash "$HOME/.config/opencode/scripts/plan-source.sh" --issue "$ISSUE" 2>&1)"
+    plan_rc=$?
+    pass_token=0
+    printf '%s\n' "$plan_out" | grep -q 'PLAN_SOURCE: PASS' && pass_token=1
+    body="PLAN_SOURCE_CMD=scripts/plan-source.sh --issue $ISSUE"$'\n'
+    body+="PLAN_SOURCE_EXIT=$plan_rc"$'\n'
+    body+="$plan_out"$'\n'
+    if [ "$plan_rc" = "0" ] && [ "$pass_token" = "1" ]; then
+        body+="PLAN_SOURCE: PASS"$'\n'
+    else
+        rc=1
+    fi
+    body+="RESULT: $([ "$rc" = "0" ] && echo PASS || echo FAIL)"$'\n'
+    finish R8-plan-source.txt "$rc" "$body"
     ;;
 *)
     usage
