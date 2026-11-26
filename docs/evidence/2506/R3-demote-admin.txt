@@ -1,0 +1,7 @@
+# build=1.0.85256e637b24 # commit=85256e637b24b1ce29fff9e2772b07bcb0aa2c8d # dirty=false
+# row=r3 command=go test ./handlers -run ^TestUpdateUserDemoteSiteAdmin_2505$ -count=1 -v
+LEGACY_ASSIGN_CALLS=0
+LOCAL_ROLE=site_member
+PUT_ROLES=["site_member"]
+RED_GREEN=1
+STALE_SITE_ADMIN=0

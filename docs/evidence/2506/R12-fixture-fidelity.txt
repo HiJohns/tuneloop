@@ -1,0 +1,6 @@
+# build=1.0.85256e637b24 # commit=85256e637b24b1ce29fff9e2772b07bcb0aa2c8d # dirty=false
+# row=r12 command=go test ./handlers -run ^TestUpdateUserFixtureFidelity_2505$ -count=1 -v
+OPERATOR_ORG=merchant
+PUT_ORG=site_org
+SITE_ORG_NE_TENANT=1
+USERS_ORG_IS_TENANT=0

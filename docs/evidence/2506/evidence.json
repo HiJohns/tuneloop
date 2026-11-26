@@ -1,0 +1,205 @@
+{
+  "schema_version": 1,
+  "issue": 2506,
+  "build": "1.0.85256e637b24",
+  "commit": "85256e637b24b1ce29fff9e2772b07bcb0aa2c8d",
+  "dirty": false,
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2505-s1.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2506/R1-target-set.txt"
+      ],
+      "assert": "exit 0；grep CASE_ADMIN_TO_MEMBER=[\"site_member\"]、CASE_MERCHANT_TO_REPAIR=[\"repair_technician\"]、PRESERVE_CUSTOMER=1、ORDER_STABLE=1",
+      "actual": "CASE_ADMIN_TO_MEMBER=[\"site_member\"] CASE_MERCHANT_TO_REPAIR=[\"repair_technician\"] PRESERVE_CUSTOMER=1 ORDER_STABLE=1",
+      "expected": "PASS",
+      "negative": "残留 site_admin → FAIL",
+      "negative_result": "旧实现（desired 整体覆盖 / 保留受管旧码）会残留 site_admin 或删除 customer → 断言可失败",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2505-s1.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2506/R2-iam-contract.txt"
+      ],
+      "assert": "exit 0；grep GET_QUERY=org_id=ORG、PUT_PATH=/api/v1/organizations/ORG/users/USER/functional-roles、PUT_BODY={\"roles\":[\"site_member\"]}、FORBIDDEN_ERR=1",
+      "actual": "GET_QUERY=org_id=ORG PUT_PATH=/api/v1/organizations/ORG/users/USER/functional-roles PUT_BODY={\"roles\":[\"site_member\"]} FORBIDDEN_ERR=1",
+      "expected": "PASS",
+      "negative": "403 被吞 → FAIL",
+      "negative_result": "缺陷版客户端把 403/404 吞成 nil（FORBIDDEN_ERR=0/NOTFOUND_ERR=0）→ 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2505-s1.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2506/R3-demote-admin.txt"
+      ],
+      "assert": "exit 0；grep PUT_ROLES=[\"site_member\"]、STALE_SITE_ADMIN=0、RED_GREEN=1",
+      "actual": "PUT_ROLES=[\"site_member\"] STALE_SITE_ADMIN=0 RED_GREEN=1",
+      "expected": "PASS",
+      "negative": "STALE_SITE_ADMIN=1 → FAIL",
+      "negative_result": "旧 ADD-only 路径 PUT_ROLES 含 site_admin（STALE_SITE_ADMIN=1）→ 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2505-s1.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2506/R4-merchant-to-repair.txt"
+      ],
+      "assert": "exit 0；grep PUT_ROLES=[\"repair_technician\"]、STALE_MERCHANT_STAFF=0",
+      "actual": "PUT_ROLES=[\"repair_technician\"] STALE_MERCHANT_STAFF=0",
+      "expected": "PASS",
+      "negative": "STALE_MERCHANT_STAFF=1 → FAIL",
+      "negative_result": "旧路径残留 merchant_staff（STALE_MERCHANT_STAFF=1）→ 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2505-s1.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2506/R5-dual-role.txt"
+      ],
+      "assert": "exit 0；grep PUT_ROLES=[\"site_admin\",\"repair_technician\"]、DROPPED_REPAIR=0",
+      "actual": "PUT_ROLES=[\"site_admin\",\"repair_technician\"] DROPPED_REPAIR=0",
+      "expected": "PASS",
+      "negative": "DROPPED_REPAIR=1 → FAIL",
+      "negative_result": "目标集合未走合并语义时 DROPPED_REPAIR=1 → 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2505-s1.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2506/R6-unmanaged-preserve.txt"
+      ],
+      "assert": "exit 0；grep CUSTOMER_REMOVED=0、UNMANAGED_KEPT=1",
+      "actual": "CUSTOMER_REMOVED=0 UNMANAGED_KEPT=1",
+      "expected": "PASS",
+      "negative": "CUSTOMER_REMOVED=1 → FAIL",
+      "negative_result": "直接 PUT desired 时 CUSTOMER_REMOVED=1 → 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2505-s1.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2506/R7-failure-visible.txt"
+      ],
+      "assert": "exit 0；grep GET_FAIL_ROLE_ERRORS=1、PUT_SKIPPED_ON_GET_FAIL=1、PUT_FAIL_ROLE_ERRORS=1、SILENT_200=0",
+      "actual": "GET_FAIL_ROLE_ERRORS=1 PUT_SKIPPED_ON_GET_FAIL=1 PUT_FAIL_ROLE_ERRORS=1 SILENT_200=0",
+      "expected": "PASS",
+      "negative": "SILENT_200=1 → FAIL",
+      "negative_result": "GET 失败仍 PUT 或失败后 200 无 role_errors（SILENT_200=1）→ 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash scripts/verify-2505-s1.sh r8",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2506/R8-build.txt"
+      ],
+      "assert": "exit 0；grep BUILD_EXIT=0、TESTS_FAIL=0、PANIC=0",
+      "actual": "BUILD_EXIT=0 TESTS_FAIL=0 PANIC=0 TESTS_EXIT=0",
+      "expected": "PASS",
+      "negative": "编译失败 → FAIL",
+      "negative_result": "编译失败或任一回归用例 FAIL/PANIC → 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R10",
+      "command": "bash scripts/verify-2505-s1.sh r10",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2506/R10-beaconiam-authz.txt"
+      ],
+      "assert": "exit 0；grep AUTHZ_PARENT_CHILD_OK=1、AUTHZ_SIBLING_DENIED=1",
+      "actual": "AUTHZ_PARENT_CHILD_OK=1 AUTHZ_SIBLING_DENIED=1 AUTHZ_GRANDPARENT_DENIED=1 AUTHZ_INACTIVE_DENIED=1 AUTHZ_CROSS_NAMESPACE_DENIED=1",
+      "expected": "PASS",
+      "negative": "越权放行 → FAIL",
+      "negative_result": "对端越权放行（兄弟/隔代/inactive 关系返回 200）→ 对应 PASS 缺失，断言失败",
+      "pass": true
+    },
+    {
+      "id": "R11",
+      "command": "bash scripts/verify-2505-s1.sh r11",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2506/R11-inactive-filter.txt"
+      ],
+      "assert": "exit 0；grep INACTIVE_DROPPED=1、CUSTOMER_KEPT=1",
+      "actual": "INACTIVE_DROPPED=1 CUSTOMER_KEPT=1 PUT_NO_INACTIVE=1 INVALID_ROLE_400=0",
+      "expected": "PASS",
+      "negative": "发送 inactive 码 → FAIL",
+      "negative_result": "发送 is_active=false 的 site_admin 时 PUT_NO_INACTIVE=0 且对端返回 400 invalid_role → 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R12",
+      "command": "bash scripts/verify-2505-s1.sh r12",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2506/R12-fixture-fidelity.txt"
+      ],
+      "assert": "exit 0；grep SITE_ORG_NE_TENANT=1、PUT_ORG=site_org",
+      "actual": "SITE_ORG_NE_TENANT=1 USERS_ORG_IS_TENANT=0 PUT_ORG=site_org",
+      "expected": "PASS",
+      "negative": "夹具保真不足 → FAIL",
+      "negative_result": "夹具把 users.org_id 设成 tenant（USERS_ORG_IS_TENANT=1）时红例不成立 → 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R13",
+      "command": "bash scripts/verify-2505-s1.sh r13",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2506/R13-local-read-failure.txt"
+      ],
+      "assert": "exit 0；grep PUT_CALLS=0、SILENT_200=0",
+      "actual": "PUT_CALLS=0 ROLE_ERRORS=1 SILENT_200=0",
+      "expected": "PASS",
+      "negative": "读失败仍 PUT → FAIL",
+      "negative_result": "本地读取失败仍发 PUT（PUT_CALLS>0，可能删除并存角色）→ 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R14",
+      "command": "bash scripts/verify-2505-s1.sh r14",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2506/R14-red-green.txt"
+      ],
+      "assert": "exit 0；grep LEGACY_STALE_SITE_ADMIN=1、NEW_STALE_SITE_ADMIN=0",
+      "actual": "LEGACY_STALE_SITE_ADMIN=1 NEW_STALE_SITE_ADMIN=0 RED_GREEN_FALSIFIABLE=1",
+      "expected": "PASS",
+      "negative": "红侧恒真 → FAIL",
+      "negative_result": "旧/新算法结果相同（LEGACY_STALE_SITE_ADMIN=0）时红绿不可证伪 → 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R9",
+      "command": "bash scripts/verify-2505-s1.sh r9",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2506/R9-legacy-assign.txt"
+      ],
+      "assert": "exit 0；grep LEGACY_ASSIGN_CALLS=0",
+      "actual": "LEGACY_ASSIGN_CALLS=0 SET_ROLES_CALLS=1",
+      "expected": "PASS",
+      "negative": "仍调用 POST /users/{id}/roles → FAIL",
+      "negative_result": "仍调用 POST /users/{id}/roles 时 LEGACY_ASSIGN_CALLS=1 → 断言失败",
+      "pass": true
+    }
+  ]
+}

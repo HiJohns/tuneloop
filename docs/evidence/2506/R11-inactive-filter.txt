@@ -1,0 +1,8 @@
+# build=1.0.85256e637b24 # commit=85256e637b24b1ce29fff9e2772b07bcb0aa2c8d # dirty=false
+# row=r11 command=go test ./handlers -run ^TestUpdateUserInactiveTemplateFiltered_2505$ -count=1 -v
+CUSTOMER_KEPT=1
+INACTIVE_DROPPED=1
+INVALID_ROLE_400=0
+PUT_NO_INACTIVE=1
+PUT_ROLES=["site_member","customer"]
+ROLE_ERRORS=1

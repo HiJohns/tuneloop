@@ -1,0 +1,8 @@
+# build=1.0.85256e637b24 # commit=85256e637b24b1ce29fff9e2772b07bcb0aa2c8d # dirty=false
+# row=r7 command=go test ./handlers -run ^TestUpdateUserRoleSync(Get|Put)Failure_2505$ -count=1 -v
+GET_FAIL_ROLE_ERRORS=1
+PUT_CALLS=0
+PUT_CALLS=1
+PUT_FAIL_ROLE_ERRORS=1
+PUT_SKIPPED_ON_GET_FAIL=1
+SILENT_200=0

@@ -1,0 +1,19 @@
+# build=1.0.85256e637b24 # commit=85256e637b24b1ce29fff9e2772b07bcb0aa2c8d # dirty=false
+# row=r10 command=git -C /home/coder/beaconiam worktree add --detach + go test ./internal/handler -run TestUpdateUserFunctionalRoles_
+# beaconiam_ref=61f8a8fa64b09ae90a099a34e0578b2631db06ba
+AUTHZ_PARENT_CHILD_OK=1
+AUTHZ_SIBLING_DENIED=1
+AUTHZ_GRANDPARENT_DENIED=1
+AUTHZ_INACTIVE_DENIED=1
+AUTHZ_CROSS_NAMESPACE_DENIED=1
+--- PASS: TestUpdateUserFunctionalRoles_ChildCannotManageParent (0.01s)
+--- PASS: TestUpdateUserFunctionalRoles_CrossNamespaceParentDenied (0.01s)
+--- PASS: TestUpdateUserFunctionalRoles_GrandparentDenied (0.01s)
+--- PASS: TestUpdateUserFunctionalRoles_InactiveParentRelationDenied (0.01s)
+--- PASS: TestUpdateUserFunctionalRoles_InactiveTemplateRejected (0.01s)
+--- PASS: TestUpdateUserFunctionalRoles_MissingOrgDoesNotLeakExistence (0.01s)
+--- PASS: TestUpdateUserFunctionalRoles_NoRelationDenied (0.01s)
+--- PASS: TestUpdateUserFunctionalRoles_ParentOrgAdminAllowed (0.01s)
+--- PASS: TestUpdateUserFunctionalRoles_ParentOrgOwnerAllowed (0.01s)
+--- PASS: TestUpdateUserFunctionalRoles_SelfOrgAdminAllowed (0.01s)
+--- PASS: TestUpdateUserFunctionalRoles_SiblingDenied (0.01s)

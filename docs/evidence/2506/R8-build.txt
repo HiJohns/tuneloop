@@ -1,0 +1,7 @@
+# build=1.0.85256e637b24 # commit=85256e637b24b1ce29fff9e2772b07bcb0aa2c8d # dirty=false
+# row=r8 command=go build ./... + go test ./handlers -run "2505|2506|2482|2461|2475|2375|2462|2466"
+BUILD_EXIT=0
+TESTS_EXIT=0
+TESTS_FAIL=0
+PANIC=0
+ok  	tuneloop-backend/handlers	31.846s

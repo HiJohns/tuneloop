@@ -1,0 +1,5 @@
+# build=1.0.85256e637b24 # commit=85256e637b24b1ce29fff9e2772b07bcb0aa2c8d # dirty=false
+# row=r13 command=go test ./handlers -run ^TestUpdateUserLocalRolesReadFailure_2505$ -count=1 -v
+PUT_CALLS=0
+ROLE_ERRORS=1
+SILENT_200=0

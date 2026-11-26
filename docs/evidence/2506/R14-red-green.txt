@@ -1,0 +1,7 @@
+# build=1.0.85256e637b24 # commit=85256e637b24b1ce29fff9e2772b07bcb0aa2c8d # dirty=false
+# row=r14 command=go test ./handlers -run ^TestUpdateUserRedGreenFalsifiable_2505$ -count=1 -v
+LEGACY_STALE_SITE_ADMIN=1
+LEGACY_TARGET=["site_admin","site_member","site_member"]
+NEW_STALE_SITE_ADMIN=0
+NEW_TARGET=["site_member"]
+RED_GREEN_FALSIFIABLE=1

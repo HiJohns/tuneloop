@@ -1,0 +1,4 @@
+# build=1.0.85256e637b24 # commit=85256e637b24b1ce29fff9e2772b07bcb0aa2c8d # dirty=false
+# row=r9 command=go test ./handlers -run ^TestUpdateUserLegacyAssignRetired_2505$ -count=1 -v
+LEGACY_ASSIGN_CALLS=0
+SET_ROLES_CALLS=1

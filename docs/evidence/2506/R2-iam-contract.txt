@@ -1,0 +1,13 @@
+# build=1.0.85256e637b24 # commit=85256e637b24b1ce29fff9e2772b07bcb0aa2c8d # dirty=false
+# row=r2 command=go test ./services -run ^TestFunctionalRolesContract_2505$ -count=1 -v
+BADREQUEST_ERR=1
+EMPTY_ORG_REJECTED=1
+FORBIDDEN_ERR=1
+GET_ERROR_ERR=1
+GET_PATH=/api/v1/users/USER/roles
+GET_QUERY=org_id=ORG
+NOTFOUND_ERR=1
+PERM_VERSION_CALLS=1
+PUT_BODY={"roles":["site_member"]}
+PUT_PATH=/api/v1/organizations/ORG/users/USER/functional-roles
+TEMPLATE_INACTIVE_PARSED=1
