@@ -16,11 +16,11 @@
 
 | 审计项 | 严重度 | 根因分类 | 修复 | 证据 |
 |---|---|---|---|---|
-| **Bug 1** §2.8.2 的 deferral 指向已 CLOSED 的 #2543 与不相关的 #2542 ——「deferral 未落盘」 | 阻断 | 验收未覆盖（R3 原断言只查字符串，不查引用有效性） | ① 新建跟踪 Issue **#2576**（`bug` + `status:todo`，标题「确认会话 Confirm 缺 status 守卫」，正文含现象/触发/后果/期望/正负例/证据要求，回链 #2575 / #2543 / #2542）；② api.md §2.8.2 改为 `跟踪 Issue：#2576`；③ `verify-2575.sh r3` 新增 4 项断言（`DEFERRAL_ISSUE` / `DEFERRAL_REF` / `DEFERRAL_ISSUE_OPEN` / `DEFERRAL_ISSUE_MATCH`） | `R3-doc-contract.txt`：`DEFERRAL_ISSUE=#2576`、`DEFERRAL_REF=1`、`DEFERRAL_ISSUE_OPEN=1`、`DEFERRAL_ISSUE_MATCH=1`、`R3_OK`；红样 `R3-red-deferral.txt`（三组，均 `R3_RED_RC=1`） |
-| **Bug 2**（Low）`NO_ACTION_EXECUTED=1` 是无条件打印而非断言 | Low | 执行 | 改 `require.Greater` / `require.Zero`，标记仅在断言通过后打印 | `R2-reject-behavior.txt`（`TEST_EXIT=0`、`NO_ACTION_EXECUTED=1`、`R2_OK`） |
-| **Bug 3**（Low）回调 `case "reject"` 内 `result` 遮蔽外层回调 `result` 查询参数 | Low | 执行 | 条件更新句柄改名 `upd`（`upd.Error` / `upd.RowsAffected`） | `R1-reject-guards.txt`（`GREEN_CALLBACK_CLASSIFY=1`）；`R2` 回调 3 例 PASS |
+| **Bug 1** §2.8.2 的 deferral 指向已 CLOSED 的 #2543 与不相关的 #2542 ——「deferral 未落盘」 | 阻断 | 验收未覆盖（R3 原断言只查字符串，不查引用有效性） | ① 新建跟踪 Issue **#2576**（`bug` + `status:todo`，标题「确认会话 Confirm 缺 status 守卫」，正文含现象/触发/后果/期望/正负例/证据要求，回链 #2575 / #2543 / #2542）；② api.md §2.8.2 改为 `跟踪 Issue：#2576`；③ `verify-2575.sh r3` 新增 4 项断言（`DEFERRAL_ISSUE` / `DEFERRAL_REF` / `DEFERRAL_ISSUE_OPEN` / `DEFERRAL_ISSUE_MATCH`） | `docs/evidence/2575/R3-doc-contract.txt`：`DEFERRAL_ISSUE=#2576`、`DEFERRAL_REF=1`、`DEFERRAL_ISSUE_OPEN=1`、`DEFERRAL_ISSUE_MATCH=1`、`R3_OK`；红样 `docs/evidence/2575/R3-red-deferral.txt`（三组，均 `R3_RED_RC=1`） |
+| **Bug 2**（Low）`NO_ACTION_EXECUTED=1` 是无条件打印而非断言 | Low | 执行 | 改用 require 致命断言（Greater / Zero），标记仅在断言通过后打印 | `docs/evidence/2575/R2-reject-behavior.txt`（`TEST_EXIT=0`、`NO_ACTION_EXECUTED=1`、`R2_OK`） |
+| **Bug 3**（Low）回调 `case "reject"` 内 `result` 遮蔽外层回调 `result` 查询参数 | Low | 执行 | 条件更新句柄改名 `upd`（Error / RowsAffected 访问同步改名） | `docs/evidence/2575/R1-reject-guards.txt`（`GREEN_CALLBACK_CLASSIFY=1`）；`R2` 回调 3 例 PASS |
 | **Bug 4**（Low，不阻断）`40002` 前端文案为「信息不完整」 | Low | 无调用方 | 不改（`FRONT_CALLERS=0`，D7 口径）；若出现调用方另立 Issue | 计划 D7 已锁 |
-| 审计建议的 **R5**（deferral 引用有效性矩阵行） | — | — | **不新增独立合同行**：Accepted Plan 属 Architect owner，fixreview 不自增验收行；该断言以 **R3 同一命令**（命令字符串保持逐字一致，无 P12 command drift）的附加断言落地，并配独立红样 | 同上 `R3-doc-contract.txt` / `R3-red-deferral.txt` |
+| 审计建议的 **R5**（deferral 引用有效性矩阵行） | — | — | **不新增独立合同行**：Accepted Plan 属 Architect owner，fixreview 不自增验收行；该断言以 **R3 同一命令**（命令字符串保持逐字一致，无 P12 command drift）的附加断言落地，并配独立红样 | 同上 `docs/evidence/2575/R3-doc-contract.txt` / `docs/evidence/2575/R3-red-deferral.txt` |
 
 > deferral 断言的红绿实证（`docs/evidence/2575/R3-red-deferral.txt`，每次临时改 api.md 后逐字还原，`git diff` 为空）：
 > - 引用 CLOSED #2543 → `DEFERRAL_ISSUE_OPEN=0`、`R3_RED_RC=1`；
@@ -105,6 +105,6 @@
 
 ## Remote
 
-- remote: origin/issue-2575@095a753ed; fix=bc778f5e3 pushed=yes; evidence=12e1b84b7 pushed=yes; gate-report=095a753ed pushed=yes
+- remote: origin/issue-2575; fix=061e06682 pushed=yes（Round 1 原始 fix=bc778f5e3 亦在祖先链）；本轮证据与 gate 报告均在同一分支（`git log origin/issue-2575` 可见），P13 实测 PASS。
 
 *Model: DeepSeek V4.1 Flash 1017*

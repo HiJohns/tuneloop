@@ -57,7 +57,7 @@
         "docs/evidence/2575/pre-ready-2575.json"
       ],
       "assert": "exit 0；GATE_RESULT=PASS；jq -e '.result == \"PASS\"'；jq -e 'any(.checks[]; .id == \"P5\" and .status == \"N/A\")'",
-      "actual": "PASS：GATE_RESULT=PASS（docs/evidence/2575/pre-ready-2575.json：overall=PASS、P5=N/A（--no-full-gate + Summary 记录原因）、P12 合同行 R1–R4 齐全且 pass=true、P13 origin/issue-2575 已含 fix+证据、dirty=false）",
+      "actual": "PASS：GATE_RESULT=PASS（docs/evidence/2575/pre-ready-2575.json：overall=PASS、P5=N/A（--no-full-gate + Summary 记录原因）、P12 合同行 R1–R4 齐全且 pass=true、P13 origin/issue-2575 已含 fix+证据、dirty=false）。Round 1 审计修复后同一命令重跑（fix=061e06682）：P1 PASS / P2 PASS / P3 PASS / P4 WARN(no --affected-cmd) / P12 PASS / P14 PASS / P15 N/A / P16 N/A / P17 PASS / P5 N/A / P6 PASS / P7 PASS / P8 N/A / P9 N/A / P10 N/A / P11 PASS / P13 PASS / P18 WARN(tooling_commit 缺失，legacy bundle) → RESULT: PASS",
       "expected": "每条合同行 pass=true、dirty=false、P5 为 N/A（--no-full-gate + Summary 记录原因）、P13 origin/issue-2575 已含 fix+证据、P12 合同行齐全",
       "negative": "任一 P 项失败 / evidence.json 缺行 / dirty=true / 未推送 / P5 无记录原因 → gate 非 0，禁止 ready",
       "negative_result": "首轮以同一命令运行：R4 报告产物尚未生成 → P12 报 `R4: artifact not found`，gate 非 0 退出（证明缺行/缺产物会阻断）；报告落盘后重跑判定 PASS。未推送时 P13 同样以 FAIL 阻断 ready。",
