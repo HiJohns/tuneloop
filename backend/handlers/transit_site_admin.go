@@ -103,7 +103,7 @@ func CreateAdminTransitSite(c *gin.Context) {
 	parentOrgID, err := services.ResolveNamespacePrimaryOrg(iamClient)
 	if err != nil {
 		log.Printf("[CreateAdminTransitSite] resolve namespace primary org failed: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "无法解析命名空间主组织：" + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "无法解析命名空间主组织，请稍后再试"})
 		return
 	}
 	createdOrg, err := iamClient.CreateOrganization(&services.CreateOrganizationRequest{
@@ -123,7 +123,8 @@ func CreateAdminTransitSite(c *gin.Context) {
 			c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "同名组织已存在，请更换名称后重试"})
 			return
 		}
-		c.JSON(http.StatusBadGateway, gin.H{"code": 50200, "message": "中转网点组织创建失败（IAM）：" + err.Error()})
+		log.Printf("[CreateAdminTransitSite] create org failed name=%s: %v", orgName, err)
+		c.JSON(http.StatusBadGateway, gin.H{"code": 50200, "message": "中转网点组织创建失败，请稍后再试"})
 		return
 	}
 

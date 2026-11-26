@@ -132,6 +132,139 @@ console.log('MOBILE_LAYER=' + mbOut.layer)
 "
 }
 
+site_probe() { # mode(r1|r2) — 站点级（file|line|receiver）判定，禁止文件级 grep
+    VERIFY_2497_MODE="$1" VERIFY_2497_REF="$BASELINE_REF" VERIFY_2497_SCAN_RE="$SCAN_RE" \
+        python3 - <<'PY'
+import difflib
+import os
+import re
+import subprocess
+import sys
+
+MODE = os.environ["VERIFY_2497_MODE"]
+REF = os.environ["VERIFY_2497_REF"]
+SCAN_RE = os.environ["VERIFY_2497_SCAN_RE"]
+BLOCK_RE = re.compile(r"^\s*(?:\}\s*else\s+)?if\b.*!=\s*nil\s*\{")
+LOG_RE = re.compile(r"log\.(Printf|Println|Print)\(")
+
+
+def run(cmd):
+    return subprocess.run(cmd, capture_output=True, text=True)
+
+
+def norm(text):
+    return re.sub(r"\s+", "", text)
+
+
+def indent(line):
+    return len(line) - len(line.lstrip())
+
+
+grep = run(["git", "grep", "-nP", SCAN_RE, REF, "--", "backend/handlers/*.go"])
+if grep.returncode not in (0, 1):
+    print("PROBE_ERROR=git-grep-failed")
+    print(grep.stderr.strip())
+    raise SystemExit(2)
+
+sites = []
+for raw in grep.stdout.splitlines():
+    m = re.match(rf"^{re.escape(REF)}:([^:]+):(\d+):(.*)$", raw)
+    if not m:
+        continue
+    recv = re.search(r"\+\s*([A-Za-z_][\w.]*)\.Error\(\)", m.group(3))
+    sites.append((m.group(1), int(m.group(2)), recv.group(1) if recv else "unknown", m.group(3)))
+
+old_cache, new_cache, sm_cache = {}, {}, {}
+
+
+def old_lines(path):
+    if path not in old_cache:
+        out = run(["git", "show", f"{REF}:{path}"])
+        old_cache[path] = out.stdout.splitlines() if out.returncode == 0 else None
+    return old_cache[path]
+
+
+def new_lines(path):
+    if path not in new_cache:
+        try:
+            with open(path, encoding="utf-8") as fh:
+                new_cache[path] = fh.read().splitlines()
+        except OSError:
+            new_cache[path] = None
+    return new_cache[path]
+
+
+def mapped_span(path, index):
+    """0-based span in the working tree that replaced old line `index`."""
+    old, new = old_lines(path), new_lines(path)
+    if old is None or new is None:
+        return None
+    if path not in sm_cache:
+        sm_cache[path] = difflib.SequenceMatcher(None, old, new, autojunk=False).get_opcodes()
+    for _tag, i1, i2, j1, j2 in sm_cache[path]:
+        if i1 <= index < i2:
+            return j1, j2
+    return None
+
+
+def block_start(new, anchor):
+    """Start of the nearest enclosing `if ... != nil {` block (single error-handling block)."""
+    site_ind = indent(new[anchor]) if anchor < len(new) else 0
+    for k in range(anchor, max(-1, anchor - 40), -1):
+        if BLOCK_RE.match(new[k]) and indent(new[k]) < site_ind:
+            return k
+    return max(0, anchor - 14)
+
+
+def log_at(new, start, span_end, root):
+    root_re = re.compile(rf"\b{re.escape(root)}\b")
+    for k in range(start, min(len(new), max(span_end, start + 1) + 3)):
+        if LOG_RE.search(new[k]) and root_re.search(new[k]):
+            return k
+    return None
+
+
+if MODE == "r1":
+    covered = 0
+    for path, bline, _recv, content in sites:
+        new = new_lines(path)
+        if new is None or norm(content) in {norm(line) for line in new}:
+            print(f"MISSING_SITE={path}:{bline} reason={'missing-file' if new is None else 'old-concat-still-present'}")
+            continue
+        covered += 1
+    print(f"BASELINE_SITES={len(sites)}")
+    print(f"BASELINE_SITES_COVERED={covered}")
+    raise SystemExit(0 if covered == len(sites) and sites else 1)
+
+lost = 0
+covered = 0
+for path, bline, recv, _content in sites:
+    new = new_lines(path)
+    span = mapped_span(path, bline - 1) if new is not None else None
+    if new is None:
+        lost += 1
+        print(f"SITE {path}:{bline} recv={recv} covered=0 reason=missing-file")
+        continue
+    if span is None:
+        lost += 1
+        print(f"SITE {path}:{bline} recv={recv} covered=0 reason=site-not-mapped")
+        continue
+    anchor, span_end = max(span[0], 0), max(span[1], max(span[0], 0) + 1)
+    start = block_start(new, min(anchor, len(new) - 1))
+    hit = log_at(new, start, span_end, recv.split(".")[0])
+    if hit is None:
+        lost += 1
+        print(f"SITE {path}:{bline} recv={recv} covered=0 reason=no-log-in-block block={start + 1}")
+    else:
+        covered += 1
+        print(f"SITE {path}:{bline} recv={recv} covered=1 block={start + 1} log={hit + 1}")
+print(f"BASELINE_SITES={len(sites)}")
+print(f"LOG_PER_SITE={covered}")
+print(f"LOST_DETAIL={lost}")
+raise SystemExit(0 if lost == 0 and covered == len(sites) and sites else 1)
+PY
+}
+
 rc=0
 case "$ROW" in
 r1)
@@ -142,15 +275,10 @@ r1)
     baseline_files="$(printf '%s\n' "$baseline_rows" | cut -d'|' -f1 | sed '/^$/d' | sort -u)"
     baseline_file_count="$(printf '%s\n' "$baseline_files" | sed '/^$/d' | wc -l | tr -d ' ')"
     baseline_hit_count="$(printf '%s\n' "$baseline_rows" | sed '/^$/d' | wc -l | tr -d ' ')"
-    covered=1
-    missing_files=""
-    while IFS= read -r bf; do
-        [ -n "$bf" ] || continue
-        if [ ! -f "$bf" ]; then
-            covered=0
-            missing_files+="$bf "
-        fi
-    done <<< "$baseline_files"
+    probe="$(site_probe r1)"
+    probe_rc=$?
+    covered="$(printf '%s\n' "$probe" | sed -n 's/^BASELINE_SITES_COVERED=//p')"
+    missing_sites="$(printf '%s\n' "$probe" | sed -n '/^MISSING_SITE=/p')"
     body="SCAN_SCOPE=backend/handlers/*.go（目录级，不硬编码文件清单）"$'\n'
     body+="SCAN_RE=$SCAN_RE"$'\n'
     body+="BASELINE_REF=$BASELINE_REF"$'\n'
@@ -158,42 +286,32 @@ r1)
     body+="BASELINE_HITS=$baseline_hit_count"$'\n'
     body+="D5_BASELINE_FILES_MIN=$D5_BASELINE_FILES_MIN"$'\n'
     body+="SCANNED_FILES=${#SCANNED[@]}"$'\n'
-    body+="BASELINE_SET_COVERED=$covered"$'\n'
+    body+="BASELINE_SET_COVERED=$([ "$probe_rc" = "0" ] && echo 1 || echo 0)"$'\n'
+    body+="BASELINE_SITES_COVERED=${covered:-0}/$baseline_hit_count（站点级：基线的旧拼接行在交付树中不再出现）"$'\n'
     body+="BASELINE_FILE_SET=$(printf '%s' "$baseline_files" | paste -sd, -)"$'\n'
     body+="CJK_ERR_CONCAT=$hits"$'\n'
     if [ "$hits" != "0" ]; then
         body+="HIT_LINES:"$'\n'"$hit_lines"$'\n'
     fi
+    if [ -n "$missing_sites" ]; then
+        body+="MISSING_BASELINE_SITES:"$'\n'"$missing_sites"$'\n'
+    fi
     [ "$hits" = "0" ] || rc=1
-    [ "$covered" = "1" ] || { rc=1; body+="MISSING_BASELINE_FILES=$missing_files"$'\n'; }
+    [ "$probe_rc" = "0" ] || rc=1
     [ "${baseline_file_count:-0}" -ge "$D5_BASELINE_FILES_MIN" ] 2>/dev/null || rc=1
     body+="RESULT: $([ "$rc" = "0" ] && echo PASS || echo FAIL)"$'\n'
     finish R1-scan.txt "$rc" "$body"
     ;;
 r2)
-    # 逐点断言：基线中每一个拼接点（file|line|receiver）在当前树都必须有引用同一 error
-    # 的 log 调用；LOST_DETAIL 不得由 R1 结果推导（#2497 Round 1 Bug 6）。
-    mapfile -t SITES < <(baseline_sites)
-    log_per_site=0
-    lost_detail=0
-    site_lines=""
-    while IFS= read -r site; do
-        [ -n "$site" ] || continue
-        file="${site%%|*}"
-        rest="${site#*|}"
-        bline="${rest%%|*}"
-        recv="${rest#*|}"
-        root="${recv%%.*}"
-        [ -f "$file" ] || { lost_detail=$((lost_detail + 1)); site_lines+="SITE $file:$bline recv=$recv covered=0 reason=missing-file"$'\n'; continue; }
-        if grep -qE "log\.(Printf|Println|Print)\(.*\b${root}\b" "$file"; then
-            log_per_site=$((log_per_site + 1))
-            site_lines+="SITE $file:$bline recv=$recv covered=1"$'\n'
-        else
-            lost_detail=$((lost_detail + 1))
-            site_lines+="SITE $file:$bline recv=$recv covered=0 reason=no-log-of-receiver"$'\n'
-        fi
-    done <<< "$(printf '%s\n' "${SITES[@]:-}")"
-    baseline_site_count="$(printf '%s\n' "${SITES[@]:-}" | sed '/^$/d' | wc -l | tr -d ' ')"
+    # 逐点断言（Round 2 Bug 2）：基线中每一个拼接点（file|line|receiver）都必须在交付树
+    # 的**同一错误处理块**内出现引用同一 error 的 log 调用（difflib 定位改写后的行 +
+    # 最近的外层 `if err != nil` / `switch {` 块起点）；禁止文件级 grep 兜底。
+    probe="$(site_probe r2)"
+    probe_rc=$?
+    log_per_site="$(printf '%s\n' "$probe" | sed -n 's/^LOG_PER_SITE=//p')"
+    lost_detail="$(printf '%s\n' "$probe" | sed -n 's/^LOST_DETAIL=//p')"
+    baseline_site_count="$(printf '%s\n' "$probe" | sed -n 's/^BASELINE_SITES=//p')"
+    site_lines="$(printf '%s\n' "$probe" | sed -n '/^SITE /p')"$'\n'
     logs="$(log_present)"
     body="LOG_PRESENT=$logs"$'\n'
     body+="LOG_MIN=22"$'\n'
@@ -203,6 +321,7 @@ r2)
     body+="LOST_DETAIL=$lost_detail"$'\n'
     body+="$site_lines"
     [ "$logs" -ge 22 ] || rc=1
+    [ "$probe_rc" = "0" ] || rc=1
     [ "$lost_detail" = "0" ] || rc=1
     [ "$log_per_site" = "$baseline_site_count" ] || rc=1
     body+="RESULT: $([ "$rc" = "0" ] && echo PASS || echo FAIL)"$'\n'
