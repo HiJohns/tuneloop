@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { BrowserRouter, Routes, Route, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useNavigate, useLocation, useSearchParams, Navigate, useParams } from 'react-router-dom'
 import { Layout, Menu, Breadcrumb, Spin, Modal } from 'antd'
 import { Tabs } from 'antd'
 import {
@@ -34,7 +34,6 @@ import InviteManagement from './pages/InviteManagement'
 import DirectMemberManagement from './pages/DirectMemberManagement'
 import NotificationCenter from './components/NotificationCenter'
 import PermissionManage from './pages/admin/PermissionManage'
-import AssetDetail from './pages/AssetDetail'
 import AppealManagement from './pages/AppealManagement'
 import RepairConfigPage from './pages/admin/repair/RepairConfigPage'
 import MerchantRepairList from './pages/admin/repair/MerchantRepairList'
@@ -113,6 +112,13 @@ function handleLogout() {
   // Redirect to IAM login for proper logout with redirect back
   const url = buildIAMLoginURL()
   if (url) window.location.href = url
+}
+
+// #2538 D1: 只保留一个乐器详情页 —— 旧的 /site/stock/:id 存根（AssetDetail.jsx）
+// 被删除，旧链接/书签/库存监控行点击统一重定向到 /instruments/detail/:id。
+function LegacyStockDetailRedirect() {
+  const { id } = useParams()
+  return <Navigate to={`/instruments/detail/${id}`} replace />
 }
 
 function MainLayout() {
@@ -703,7 +709,7 @@ function onMenuClick(e) {
             <Route path="/finance" element={<ProtectedRoute><FinanceConfig /></ProtectedRoute>} />
             <Route path="/finance/quotes" element={<ProtectedRoute><div className="bg-white p-6 rounded shadow">报价单管理</div></ProtectedRoute>} />
             <Route path="/site/stock" element={<ProtectedRoute><InstrumentStock /></ProtectedRoute>} />
-            <Route path="/site/stock/:id" element={<ProtectedRoute><AssetDetail /></ProtectedRoute>} />
+            <Route path="/site/stock/:id" element={<ProtectedRoute><LegacyStockDetailRedirect /></ProtectedRoute>} />
             <Route path="/organization/sites" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10], cusPermCodes: ['instrument:create', 'instrument:read'], requireAllGroups: true }}><SiteManagement /></ProtectedRoute>} />
             <Route path="/organization/sites/new" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10] }}><SiteManagement /></ProtectedRoute>} />
             <Route path="/organization/sites/:id/edit" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10] }}><SiteManagement /></ProtectedRoute>} />

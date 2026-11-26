@@ -5,6 +5,12 @@ import { Card, Descriptions, Tag, Image, Row, Col, Button, Space, Divider, Tabs,
 import { ArrowLeftOutlined, DeleteOutlined, EditOutlined, DollarOutlined, UserOutlined, EnvironmentOutlined, CalendarOutlined, TruckOutlined } from '@ant-design/icons'
 import { api, pricingApi, instrumentsApi, request } from '../../../services/api'
 import { formatBeijingDate, formatBeijingDateTimeShort } from '../../../utils/date'
+// #2538: 页头摘要（唯一详情页）+ 与列表同源的取图 helper（禁止第二份实现）。
+import {
+  INSTRUMENT_IMAGE_PLACEHOLDER,
+  instrumentImageSrc,
+} from '../../../utils/instrumentDisplay'
+import { buildAssetSummary } from '../../../utils/assetSummary'
 
 function parsePricing(pricing) {
   if (!pricing) return null
@@ -273,23 +279,49 @@ export default function InstrumentDetail() {
 
   const activeStatuses = ['rented']
 
+  // #2538: 页头主图取源与列表/旧存根同源（instrumentImageSrc），禁止第二份实现。
+  const heroImage = instrumentImageSrc({
+    thumbnail: instrument.media?.display?.[0]?.url || '',
+    poster: instrument.poster,
+    images: instrument.images,
+  })
+  const assetSummary = buildAssetSummary(instrument, pricingV2)
+
   return (
     <div className="p-6">
-      {/* Header */}
-      <div className="mb-6 flex justify-between items-start">
-        <div>
-          <Button 
-            type="link" 
-            icon={<ArrowLeftOutlined />}
-            onClick={() => navigate(-1)}
-            className="px-0 mb-2"
-          >
-            返回列表
-          </Button>
-          <h1 className="text-2xl font-bold text-gray-900">{instrument.sn}</h1>
-          <p className="text-gray-600 mt-1">
-            {instrument.category_name}
-          </p>
+      {/* Header（#2538：160×160 主图 + 6 项摘要，一屏可见，不必切 tab） */}
+      <div className="mb-6 flex justify-between items-start gap-4">
+        <div className="flex items-start gap-4">
+          <img
+            src={heroImage}
+            alt={instrument.sn || '乐器'}
+            width={160}
+            height={160}
+            style={{ width: 160, height: 160, objectFit: 'cover', borderRadius: 8, flexShrink: 0 }}
+            onError={(e) => { e.currentTarget.src = INSTRUMENT_IMAGE_PLACEHOLDER }}
+          />
+          <div>
+            <Button 
+              type="link" 
+              icon={<ArrowLeftOutlined />}
+              onClick={() => navigate(-1)}
+              className="px-0 mb-2"
+            >
+              返回列表
+            </Button>
+            <h1 className="text-2xl font-bold text-gray-900">{instrument.sn}</h1>
+            <p className="text-gray-600 mt-1 mb-3">
+              {instrument.category_name}
+            </p>
+            <Row gutter={[24, 8]} style={{ maxWidth: 720 }}>
+              {assetSummary.map((item) => (
+                <Col span={8} key={item.key}>
+                  <div className="text-xs text-gray-500">{item.label}</div>
+                  <div className="text-sm font-medium text-gray-900">{item.value}</div>
+                </Col>
+              ))}
+            </Row>
+          </div>
         </div>
         <Popconfirm title="确定要删除这个乐器吗？" onConfirm={handleDelete}>
           <Button danger icon={<DeleteOutlined />}>
@@ -388,9 +420,6 @@ export default function InstrumentDetail() {
                     <Descriptions.Item label="评分" span={2}>
                       {instrument.rating} ⭐ ({instrument.review_count} 评价)
                     </Descriptions.Item>
-                    <Descriptions.Item label="创建时间" span={2}>
-                      {formatBeijingDateTimeShort(instrument.created_at)}
-                    </Descriptions.Item>
                     <Descriptions.Item label="更新时间" span={2}>
                       {formatBeijingDateTimeShort(instrument.updated_at)}
                     </Descriptions.Item>
@@ -467,7 +496,7 @@ export default function InstrumentDetail() {
                         </div>
                       </div>
                       <div>
-                        <label className="text-sm text-gray-500">逾期日费</label>
+                        <label className="text-sm text-gray-500">逾期租金</label>
                         <InputNumber value={editValues.overdue_daily_fee} onChange={v => setEditValues(prev => ({ ...prev, overdue_daily_fee: v }))} style={{ width: '100%' }} min={0} precision={2} prefix="¥" />
                       </div>
                       <div className="flex gap-2">
@@ -521,11 +550,11 @@ export default function InstrumentDetail() {
                   ) : (
                   <Descriptions column={2} bordered size="small">
                     {/* #1755: pricing-v2 cents → display yuan (/100) */}
-                    <Descriptions.Item label="标准日租">¥{pricingV2?.base_daily_rate != null ? formatCents(pricingV2.base_daily_rate) : '-'}/天</Descriptions.Item>
-                    <Descriptions.Item label="押金">¥{pricingV2?.deposit != null ? formatCents(pricingV2.deposit) : '-'}</Descriptions.Item>
+                    <Descriptions.Item label="标准日租金">¥{pricingV2?.base_daily_rate != null ? formatCents(pricingV2.base_daily_rate) : '-'}/天</Descriptions.Item>
+                    <Descriptions.Item label="全额押金">¥{pricingV2?.deposit != null ? formatCents(pricingV2.deposit) : '-'}</Descriptions.Item>
                     <Descriptions.Item label="差额押金">{pricingV2?.deposit_reduced != null ? `¥${formatCents(pricingV2.deposit_reduced)}` : '未配置'}</Descriptions.Item>
                     <Descriptions.Item label="押金模式">{pricingV2?.deposit_mode || 'ratio'}</Descriptions.Item>
-                    <Descriptions.Item label="逾期日费">¥{overdueDailyFee || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="逾期租金">¥{overdueDailyFee || '-'}</Descriptions.Item>
                   </Descriptions>
                   )}
                 </Card>
