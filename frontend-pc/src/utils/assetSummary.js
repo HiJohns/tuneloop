@@ -7,11 +7,14 @@
 //
 // 契约（与 backend/services/pricing.go 的 `FormatPricingResult` 同源，金额**一律为分**）：
 //   - 标准日租金 = pricing-v2 `base_daily_rate`；缺失 → `-`
-//   - 逾期租金   = pricing-v2 `overdue_daily_fee`；缺失 → `-`
+//   - 逾期租金   = pricing-v2 `overdue_daily_fee`；缺失**或 ≤0** → `-`
+//                  （与 #2537 列表 `formatOverdueDailyFee`、本页价格策略 tab 同口径：
+//                   后端 `FormatPricingResult` 对未配置也输出 0，0 不是有效逾期费，
+//                   渲染 `¥0.00/天` 会与列表/价格 tab 自相矛盾）
 //   - 全额押金   = pricing-v2 `deposit`（显式 0 有效）；缺失 → `-`
 //   - 差额押金   = pricing-v2 `deposit_reduced`；缺失 → `未配置`
 //   - 估值       = `instruments.total_price`（分）；缺失 → `-`
-//   - 加入日期   = `instruments.created_at`（北京时间短格式）；缺失 → `-`
+//   - 加入日期   = `instruments.created_at`（北京时间短格式）；缺失**或不可解析** → `-`
 
 import { formatCents } from './money.js'
 import { formatBeijingDateTimeShort } from './date.js'
@@ -20,6 +23,22 @@ function centsOrNull(value) {
   if (value === null || value === undefined || value === '') return null
   const cents = Number(value)
   return Number.isFinite(cents) ? cents : null
+}
+
+// #2538 R1-fix: 正数判定（与 #2537 的 `instrumentDisplay.formatOverdueDailyFee`
+// 同一语义：null / 缺失 / ≤0 一律视为「未配置」→ `-`）。
+function positiveCents(value) {
+  const cents = centsOrNull(value)
+  return cents !== null && cents > 0 ? cents : null
+}
+
+// 加入日期：缺失或不可解析都回落 `-`（计划「损坏输入拒绝」口径），
+// 不把原始脏字符串直接渲染到页头。
+function formatJoinDate(value) {
+  if (!value) return '-'
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return '-'
+  return formatBeijingDateTimeShort(value)
 }
 
 /**
@@ -34,7 +53,7 @@ export function buildAssetSummary(instrument, pricingV2) {
   const pricing = pricingV2 || {}
 
   const dailyRate = centsOrNull(pricing.base_daily_rate)
-  const overdue = centsOrNull(pricing.overdue_daily_fee)
+  const overdue = positiveCents(pricing.overdue_daily_fee)
   const deposit = centsOrNull(pricing.deposit)
   const depositReduced = centsOrNull(pricing.deposit_reduced)
   const totalPrice = centsOrNull(inst.total_price)
@@ -68,7 +87,7 @@ export function buildAssetSummary(instrument, pricingV2) {
     {
       key: 'created_at',
       label: '加入日期',
-      value: formatBeijingDateTimeShort(inst.created_at),
+      value: formatJoinDate(inst.created_at),
     },
   ]
 }

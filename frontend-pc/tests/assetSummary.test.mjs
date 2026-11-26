@@ -68,13 +68,28 @@ test('buildAssetSummary shows - when created_at is missing or unparsable', () =>
   const missing = byKey(buildAssetSummary({}, {}))
   assert.equal(missing.created_at.value, '-')
   const invalid = byKey(buildAssetSummary({ created_at: 'not-a-date' }, {}))
-  assert.equal(invalid.created_at.value, 'not-a-date')
+  assert.equal(invalid.created_at.value, '-')
 })
 
 test('buildAssetSummary tolerates a null instrument without throwing', () => {
   const rows = byKey(buildAssetSummary(null, { base_daily_rate: 10000, overdue_daily_fee: 0 }))
   assert.equal(rows.daily_rate.value, '¥100.00/天')
-  assert.equal(rows.overdue_daily_fee.value, '¥0.00/天')
+  assert.equal(rows.overdue_daily_fee.value, '-')
   assert.equal(rows.total_price.value, '-')
   assert.equal(rows.created_at.value, '-')
+})
+
+// #2538 R1-fix（审计 Bug 1）：后端 `FormatPricingResult` 对「未配置逾期费」也输出 0，
+// 因此 0 不是有效金额。页头必须与 #2537 列表 `formatOverdueDailyFee`、本页价格策略 tab
+// 同口径渲染 `-`；旧行为（`¥0.00/天`）不得再出现。
+test('buildAssetSummary renders - (never ¥0.00) for non-positive overdue rent', () => {
+  for (const value of [0, -100]) {
+    const rows = byKey(buildAssetSummary({}, { overdue_daily_fee: value }))
+    assert.equal(rows.overdue_daily_fee.value, '-', `overdue_daily_fee=${value} must be -`)
+    assert.doesNotMatch(rows.overdue_daily_fee.value, /¥0\.00/)
+  }
+  const zeroString = byKey(buildAssetSummary({}, { overdue_daily_fee: '0' }))
+  assert.equal(zeroString.overdue_daily_fee.value, '-')
+  const garbage = byKey(buildAssetSummary({}, { overdue_daily_fee: 'n/a' }))
+  assert.equal(garbage.overdue_daily_fee.value, '-')
 })

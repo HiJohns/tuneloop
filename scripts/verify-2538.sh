@@ -101,6 +101,13 @@ console.log('DEPOSIT=' + map.deposit.value)
 console.log('REDUCED_EMPTY=' + map.deposit_reduced.value)
 console.log('TOTAL_PRICE=' + map.total_price.value)
 console.log('JOIN_DATE=' + map.created_at.value)
+const zero = Object.fromEntries(
+  buildAssetSummary({ created_at: 'not-a-date' }, { overdue_daily_fee: 0 }).map(r => [r.key, r])
+)
+const missing = Object.fromEntries(buildAssetSummary({}, {}).map(r => [r.key, r]))
+console.log('OVERDUE_ZERO=' + zero.overdue_daily_fee.value)
+console.log('OVERDUE_MISSING=' + missing.overdue_daily_fee.value)
+console.log('JOIN_DATE_UNPARSABLE=' + zero.created_at.value)
 ")"
     printf '%s\n' "$VALUES"
     echo "TESTS_PASS=${TESTS_PASS:-0}"
@@ -108,9 +115,13 @@ console.log('JOIN_DATE=' + map.created_at.value)
 
     [ "$rc" -eq 0 ] || fail "node --test failed (rc=${rc})"
     [ "${TESTS_FAIL:-1}" = "0" ] || fail "node --test reported ${TESTS_FAIL} failure(s)"
-    [ "${TESTS_PASS:-0}" -ge 8 ] || fail "expected >=8 passing tests, got ${TESTS_PASS:-0}"
+    [ "${TESTS_PASS:-0}" -ge 9 ] || fail "expected >=9 passing tests, got ${TESTS_PASS:-0}"
     printf '%s\n' "$VALUES" | grep -qx 'LABELS=6' || fail "summary must expose exactly 6 items"
     printf '%s\n' "$VALUES" | grep -qx 'REDUCED_EMPTY=未配置' || fail "missing reduced deposit must render 未配置"
+    # #2538 R1-fix: 逾期租金与 #2537 列表 / 价格策略 tab 同口径（≤0 → -）。
+    printf '%s\n' "$VALUES" | grep -qx 'OVERDUE_ZERO=-' || fail "overdue_daily_fee=0 must render - (not ¥0.00/天)"
+    printf '%s\n' "$VALUES" | grep -qx 'OVERDUE_MISSING=-' || fail "missing overdue_daily_fee must render -"
+    printf '%s\n' "$VALUES" | grep -qx 'JOIN_DATE_UNPARSABLE=-' || fail "unparsable created_at must render -"
     TOTAL_PRICE_CENTS=0
     printf '%s\n' "$VALUES" | grep -qx 'TOTAL_PRICE=¥3600.00' && TOTAL_PRICE_CENTS=1
     JOIN_DATE_FROM_CREATED_AT=0
@@ -129,17 +140,31 @@ console.log('JOIN_DATE=' + map.created_at.value)
       [ -e "$f" ] && STUB_FILES=$((STUB_FILES + 1))
     done
     ASSETDETAIL_IMPORTS="$(grep -rE "from '[^']*assetDetail(\.js)?'|import AssetDetail" frontend-pc/src frontend-pc/tests 2>/dev/null | wc -l | tr -d ' ')"
-    TIMELINE_TAB_LABEL="$(grep -rF "'流转轨迹'" frontend-pc/src 2>/dev/null | wc -l | tr -d ' ')"
-    DOCUMENTS_TAB_LABEL="$(grep -rF "'关联单据'" frontend-pc/src 2>/dev/null | wc -l | tr -d ' ')"
+    # #2538 R1-fix（审计 Finding 1）：不再只匹配带引号的 `'流转轨迹'` —— title="流转轨迹"
+    # 或 JSX 文本形态同样会残留，故按字面量全文搜索后再排除两类合法命中：
+    #   1) 注释行（`// …` / 行首 `* …`，历史背景说明）；
+    #   2) 工单功能的模态标题「工单流转轨迹」（WorkOrderList.jsx，另一语义，不属本单）。
+    TIMELINE_RAW="$(grep -rn -F '流转轨迹' frontend-pc/src 2>/dev/null || true)"
+    TIMELINE_RAW_HITS="$(printf '%s\n' "$TIMELINE_RAW" | grep -c . || true)"
+    WORKORDER_TIMELINE_HITS="$(printf '%s\n' "$TIMELINE_RAW" | grep -F 'WorkOrderList.jsx' | grep -c . || true)"
+    TIMELINE_TAB_LABEL="$(printf '%s\n' "$TIMELINE_RAW" \
+      | grep -vF 'WorkOrderList.jsx' \
+      | grep -vE '^[^:]+:[0-9]+: *(//|\*|/\*)' \
+      | grep -c . || true)"
+    DOCUMENTS_TAB_LABEL="$(grep -rn -F '关联单据' frontend-pc/src 2>/dev/null \
+      | grep -vE '^[^:]+:[0-9]+: *(//|\*|/\*)' \
+      | grep -c . || true)"
 
     echo "STUB_FILES=${STUB_FILES}"
     echo "ASSETDETAIL_IMPORTS=${ASSETDETAIL_IMPORTS}"
+    echo "TIMELINE_RAW_HITS=${TIMELINE_RAW_HITS}"
+    echo "WORKORDER_TIMELINE_HITS=${WORKORDER_TIMELINE_HITS}"
     echo "TIMELINE_TAB_LABEL=${TIMELINE_TAB_LABEL}"
     echo "DOCUMENTS_TAB_LABEL=${DOCUMENTS_TAB_LABEL}"
 
     [ "$STUB_FILES" = "0" ] || fail "stub files still present: AssetDetail.jsx / assetDetail.js / assetDetail.test.mjs"
     [ "$ASSETDETAIL_IMPORTS" = "0" ] || fail "a module still imports the removed assetDetail helpers"
-    [ "$TIMELINE_TAB_LABEL" = "0" ] || fail "a '流转轨迹' tab label is still rendered"
+    [ "$TIMELINE_TAB_LABEL" = "0" ] || fail "a '流转轨迹' label is still rendered (title/text form included)"
     [ "$DOCUMENTS_TAB_LABEL" = "0" ] || fail "a '关联单据' placeholder is still rendered"
     echo "R3_OK"
     ;;
