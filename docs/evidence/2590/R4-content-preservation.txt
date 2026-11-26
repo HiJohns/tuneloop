@@ -1,0 +1,25 @@
+# build=1.0.65dd30fe4 # commit=65dd30fe4e8a4660ec85da60ecbc02d8d2970089 # dirty=false
+GENERATED_AT_HEAD=65dd30fe4e8a4660ec85da60ecbc02d8d2970089
+# 内容守恒：diff 只含「删 1 围栏 + 插 1 围栏 + 删 7 行重复片段」，正文/标题零丢失
+PRE_LINES=7577
+POST_LINES=7570
+TOTAL_DELTA=-7
+PRE_FENCES=597
+POST_FENCES=596
+NONFENCE_DELTA=-6
+HEADINGS_PRE=348
+HEADINGS_POST=348
+HEADINGS_DELTA=0
+REMOVED_FENCE_LINES=1
+REMOVED_LINES_ARE_DUPLICATES=1
+SEC_12_4_LINES_PRE=82
+SEC_12_4_UNCHANGED=1
+--- diff ---
+-**接口**: `GET /api/user/favorites`
+-**响应**:
+-```json
+-{
+-  "code": 20000,
+-  "data": {
++```
+-```

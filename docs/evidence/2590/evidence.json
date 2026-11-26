@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "issue": 2590,
+  "build": "1.0.65dd30fe4",
+  "commit": "65dd30fe4e8a4660ec85da60ecbc02d8d2970089",
+  "dirty": false,
+  "plan_sha256": "cbedd059364af271900ce9a82862fbb1d99fed4231bfae52121c15f5fb52ffb2",
+  "tooling_commit": "17d6543870675e1d8070740c7ba3e08ab908adf7",
+  "environment": "worktree /home/coder/worktrees/tuneloop/wt-2590 (branch issue-2590, base origin/develop); 纯文档结构改动，无 go/npm 重命令；扫描器 = scripts/check-doc-fences.sh（pre-free origin/develop blob 由 git show 采集）",
+  "rows": [
+    {
+      "id": "R0",
+      "command": "bash scripts/verify-2590.sh r0",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2590/R0-checker-selftest.txt"
+      ],
+      "assert": "exit 0 且含 SELFTEST_CASES=4 SELFTEST_DETECTED=3 SELFTEST_FALSE_POSITIVE=0 RESULT=PASS",
+      "actual": "PASS：--self-test 现场生成 4 个 fixture → SELFTEST_CASES=4、SELFTEST_DETECTED=3（odd_fence / heading_inside / eof_inside 三类都检出）、SELFTEST_FALSE_POSITIVE=0（good.md 零违规）、RESULT=PASS",
+      "expected": "PASS（4 项 token 全为期望值）",
+      "negative": "坏 fixture 漏检或正常 fixture 误报 → FAIL（守卫能力未被证明）",
+      "negative_result": "若任一坏 fixture 未被检出（SELFTEST_DETECTED<3）或 good.md 被误报（SELFTEST_FALSE_POSITIVE>0）→ RESULT=FAIL，r0 非 0 退出，R1/R2 的守卫结论随之作废。",
+      "pass": true
+    },
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2590.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2590/R1-fence-sweep.txt"
+      ],
+      "assert": "exit 0 且含 ODD_FENCE_FILES=0 HEADINGS_INSIDE_FILES=0 EOF_INSIDE_FILES=0 RESULT=PASS 且 DOC_FILES_SCANNED>=9",
+      "actual": "PASS：docs/**/*.md（排除 docs/evidence/**，另 1 个悬空符号链接 docs/topics/iam/iam.md 记 SKIPPED_BROKEN_SYMLINK）全量扫描 DOC_FILES_SCANNED=131、ODD_FENCE_FILES=0、HEADINGS_INSIDE_FILES=0、EOF_INSIDE_FILES=0、RESULT=PASS",
+      "expected": "PASS（四项 token 全为期望值且扫描文件数达标）",
+      "negative": "任一文档奇数围栏或标题入块 → FAIL；只扫单文件（DOC_FILES_SCANNED<9）→ FAIL",
+      "negative_result": "若任一文件 EVEN=0 / HEADINGS_INSIDE>0 / EOF_INSIDE=1 → RESULT=FAIL；若只扫单个文件（DOC_FILES_SCANNED<9）→ verify 脚本显式判负。",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2590.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2590/R2-api-structure.txt"
+      ],
+      "assert": "exit 0 且含 API_EVEN=1 API_HEADINGS_INSIDE=0 API_EOF_INSIDE=0 HEADING_STATE_12_4=outside",
+      "actual": "PASS：api.md 修复后 API_FENCES=596、API_EVEN=1、API_HEADINGS_INSIDE=0、API_EOF_INSIDE=0、HEADING_STATE_12_4=outside（SEC_12_4_LINE=6947）",
+      "expected": "PASS（四项 token 全为期望值）",
+      "negative": "§12.4 仍在代码块内（inside）或任一标题入块 → FAIL",
+      "negative_result": "若 API_EVEN=0、API_HEADINGS_INSIDE>0、API_EOF_INSIDE=1 或 HEADING_STATE_12_4=inside → 守卫 RESULT=FAIL，r2 非 0 退出。",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2590.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2590/R3-red-prefix.txt"
+      ],
+      "assert": "exit 0 且含 RED_CHECKER_EXIT=1 RED_EVEN=0 RED_FENCES=597 RED_HEADING_STATE_12_4=inside",
+      "actual": "PASS：以 git show 65dd30fe4^:docs/spec/api/api.md 原始 blob 采集红样 → RED_CHECKER_EXIT=1、RED_EVEN=0、RED_FENCES=597、RED_HEADING_STATE_12_4=inside（§12.4 确被围栏吞掉）",
+      "expected": "PASS（四项 token 全为期望值，即修复前确为红）",
+      "negative": "修复前被判 PASS（红绿失效）、RED_FENCES 不是 597 → FAIL",
+      "negative_result": "若修复前 blob 被判 PASS（RED_CHECKER_EXIT=0，说明红样采集错）或 RED_FENCES≠597 → verify 脚本显式判负（红绿失效）。",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2590.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2590/R4-content-preservation.txt"
+      ],
+      "assert": "exit 0 且含 HEADINGS_DELTA=0 TOTAL_DELTA=-7、NONFENCE_DELTA=-6、REMOVED_FENCE_LINES=1 REMOVED_LINES_ARE_DUPLICATES=1 SEC_12_4_UNCHANGED=1",
+      "actual": "PASS：PRE_LINES=7577 → POST_LINES=7570（TOTAL_DELTA=-7）、NONFENCE_DELTA=-6、HEADINGS_DELTA=0、REMOVED_FENCE_LINES=1、REMOVED_LINES_ARE_DUPLICATES=1、SEC_12_4_UNCHANGED=1",
+      "expected": "PASS（四项 token 全为期望值）",
+      "negative": "标题数变化、正文被误改（NONFENCE_DELTA 非 -7）、被删行含非重复内容、§12.4 正文有 diff → FAIL",
+      "negative_result": "若标题数变化（HEADINGS_DELTA≠0）、正文被误改（TOTAL_DELTA≠-7 或 NONFENCE_DELTA≠-6）、被删行非重复内容、或 §12.4 段落有任意字节差异 → 对应 token 偏离期望，r4 非 0 退出。",
+      "pass": true
+    }
+  ]
+}
