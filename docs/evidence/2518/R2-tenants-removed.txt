@@ -1,0 +1,6 @@
+# build=1.0.ccb0c8b8 # commit=ccb0c8b8e6a316ce2879374c9e6110347705e6c6 # dirty=false
+GREP_CMD=grep -rnE "TenantManagement|system/tenants" frontend-pc/src
+TENANT_REFS=0
+TENANT_PAGE_FILE=0
+RESULT: PASS
+

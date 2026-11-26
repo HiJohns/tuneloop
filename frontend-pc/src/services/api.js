@@ -633,21 +633,6 @@ export const bulkImportApi = {
   },
 }
 
-export const iamAdminApi = {
-  // Client Management
-  getClients: () => api.get('/system/clients'),
-  createClient: (data) => api.post('/system/clients', data),
-  updateClient: (id, data) => api.put(`/system/clients/${id}`, data),
-  deleteClient: (id) => api.delete(`/system/clients/${id}`),
-  
-  // Tenant Management
-  getTenants: () => api.get('/system/tenants'),
-  createTenant: (data) => api.post('/system/tenants', data),
-  getTenant: (id) => api.get(`/system/tenants/${id}`),
-  updateTenant: (id, data) => api.put(`/system/tenants/${id}`, data),
-  deleteTenant: (id) => api.delete(`/system/tenants/${id}`),
-}
-
 export const categoriesApi = {
   getList: () => api.get('/categories'),
   getById: (id) => api.get(`/categories/${id}`),

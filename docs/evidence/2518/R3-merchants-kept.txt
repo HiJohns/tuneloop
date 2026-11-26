@@ -1,0 +1,8 @@
+# build=1.0.ccb0c8b8 # commit=ccb0c8b8e6a316ce2879374c9e6110347705e6c6 # dirty=false
+MENU_ENTRY=352
+MENU_LINE=352:      { key: '/merchants', label: '商户管理', permission: { sysPermBits: [6] } },
+PAGE_EXISTS=1
+CREATE_ENTRY=1
+MERCHANTS_MENU=1
+RESULT: PASS
+
