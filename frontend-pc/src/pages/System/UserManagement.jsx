@@ -51,6 +51,9 @@ export default function UserManagement() {
   const [grantVisible, setGrantVisible] = useState(false)
   const [grantForm] = Form.useForm()
   const [granting, setGranting] = useState(false)
+  // #2487 Round 2 Bug 2：加赠乐币的 40002（reason 空白 trim 后为空 / amount 非正）是
+  // 用户改输入即可重试的业务可纠正冲突 → 与身份证 Tab 同口径用持久提示。
+  const [grantConflict, setGrantConflict] = useState('')
   // #2369：IAM 孤儿账号（pending + org_id 空 + 本地无 iam_sub + ≥60 分钟）。
   // 仅系统管理员可访问（后端 requireSystemAdmin 40300）；本地无任何记录，清理即物理删除 IAM 账号。
   const [orphanOpen, setOrphanOpen] = useState(false)
@@ -133,6 +136,9 @@ export default function UserManagement() {
       status: record.status === 'active',
     })
     setIdPhotos({ front: '', back: '', other: '' })
+    // #2487 Round 2 Bug 1（#2480 D8）：同一详情 Modal 实例复用于不同用户，
+    // 打开时必须清空上一实体残留的持久提示，避免把 A 的错误文案显示在 B 上。
+    setIdCardConflict('')
     setDetailVisible(true)
     loadDetail(record.id)
   }
@@ -158,6 +164,7 @@ export default function UserManagement() {
 
   const handleGrant = async () => {
     const values = await grantForm.validateFields()
+    setGrantConflict('') // #2480 D8：提交开始即清空旧提示
     setGranting(true)
     try {
       const resp = await api.post(`/admin/user-management/${current.id}/points-grant`, {
@@ -166,15 +173,25 @@ export default function UserManagement() {
       })
       if (resp?.code === 20000) {
         message.success('加赠成功')
+        setGrantConflict('') // #2480 D8：成功后清空
         setGrantVisible(false)
         grantForm.resetFields()
         fetchList()
         loadDetail(current.id)
+      } else if (isBusinessCorrectableConflict(resp)) {
+        // #2487 Round 2 Bug 2：reason 只填空格会通过 antd required（async-validator
+        // 仅把 '' 视为空），trim 后走后端 40002「reason is required」——用户改输入即可重试。
+        setGrantConflict(conflictText(resp, '加赠信息有误，请修改后重新提交'))
       } else {
         message.error(resp?.message || '加赠失败')
       }
     } catch (err) {
-      message.error('加赠失败: ' + (err.message || ''))
+      // #2563 起 400 族以带 code 的 Error 抛出（services/apiError.js），此处按共享 rubric 判定。
+      if (isBusinessCorrectableConflict(err)) {
+        setGrantConflict(conflictText(err, '加赠信息有误，请修改后重新提交'))
+      } else {
+        message.error('加赠失败: ' + (err.message || ''))
+      }
     }
     setGranting(false)
   }
@@ -444,7 +461,7 @@ export default function UserManagement() {
         title={current ? `用户详情: ${current.username}` : '用户详情'}
         open={detailVisible}
         onOk={handleSave}
-        onCancel={() => setDetailVisible(false)}
+        onCancel={() => { setDetailVisible(false); setIdCardConflict('') }}
         destroyOnClose
         width={720}
       >
@@ -455,7 +472,7 @@ export default function UserManagement() {
           <Form.Item label="当前乐币（点，1点=1元）">
             <Space>
               <Text strong>{current?.points != null ? current.points / 100 : '-'}</Text>
-              <Button size="small" onClick={() => { grantForm.resetFields(); setGrantVisible(true) }}>加赠乐币</Button>
+              <Button size="small" onClick={() => { grantForm.resetFields(); setGrantConflict(''); setGrantVisible(true) }}>加赠乐币</Button>
             </Space>
           </Form.Item>
           <Form.Item label="禁用/可用" name="status" valuePropName="checked">
@@ -628,10 +645,12 @@ export default function UserManagement() {
         confirmLoading={granting}
         okText={granting ? '处理中...' : '加赠乐币'}
         cancelText="取消"
-        onCancel={() => setGrantVisible(false)}
+        onCancel={() => { setGrantVisible(false); setGrantConflict('') }}
         destroyOnClose
       >
-        <Form form={grantForm} layout="vertical">
+        <Form form={grantForm} layout="vertical" onValuesChange={() => { if (grantConflict) setGrantConflict('') }}>
+          {/* #2487 Round 2 Bug 2：加赠弹窗内业务可纠正冲突的持久提示（共享件） */}
+          <FormConflictAlert text={grantConflict} testId="user-points-conflict" />
           <Form.Item label="加赠数量（点，1点=1元）" name="amount" rules={[{ required: true, message: '请输入加赠数量' }]}>
             <InputNumber min={0.01} precision={2} style={{ width: '100%' }} placeholder="如 10" />
           </Form.Item>

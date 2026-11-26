@@ -42,8 +42,8 @@ frontend-pc/src/pages/System/UserManagement.jsx|fetchList|1|none|keep:instant|GE
 frontend-pc/src/pages/System/UserManagement.jsx|handleExport|1|none|keep:instant|导出走 fetchBlob（非 2xx 直接抛「导出失败」，无 code），属瞬时失败
 frontend-pc/src/pages/System/UserManagement.jsx|handleSave|1|40002|keep:instant|PUT /admin/user-management/:id 的 40002 仅 status 枚举/no editable fields（表单不可产生），其余 40400/50000
 frontend-pc/src/pages/System/UserManagement.jsx|handleSave|2|40002|keep:instant|同上（catch 兜底：400 族带 code，但可达码集合无用户可改冲突）
-frontend-pc/src/pages/System/UserManagement.jsx|handleGrant|1|40002|keep:instant|points-grant 的 40002 = amount/reason 必填或非正数，前端 Form required + InputNumber min 已拦（不可达）
-frontend-pc/src/pages/System/UserManagement.jsx|handleGrant|2|40002|keep:instant|同上（catch 兜底）
+frontend-pc/src/pages/System/UserManagement.jsx|handleGrant|1|40002|keep:instant|非 rubric 残差：40002 已由同函数 rubric 分支先拦（resp 分支命中即持久提示），此处只剩 40400/50000/网络
+frontend-pc/src/pages/System/UserManagement.jsx|handleGrant|2|40002|keep:instant|同上（catch 兜底：rubric 判定先于本行，残差仅 40400/50000/网络）
 frontend-pc/src/pages/System/UserManagement.jsx|fetchOrphans|1|none|keep:instant|GET /admin/iam-orphans 仅 40100/50200
 frontend-pc/src/pages/System/UserManagement.jsx|fetchOrphans|2|none|keep:instant|网络异常兜底：孤儿列表请求本身失败（无 code），仅瞬时提示
 frontend-pc/src/pages/System/UserManagement.jsx|purgeOrphans|1|none|keep:instant|POST /admin/iam-orphans/purge 仅 40001/40100/50200（均非 rubric 码）
@@ -73,6 +73,7 @@ converted_table() {
 frontend-pc/src/pages/System/UserManagement.jsx|handleSaveIdCard|PUT /admin/user-management/:id/id-card|40002|user-idcard-conflict|40002「身份证号格式不正确」用户改输入即可重试（user_management_idcard.go:46）
 frontend-pc/src/pages/admin/platform-staff/index.jsx|handleCreate|POST /admin/platform-staff|40900|platform-staff-form-conflict|40900 用户名/手机号重复（platform_staff.go:185/189）
 frontend-pc/src/pages/System/TechnicianProfiles.jsx|submit|POST /technician-profiles|40900|technician-form-conflict|40900 同一商户下该员工已是维修师（technician_profile.go:171）
+frontend-pc/src/pages/System/UserManagement.jsx|handleGrant|POST /admin/user-management/:id/points-grant|40002|user-points-conflict|40002「reason is required / amount must be positive」用户改输入即可重试（user_management.go:391-403）；reason 只填空格可绕过 antd required（async-validator 仅把 '' 视为空）→ 该 40002 真实可达
 TABLE
 }
 
@@ -144,6 +145,45 @@ baseline_count() { # file
   grep -c "^$1:" "$BASELINE_SCAN" 2>/dev/null || echo 0
 }
 
+# 指定函数体内是否出现某固定片段（用于 D8「打开即清空」这类函数级判定）
+fn_has() { # file function fixed-string
+  awk -v WANT="$2" -v PAT="$3" '
+    /^  const [A-Za-z_][A-Za-z0-9_]*[ \t]*=/ { fn=$2 }
+    /^  function [A-Za-z_][A-Za-z0-9_]*/ { fn=$2; sub(/\(.*/, "", fn) }
+    fn == WANT && index($0, PAT) { print 1; exit }
+  ' "$1"
+}
+
+# 文件内是否出现某固定片段（JSX 回调等不在函数作用域内的清空点）
+file_has() { # file fixed-string
+  grep -qF -- "$2" "$1" && echo 1 || echo 0
+}
+
+# #2480 D8 四处清空（打开 / 取消 / 字段编辑 / 成功）逐面核验。
+# 输出 CLEAR|surface=... 与四个聚合键；任一面任一处缺失 → r4 FAIL。
+clear_checks() {
+  local um="frontend-pc/src/pages/System/UserManagement.jsx"
+  local idc_open idc_cancel idc_edit idc_success
+  local gr_open gr_cancel gr_edit gr_success
+  idc_open="$(fn_has "$um" openDetail "setIdCardConflict('')")"; idc_open="${idc_open:-0}"
+  idc_cancel="$(file_has "$um" "setDetailVisible(false); setIdCardConflict('')")"
+  idc_edit="$(file_has "$um" "if (idCardConflict) setIdCardConflict('')")"
+  idc_success="$(file_has "$um" "setIdCardConflict('') // #2480 D8：成功后清空")"
+  gr_open="$(file_has "$um" "grantForm.resetFields(); setGrantConflict('')")"
+  gr_cancel="$(file_has "$um" "setGrantVisible(false); setGrantConflict('')")"
+  gr_edit="$(file_has "$um" "if (grantConflict) setGrantConflict('')")"
+  gr_success="$(file_has "$um" "setGrantConflict('') // #2480 D8：成功后清空")"
+  printf 'CLEAR|surface=idcard|open=%s|cancel=%s|edit=%s|success=%s\n' \
+    "$idc_open" "$idc_cancel" "$idc_edit" "$idc_success"
+  printf 'CLEAR|surface=grant|open=%s|cancel=%s|edit=%s|success=%s\n' \
+    "$gr_open" "$gr_cancel" "$gr_edit" "$gr_success"
+  echo "CLEAR_ON_OPEN=$((idc_open * gr_open))"
+  echo "CLEAR_ON_CANCEL=$((idc_cancel * gr_cancel))"
+  echo "CLEAR_ON_EDIT=$((idc_edit * gr_edit))"
+  echo "CLEAR_ON_SUCCESS=$((idc_success * gr_success))"
+  [ "$((idc_open * gr_open * idc_cancel * gr_cancel * idc_edit * gr_edit * idc_success * gr_success))" -eq 1 ]
+}
+
 r1() {
   local tier_of code_of reason_of
   declare -A tier_of code_of reason_of
@@ -211,6 +251,11 @@ r1() {
   echo "FILES_SCANNED=${#IN_SCOPE[@]}"
   echo "BASELINE_ROWS=$baseline_total"
   echo "DEFER_ROWS=0"
+  # Round 2 Audit R1：reason 必须写明「不可达的具体机制」，不得再用「前端 Form required 已拦」泛称。
+  local generic_reason
+  generic_reason=$(classify_table | grep -c 'required .*已拦（不可达）' || true)
+  generic_reason="${generic_reason:-0}"
+  echo "REASON_GENERIC_PHRASE=$generic_reason"
   # Rev.2 只覆盖 3 个页面（ClientManagement 已由 #2518 删除），计划表内「6 文件」为 Rev.1 残留。
   echo "PLAN_FILE_COUNT_NOTE=plan-table-says-6;rev2-scope=3;reason=#2518 deleted ClientManagement.jsx"
   # #2465（holdon）若把维修师档案收敛进员工管理，本文件的转换需复核。
@@ -218,7 +263,7 @@ r1() {
   echo "READONLY=1"
   echo "RUN_HEURISTIC=0"
 
-  if [ "$unclassified" -eq 0 ] && [ "$files_ok" -eq 1 ]; then
+  if [ "$unclassified" -eq 0 ] && [ "$files_ok" -eq 1 ] && [ "$generic_reason" -eq 0 ]; then
     echo "RESULT: PASS"
     return 0
   fi
@@ -318,11 +363,32 @@ r4() {
 
   keep_rows=$(classify_table | grep -c '|keep:instant|' || true)
   keep_with_reason=$(classify_table | grep '|keep:instant|' | awk -F'|' 'length($6) >= 8 {c++} END {print c+0}')
+  # Round 2 Audit R4：判定表必须与当前源码逐行对齐（键 = file|fn|nth），避免「判定表正确性」缺证据。
+  local classify_total=0 classify_matched=0
+  declare -A scanned_key=()
+  while IFS=$'\t' read -r sf _line sfn sseq; do
+    [ -n "${sf:-}" ] || continue
+    scanned_key["$sf|$sfn|$sseq"]=1
+  done < <(scan_sites)
+  while IFS='|' read -r cf cfn cseq _c_code _c_tier _c_reason; do
+    [ -n "${cf:-}" ] || continue
+    classify_total=$((classify_total + 1))
+    if [ -n "${scanned_key["$cf|$cfn|$cseq"]:-}" ]; then
+      classify_matched=$((classify_matched + 1))
+    else
+      printf 'CLASSIFY_KEY_MISSING|%s|fn=%s|nth=%s\n' "$cf" "$cfn" "$cseq"
+    fi
+  done < <(classify_table)
+  local clear_ok=0
+  clear_checks && clear_ok=1
   echo "PERSISTED_FUNCTIONS=$persisted"
   echo "BUSINESS_TOAST_RESIDUAL=$residual"
   echo "KEEP_ROWS=$keep_rows"
   echo "KEEP_WITH_REASON=$keep_with_reason"
-  if [ "$residual" -eq 0 ] && [ "$keep_with_reason" -eq "$keep_rows" ]; then
+  echo "CLASSIFY_KEYS_MATCHED=$classify_matched/$classify_total"
+  echo "CLEAR_ALL=$clear_ok"
+  if [ "$residual" -eq 0 ] && [ "$keep_with_reason" -eq "$keep_rows" ] \
+    && [ "$classify_matched" -eq "$classify_total" ] && [ "$clear_ok" -eq 1 ]; then
     echo "RESULT: PASS"
     return 0
   fi
