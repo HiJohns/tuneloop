@@ -1,16 +1,16 @@
 {
   "issue": 2538,
   "overall": "PASS",
-  "plan": "/home/coder/worktrees/tuneloop/wt-2538/tmp/pre-ready-2538.zxdRac/plan.md",
+  "plan": "docs/evidence/2538/plan.md",
   "plan_sha256": "3fce3af0139a33fac8549a0900ce46829cbdd531679d124be70d02a1d03b393a",
   "config_sha": "8a98b9aae65c6ac3cd894919a9cea280167e2e11",
   "provenance": {
-    "build": "1.0.308a48c02",
-    "commit": "308a48c029df8c1cccbc482d3f99270dd4d3b1f4",
+    "build": "1.0.bc544a810",
+    "commit": "bc544a8102335e50ccd4e4820ab25ccdcb9c05d8",
     "dirty": false
   },
-  "summary": "docs/evidence/2538/summary.md",
-  "timestamp": "20261126-025738",
+  "summary": "tmp/fix-summary-2538.md",
+  "timestamp": "20261126-032110",
   "checks": [
     {
       "id": "P1",
