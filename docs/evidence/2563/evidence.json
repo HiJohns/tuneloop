@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "issue": 2563,
+  "build": "1.0.16faa351d",
+  "commit": "16faa351de3842a750f8f09c4bb0fe6f063d32a0",
+  "dirty": false,
+  "plan_sha256": "975dcebfac55e9413cf1556f69a7567bd7e3d3e150f4950b506a2b0e8c405281",
+  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2563 (branch issue-2563, base origin/develop 58cb3a54a); node v20.20.2; frontend-pc npm ci (eslint 8.57); unit tests via node --test; build/eslint via host heavy-lock; no DB and no backend change",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2563.sh r1 > docs/evidence/2563/R1-transport-unit.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2563/R1-transport-unit.txt"
+      ],
+      "assert": "exit 0；grep -q 'THROW_40002=1'；grep -q '# fail 0'",
+      "actual": "PASS：THROW_40002=1 THROW_40004=1 THROW_403=1 THROW_429=1 THROW_500=1 THROW_502=1 MSG_40002=CJK_PASSTHROUGH RESULT_404=1 RESULT_409=1 RESULT_409_DEFAULT_CODE=40900 CODE_STRING_COERCED=1 BAD_PAYLOAD_SAFE=1；node --test tests 5 / pass 5 / fail 0",
+      "expected": "400/403/429/500/502 全部 kind=throw 且带 code；404/409 为 kind=result；node 用例全通过",
+      "negative": "任一非 404/409 产出 kind=result（如 400 被当对象返回）→ 脚本非 0 退出",
+      "negative_result": "红样实测：把 resolveHttpFailure 的 400 改成返回对象后重跑 → THROW_40002=0、tests pass 2 / fail 3（REJECT 形态可复现）；恢复后 5/5 通过。断言还覆盖数字字符串 code 强制转换与 null/字符串/数组 payload 的安全降级",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2563.sh r2 > docs/evidence/2563/R2-client-wiring-static.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2563/R2-client-wiring-static.txt"
+      ],
+      "assert": "exit 0；grep -q '^R2_OK$'；grep -q 'NONOK_INLINE_RETURNS=0'",
+      "actual": "PASS：FAILURE_RESOLVER_CALLS=1 INLINE_STATUS_MAP=0 THROW_PATH=1 NONOK_INLINE_RETURNS=0 AUTH_BLOCK_BEFORE_NONOK=1 AUTH_CODES=4 PERM_VERSION=1 IDLE_GUARD=5；R2_OK",
+      "expected": "FAILURE_RESOLVER_CALLS=1、INLINE_STATUS_MAP=0、THROW_PATH=1、AUTH_BLOCK_BEFORE_NONOK=1、AUTH_CODES=4、PERM_VERSION=1、IDLE_GUARD=1",
+      "negative": "块内出现 return {、或 401 分支被移到 !response.ok 之后 → 输出 R2_FAIL 并非 0 退出",
+      "negative_result": "红样实测：在 !response.ok 块内重新加入 if (response.status === 404) { return { code: 40400 } } → INLINE_STATUS_MAP=1、NONOK_INLINE_RETURNS=1、R2_FAIL、rc=1；恢复后 R2_OK、rc=0。AUTH_LINE=53 < NONOK_LINE=87 证明 401 处理仍在非 2xx 之前",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2563.sh r3 > docs/evidence/2563/R3-consumer-wiring.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2563/R3-consumer-wiring.txt"
+      ],
+      "assert": "exit 0；grep -q '^R3_OK$'；grep -q 'CONFLICT_BRANCH_IN_CATCH=1'",
+      "actual": "PASS：CONFLICT_BRANCH_IN_CATCH=1 CONFLICT_TEXT_FALLBACK=1 FALLBACK_TOAST=1 ALERT_RENDERED=1；formConflict 用例 TRUE_ENRICHED_ERROR=1 FALSE_PLAIN_ERROR=1，tests 6 / pass 6 / fail 0",
+      "expected": "FALLBACK_TOAST=1、ALERT_RENDERED=1、TRUE_ENRICHED_ERROR=1、FALSE_PLAIN_ERROR=1、# fail 0",
+      "negative": "catch 缺 code 判定、或删除兜底 message.error、或普通 Error 被判 true → 输出 R3_FAIL 并非 0 退出",
+      "negative_result": "R3 四个 token 分别绑定 catch 块内的 isBusinessCorrectableConflict(err)、conflictText(err…)、message.error( 与文件内 <FormConflictAlert；任一缺失即该 token 为 0 → R3_FAIL。rubric 侧由 formConflict 用例锁死「enriched Error 判 true / plain Error 判 false」，普通 Error 被判 true 时该用例失败 → '# fail 0' 断言不成立",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2563.sh r4 > docs/evidence/2563/R4-redgreen-inventory.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2563/R4-redgreen-inventory.txt"
+      ],
+      "assert": "exit 0；grep -q '^R4_OK$'；grep -q 'RED_NO_CODE=1'；grep -q 'GREEN_CODE_ATTACHED=1'",
+      "actual": "PASS：RED_BASE=58cb3a54a… RED_THROW_SITE=1 RED_NO_CODE=1 GREEN_CODE_ATTACHED=1 NONOK_INLINE_RETURNS=0 AWAIT_CALL_SITES=259 CALL_SITES_GE_150=1；R4_OK",
+      "expected": "AWAIT_CALL_SITES ≥ 150、NONOK_INLINE_RETURNS=0",
+      "negative": "修后仍存在非 404/409 内联返回对象、或修前样本含 code 赋值（红样失效）→ R4_FAIL 并非 0 退出",
+      "negative_result": "红样由 git show <fix>^ 的 request() 非 2xx 块生成（锚点用提交历史，不手写 sha）：该块 throw new Error(resolveErrorMessage…) 且无 error.code 赋值 → RED_NO_CODE=1；修后 apiError.js 含 error.code = code → GREEN_CODE_ATTACHED=1。若修前样本出现 code 赋值或修后仍有内联返回，两个 token 之一变 0 → R4_FAIL",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2563.sh r5 > docs/evidence/2563/R5-docs-contract.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2563/R5-docs-contract.txt"
+      ],
+      "assert": "exit 0；grep -q '^R5_OK$'；grep -q 'DOC_CONTRACT_OK=1'",
+      "actual": "PASS：DOC_SECTION_LINES=13 DOC_CONTRACT_OK=1；DOC_HAS[PC 客户端非 2xx 契约]=1、DOC_HAS[error.code]=1、DOC_HAS[error.status]=1、DOC_HAS[40002]=1、DOC_HAS[catch]=1、DOC_HAS[本域行为不变]=1、DOC_HAS[40900]=1",
+      "expected": "api.md §1.3 含「PC 客户端非 2xx 契约」与 error.code 句，且含 401 不变声明",
+      "negative": "缺「其余非 2xx 抛 Error 带 code」句或 401 不变声明 → R5_FAIL 并非 0 退出",
+      "negative_result": "逐 token 断言（共 7 个）；任一缺失则该 token 为 0 并使 DOC_CONTRACT_OK=0 → R5_FAIL。行数断言（13 行）确保抽取到的是新增段落而非全文匹配",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2563.sh r6 > docs/evidence/2563/R6-build-lint.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2563/R6-build-lint.txt"
+      ],
+      "assert": "exit 0；grep -q '^R6_OK$'；grep -q 'BUILD_EXIT=0'；grep -q 'ESLINT_NO_UNDEF=0'",
+      "actual": "PASS：BUILD_EXIT=0（vite build ✓）、ESLINT_EXIT=0、ESLINT_NO_UNDEF=0（apiError.js / api.js / SiteManagement.jsx）；R6_OK",
+      "expected": "构建 0 退出、no-undef 计数 0",
+      "negative": "构建非 0 或 no-undef 计数 > 0 → R6_FAIL 并非 0 退出",
+      "negative_result": "首次运行即命中真实负例：worktree 缺 frontend-pc/node_modules 时 BUILD_EXIT=127（vite not found）、ESLINT_EXIT=2 → R6_FAIL；npm ci 后 BUILD_EXIT=0 / ESLINT_EXIT=0 / ESLINT_NO_UNDEF=0",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "/home/coder/.config/opencode/scripts/pre-ready-check.sh 2563 --summary-file docs/evidence/2563/summary.md --changed-files docs/evidence/2563/changed-files.txt --evidence-file docs/evidence/2563/evidence.json --full-gate-cmd \"cd frontend-pc && npm run build\" --report docs/evidence/2563/pre-ready-2563.json",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2563/pre-ready-2563.json"
+      ],
+      "assert": "exit 0；GATE_RESULT=PASS；jq -e '.result == \"PASS\"'",
+      "actual": "PASS：pre-ready-check.sh 全部检查项 PASS（含 P5 全量 PC 构建、P12 七行合同、P13 fix/evidence 已在 origin/issue-2563），报告写入 docs/evidence/2563/pre-ready-2563.json",
+      "expected": "每条合同行 pass=true、dirty=false、P13 提交在 origin/issue-2563",
+      "negative": "任一 P 项失败 / evidence.json 缺行 / dirty=true → gate 非 0，禁止 ready",
+      "negative_result": "gate 自身即执行器：P5 在干净树跑 cd frontend-pc && npm run build、P12 逐行比对合同（缺行/多余行/pass!=true 均失败）、P13 校验 fix commit 与证据提交已在远端；任一项失败时 gate 非 0 且报告 .result 非 PASS",
+      "pass": true
+    }
+  ],
+  "tooling_commit": "a017a25d46fec75ebb30fd9e19eb220c51fb166a"
+}

@@ -1,0 +1,53 @@
+# build=1.0.16faa351d # commit=16faa351de3842a750f8f09c4bb0fe6f063d32a0 # dirty=false
+# 非 2xx 分类纯函数回归（resolveHttpFailure）：400/403/429/500/502 抛 Error 且带 code；404/409 返回对象
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed at_ms=1795701975197 wait_ms=571
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed wait_ms=571
+TAP version 13
+# THROW_40002=1
+# THROW_40004=1
+# THROW_403=1
+# THROW_429=1
+# THROW_500=1
+# THROW_502=1
+# MSG_40002=CJK_PASSTHROUGH
+# RESULT_404=1
+# RESULT_409=1
+# RESULT_409_DEFAULT_CODE=40900
+# CODE_STRING_COERCED=1
+# BAD_PAYLOAD_SAFE=1
+# R1_CONFLICT_RUBRIC=1
+# Subtest: 400/403/429/500/502 throw an Error that keeps the business code
+ok 1 - 400/403/429/500/502 throw an Error that keeps the business code
+  ---
+  duration_ms: 16.67318
+  ...
+# Subtest: thrown Error carries data and keeps the backend CJK message
+ok 2 - thrown Error carries data and keeps the backend CJK message
+  ---
+  duration_ms: 11.732336
+  ...
+# Subtest: 404 / 409 still return result objects (unchanged contract)
+ok 3 - 404 / 409 still return result objects (unchanged contract)
+  ---
+  duration_ms: 2.619162
+  ...
+# Subtest: numeric string code is coerced; malformed payload is safe
+ok 4 - numeric string code is coerced; malformed payload is safe
+  ---
+  duration_ms: 2.24358
+  ...
+# Subtest: the enriched 40002 Error is a business-correctable conflict, a plain Error is not
+ok 5 - the enriched 40002 Error is a business-correctable conflict, a plain Error is not
+  ---
+  duration_ms: 5.202172
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 434.558162
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795701976678 hold_ms=1481
