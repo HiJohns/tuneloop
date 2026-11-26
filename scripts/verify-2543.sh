@@ -79,7 +79,7 @@ run_row_test() {
   local pattern="$1" log="$2"
   ( cd "$ROOT/backend" && heavy go test ./handlers -run "$pattern" -count=1 -v ) > "$log" 2>&1
   local rc=$?
-  grep -E '^ *[a-z_0-9]+_test\.go:[0-9]+: (TABLE_EXISTS|COLUMN_COUNT|TOKEN_UNIQUE|EXEMPT_REMOVED|MISSING_TABLE_ERR|DOWN_TABLE_EXISTS|CONFIRM_STATUS|BIND_USER_ARG|PERM_USER_ARG|ROLE|IAM_LOCAL_ID_SENT|IAM_CALLS|MESSAGE_HAS_ACTIVATE|IAM_READY_|SITE_MEMBER_)' "$log" \
+  grep -E '^ *[a-z_0-9]+_test\.go:[0-9]+: (TABLE_EXISTS|COLUMN_COUNT|TOKEN_UNIQUE|EXEMPT_REMOVED|MISSING_TABLE_ERR|DOWN_TABLE_EXISTS|CONFIRM_STATUS|BIND_USER_ARG|PERM_USER_ARG|ROLE|IAM_LOCAL_ID_SENT|IAM_CALLS|MESSAGE_HAS_ACTIVATE|IAM_READY_|SITE_MEMBER_|WHITESPACE_SUB_)' "$log" \
     | sed -E 's/^ *[a-z_0-9]+_test\.go:[0-9]+: //'
   grep -E '^--- (PASS|FAIL)' "$log" || true
   [ "$rc" = "0" ] || { tail -30 "$log"; fail "go test '$pattern' failed (see $log)"; }
@@ -128,11 +128,14 @@ case "$ROW" in
   r3)
     {
       echo "== R3 empty iam_sub → explicit failure, zero IAM requests =="
-      run_row_test 'TestExecuteAction_MerchantAdmin_EmptyIAMSub_2543' "$WORK_TMP/r3.log"
+      run_row_test 'TestExecuteAction_MerchantAdmin_(Empty|Whitespace)IAMSub_2543' "$WORK_TMP/r3.log"
     } | collect
     assert_token "CONFIRM_STATUS=failed"
     assert_token "IAM_CALLS=0"
     assert_token "MESSAGE_HAS_ACTIVATE=1"
+    # #2543 Round 3（审计 Bug 3）：纯空白 iam_sub 必须与空 iam_sub 同判定。
+    assert_token "WHITESPACE_SUB_CONFIRM_STATUS=failed"
+    assert_token "WHITESPACE_SUB_IAM_CALLS=0"
     ;;
 
   r4)
@@ -142,6 +145,8 @@ case "$ROW" in
       DOC_DELETE_SYSADMIN_ONLY=0
       DOC_IAM_READY=0
       DOC_OWNER_INVARIANT=0
+      DOC_REJECT_TRUTH=0
+      DOC_GET_FIELDS=0
       grep -Fq 'IAM（beaconiam）为唯一事实来源' docs/topics/iam/iam-notes.md && DOC_FACT_SOURCE=1
       if grep -Fq '只有**命名空间管理员（系统管理员）**可以真正删除用户' docs/topics/iam/iam-notes.md &&
          grep -Fq '仅命名空间管理员（系统管理员）' docs/spec/permissions.md; then
@@ -155,15 +160,32 @@ case "$ROW" in
          grep -Fq '必须 0' docs/topics/iam/iam-notes.md; then
         DOC_OWNER_INVARIANT=1
       fi
+      # #2543 Round 3（审计 Bug 1）：§2.8.3 必须与 Reject 实际行为一致。
+      # 负例：仍在写「已确认/已过期会话不受理」（未实现的行为）→ DOC_REJECT_TRUTH=0。
+      if ! grep -Fq '已确认/已过期会话不受理' docs/spec/api/api.md &&
+         grep -Fq '对 `status` 与 `expires_at` 没有任何守卫' docs/spec/api/api.md &&
+         grep -Fq '#2575' docs/spec/api/api.md; then
+        DOC_REJECT_TRUTH=1
+      fi
+      # §2.8.1 的 GET 响应不得再列 handler 不返回的字段（历史漂移）。
+      if ! grep -Fq '"iam_session_id": "iam-session-uuid"' docs/spec/api/api.md &&
+         ! grep -Fq '"callback_url": "https://web.cadenzayueqi.com/api/iam/confirmation-callback"' docs/spec/api/api.md &&
+         grep -Fq '本端点不返回它们' docs/spec/api/api.md; then
+        DOC_GET_FIELDS=1
+      fi
       echo "DOC_FACT_SOURCE=$DOC_FACT_SOURCE"
       echo "DOC_DELETE_SYSADMIN_ONLY=$DOC_DELETE_SYSADMIN_ONLY"
       echo "DOC_IAM_READY=$DOC_IAM_READY"
       echo "DOC_OWNER_INVARIANT=$DOC_OWNER_INVARIANT"
+      echo "DOC_REJECT_TRUTH=$DOC_REJECT_TRUTH"
+      echo "DOC_GET_FIELDS=$DOC_GET_FIELDS"
     } | collect
     assert_token "DOC_FACT_SOURCE=1"
     assert_token "DOC_DELETE_SYSADMIN_ONLY=1"
     assert_token "DOC_IAM_READY=1"
     assert_token "DOC_OWNER_INVARIANT=1"
+    assert_token "DOC_REJECT_TRUTH=1"
+    assert_token "DOC_GET_FIELDS=1"
     ;;
 
   r5)

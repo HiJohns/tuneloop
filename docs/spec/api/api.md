@@ -825,13 +825,11 @@ GET /api/confirmation-sessions/:id
   "data": {
     "id": "session_uuid",
     "user_id": "uuid",
-    "iam_session_id": "iam-session-uuid",
     "confirm_type": "email",
     "confirm_target": "user@example.com",
     "merchant_id": "uuid",
     "action_type": "merchant_admin",
     "action_target_id": "uuid",
-    "callback_url": "https://web.cadenzayueqi.com/api/iam/confirmation-callback",
     "status": "waiting",
     "message": null,
     "expires_at": "2024-01-16T10:00:00Z",
@@ -841,11 +839,9 @@ GET /api/confirmation-sessions/:id
 }
 ```
 
-**新增字段**:
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| iam_session_id | string | IAM 侧确认会话 ID |
-| callback_url | string | IAM 确认后的回调地址 |
+**返回字段集（`GetConfirmationSession`，逐字段对齐代码）**：`id`、`user_id`、`confirm_type`、`confirm_target`、`merchant_id`、`action_type`、`action_target_id`、`status`、`message`、`expires_at`、`confirmed_at`、`created_at`。
+
+> ⚠️ `iam_session_id` 与 `callback_url` 是模型持久化列（`models.ConfirmationSession`），但**本端点不返回它们**。如需暴露，必须先扩展 handler 并同步本文件（历史文档曾误列为本端点返回字段，此处已按代码更正）。
 
 #### 2.8.2 确认执行
 
@@ -864,7 +860,9 @@ POST /api/confirmation-sessions/:id/confirm?token=...
 POST /api/confirmation-sessions/:id/reject  { "token": "..." }
 ```
 
-会话置 `rejected`；已确认/已过期会话不受理。
+**当前实现（与代码逐行对齐，`RejectConfirmationSession`）**：只校验 `id + tenant_id + token` 三者匹配，随后把会话置 `rejected`；**对 `status` 与 `expires_at` 没有任何守卫**——`confirmed`（动作已执行）或已过期的会话，凭原 token 调用本端点仍会被改写为 `rejected`。这与 §2.8.2 的 `Confirm`（先判过期、再对 `confirmed` 幂等返回）**不对称**，属已知缺陷，跟踪 **#2575**。
+
+> ⚠️ 调用方须知：`rejected` 仅是会话语义标签，**不回收已执行的 IAM 绑定/权限写入**（`BindUserToOrganization` / `SetUserCustomerPermissions`）与已写入的本地 `site_members`。不得依赖本端点实现「撤销已确认动作」。
 
 ## 三、白标化配置模块
 

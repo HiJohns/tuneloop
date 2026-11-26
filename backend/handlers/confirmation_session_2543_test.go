@@ -348,6 +348,27 @@ func TestExecuteAction_MerchantAdmin_EmptyIAMSub_2543(t *testing.T) {
 	t.Logf("MESSAGE_HAS_ACTIVATE=%d", boolToInt2543(strings.Contains(stored.Message, "账号尚未激活")))
 }
 
+// TestExecuteAction_MerchantAdmin_WhitespaceIAMSub_2543 asserts a whitespace-only
+// iam_sub is treated exactly like an empty one (same predicate as `iam_ready` in
+// Create — one shared `iamSubjectReady`, no divergent second opinion).
+func TestExecuteAction_MerchantAdmin_WhitespaceIAMSub_2543(t *testing.T) {
+	db := seedConfirmFixture2543(t)
+	spy := setupIAMSpy2543(t)
+
+	tenantID, userID, sessionID, token := seedMerchantAdminSession2543(t, db, "   ")
+
+	h := NewConfirmationSessionHandler()
+	r := confirmRouter2543(t, tenantID, tenantID, userID, h)
+	w := doConfirm2543(t, r, sessionID, token)
+	require.Equal(t, http.StatusInternalServerError, w.Code, w.Body.String())
+
+	var stored models.ConfirmationSession
+	require.NoError(t, db.Where("id = ?", sessionID).First(&stored).Error)
+	assert.Equal(t, "failed", stored.Status, "whitespace iam_sub must fail the confirmation")
+	require.Equal(t, 0, spy.count(), "no IAM request may be sent for a whitespace iam_sub")
+	t.Logf("WHITESPACE_SUB_CONFIRM_STATUS=%s WHITESPACE_SUB_IAM_CALLS=%d", stored.Status, spy.count())
+}
+
 // ------------------------------------------------------------------- R4
 
 // TestExecuteAction_SiteStaff_Regression_2543 keeps the local-only site branch
@@ -432,7 +453,13 @@ func TestCreateConfirmationSession_IAMReady_2543(t *testing.T) {
 
 	pending := post(mk(""))
 	assert.Equal(t, false, pending["iam_ready"], "IAM_READY_PENDING=0")
-	t.Logf("IAM_READY_ACTIVE=%v IAM_READY_PENDING=%v", ready["iam_ready"], pending["iam_ready"])
+
+	// #2543 Round 3（审计 Bug 3）：纯空白 iam_sub 与空 iam_sub 必须同判定
+	// （`iam_ready` 与 `executeAction` 的守卫共用 iamSubjectReady）。
+	blank := post(mk("   "))
+	assert.Equal(t, false, blank["iam_ready"], "IAM_READY_WHITESPACE=0")
+	t.Logf("IAM_READY_ACTIVE=%v IAM_READY_PENDING=%v IAM_READY_WHITESPACE=%v",
+		ready["iam_ready"], pending["iam_ready"], blank["iam_ready"])
 }
 
 func boolToInt2543(b bool) int {

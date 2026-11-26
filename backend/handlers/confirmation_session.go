@@ -119,7 +119,9 @@ func (h *ConfirmationSessionHandler) Create(c *gin.Context) {
 			"expires_at": session.ExpiresAt,
 			// #2543：iam_sub 是确认执行的 IAM 主体。创建会话时不强制已激活
 			// （激活可能晚于创建），但把就绪状态返回给调用方以便提前提示。
-			"iam_ready": user.IAMSub != "",
+			// 与 executeAction 的守卫共用 iamSubjectReady，避免两处口径漂移
+			// （纯空白 iam_sub 曾出现 iam_ready=true 但确认必然失败）。
+			"iam_ready": iamSubjectReady(user.IAMSub),
 		},
 	})
 }
@@ -274,6 +276,14 @@ func (h *ConfirmationSessionHandler) Reject(c *gin.Context) {
 	})
 }
 
+// iamSubjectReady reports whether the local user carries a usable IAM subject.
+// #2543（Round 3）：`Create` 的 `iam_ready` 与 `executeAction` 的守卫必须同源
+// ——纯空白 iam_sub 曾让 `iam_ready=true` 与「确认必然失败」并存。单点判定，
+// 禁止在两处各写一份口径。
+func iamSubjectReady(iamSub string) bool {
+	return strings.TrimSpace(iamSub) != ""
+}
+
 // generateSecureToken generates a cryptographically secure random token of specified length
 func generateSecureToken(length int) (string, error) {
 	bytes := make([]byte, length)
@@ -382,7 +392,7 @@ func (h *ConfirmationSessionHandler) executeAction(session *models.ConfirmationS
 			// #2543 D2/D3（Owner 2026-11-26「用户/组织/权限/角色一律以 IAM 为事实来源」）：
 			// IAM 主体一律 users.iam_sub；本地 users.id 只用于本地查询。
 			// iam_sub 为空 → 显式失败，且不得发任何 IAM 请求（禁止把本地 id 发给 IAM）。
-			if strings.TrimSpace(user.IAMSub) == "" {
+			if !iamSubjectReady(user.IAMSub) {
 				return fmt.Errorf("账号尚未激活，无法绑定组织（iam_sub 为空，user=%s）", user.ID)
 			}
 			iamClient := services.NewIAMClient()
