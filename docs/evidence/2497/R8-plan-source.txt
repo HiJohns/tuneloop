@@ -1,0 +1,10 @@
+# build=1.0.63ede9c1 # commit=63ede9c18bd8917fb03e708fec801bc3753b247a # dirty=false
+PLAN_SOURCE_CMD=scripts/plan-source.sh --issue 2497
+PLAN_SOURCE_EXIT=0
+PLAN_SOURCE: plan sha=c45b1133e1597decb279727136747f56d2e044012c536ce2107ed5754d631f24 source=/home/coder/worktrees/tuneloop/wt-2497/docs/evidence/2497/plan.md
+PLAN_SOURCE: gate sha=c45b1133e1597decb279727136747f56d2e044012c536ce2107ed5754d631f24 source=/home/coder/worktrees/tuneloop/wt-2497/docs/evidence/2497/pre-ready-2497.json
+PLAN_SOURCE: evidence sha=c45b1133e1597decb279727136747f56d2e044012c536ce2107ed5754d631f24 source=/home/coder/worktrees/tuneloop/wt-2497/docs/evidence/2497/evidence.json
+PLAN_SOURCE: PASS sha=c45b1133e1597decb279727136747f56d2e044012c536ce2107ed5754d631f24
+PLAN_SOURCE: PASS
+RESULT: PASS
+

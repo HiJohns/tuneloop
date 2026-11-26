@@ -1,16 +1,16 @@
 {
   "issue": 2497,
   "overall": "PASS",
-  "plan": "/home/coder/worktrees/tuneloop/wt-2497/tmp/pre-ready-2497.BS2mS9/plan.md",
-  "plan_sha256": "0408876224045a441e2018c6a3ee08f0e8aafd89229bf72319b34d4b982d0eaa",
-  "config_sha": "f663626b8fe3895a49dffa4c43266664546741db",
+  "plan": "docs/evidence/2497/plan.md",
+  "plan_sha256": "c45b1133e1597decb279727136747f56d2e044012c536ce2107ed5754d631f24",
+  "config_sha": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
   "provenance": {
-    "build": "1.0.b41983e3",
-    "commit": "b41983e329cfae1a1175d371e42f1c7af218451b",
+    "build": "1.0.63ede9c1",
+    "commit": "63ede9c18bd8917fb03e708fec801bc3753b247a",
     "dirty": false
   },
   "summary": "tmp/work-summary-2497.md",
-  "timestamp": "20261125-131202",
+  "timestamp": "20261126-120307",
   "checks": [
     {
       "id": "P1",
@@ -30,7 +30,7 @@
     {
       "id": "P4",
       "status": "PASS",
-      "detail": "all 2 affected command(s) passed"
+      "detail": "all 1 affected command(s) passed"
     },
     {
       "id": "P12",
@@ -40,12 +40,12 @@
     {
       "id": "P14",
       "status": "PASS",
-      "detail": "artifact provenance matches evidence (6 artifacts)"
+      "detail": "artifact provenance matches evidence (7 artifacts)"
     },
     {
       "id": "P18",
-      "status": "WARN",
-      "detail": "tooling_commit missing (legacy bundle); config_sha=f663626b8fe3895a49dffa4c43266664546741db"
+      "status": "PASS",
+      "detail": "tooling_commit matches the running scripts (a017a25d46fec75ebb30fd9e19eb220c51fb166a)"
     },
     {
       "id": "P15",
@@ -64,8 +64,8 @@
     },
     {
       "id": "P5",
-      "status": "N/A",
-      "detail": "no go.mod/package.json and no --full-gate-cmd: full gate not applicable"
+      "status": "PASS",
+      "detail": "full gate clean worktree; HEAD failures are a subset of baseline (origin/develop); source head=run baseline=run"
     },
     {
       "id": "P6",

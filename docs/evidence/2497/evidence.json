@@ -104,6 +104,20 @@
       "negative": "任一失败 → FAIL",
       "negative_result": "任一包失败或 panic → FAIL_COUNT/PANIC_COUNT>0 → FAIL；实测全 0",
       "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash scripts/verify-2497.sh r8",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2497/R8-plan-source.txt"
+      ],
+      "assert": "exit 0；首行 provenance，正文含 PLAN_SOURCE: PASS",
+      "actual": "PASS：plan-source.sh 四源同 sha c45b1133…（Accepted Plan 评论 / docs/evidence/2497/plan.md / gate 报告 / evidence.json），正文含 PLAN_SOURCE: PASS",
+      "expected": "PASS",
+      "negative": "四源不一致 → FAIL",
+      "negative_result": "plan.md 未落盘时实测 PLAN_SOURCE: FAIL plan-md-missing（Round 1 Bug 5）；gate 或 evidence 的 plan_sha256 漂移会输出 PLAN_SOURCE: FAIL gate-mismatch / evidence-mismatch → FAIL",
+      "pass": true
     }
   ],
   "tooling_commit": "a017a25d46fec75ebb30fd9e19eb220c51fb166a"
