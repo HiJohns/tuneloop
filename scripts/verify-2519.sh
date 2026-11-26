@@ -333,7 +333,7 @@ r16)
   # Rev.7 审计 B1：详情页不得再传 overrides（后端已不消费），且必须消费 failed[]。
   DETAIL="$REPO/frontend-pc/src/pages/admin/instrument/Detail.jsx"
   DETAIL_SENDS_OVERRIDES="$(grep -cE 'overrides\s*:|overrides\.overdue_daily_fee' "$DETAIL" || true)"
-  DETAIL_EXPLICIT="$(grep -cF 'overdue_daily_fee: editValues.overdue_daily_fee' "$DETAIL" || true)"
+  DETAIL_EXPLICIT="$(grep -cF 'pricingItem.overdue_daily_fee = editValues.overdue_daily_fee' "$DETAIL" || true)"
   FAILED_CONSUMED=0
   grep -qF 'res?.data?.failed' "$DETAIL" && FAILED_CONSUMED=1
   run_go_row "$WORK/go.log" '^TestBatchSetInstrumentPricing_ExplicitOverdue_2519$'
