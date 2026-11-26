@@ -6,7 +6,7 @@
   "dirty": false,
   "plan_sha256": "e85e6ecca2d4cc865e3d7fa76041d97a92d3b52340b3ee67bb2226a35101a3db",
   "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2564 (branch issue-2564); PC-only static/structural evidence (Owner UI static exemption D4); Fix commit a30c6e250; artifacts generated at that commit (dirty=false); rev.2 plan refresh by /work resume",
-  "tooling_commit": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
+  "tooling_commit": "acab7d27d28832d1ad366dd4c944ffb3e2ff9ca8",
   "rows": [
     {
       "id": "R1",

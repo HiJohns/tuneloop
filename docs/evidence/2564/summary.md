@@ -47,7 +47,7 @@
 
 ### Rev.2 复跑（本次 /work 恢复）
 
-- Accepted Plan 已更新为 **Rev.2**（`sha256 e85e6ecca2d4…`）：R2 矩阵/G0 登记 4 个判定键、R4 断言键由 `.result` 改为报告根键 `.overall`。
+- Accepted Plan 已更新为 **Rev.2**（`sha256 e85e6ecca2d4…`）：R2 矩阵/G0 登记 4 个判定键、R4 断言键由 result 改为报告根键 overall。
 - 处理：刷新 `docs/evidence/2564/plan.md` 快照到 Rev.2 → evidence.json 的 `plan_sha256` 与 R4 断言对齐 → 重跑 r1/r2/r3 证据 → 重跑 pre-ready gate。
 - 产品代码未改（Round 2 审计已确认正确），本轮只做计划/证据对齐与复验。
 
