@@ -830,6 +830,52 @@ GET /api/confirmation-sessions/:id
 | iam_session_id | string | IAM 侧确认会话 ID |
 | callback_url | string | IAM 确认后的回调地址 |
 
+### 2.8.2 确认执行
+
+```
+POST /api/confirmation-sessions/:id/confirm?token=<token>
+```
+
+**可确认状态白名单**（服务端唯一判定，`backend/handlers/confirmation_session.go` 的 `confirmableStatuses`）：
+
+| 会话 `status` | 能否转 `confirmed` | 语义 |
+|---|---|---|
+| `waiting` | ✅ | 等待确认，正常路径 |
+| `failed` | ✅ | IAM 已确认但动作执行失败，**允许重试** |
+| `confirmed` | — | 幂等只读，返回 `20000 already confirmed`，不重复执行动作 |
+| `rejected` | ❌ | 用户显式否决，任何路径不得翻回 |
+| `expired` | ❌ | IAM 24h 超时标记 |
+| 其它/空 | ❌ | 未知状态一律视为不可确认 |
+
+**写入方式**：状态转移判定压进写操作本身（条件更新 / CAS，`WHERE id AND tenant_id AND token AND status IN (waiting, failed) AND expires_at > now`）。命中才执行动作；未命中只重读分类，**不写状态、不执行动作**。
+
+**守卫顺序与响应**（该顺序即实现中的判定顺序）：
+
+| # | 条件 | HTTP | code | message |
+|---|---|---|---|---|
+| 1 | `id`/`token` 缺失 | 400 | 40001 | session id and token are required |
+| 2 | 会话不存在 / token 不匹配 | 404 | 40400 | invalid session or token |
+| 3 | `expires_at` 已过期 | 400 | 40002 | confirmation link has expired |
+| 4 | `status = confirmed` | 200 | 20000 | already confirmed |
+| 5 | `status = rejected` | 409 | 40901 | session already rejected |
+| 6 | 其它不可确认状态（`expired`/未知/空） | 409 | 40901 | session is not confirmable |
+| 7 | 命中白名单且动作执行成功 | 200 | 20000 | successfully confirmed and action executed |
+| 8 | 命中白名单但动作执行失败 | 500 | 50000 | failed to execute action: …（会话回写 `status=failed` + `message`，可再次 confirm 重试） |
+
+> 第 8 行的回写是「`failed` 可重试」的必要条件：若动作失败后仍停在 `confirmed`，重试会命中第 4 行的幂等分支 → 动作永不执行（静默失效）。
+
+**IAM 回调分类**（`GET /api/iam/confirmation-callback?session=<iam_session_id>&result=accept`）：
+
+回调与 handler 共用同一白名单，但**不校验** `expires_at`（IAM 是确认事实的权威来源）。
+
+| 会话 `status` | 重定向 `message` | 是否执行动作 |
+|---|---|---|
+| `waiting` / `failed` | （`status=success&action=<action_type>`） | ✅ 执行一次 |
+| `confirmed` | `already_confirmed` | ❌ 不重复执行 |
+| `rejected` / `expired` / 未知 | `not_confirmable` | ❌ |
+
+> 已 `rejected` 的会话不会被回调翻回 `confirmed`；`result=reject` / `result=failed` 分支语义不变。
+
 ## 三、白标化配置模块
 
 ### 3.0 客户端能力配置

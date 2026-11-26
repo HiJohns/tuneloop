@@ -27,6 +27,31 @@ func NewConfirmationSessionHandler() *ConfirmationSessionHandler {
 	return &ConfirmationSessionHandler{}
 }
 
+// confirmableStatuses 是「可被翻转为 confirmed」的唯一白名单（#2576 D1）：
+//   - waiting = 等待用户确认；
+//   - failed  = IAM 已确认但动作执行失败，允许重试。
+//
+// rejected（用户显式否决）与 expired（IAM 24h 超时）永不进入集合。
+var confirmableStatuses = map[string]bool{
+	"waiting": true,
+	"failed":  true,
+}
+
+// confirmableStatusOrder 固定白名单的 canonical 顺序（CAS 谓词取值顺序稳定）。
+var confirmableStatusOrder = []string{"waiting", "failed"}
+
+// ConfirmableStatuses 返回可确认状态切片（供条件更新谓词使用）。
+// 调用点禁止重复书写状态字面量——判定与写入必须共用本白名单（#2576 D1/D2）。
+func ConfirmableStatuses() []string {
+	out := make([]string, 0, len(confirmableStatusOrder))
+	for _, status := range confirmableStatusOrder {
+		if confirmableStatuses[status] {
+			out = append(out, status)
+		}
+	}
+	return out
+}
+
 // CreateConfirmationSession POST /api/confirmation-sessions
 func (h *ConfirmationSessionHandler) Create(c *gin.Context) {
 	var req struct {
@@ -177,30 +202,64 @@ func (h *ConfirmationSessionHandler) Confirm(c *gin.Context) {
 		return
 	}
 
-	// Check if already expired
-	if time.Now().After(session.ExpiresAt) {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "confirmation link has expired"})
-		return
-	}
-
-	// Check if already confirmed
-	if session.Status == "confirmed" {
-		c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "already confirmed"})
-		return
-	}
-
-	// Update session status
+	// #2576 D2：状态转移判定压进写操作本身（条件更新 / CAS），禁止「读到什么就写什么」
+	// 的整行 Save。只有白名单（waiting/failed）且未过期的会话能被翻转为 confirmed；
+	// rejected / expired / 未知状态在 SQL 层就不可能命中，因此不会执行动作。
 	now := time.Now()
-	session.Status = "confirmed"
-	session.ConfirmedAt = &now
-
-	if err := db.Save(&session).Error; err != nil {
+	res := db.Model(&models.ConfirmationSession{}).
+		Where("id = ? AND tenant_id = ? AND token = ? AND status IN ? AND expires_at > ?",
+			id, tenantID, token, ConfirmableStatuses(), now).
+		Updates(map[string]any{
+			"status":       "confirmed",
+			"confirmed_at": now,
+			"updated_at":   now,
+		})
+	if res.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to confirm session"})
 		return
 	}
 
-	// Execute the action
+	if res.RowsAffected == 0 {
+		// 未命中：只重读分类，不写状态、不执行动作（#2576 D3 判定顺序）。
+		var current models.ConfirmationSession
+		if err := db.Where("id = ? AND tenant_id = ? AND token = ?", id, tenantID, token).
+			First(&current).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "invalid session or token"})
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to verify session"})
+			}
+			return
+		}
+		switch {
+		case now.After(current.ExpiresAt):
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "confirmation link has expired"})
+		case current.Status == "confirmed":
+			c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "already confirmed"})
+		case current.Status == "rejected":
+			c.JSON(http.StatusConflict, gin.H{"code": 40901, "message": "session already rejected"})
+		default:
+			c.JSON(http.StatusConflict, gin.H{"code": 40901, "message": "session is not confirmable"})
+		}
+		return
+	}
+
+	// CAS 命中：状态已由 waiting/failed 转为 confirmed，执行一次动作。
+	session.Status = "confirmed"
+	session.ConfirmedAt = &now
+
 	if err := h.executeAction(&session); err != nil {
+		// #2576 D4：动作失败必须回写 failed，否则「failed 可重试」在 handler 侧不可达
+		// （旧行为停在 confirmed，重试命中的是幂等分支 → 动作永不执行）。
+		if updateErr := db.Model(&models.ConfirmationSession{}).
+			Where("id = ? AND tenant_id = ?", id, tenantID).
+			Updates(map[string]any{
+				"status":     "failed",
+				"message":    "Action execution failed: " + err.Error(),
+				"updated_at": time.Now(),
+			}).Error; updateErr != nil {
+			log.Printf("[Confirm] Failed to persist failed status for session %s: %v", id, updateErr)
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to execute action: " + err.Error()})
 		return
 	}
@@ -288,21 +347,58 @@ func (h *ConfirmationSessionHandler) IAMConfirmationCallback(c *gin.Context) {
 
 	switch result {
 	case "accept":
-		session.Status = "confirmed"
-		session.ConfirmedAt = &now
-		session.Message = "Confirmed via IAM callback"
-
-		if err := db.Save(&session).Error; err != nil {
-			log.Printf("[IAMCallback] Failed to update session: %v", err)
+		// #2576 D5：与 Confirm 共用同一白名单，但**不校验** expires_at（IAM 是确认事实
+		// 权威）；同时保证「已 confirmed 的会话不重复执行动作」。
+		res := db.Model(&models.ConfirmationSession{}).
+			Where("id = ? AND status IN ?", session.ID, ConfirmableStatuses()).
+			Updates(map[string]any{
+				"status":       "confirmed",
+				"confirmed_at": now,
+				"message":      "Confirmed via IAM callback",
+				"updated_at":   now,
+			})
+		if res.Error != nil {
+			log.Printf("[IAMCallback] Failed to update session: %v", res.Error)
 			c.Redirect(http.StatusFound, "/confirmation-result?status=error&message=save_failed")
 			return
 		}
+
+		if res.RowsAffected == 0 {
+			// 未命中：只重读分类，绝不把 rejected/expired 翻回 confirmed，
+			// 也不对已 confirmed 的会话重复执行动作。
+			var current models.ConfirmationSession
+			if err := db.Where("id = ?", session.ID).First(&current).Error; err != nil {
+				log.Printf("[IAMCallback] Session re-read failed: %v", err)
+				c.Redirect(http.StatusFound, "/confirmation-result?status=error&message=session_not_found")
+				return
+			}
+			if current.Status == "confirmed" {
+				log.Printf("[IAMCallback] Session %s already confirmed; action not re-executed", sessionID)
+				c.Redirect(http.StatusFound, "/confirmation-result?status=error&message=already_confirmed")
+				return
+			}
+			log.Printf("[IAMCallback] Session %s not confirmable (status=%s)", sessionID, current.Status)
+			c.Redirect(http.StatusFound, "/confirmation-result?status=error&message=not_confirmable")
+			return
+		}
+
+		session.Status = "confirmed"
+		session.ConfirmedAt = &now
+		session.Message = "Confirmed via IAM callback"
 
 		if err := h.executeAction(&session); err != nil {
 			log.Printf("[IAMCallback] Failed to execute action: %v", err)
 			session.Status = "failed"
 			session.Message = fmt.Sprintf("Action execution failed: %v", err)
-			db.Save(&session)
+			if updateErr := db.Model(&models.ConfirmationSession{}).
+				Where("id = ?", session.ID).
+				Updates(map[string]any{
+					"status":     "failed",
+					"message":    session.Message,
+					"updated_at": time.Now(),
+				}).Error; updateErr != nil {
+				log.Printf("[IAMCallback] Failed to persist failed status: %v", updateErr)
+			}
 			c.Redirect(http.StatusFound, fmt.Sprintf("/confirmation-result?status=error&message=%s", err.Error()))
 			return
 		}
