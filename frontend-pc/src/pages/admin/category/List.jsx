@@ -248,15 +248,27 @@ export default function CategoryList() {
       }
 
       if (formMode === 'edit' && editingCategory?.id) {
-        await categoriesApi.update(editingCategory.id, formData)
+        const updated = await categoriesApi.update(editingCategory.id, formData)
+        // #2485 D3：UpdateCategory 以 HTTP 400 返回 40002（分类重名），而 PC api 客户端
+        // 对非 404/409 的非 2xx 直接 throw（code 丢失，services/api.js:331-352）→
+        // 「先判 code 再持久提示」在本页不可达，按 D3 判 defer:tier2（跟进 #2563）。
+        // 保留响应码检查（404/409 以对象返回），避免把失败当成功。
+        if (updated.code !== 20000) {
+          message.error(updated.message || '更新失败')
+          return
+        }
         message.success('更新成功')
       } else {
         const response = await categoriesApi.create(formData)
+        // #2485 D3：CreateCategory 以 HTTP 400 返回 40002（分类重名）→ 同上，defer:tier2（#2563）。
         if (response.code === 20000) {
           message.success('创建成功')
           if (response.data?.id) {
             setSelectedParentId(response.data.id)
           }
+        } else {
+          message.error(response.message || '创建失败')
+          return
         }
       }
 

@@ -1,0 +1,46 @@
+# build=1.0.52f1ed229 # commit=52f1ed22905827b97e14feb76e67b64f2791cc67 # dirty=false
+# 判定表：4 个文件的每个 message.error 调用点 → verdict / code / code_source / reason
+frontend-pc/src/components/SiteMemberManagement.jsx:89	verdict=keep:instant	code=none	code_source=-	reason=GET /sites/:id/members 列表加载失败：运输/加载反馈，非表单冲突
+frontend-pc/src/components/SiteMemberManagement.jsx:111	verdict=keep:instant	code=none	code_source=-	reason=UpdateMemberRole 仅导出 40001/40400/50000（site_member.go），无业务可纠正码 → 保持 toast
+frontend-pc/src/components/SiteMemberManagement.jsx:113	verdict=keep:instant	code=none	code_source=-	reason=catch-all（网络/未知），非业务可纠正
+frontend-pc/src/components/SiteMemberManagement.jsx:125	verdict=keep:instant	code=none	code_source=-	reason=RemoveMember 仅导出 40400/50000，无业务可纠正码
+frontend-pc/src/components/SiteMemberManagement.jsx:198	verdict=business-persisted	code=40900	code_source=backend/handlers/member_invite_2114.go:158	reason=ApplySiteMembership 导出 40900（已有待处理申请）/40002 → 表单内持久提示，此处为已转换分支的非业务兜底 toast
+frontend-pc/src/components/SiteMemberManagement.jsx:201	verdict=keep:instant	code=none	code_source=-	reason=catch-all（网络/未知）
+frontend-pc/src/components/SiteMemberManagement.jsx:235	verdict=keep:instant	code=none	code_source=-	reason=AddMember（POST /sites/:id/members）仅导出 40001/40911/40400/20000/20100 → 持久提示分支不可达，保持 toast
+frontend-pc/src/components/SiteMemberManagement.jsx:249	verdict=keep:instant	code=none	code_source=-	reason=客户端校验（提交前拦下），非服务端业务冲突
+frontend-pc/src/components/SiteMemberManagement.jsx:270	verdict=keep:instant	code=none	code_source=-	reason=批量 bind_errors（20000/20100 部分失败明细），非单一表单冲突
+frontend-pc/src/components/SiteMemberManagement.jsx:305	verdict=keep:instant	code=none	code_source=-	reason=AddMember 无业务可纠正码 → 保持 toast
+frontend-pc/src/components/SiteMemberManagement.jsx:308	verdict=keep:instant	code=none	code_source=-	reason=catch-all（网络/未知）
+frontend-pc/src/components/MerchantMemberManagement.jsx:72	verdict=keep:instant	code=none	code_source=-	reason=GET /admin/merchants/:id/members 列表加载失败
+frontend-pc/src/components/MerchantMemberManagement.jsx:88	verdict=keep:instant	code=none	code_source=-	reason=RemoveMember 仅导出 40400/40009/50000
+frontend-pc/src/components/MerchantMemberManagement.jsx:160	verdict=business-persisted	code=40900	code_source=backend/handlers/member_invite_2114.go:416	reason=InviteToMerchant 导出 40900（已有待处理邀请）/40002 → 表单内持久提示，此处为已转换分支的非业务兜底 toast
+frontend-pc/src/components/MerchantMemberManagement.jsx:180	verdict=keep:instant	code=none	code_source=-	reason=MerchantMemberHandler.AddMember 仅导出 40001/40901/50000 → 持久提示分支不可达，保持 toast
+frontend-pc/src/components/MerchantMemberManagement.jsx:215	verdict=keep:instant	code=none	code_source=-	reason=批量 bind_errors 明细，非单一表单冲突
+frontend-pc/src/components/MerchantMemberManagement.jsx:265	verdict=keep:instant	code=none	code_source=-	reason=/users/check 冲突确认流的 UI 兜底（Modal 引导），非业务可纠正码
+frontend-pc/src/components/MerchantMemberManagement.jsx:285	verdict=keep:instant	code=none	code_source=-	reason=AddMember 无业务可纠正码 → 保持 toast
+frontend-pc/src/components/MerchantMemberManagement.jsx:288	verdict=keep:instant	code=none	code_source=-	reason=catch-all（网络/未知）
+frontend-pc/src/components/MerchantMemberManagement.jsx:310	verdict=keep:instant	code=none	code_source=-	reason=MerchantMemberHandler.AddMember 仅导出 40001/40901/50000 → 持久提示分支不可达，保持 toast
+frontend-pc/src/components/MerchantMemberManagement.jsx:312	verdict=keep:instant	code=none	code_source=-	reason=catch-all（网络/未知）
+frontend-pc/src/pages/DirectMemberManagement.jsx:65	verdict=keep:instant	code=none	code_source=-	reason=personnelApi.list 列表加载失败
+frontend-pc/src/pages/DirectMemberManagement.jsx:97	verdict=keep:instant	code=none	code_source=-	reason=客户端前置守卫（无网络调用），非服务端业务冲突
+frontend-pc/src/pages/DirectMemberManagement.jsx:114	verdict=business-persisted	code=40900	code_source=backend/handlers/member_invite_2114.go:416+483	reason=InviteToMerchant / InvitePlatformStaff 均导出 40900（已有待处理邀请）/40002 → 表单内持久提示，此处为非业务兜底 toast
+frontend-pc/src/pages/DirectMemberManagement.jsx:118	verdict=keep:instant	code=none	code_source=-	reason=catch-all（网络/未知）
+frontend-pc/src/pages/DirectMemberManagement.jsx:190	verdict=business-persisted	code=40900	code_source=backend/handlers/user_staff.go:296	reason=CreateUser 导出 40900（用户名已存在，user_staff.go:296）与 40002（邀请模式需邮箱，user_staff.go:421）→ 表单内持久提示，此处为非业务兜底 toast
+frontend-pc/src/pages/DirectMemberManagement.jsx:195	verdict=keep:instant	code=none	code_source=-	reason=catch-all（网络/未知）
+frontend-pc/src/pages/admin/category/List.jsx:97	verdict=keep:instant	code=none	code_source=-	reason=GET /categories 列表加载失败
+frontend-pc/src/pages/admin/category/List.jsx:124	verdict=keep:instant	code=none	code_source=-	reason=PUT /categories/sort（UpdateCategorySort）仅导出 40001/50000，无业务可纠正码
+frontend-pc/src/pages/admin/category/List.jsx:143	verdict=keep:instant	code=none	code_source=-	reason=排序/可见性切换失败（transport），无业务可纠正码
+frontend-pc/src/pages/admin/category/List.jsx:158	verdict=keep:instant	code=none	code_source=-	reason=排序/可见性切换失败（transport），无业务可纠正码
+frontend-pc/src/pages/admin/category/List.jsx:227	verdict=keep:instant	code=none	code_source=-	reason=DELETE /categories/:id 失败（transport/受限）
+frontend-pc/src/pages/admin/category/List.jsx:257	verdict=defer:tier2	code=40002	code_source=backend/handlers/api.go:955	reason=UpdateCategory 导出 40002（分类重名）但以 HTTP 400 返回；PC api 客户端对非 404/409 的非 2xx 直接 throw（code 丢失，services/api.js:331-352）→ 持久提示在本页不可达，按 D3 defer:tier2（解锁单 #2563）
+frontend-pc/src/pages/admin/category/List.jsx:270	verdict=defer:tier2	code=40002	code_source=backend/handlers/api.go:876	reason=CreateCategory 导出 40002（分类重名）但以 HTTP 400 返回；同上，PC 传输层丢码 → 持久提示不可达，按 D3 defer:tier2（解锁单 #2563）
+frontend-pc/src/pages/admin/category/List.jsx:279	verdict=keep:instant	code=none	code_source=-	reason=catch-all（网络/未知；表单校验错误已在 errorFields 分支跳过）
+SCAN_ROWS=35
+CLASSIFIED_ROWS=35
+UNCLASSIFIED=0
+KEEP_ROWS=29
+PERSISTED_ROWS=4
+DEFER_ROWS=2
+INVALID_VERDICT=0
+BASELINE_ROWS=32
+ROWS_GE_BASELINE=1
