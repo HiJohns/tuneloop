@@ -252,7 +252,7 @@ r5)
     grep -q 'PARITY=1' "$parity_log" && parity=1
 
     fivexx_log="$REPO_ROOT/tmp/verify-$ISSUE-r5-5xx.log"
-    node --test frontend-pc/tests/errorMessages-5xx-2497.test.mjs > "$fivexx_log" 2>&1
+    node --test --test-reporter=tap frontend-pc/tests/errorMessages-5xx-2497.test.mjs > "$fivexx_log" 2>&1
     fivexx_rc=$?
     fivexx_pass="$(grep -cE '^# pass [0-9]+' "$fivexx_log" || true)"
     test_pass="$(sed -n 's/^# pass \([0-9]*\).*/\1/p' "$fivexx_log" | tail -1)"
