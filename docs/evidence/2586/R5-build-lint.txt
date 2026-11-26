@@ -1,19 +1,19 @@
-# build=1.0.8ebc823e5 # commit=8ebc823e51c5eff4f15a0e2cf9352ed378abbb1d # dirty=false
-GENERATED_AT_HEAD=8ebc823e51c5eff4f15a0e2cf9352ed378abbb1d
+# build=1.0.fd8dc424b # commit=fd8dc424b264b54d6aeefa8fbce9481e8cc3eb56 # dirty=false
+GENERATED_AT_HEAD=fd8dc424b264b54d6aeefa8fbce9481e8cc3eb56
 GO_BUILD_CMD=cd backend && go build ./...
-[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s107-p107-350703 at_ms=1795728474767 wait_ms=95
-[heavy-lock] acquired scope=host slot=0 node=node-opencode-s107-p107-350703 wait_ms=95
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795728489798 hold_ms=15031
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s134-p134-093294 at_ms=1795736551346 wait_ms=647
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s134-p134-093294 wait_ms=647
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795736572771 hold_ms=21425
 GO_BUILD_EXIT=0
 GO_COMPILE_SMOKE_CMD=cd backend && go test ./... -run '^$' -count=1
 ?   	tuneloop-backend/tools/merge_duplicate_accounts	[no test files]
 ?   	tuneloop-backend/tools/oss_smoke	[no test files]
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795728505572 hold_ms=15423
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795736609262 hold_ms=35606
 GO_COMPILE_SMOKE_EXIT=0
 GO_TEST_2586_CMD=cd backend && go test ./handlers . -run 'TestExportPerm2586|TestImportFamilyPerm2586|TestInstrumentPermRoutes2586' -count=1
-ok  	tuneloop-backend/handlers	2.395s
-ok  	tuneloop-backend	0.021s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795728514260 hold_ms=8566
+ok  	tuneloop-backend/handlers	5.139s
+ok  	tuneloop-backend	0.090s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795736629710 hold_ms=20011
 GO_TEST_2586_EXIT=0
 ESLINT_CMD=cd frontend-pc && npx eslint src/pages/admin/instrument/List.jsx src/App.jsx src/pages/InstrumentStock.jsx
    78:6   warning  React Hook useEffect has missing dependencies: 'fetchInstruments' and 'pagination.pageSize'. Either include them or remove the dependency array                      react-hooks/exhaustive-deps
@@ -26,8 +26,8 @@ ESLINT_NOUNDEF=0
 PC_BUILD_CMD=cd frontend-pc && npm run build
 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-✓ built in 21.71s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795728540605 hold_ms=22875
+✓ built in 11m 17s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795737323748 hold_ms=684062
 PC_BUILD_EXIT=0
 GO_BUILD_OK=1
 GO_COMPILE_SMOKE_OK=1

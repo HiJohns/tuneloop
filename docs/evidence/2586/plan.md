@@ -1,4 +1,4 @@
-## Accepted Plan — #2586 乐器数据进/出端点 cus_perm 守卫对齐（导出 = read，导入族 = create）
+## Accepted Plan — #2586 乐器数据进/出端点 cus_perm 守卫对齐（导出 = read，导入族 = create）｜Rev.2
 
 > 来源：#2578 审计发现（pre-existing）。缺陷形态：`GET /api/instruments/export` 只挂
 > `ExplicitTenantScope`，缺 `RequireCusPerm("instrument:read")` → 无该 cus_perm 的已登录租户用户
@@ -111,7 +111,7 @@
 | 路由表接线（`main.go` 实际注册行含守卫）+ 同类端点无残留 | `backend/instrument_route_guard_2586_test.go` + `backend/main.go` | `go test . -run TestInstrumentPermRoutes2586`（结构断言，修前红/修后绿） | 修后工作树 + `git show <fix>^:backend/main.go` 红样对照 | backend | `ROUTE_EXPORT_GUARDED=1`、`ROUTE_IMPORT_FAMILY_GUARDED=6`、`ROUTE_INSTRUMENT_IO_UNGUARDED=0`、`RED_PRE_FIX_UNGUARDED_EXPORT=1`、`RED_PRE_FIX_UNGUARDED_IMPORT=6` | R3 |
 | PC 入口门控（导入按钮 + 批量导入路由），只读角色不再看到不可用入口 | `frontend-pc/src/pages/admin/instrument/List.jsx` + `frontend-pc/src/App.jsx` | `/instruments/list`、`/instruments/batch-import` | 修后源码结构断言（evidence_type: static，Owner 豁免） | PC（浏览器） | `PC_LIST_IMPORT_BUTTON_GATED=1`、`PC_LIST_IMPORT_BUTTON_UNGATED=0`、`PC_BATCH_IMPORT_ROUTE_GATED=1`、`PC_STOCK_EXPORT_GATE=1`、`PC_STOCK_BATCH_IMPORT_GATE=1` | R4 |
 | 构建 / lint / 回归（后端全包编译 + 定向测试 + PC 构建） | `backend` + `frontend-pc` | `go build ./...`、`go test ./... -run '^$'`、定向 `go test ./handlers`、`eslint`、`vite build` | 修后工作树 | 双端 | `GO_BUILD_OK=1`、`GO_COMPILE_SMOKE_OK=1`、`GO_TEST_2586_OK=1`、`ESLINT_NOUNDEF=0`、`PC_BUILD_OK=1` | R5 |
-| 文档同步（接口权限口径 + 端点-权限对照表） | `docs/spec/api/api.md` + `docs/spec/permissions.md` | grep 结构断言（evidence_type: static，Owner 豁免） | 修后文档 | 文档 | `API_EXPORT_PERM=1`、`API_IMPORT_PERM=1`、`API_TEMPLATE_PERM=1`、`PERM_ENDPOINT_ROWS=7` | R6 |
+| 文档同步（接口权限口径 + 端点-权限对照表） | `docs/spec/api/api.md` + `docs/spec/permissions.md` | grep 结构断言（evidence_type: static，Owner 豁免） | 修后文档 | 文档 | `API_EXPORT_PERM=1`、`API_IMPORT_PERM=1`、`API_TEMPLATE_PERM=1`、**`PERM_ENDPOINT_ROWS=8`**、**`PERM_321_TABLE_INTACT=1`**、**逐端点 8 个 token**：`PERM_HAS_LIST=1`、`PERM_HAS_EXPORT=1`、`PERM_HAS_IMPORT=1`、`PERM_HAS_BATCH=1`、`PERM_HAS_BATCH_MEDIA=1`、`PERM_HAS_BATCH_PREVIEW=1`、`PERM_HAS_BATCH_TEMPLATE=1`、`PERM_HAS_IMPORT_TEMPLATE=1` | R6 |
 
 ### Evidence Types
 
@@ -129,7 +129,7 @@
 - **Source of truth（目标口径）**：`docs/spec/permissions.md` §3.2.1「导出 / 批量导入 = `instrument:read` / `instrument:create`」；
   权限位定义 `backend/services/permission_registry.go:90-107`（`instrument:create`=bit 0、`instrument:read`=bit 1）。
 - **现状差异核对（改前先跑）**：
-  - `grep -n '"/instruments/export"\|"/instruments/import\|"/instruments/batch-import' backend/main.go` → 7 行中仅 `:403`（列表）带 `RequireCusPerm`；
+  - `grep -n '"/instruments/export"\|"/instruments/import\|"/instruments/batch-import' backend/main.go` → 8 个端点中仅 `:403`（列表）带 `RequireCusPerm`；
   - `grep -rn 'RequireCusPerm' backend/middleware/permissions.go` → 语义：`cus_perm == 0` 直通（legacy JWT）、
     `isSystemLevelRole` 直通、`PermissionRegistry.GetCusPermBit` 返回 -1 直通（**测试必须切真 registry，否则永远 PASS**）；
   - `grep -rn "instruments/export\|batch-import\|instruments/import" frontend-pc/src frontend-mobile/src` →
@@ -179,7 +179,7 @@
 | R3 | 修后 `backend/main.go` + `git show <fix>^:backend/main.go` 红样 | `go test . -run TestInstrumentPermRoutes2586`（经 `verify-2586.sh r3`） | `docs/evidence/2586/R3-route-wiring.txt` | `ROUTE_EXPORT_GUARDED=1`、`ROUTE_IMPORT_FAMILY_GUARDED=6`、`ROUTE_INSTRUMENT_IO_UNGUARDED=0`、`RED_PRE_FIX_UNGUARDED_EXPORT=1`、`RED_PRE_FIX_UNGUARDED_IMPORT=6` | 修后仍有乐器进/出路由无守卫、或修前红样为 0（说明红绿失效）→ FAIL |
 | R4 | 修后 `List.jsx` / `App.jsx` / `InstrumentStock.jsx` 源码 | `bash scripts/verify-2586.sh r4` | `docs/evidence/2586/R4-pc-gates.txt` | `PC_LIST_IMPORT_BUTTON_GATED=1`、`PC_LIST_IMPORT_BUTTON_UNGATED=0`、`PC_BATCH_IMPORT_ROUTE_GATED=1`、`PC_STOCK_EXPORT_GATE=1`、`PC_STOCK_BATCH_IMPORT_GATE=1` | 导入按钮仍裸挂、路由仍无 `requiredPermission`、库存监控既有 gate 被删 → 任一即 FAIL |
 | R5 | 修后工作树 | `bash scripts/verify-2586.sh r5` | `docs/evidence/2586/R5-build-lint.txt` | `GO_BUILD_OK=1`、`GO_COMPILE_SMOKE_OK=1`、`GO_TEST_2586_OK=1`、`ESLINT_NOUNDEF=0`、`PC_BUILD_OK=1` | 任一编译/lint `no-undef`/构建失败 → FAIL |
-| R6 | 修后 `docs/spec/api/api.md` + `docs/spec/permissions.md` | `bash scripts/verify-2586.sh r6` | `docs/evidence/2586/R6-docs.txt` | `API_EXPORT_PERM=1`、`API_IMPORT_PERM=1`、`API_TEMPLATE_PERM=1`、`PERM_ENDPOINT_ROWS=7` | 文档缺任一端点/权限口径、对照表行数 ≠ 7 → FAIL |
+| R6 | 修后 `docs/spec/api/api.md` + `docs/spec/permissions.md` | `bash scripts/verify-2586.sh r6` | `docs/evidence/2586/R6-docs.txt` | `API_EXPORT_PERM=1`、`API_IMPORT_PERM=1`、`API_TEMPLATE_PERM=1`、**`PERM_ENDPOINT_ROWS=8`**、**`PERM_321_TABLE_INTACT=1`**、**逐端点 8 个 token**：`PERM_HAS_LIST=1`、`PERM_HAS_EXPORT=1`、`PERM_HAS_IMPORT=1`、`PERM_HAS_BATCH=1`、`PERM_HAS_BATCH_MEDIA=1`、`PERM_HAS_BATCH_PREVIEW=1`、`PERM_HAS_BATCH_TEMPLATE=1`、`PERM_HAS_IMPORT_TEMPLATE=1` | 文档缺任一端点/权限口径、对照表行数 ≠ 8 / 缺任一端点行 / 321 表被破坏 → FAIL |
 
 ### Evidence Contract
 
@@ -190,7 +190,7 @@
 | R3 | `bash scripts/verify-2586.sh r3` | `docs/evidence/2586/R3-route-wiring.txt` | exit 0 且含 `GO_TEST_EXIT=0` `ROUTE_EXPORT_GUARDED=1` `ROUTE_IMPORT_FAMILY_GUARDED=6` `ROUTE_INSTRUMENT_IO_UNGUARDED=0` `RED_PRE_FIX_UNGUARDED_EXPORT=1` `RED_PRE_FIX_UNGUARDED_IMPORT=6` | PASS（6 项 token 全为期望值） | 无守卫残留、红样为 0（红绿失效）→ FAIL | dev |
 | R4 | `bash scripts/verify-2586.sh r4` | `docs/evidence/2586/R4-pc-gates.txt` | exit 0 且含 `PC_LIST_IMPORT_BUTTON_GATED=1` `PC_LIST_IMPORT_BUTTON_UNGATED=0` `PC_BATCH_IMPORT_ROUTE_GATED=1` `PC_STOCK_EXPORT_GATE=1` `PC_STOCK_BATCH_IMPORT_GATE=1` | PASS（5 项 token 全为期望值） | 按钮/路由未门控、既有 gate 被删 → FAIL | dev |
 | R5 | `bash scripts/verify-2586.sh r5` | `docs/evidence/2586/R5-build-lint.txt` | exit 0 且含 `GO_BUILD_OK=1` `GO_COMPILE_SMOKE_OK=1` `GO_TEST_2586_OK=1` `ESLINT_NOUNDEF=0` `PC_BUILD_OK=1` | PASS（5 项 token 全为期望值） | 编译失败、eslint `no-undef` > 0、vite build 失败 → FAIL | dev |
-| R6 | `bash scripts/verify-2586.sh r6` | `docs/evidence/2586/R6-docs.txt` | exit 0 且含 `API_EXPORT_PERM=1` `API_IMPORT_PERM=1` `API_TEMPLATE_PERM=1` `PERM_ENDPOINT_ROWS=7` | PASS（4 项 token 全为期望值） | 文档未同步或对照表行数 ≠ 7 → FAIL | dev |
+| R6 | `bash scripts/verify-2586.sh r6` | `docs/evidence/2586/R6-docs.txt` | exit 0 且含 `API_EXPORT_PERM=1` `API_IMPORT_PERM=1` `API_TEMPLATE_PERM=1` `PERM_ENDPOINT_ROWS=8` | PASS（4 项 token 全为期望值） | 文档未同步、对照表行数 ≠ 8 或 `PERM_321_TABLE_INTACT=0` → FAIL | dev |
 
 ### Artifact Provenance
 
@@ -212,8 +212,9 @@
 ### Workload
 
 - Size: M
-- Basis: 后端 1 个路由文件（7 行中间件）+ 2 个测试文件（1 结构断言 + 2 集成用例）+ PC 2 个文件门控（各 1-3 行）+ 2 份 core 文档 + 1 个 6 行证据 harness；无 migration、无外部依赖、6 条证据行
+- Basis: 后端 1 个路由文件（8 个端点中间件）+ 2 个测试文件（1 结构断言 + 2 集成用例）+ PC 2 个文件门控（各 1-3 行）+ 2 份 core 文档 + 1 个 6 行证据 harness；无 migration、无外部依赖、6 条证据行
 - Confidence: high
 
 *Model: deepseek/deepseek-flash*
+
 
