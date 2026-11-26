@@ -1,16 +1,16 @@
 {
   "issue": 2527,
   "overall": "PASS",
-  "plan": "/tmp/opencode/tuneloop/wt-2527/tmp/pre-ready-2527.JAEh47/plan.md",
-  "plan_sha256": "d221f7fc3d4e275f584b00c46a16d4b17f818925e5fc0773c11e7e1edc9dddc4",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2527/tmp/pre-ready-2527.zfRYtE/plan.md",
+  "plan_sha256": "884a19402b9fbf80bf7e500be8c593eeb40894ce5f1254939a813f6e0f3b9127",
   "config_sha": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
   "provenance": {
-    "build": "1.0.8c0c80ee2",
-    "commit": "8c0c80ee2722bdffea396c148f6e452357e7f115",
+    "build": "1.0.5752ce388",
+    "commit": "5752ce388a40bca68d5c4bb6f998eb77386833e3",
     "dirty": false
   },
   "summary": "tmp/work-summary-2527.md",
-  "timestamp": "20261126-102833",
+  "timestamp": "20261126-130321",
   "checks": [
     {
       "id": "P1",
@@ -20,7 +20,7 @@
     {
       "id": "P2",
       "status": "PASS",
-      "detail": "Work Summary covers all 8 matrix rows with PASS/N/A"
+      "detail": "Work Summary covers all 11 matrix rows with PASS/N/A"
     },
     {
       "id": "P3",
@@ -35,12 +35,12 @@
     {
       "id": "P12",
       "status": "PASS",
-      "detail": "Evidence Contract complete: 8 row(s) match the plan and have durable artifacts"
+      "detail": "Evidence Contract complete: 11 row(s) match the plan and have durable artifacts"
     },
     {
       "id": "P14",
       "status": "PASS",
-      "detail": "artifact provenance matches evidence (8 artifacts)"
+      "detail": "artifact provenance matches evidence (11 artifacts)"
     },
     {
       "id": "P18",
@@ -65,7 +65,7 @@
     {
       "id": "P5",
       "status": "PASS",
-      "detail": "full gate clean worktree; HEAD failures are a subset of baseline (eb6579802e7f1083586a6428fef344c4c6c110bc); source head=cache baseline=cache"
+      "detail": "full gate clean worktree; HEAD failures are a subset of baseline (origin/develop); source head=run baseline=run"
     },
     {
       "id": "P6",
@@ -84,8 +84,8 @@
     },
     {
       "id": "P9",
-      "status": "PASS",
-      "detail": "build provenance verified for 1 version(s)"
+      "status": "N/A",
+      "detail": "no session/build_version/aiaudit/.rpt/.dat evidence referenced"
     },
     {
       "id": "P10",
@@ -95,7 +95,7 @@
     {
       "id": "P11",
       "status": "PASS",
-      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /tmp/opencode/tuneloop/wt-2527; worktree guard: PASS isolated worktree=/tmp/opencode/tuneloop/wt-2527"
+      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /home/coder/worktrees/tuneloop/wt-2527; worktree guard: PASS isolated worktree=/home/coder/worktrees/tuneloop/wt-2527"
     },
     {
       "id": "P13",
