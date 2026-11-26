@@ -1,0 +1,60 @@
+# build=1.0.8c0c80ee2 # commit=8c0c80ee2722bdffea396c148f6e452357e7f115 # dirty=false
+# R4 PC 提示接线：纯函数 node --test + 源码结构断言 + eslint + build
+✔ all sent → success (1.059483ms)
+✔ mixed batch → warning lists every skip reason (0.219755ms)
+✔ nothing sent (all invisible) → warning with the concrete reason (0.249375ms)
+✔ legacy response without classification falls back to skipped count (0.190624ms)
+✔ empty payload → warning, never a fake success (0.186684ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 101.327572
+NODE_TEST_RC=0
+RENDER_WIRED=1
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795688657176 wait_ms=68
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=68
+
+/tmp/opencode/tuneloop/wt-2527/frontend-pc/src/pages/StaffManagement.jsx
+   79:5  warning  'fetchStaffList' was used before it was defined                                                                                                                                                                                              no-use-before-define
+   80:5  warning  'fetchSiteTree' was used before it was defined                                                                                                                                                                                               no-use-before-define
+   85:6  warning  React Hook useEffect has a missing dependency: 'fetchStaffList'. Either include it or remove the dependency array                                                                                                                            react-hooks/exhaustive-deps
+   88:5  warning  'fetchStaffList' was used before it was defined                                                                                                                                                                                              no-use-before-define
+   89:6  warning  React Hook useEffect has a missing dependency: 'fetchStaffList'. Either include it or remove the dependency array. Mutable values like 'pagination.current' aren't valid dependencies because mutating them doesn't re-render the component  react-hooks/exhaustive-deps
+  201:6  warning  React Hook useEffect has missing dependencies: 'location.pathname', 'navigate', and 'resetCreateState'. Either include them or remove the dependency array                                                                                   react-hooks/exhaustive-deps
+
+/tmp/opencode/tuneloop/wt-2527/frontend-pc/src/utils/resetPasswordSummary.test.js
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+✖ 7 problems (0 errors, 7 warnings)
+
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795688660093 hold_ms=2917
+FRONTEND_LINT_RC=0
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795688660199 wait_ms=68
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=68
+
+> frontend-pc@1.0.0 build
+> vite build
+
+vite v5.4.21 building for production...
+transforming...
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 5429 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                     0.53 kB │ gzip:   0.34 kB
+dist/assets/index-BzjWd_CX.css     38.41 kB │ gzip:   7.14 kB
+dist/assets/index-BV_xqq1c.js   2,628.59 kB │ gzip: 809.27 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 22.23s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795688683176 hold_ms=22977
+FRONTEND_BUILD_RC=0

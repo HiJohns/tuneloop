@@ -1,0 +1,31 @@
+# build=1.0.8c0c80ee2 # commit=8c0c80ee2722bdffea396c148f6e452357e7f115 # dirty=false
+# CMD go test -count=1 -run '^TestSiteTransferUsesDerivedOrg_2527$' ./handlers/
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795688641473 wait_ms=91
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=91
+[DEBUG] Loaded .env from: ../.env
+2026/11/26 10:24:05 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c sslmode=disable
+2026/11/26 10:24:05 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c
+2026/11/26 10:24:05 [DB] Connected to database 'tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c'
+=== RUN   TestSiteTransferUsesDerivedOrg_2527
+2026/11/26 10:24:06 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c sslmode=disable
+2026/11/26 10:24:06 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c
+2026/11/26 10:24:06 [DB] Connected to database 'tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c'
+
+2026/11/26 10:24:06 [32m/tmp/opencode/tuneloop/wt-2527/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[632.200ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/26 10:24:06 [TenantScope][observe] auto-scope injected for table=sites (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/26 10:24:06 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:38835, clientID=test-ns, namespace=test-ns
+2026/11/26 10:24:06 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/26 10:24:06 [IAMClient] Unbound user a2292e2b-c205-42f1-b3b8-33410538a60d from org 1d8a6cff-96f0-494a-8cb4-4c190f748ef6
+2026/11/26 10:24:06 [IAMClient] Incremented perm_version
+2026/11/26 10:24:06 [IAMClient] Bound user a2292e2b-c205-42f1-b3b8-33410538a60d to org 7cf60ad6-e3ad-49a9-87bb-19124ab465a9 with role STAFF
+2026/11/26 10:24:06 [IAMClient] Incremented perm_version
+2026/11/26 10:24:06 [IAMClient] Incremented perm_version
+2026/11/26 10:24:06 [IAMClient] Assigned role template merchant_staff to user a2292e2b-c205-42f1-b3b8-33410538a60d (via user token)
+2026/11/26 10:24:06 [TenantScope][observe] auto-scope injected for table=site_members (add explicit scope, then set ExplicitTenantScopeOnly)
+R6 STATUS=200 UNBIND_ORG=orgA BIND_ORG=orgB UNBIND_ORG_MATCHES=1 BIND_ORG_MATCHES=1 NIL_UUID_CALLS=0
+--- PASS: TestSiteTransferUsesDerivedOrg_2527 (0.93s)
+PASS
+ok  	tuneloop-backend/handlers	1.465s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795688647167 hold_ms=5694
+GO_TEST_RC=0

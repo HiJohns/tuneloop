@@ -1,0 +1,22 @@
+# build=1.0.8c0c80ee2 # commit=8c0c80ee2722bdffea396c148f6e452357e7f115 # dirty=false
+# CMD go test -count=1 -run '^TestResetPasswordZeroTenantVisible_2527$' ./handlers/
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795688588980 wait_ms=74
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=74
+[DEBUG] Loaded .env from: ../.env
+2026/11/26 10:23:36 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c sslmode=disable
+2026/11/26 10:23:38 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c
+2026/11/26 10:23:38 [DB] Connected to database 'tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c'
+=== RUN   TestResetPasswordZeroTenantVisible_2527
+2026/11/26 10:23:39 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c sslmode=disable
+2026/11/26 10:23:39 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c
+2026/11/26 10:23:39 [DB] Connected to database 'tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c'
+
+2026/11/26 10:23:39 [32m/tmp/opencode/tuneloop/wt-2527/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[604.928ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/26 10:23:40 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:38053, clientID=test-ns, namespace=test-ns
+R1 STATUS=200 SENT=1 IAM_IDS=1 IAM_ID_MATCH=1 SKIPPED_INVISIBLE=0
+--- PASS: TestResetPasswordZeroTenantVisible_2527 (0.89s)
+PASS
+ok  	tuneloop-backend/handlers	3.660s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795688620220 hold_ms=31240
+GO_TEST_RC=0
