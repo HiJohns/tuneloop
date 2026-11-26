@@ -245,19 +245,28 @@ r12)
   ( cd "$REPO/frontend-pc" && heavy npx eslint src/utils/batchPricing.js src/pages/InstrumentStock.jsx src/pages/admin/instrument/List.jsx ) > "$WORK/eslint.log" 2>&1
   LINT=$?
   NO_UNDEF="$(grep -c 'no-undef' "$WORK/eslint.log" || true)"
-  echo "BUILD_EXIT=$BUILD"; echo "GO_TEST_EXIT=$GTEST"; echo "NPM_BUILD_EXIT=$NPM"; echo "ESLINT_EXIT=$LINT"; echo "ESLINT_NO_UNDEF=$NO_UNDEF"
+  # Contract tokens (Accepted Plan R12): GO_TEST_OK / BUILD_OK / NPM_BUILD_OK / ESLINT_OK.
+  OK_TEST=0; OK_BUILD=0; OK_NPM=0; OK_LINT=0
+  [ "$GTEST" = "0" ] && OK_TEST=1
+  [ "$BUILD" = "0" ] && OK_BUILD=1
+  [ "$NPM" = "0" ] && OK_NPM=1
+  [ "$LINT" = "0" ] && [ "$NO_UNDEF" = "0" ] && OK_LINT=1
   {
     echo "BUILD_EXIT=$BUILD"
     echo "GO_TEST_EXIT=$GTEST"
     echo "NPM_BUILD_EXIT=$NPM"
     echo "ESLINT_EXIT=$LINT"
     echo "ESLINT_NO_UNDEF=$NO_UNDEF"
+    echo "BUILD_OK=$OK_BUILD"
+    echo "GO_TEST_OK=$OK_TEST"
+    echo "NPM_BUILD_OK=$OK_NPM"
+    echo "ESLINT_OK=$OK_LINT"
     tail -3 "$WORK/gotest.log"
     tail -5 "$WORK/npm.log"
     tail -10 "$WORK/eslint.log"
   } >> "$LOG"
   [ "$BUILD" = "0" ] && [ "$GTEST" = "0" ] && [ "$NPM" = "0" ] && [ "$LINT" = "0" ] && [ "$NO_UNDEF" = "0" ] || RC=1
-  require_tokens "$LOG" 'BUILD_EXIT=0' 'GO_TEST_EXIT=0' 'NPM_BUILD_EXIT=0' 'ESLINT_NO_UNDEF=0'
+  require_tokens "$LOG" 'BUILD_OK=1' 'GO_TEST_OK=1' 'NPM_BUILD_OK=1' 'ESLINT_OK=1'
   ;;
 esac
 
