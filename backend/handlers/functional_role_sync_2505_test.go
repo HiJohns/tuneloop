@@ -368,7 +368,9 @@ func TestUpdateUserDualRolePreserved_2505(t *testing.T) {
 	}
 	require.Equal(t, 0, droppedRepair)
 
-	t.Logf("PUT_ROLES=%s", jsonRoles2505(t, []string{"site_admin", "repair_technician"}))
+	// Bug C（Round 2 Audit）：marker 必须打印**实测** PUT body，不得用字面量常量，
+	// 否则该 token 不可证伪。require.ElementsMatch 保持为集合断言。
+	t.Logf("PUT_ROLES=%s", jsonRoles2505(t, putRoles))
 	t.Logf("DROPPED_REPAIR=%d", droppedRepair)
 }
 
@@ -541,10 +543,23 @@ func TestUpdateUserFixtureFidelity_2505(t *testing.T) {
 	f.mu.Unlock()
 	require.Contains(t, putPath, "/organizations/"+fx.siteOrg+"/users/", "PUT 必须打到用户所属网点 org")
 
+	// Bug C（Round 2 Audit）：PUT_ORG / OPERATOR_ORG 由实测 PUT path 与 actor 变量派生，
+	// 不再打印字面量 token（断言不变：仍要求 PUT_ORG=site_org）。
+	putOrg := "other"
+	switch {
+	case strings.Contains(putPath, "/organizations/"+fx.siteOrg+"/users/"):
+		putOrg = "site_org"
+	case strings.Contains(putPath, "/organizations/"+fx.merchantOrg+"/users/"):
+		putOrg = "merchant_org"
+	case strings.Contains(putPath, "/organizations/"+fx.tenantID+"/users/"):
+		putOrg = "tenant"
+	}
+	require.Equal(t, "site_org", putOrg, "PUT 必须打到用户所属网点 org（实测 path=%s）", putPath)
+
 	t.Logf("SITE_ORG_NE_TENANT=%d", siteOrgNeTenant)
 	t.Logf("USERS_ORG_IS_TENANT=%d", usersOrgIsTenant)
-	t.Logf("PUT_ORG=site_org")
-	t.Logf("OPERATOR_ORG=merchant")
+	t.Logf("PUT_ORG=%s", putOrg)
+	t.Logf("OPERATOR_ORG=%s", fx.merchantOrg)
 	t.Logf("PUT_PATH=%s", putPath)
 }
 
