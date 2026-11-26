@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "issue": 2519,
+  "build": "1.0.5007901a3",
+  "commit": "5007901a345e77feaf9036ef2b07c5f91b4a7948",
+  "dirty": false,
+  "plan_sha256": "6d4f1941acc98064809a7964680df3f337bfe7f4ce95ed631a322d2ff0e1b347",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2519 (branch issue-2519, base origin/develop incl. #2514); Postgres test DB 127.0.0.1:15433/tuneloop_test_local (testfixtures template DB); Go handler tests via host heavy-lock; HEAD=5007901a345e77feaf9036ef2b07c5f91b4a7948",
+  "tooling_commit": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2519.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2519/R1-batch-status.txt"
+      ],
+      "assert": "exit 0；含 UPDATED=3、FAILED=0",
+      "actual": "PASS：R1 STATUS=20000 UPDATED=3 FAILED=0 DB_CHANGED=3；3 条乐器 stock_status 全部落库为 maintenance",
+      "expected": "PASS",
+      "negative": "未落库 → FAIL",
+      "negative_result": "负例方向：若批量端点只统计不落库（或 tenant 过滤缺失导致 0 行）则 DB_CHANGED<3，断言 FAIL；修复前该路由不存在，请求直接 404。",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2519.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2519/R2-cross-tenant.txt"
+      ],
+      "assert": "exit 0；含 CROSS_TENANT_BLOCKED=1、NO_PERM_STATUS=403",
+      "actual": "PASS：CROSS_TENANT_BLOCKED=1、NO_PERM_STATUS=403、DB_UNCHANGED=1（他租户行未改写，无 instrument:update 的请求整体 403）",
+      "expected": "PASS",
+      "negative": "跨租户被改 → FAIL",
+      "negative_result": "若 Where 只带 id 不带 tenant_id，他租户行会被改写（DB_UNCHANGED=0）→ FAIL；若无权限路径未挂 RequireCusPerm，NO_PERM_STATUS 会变 200 → FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2519.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2519/R3-status-route.txt"
+      ],
+      "assert": "exit 0；含 MIDDLEWARE_HAS_DEBUG=0",
+      "actual": "PASS：MIDDLEWARE_HAS_DEBUG=0（main.go 的 /instruments/:id/status 行不再挂 RequireDebugMode）、运行时 STATUS=20000",
+      "expected": "PASS",
+      "negative": "仍含 DebugMode → FAIL",
+      "negative_result": "修复前 main.go 该路由行含 RequireDebugMode（HAS_DEBUG=1）→ 断言 FAIL，证明负例真实成立；orders/:id/admin-update 的 RequireDebugMode 保留未动（D5）。",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2519.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2519/R4-partial-fail.txt"
+      ],
+      "assert": "exit 0；含 FAILED>=1、REASON_PRESENT=1",
+      "actual": "PASS：R4 STATUS=20000 FAILED=1 REASON_PRESENT=1 DB_CHANGED=1（不存在 id 进 failed[].reason=not_found_or_forbidden，合法项落库）",
+      "expected": "PASS",
+      "negative": "静默成功 → FAIL",
+      "negative_result": "修复前不存在 id 只会被静默 continue（FAILED=0）→ 断言 FAIL；现在 failed[] 逐条带 id+reason。",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2519.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2519/R5-daily-rate.txt"
+      ],
+      "assert": "exit 0；含 PRICING_V2_RATE=5000、OVERRIDE_DAILY_RENT_REMOVED=1",
+      "actual": "PASS：BASE_DAILY_RATE=5000、PRICING_DAILY_RENT=50、OVERRIDE_DAILY_RENT_REMOVED=1、PRICING_V2_RATE=5000（同名 override 已删，定价读到新值）",
+      "expected": "PASS",
+      "negative": "override 残留 → FAIL",
+      "negative_result": "若只写 pricing JSONB 而不删同名 override，services/pricing.go 的 override 优先会让 PRICING_V2_RATE 仍是旧值 → 断言 FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2519.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2519/R6-overdue.txt"
+      ],
+      "assert": "exit 0；含 PRICING_V2_OVERDUE=120",
+      "actual": "PASS：PRICING_OVERDUE=120、OVERRIDE_OVERDUE_REMOVED=1、PRICING_V2_OVERDUE=120（显式 overdue_daily_fee 生效且 override 不遮蔽）",
+      "expected": "PASS",
+      "negative": "未生效 → FAIL",
+      "negative_result": "若仍消费 legacy overrides 或未写 pricing.overdue_daily_fee，PRICING_V2_OVERDUE 不会等于 120 → FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2519.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2519/R7-deposit.txt"
+      ],
+      "assert": "exit 0；含 DEPOSIT_COL=10000、ZERO_CASE_TIER=zero",
+      "actual": "PASS：DEPOSIT_COL=10000、PRICING_DEPOSIT=100、OVERRIDE_DEPOSIT_REMOVED=1、ZERO_CASE_COL=0、ZERO_CASE_TIER=zero（列+JSONB 双写，0 为显式零押金）",
+      "expected": "PASS",
+      "negative": "只写 JSONB → FAIL",
+      "negative_result": "若只写 JSONB（列不变）DEPOSIT_COL 不会是 10000，且 resolveDepositTier 以列为准 → FAIL；deposit=0 若被当成「未设置」则 ZERO_CASE_COL/TIER 不符 → FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash scripts/verify-2519.sh r8",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2519/R8-multi-field.txt"
+      ],
+      "assert": "exit 0；含 UPDATED=1、FAILED=1",
+      "actual": "PASS：UPDATED=1 FAILED=1 BASE=5000 OVERDUE=120 DEPOSIT=10000（三字段同开全部生效，不存在 id 进 failed[]）",
+      "expected": "PASS",
+      "negative": "项未生效 → FAIL",
+      "negative_result": "若三项中任一项未写权威位置，BASE/OVERDUE/DEPOSIT 之一不符 → FAIL；若不存在 id 被静默跳过，FAILED 不为 1 → FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R13",
+      "command": "bash scripts/verify-2519.sh r13",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2519/R13-legacy-overrides.txt"
+      ],
+      "assert": "exit 0；含 FAILED_REASON=no_fields、PRICING_V2_OVERDUE=0",
+      "actual": "PASS：UPDATED=0 FAILED=1 FAILED_REASON=no_fields OVERRIDES_STORED=0 PRICING_V2_OVERDUE=0（legacy overrides 不再被消费，定价未变化）",
+      "expected": "PASS",
+      "negative": "仍消费 overrides → FAIL",
+      "negative_result": "若实现仍兼容 overrides，该条会 updated=1 且 PRICING_V2_OVERDUE 变为 15*100 → 断言 FAIL（禁止双路径）。",
+      "pass": true
+    },
+    {
+      "id": "R9",
+      "command": "bash scripts/verify-2519.sh r9",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2519/R9-toggles.txt"
+      ],
+      "assert": "exit 0；含 ALL_OFF_ERROR=1、DEPOSIT_ZERO_OK=1、LEGACY_TEST_REWRITTEN=1",
+      "actual": "PASS：TESTS_PASS>=6、LEGACY_TEST_REWRITTEN=1、ONLY_ENABLED_SUBMITTED=1、ALL_OFF_ERROR=1、DEPOSIT_ZERO_OK=1",
+      "expected": "PASS",
+      "negative": "全关可提交，或旧三段式用例仍在断言废弃 API → FAIL",
+      "negative_result": "若只提交开启项被破坏（关闭项也进 payload）、全关可提交、或旧三段式用例仍在断言已删除的 BATCH_PRICE_*_OPTIONS，对应 token 变 0/FILE 红 → FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R10",
+      "command": "bash scripts/verify-2519.sh r10",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2519/R10-frontend-wiring.txt"
+      ],
+      "assert": "exit 0；含 LEGACY_SELECTORS=0、BATCH_STATUS_CALL=1",
+      "actual": "PASS：LEGACY_SELECTORS=0、BATCH_STATUS_CALL=1、FIELDS_CONST=3、BATCH_PRICE_FIELDS_USES=4（两页均走 BATCH_PRICE_FIELDS，无 price_type/operator 选择器）",
+      "expected": "PASS",
+      "negative": "残留选择器 → FAIL",
+      "negative_result": "若页面仍残留 price_type/operator 选择器或手写 payload，LEGACY_SELECTORS>0 或 FIELDS_CONST!=3 → FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R11",
+      "command": "bash scripts/verify-2519.sh r11",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2519/R11-docs.txt"
+      ],
+      "assert": "exit 0；含 DOC_TOKENS=4",
+      "actual": "PASS：DOC_TOKENS=4（batch/status、deposit、overdue_daily_fee、failed 均在 docs/spec/api/api.md）",
+      "expected": "PASS",
+      "negative": "缺项 → FAIL",
+      "negative_result": "任一词条未写入 api.md，DOC_TOKENS<4 → FAIL（文档不随实现漂移）。",
+      "pass": true
+    },
+    {
+      "id": "R12",
+      "command": "bash scripts/verify-2519.sh r12",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2519/R12-build.txt"
+      ],
+      "assert": "exit 0；含 GO_TEST_OK=1、NPM_BUILD_OK=1",
+      "actual": "PASS：BUILD_OK=1、GO_TEST_OK=1、NPM_BUILD_OK=1、ESLINT_OK=1（后端 go build + 定向测试、前端 npm build、eslint 无 no-undef）",
+      "expected": "PASS",
+      "negative": "任一失败 → FAIL",
+      "negative_result": "任一构建/测试/eslint 失败 → 对应 *_OK=0 → FAIL；eslint 出现 no-undef 同样 FAIL。",
+      "pass": true
+    }
+  ]
+}
