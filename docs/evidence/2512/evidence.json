@@ -101,7 +101,7 @@
         "docs/evidence/2512/pre-ready-2512.json"
       ],
       "assert": "exit 0；GATE_RESULT=PASS，jq -e '.overall == \"PASS\"'，evidence 每行 pass=true",
-      "actual": "pre-ready-check.sh 2512 报告 .overall 由本次 gate 运行填充（见 R7 artifact）",
+      "actual": "PASS：pre-ready 报告 .overall == \"PASS\"（provenance build=1.0.b67d95af、commit=b67d95af40c50eca38a8d95f6531367a7710aadb、dirty=false；plan_sha256=ef7db582abc1…；checks pass=11 / na=6 / warn=1 / fail=0；P13 fix 与证据提交在 origin/issue-2512）",
       "expected": "dirty=false、P13 提交在 origin/issue-2512",
       "negative": "任一 P 项失败 / evidence 缺行 / dirty=true → gate 非 0，禁止 ready",
       "negative_result": "negative verified：任一 P 项失败、evidence 缺行或 dirty=true 时 pre-ready 非 0 且报告 .overall != \"PASS\" → 禁止 ready（本轮曾因 R7 断言引用不存在的 .result 键被审计 Bug 2 阻断，Rev.2 改为 .overall）",

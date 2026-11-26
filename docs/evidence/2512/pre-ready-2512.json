@@ -1,16 +1,16 @@
 {
   "issue": 2512,
   "overall": "PASS",
-  "plan": "/home/coder/worktrees/tuneloop/wt-2512/tmp/pre-ready-2512.KGN0nq/plan.md",
-  "plan_sha256": "9e7ca42277b7276e00500ea3ed9afef0f1c0700e8f713c070a219fe02e0f25b3",
-  "config_sha": "f663626b8fe3895a49dffa4c43266664546741db",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2512/tmp/pre-ready-2512.FF1f3G/plan.md",
+  "plan_sha256": "ef7db582abc1bf4cf31bdead505a0c9cbeccd946cd595019652ada71b8e7dda9",
+  "config_sha": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
   "provenance": {
-    "build": "1.0.7013596d",
-    "commit": "7013596d2496b751ad6345220f71db8d8e1a4088",
+    "build": "1.0.b67d95af",
+    "commit": "b67d95af40c50eca38a8d95f6531367a7710aadb",
     "dirty": false
   },
   "summary": "docs/evidence/2512/summary.md",
-  "timestamp": "20261125-222944",
+  "timestamp": "20261126-110445",
   "checks": [
     {
       "id": "P1",
@@ -44,8 +44,8 @@
     },
     {
       "id": "P18",
-      "status": "PASS",
-      "detail": "tooling_commit matches the running scripts (f663626b8fe3895a49dffa4c43266664546741db)"
+      "status": "WARN",
+      "detail": "tooling_commit missing (legacy bundle); config_sha=a017a25d46fec75ebb30fd9e19eb220c51fb166a"
     },
     {
       "id": "P15",

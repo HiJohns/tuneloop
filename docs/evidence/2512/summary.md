@@ -85,10 +85,15 @@ Commit：
     --report docs/evidence/2512/pre-ready-2512.json
   ```
 
-- 报告：`docs/evidence/2512/pre-ready-2512.json`（`"overall": "PASS"`、exit 0、RESULT: PASS、12 项 PASS / 4 项 N/A / 零 FAIL；明细见 `checks[]`）。
-- 关键输出：P2（矩阵 7 行全 PASS）、P3（证据路径均存在且非 tmp-only）、P6（4 个改动文件均在计划 Files 内）、P7（契约三向核对）、P12（Evidence Contract 7 行与计划逐字一致、每行 `pass=true`、artifact 存在）、P13（fix `7013596d2` 与证据提交在 `origin/issue-2512`）、P14（artifact provenance 与 bundle 一致）、P17（plan 快照与 Accepted Plan 一致）、P18（tooling_commit）。
-- 子任务只跑受影响包：`--affected-cmd "bash scripts/verify-2512.sh r6"`（构建 + `CreateOrder|BatchCreateOrder` 定向回归，内层不再申请锁）；`--full-gate-cmd` 为同一 harness 的 `gate`（`go build ./...` + `go test ./handlers -timeout 30m`，30m ≥ 实测）；按子任务口径 P5 = N/A，父批次全量由 #2509 承担。
-- 首次运行因 R7 自身 artifact（gate 报告）尚不存在而 P12 FAIL（报告仍被写出）；随后同一命令复跑通过——这是「报告即验收产物」的既有语义，非代码缺陷。
+- 结果：`RESULT: PASS`（exit 0），报告 `docs/evidence/2512/pre-ready-2512.json` 根键 `.overall == "PASS"`，
+  `provenance = {build: 1.0.b67d95af, commit: b67d95af…, dirty: false}`，
+  checks：`pass=11 / na=6 / warn=1 / fail=0`（warn 仅 P18 `tooling_commit` 缺失，属旧 bundle 兼容项）。
+- 关键项：P1（四节齐备）、P2（矩阵 7 行全 PASS）、P3（证据路径存在且非 tmp-only）、P4（`verify-2512.sh r6` 通过）、
+  P6（4 个改动文件均在计划 Files 内）、P7（契约三向核对）、P12（Evidence Contract 7 行与 Rev.2 逐字一致、每行 `pass=true`）、
+  P13（fix `b67d95af4` 与证据提交在 `origin/issue-2512`）、P14（7 个 artifact provenance 与 bundle 一致）、
+  P17（plan 快照 = Accepted Plan Rev.2，sha `ef7db582abc1`）；P5 = N/A（子任务，全量门禁归父任务 #2509）、
+  P15/P16/P8/P9/P10 = N/A（无 batch gate reference / UI 行 / panel / session / aiaudit）。
+- 首轮 round-1 的 R7 断言 Bug 2（`.result` 键不存在）已按 Rev.2 改为 `.overall`，本轮一次通过。
 
 ### Evidence Contract（7/7 PASS）
 
