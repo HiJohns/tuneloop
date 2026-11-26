@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2538,
-  "build": "1.0.308a48c02",
-  "commit": "308a48c029df8c1cccbc482d3f99270dd4d3b1f4",
+  "build": "1.0.bc544a810",
+  "commit": "bc544a8102335e50ccd4e4820ab25ccdcb9c05d8",
   "dirty": false,
   "plan_sha256": "3fce3af0139a33fac8549a0900ce46829cbdd531679d124be70d02a1d03b393a",
   "environment": "isolated worktree wt-2538 (branch issue-2538, base origin/develop 608b30064); frontend-pc node --test + eslint + vite build; backend go build ./...; no production calls, no browser rendering (deployment-side recheck #2533)",
@@ -29,10 +29,10 @@
         "docs/evidence/2538/R2-summary-helpers.txt"
       ],
       "assert": "exit 0；含 LABELS=6、REDUCED_EMPTY=未配置",
-      "actual": "PASS：TESTS_PASS=8 / TESTS_FAIL=0 / LABELS=6 / DAILY=¥100.00/天 / OVERDUE=¥36.00/天 / DEPOSIT=¥500.00 / REDUCED_EMPTY=未配置 / TOTAL_PRICE=¥3600.00 / JOIN_DATE=1月2日 11:04 / TOTAL_PRICE_CENTS=1 / JOIN_DATE_FROM_CREATED_AT=1",
+      "actual": "PASS：TESTS_PASS=9 / TESTS_FAIL=0 / LABELS=6 / DAILY=¥100.00/天 / OVERDUE=¥36.00/天 / DEPOSIT=¥500.00 / REDUCED_EMPTY=未配置 / TOTAL_PRICE=¥3600.00 / JOIN_DATE=1月2日 11:04 / OVERDUE_ZERO=- / OVERDUE_MISSING=- / JOIN_DATE_UNPARSABLE=- / TOTAL_PRICE_CENTS=1 / JOIN_DATE_FROM_CREATED_AT=1",
       "expected": "PASS",
       "negative": "标签缺失 → FAIL",
-      "negative_result": "标签缺失、金额未按分换算（估值取 total_price 而非日租）、差额空值显示 `-` 而非 `未配置` → R2_FAIL",
+      "negative_result": "红线实证（审计 Bug 1 / Finding 2）：pre-fix assetSummary.js + post-fix tests = 6 pass / 3 fail（0 值逾期费渲染 ¥0.00/天、不可解析 created_at 回吐原始串）→ 修复后 9 pass / 0 fail；用例 'renders - (never ¥0.00) for non-positive overdue rent' 覆盖 0 / -100 / '0' / 'n/a' → R2_FAIL",
       "pass": true
     },
     {
@@ -43,10 +43,10 @@
         "docs/evidence/2538/R3-stub-removed.txt"
       ],
       "assert": "exit 0；含 STUB_FILES=0、TIMELINE_TAB_LABEL=0",
-      "actual": "PASS：STUB_FILES=0（AssetDetail.jsx / assetDetail.js / assetDetail.test.mjs 均不存在）/ ASSETDETAIL_IMPORTS=0 / TIMELINE_TAB_LABEL=0 / DOCUMENTS_TAB_LABEL=0",
+      "actual": "PASS：STUB_FILES=0（AssetDetail.jsx / assetDetail.js / assetDetail.test.mjs 均不存在）/ ASSETDETAIL_IMPORTS=0 / TIMELINE_RAW_HITS=2 / WORKORDER_TIMELINE_HITS=1（工单页模态标题，另一语义）/ TIMELINE_TAB_LABEL=0 / DOCUMENTS_TAB_LABEL=0",
       "expected": "PASS",
       "negative": "残留存根/占位 → FAIL",
-      "negative_result": "任一存根文件、`from '…assetDetail'` import、或 '流转轨迹' / '关联单据' 字面量残留 → R3_FAIL（`工单流转轨迹` 是工单页模态标题，不同字面量，不误计）",
+      "negative_result": "探针已改为不带引号的字面量搜索（审计 Finding 1）：合成样例 title=\"流转轨迹\" 在旧探针命中 0、新探针命中 1；注释行与本单无关的「工单流转轨迹」显式排除并单独计数 → R3_FAIL",
       "pass": true
     },
     {
@@ -85,7 +85,7 @@
         "docs/evidence/2538/R6-build.txt"
       ],
       "assert": "exit 0；含 PC_BUILD_OK=1、GO_BUILD_OK=1",
-      "actual": "PASS：NODE_TEST_OK=1（assetSummary 8 + instrumentDisplay 18）/ ESLINT_OK=1（0 error）/ PC_BUILD_OK=1（vite build）/ GO_BUILD_OK=1",
+      "actual": "PASS：NODE_TEST_OK=1（21 tests：assetSummary 9 + instrumentDisplay 12）/ ESLINT_OK=1（0 error）/ PC_BUILD_OK=1（vite build）/ GO_BUILD_OK=1",
       "expected": "PASS",
       "negative": "任一失败 → FAIL",
       "negative_result": "node --test / eslint / vite build / go build 任一非 0 → R6_FAIL",
