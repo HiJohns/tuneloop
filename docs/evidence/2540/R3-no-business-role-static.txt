@@ -1,4 +1,4 @@
-# build=1.0.8f72c057a # commit=8f72c057aef3fe59aa9ab7878a7ef5e4e22c501b # dirty=false
+# build=1.0.f400652ff # commit=f400652ff7b383a06a1d7e5f49a03332b36d828f # dirty=false
 == R3 静态：业务角色不得作为 IAM 关系角色 ==
 BIND_WITH_BUSINESS_ROLE=0
 GETBUSINESSROLE_AS_IAMROLE=0
