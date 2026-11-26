@@ -89,6 +89,15 @@ func newTransitMockIAM(t *testing.T, failTemplates bool) *httptest.Server {
 			})
 			return
 		}
+		// #2547: 创建中转网点会先建一个 IAM 子组织（POST .../organizations），需返回 org_id；
+		// 其它 namespaces 路径（namespace 解析）保持原响应。
+		if strings.HasSuffix(r.URL.Path, "/organizations") {
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"org_id":   uuid.New().String(),
+				"admin_id": uuid.New().String(),
+			})
+			return
+		}
 		json.NewEncoder(w).Encode(map[string]interface{}{"id": uuid.New().String()})
 	})
 	return httptest.NewServer(mux)
@@ -198,6 +207,10 @@ func TestCreateAdminTransitSiteValidation(t *testing.T) {
 	data := resp["data"].(map[string]interface{})
 	assert.Equal(t, "transit", data["type"])
 	assert.Equal(t, "张三", data["contact_name"], "contact_name 必须持久化（audit Bug4）")
+	// #2547: 中转网点必须有自己的一级组织，不能复用平台租户组织。
+	orgID, _ := data["org_id"].(string)
+	assert.NotEmpty(t, orgID, "transit site must carry its own IAM org id")
+	assert.NotEqual(t, data["tenant_id"], data["org_id"], "org_id must not fall back to the platform tenant")
 }
 
 func TestDeleteTransitSiteRejectsWhenReferenced(t *testing.T) {
