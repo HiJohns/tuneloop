@@ -63,11 +63,11 @@ finish() {
 mark() { # name expected actual
   local name=$1 expected=$2 actual=$3
   if [ "$actual" = "$expected" ]; then
-    echo "${name}=${actual}"
+    echo "${name}=${actual}" | tee -a "$LOG"
     PASS=$((PASS + 1))
   else
-    echo "${name}=${actual} (expected ${expected})"
-    echo "ASSERT_FAIL:${name}"
+    echo "${name}=${actual} (expected ${expected})" | tee -a "$LOG"
+    echo "ASSERT_FAIL:${name}" | tee -a "$LOG"
     FAIL=$((FAIL + 1)); RC=1
   fi
 }
@@ -125,7 +125,7 @@ r1)
   n=$(printf '%s\n' "$CATCH" | grep -c 'message.error' || true)
   mark FALLBACK_TOAST 1 "$([ "$n" -ge 1 ] && echo 1 || echo 0)"
 
-  if [ "$FAIL" = "0" ]; then echo "R1_OK"; else echo "R1_FAIL"; fi
+  if [ "$FAIL" = "0" ]; then echo "R1_OK" | tee -a "$LOG"; else echo "R1_FAIL" | tee -a "$LOG"; fi
   ;;
 
 r2)
@@ -173,7 +173,7 @@ r2)
   fi
 
   echo "RED_SAMPLE=$FIX_SHA^:$SRC"
-  if [ "$FAIL" = "0" ]; then echo "R2_OK"; else echo "R2_FAIL"; fi
+  if [ "$FAIL" = "0" ]; then echo "R2_OK" | tee -a "$LOG"; else echo "R2_FAIL" | tee -a "$LOG"; fi
   ;;
 
 r3)
@@ -189,7 +189,7 @@ r3)
   [ "$BUILD" = "0" ] && [ "$LINT" = "0" ] && [ "$NO_UNDEF" = "0" ] || RC=1
   mark BUILD_EXIT 0 "$BUILD"
   mark ESLINT_NO_UNDEF 0 "$NO_UNDEF"
-  if [ "$FAIL" = "0" ]; then echo "R3_OK"; else echo "R3_FAIL"; fi
+  if [ "$FAIL" = "0" ]; then echo "R3_OK" | tee -a "$LOG"; else echo "R3_FAIL" | tee -a "$LOG"; fi
   ;;
 esac
 
