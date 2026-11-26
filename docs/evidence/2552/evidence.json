@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "issue": 2552,
+  "build": "1.0.7ca438baa",
+  "commit": "7ca438baa7818a25198ef77fa10911d311920b96",
+  "dirty": false,
+  "plan_sha256": "343fb9ff5947dddf16af6f89eff3147ab7d6f960bdb4379f8d085a1ee792f015",
+  "environment": "isolated worktree wt-2552 (branch issue-2552, base origin/develop c37655eb0); backend go build + Postgres test DB (127.0.0.1:15433, handlers suite clones tuneloop_test from template; services backfill test uses isolated schema in tuneloop_test); fake IAM httptest servers; no production calls",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2552.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2552/R1-member-tenant.txt"
+      ],
+      "assert": "exit 0；grep MEMBER_TENANT_IS_LOCAL_TENANT=1、MEMBER_IAM_ORG_IS_SITE_ORG=1、NO_DUPLICATE_MEMBER_ROW=1、MEMBER_ROWS=1、USER_TENANT_IS_LOCAL_TENANT=1；源码守卫 BIND_ORG_AS_TENANT=0、LOCAL_TENANT_ARG=1",
+      "actual": "PASS：BIND_ORG_AS_TENANT=0 / LOCAL_TENANT_ARG=1 / MEMBER_ROWS=1 / MEMBER_TENANT_IS_LOCAL_TENANT=1 / MEMBER_IAM_ORG_IS_SITE_ORG=1 / NO_DUPLICATE_MEMBER_ROW=1 / USER_TENANT_IS_LOCAL_TENANT=1 / USER_ORG_IS_SITE_ORG=1；R1_OK",
+      "expected": "PASS",
+      "negative": "MEMBER_TENANT_IS_LOCAL_TENANT=0（tenant 列被写成站点组织）或 MEMBER_ROWS=2（重复添加产生第二行）→ FAIL",
+      "negative_result": "红：把 backend/handlers/transit_site_admin.go 回退到 HEAD^（保留新增用例）后跑同一套用例 → 首次添加即 500「ERROR: insert or update on table \"site_members\" violates foreign key constraint \"site_members_tenant_id_fkey\"」，因为旧代码把 site.OrgID（branch 组织）写进 site_members.tenant_id；`--- FAIL: TestTransitMemberScope2552_RepeatedAddKeepsSingleRow`、`--- FAIL: TestTransitMemberScope2552_NewUserTenantIsLocal`（tmp/red-2552-r1r3.txt）。绿：恢复修复后全部 PASS（同 artifact）",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2552.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2552/R2-personnel-predicate.txt"
+      ],
+      "assert": "exit 0；grep SYSTEM_VIEW_TRANSIT=1、BYID_TRANSIT=200、NEG_STORE_SAME_TENANT=0、NEG_OTHER_TENANT_TRANSIT=0、OLD_ORG_EQUALS_TENANT_RULE=0、CLAIM_* 三项、OTHER_TENANT_TRANSIT_MEMBERSHIP=0、STORE_MEMBER_TRANSIT_MEMBERSHIP=0、TRANSIT_MEMBER_TRANSIT_MEMBERSHIP=1",
+      "actual": "PASS：OLD_ORG_EQUALS_TENANT_RULE=0 / TRANSIT_TENANT_RULE_SITES=2 / SYSTEM_VIEW_TRANSIT=1 / BYID_TRANSIT=200 / NEG_STORE_SAME_TENANT=0 / NEG_OTHER_TENANT_TRANSIT=0 / BYID_OTHER_TENANT_TRANSIT=404 / CLAIM_SYSTEM_VIEW_TRANSIT=1 / CLAIM_NEG_STORE_SAME_TENANT=0 / CLAIM_NEG_OTHER_TENANT_TRANSIT=0 / OTHER_TENANT_TRANSIT_MEMBERSHIP=0 / STORE_MEMBER_TRANSIT_MEMBERSHIP=0 / TRANSIT_MEMBER_TRANSIT_MEMBERSHIP=1；R2_OK。注：带 tid claim 时同租户 store 成员的 by-id 由 #2526 旧口径兜底放行（BYID_STORE_SAME_TENANT=200），属 #2526 既有决策、不在本单范围；by-id 负例在 tid 为空的分支断言（404）",
+      "expected": "PASS",
+      "negative": "SYSTEM_VIEW_TRANSIT=0（判据换维度后既有中转成员消失）或 NEG_STORE_SAME_TENANT=1 / NEG_OTHER_TENANT_TRANSIT=1（越权可见）→ FAIL",
+      "negative_result": "红：把 backend/handlers/personnel.go 回退到 HEAD^ 后跑同一套用例 → SYSTEM_VIEW_TRANSIT=0（旧判据 `s.tenant_id = oid OR s.org_id = oid` 在平台租户 ≠ 根组织时匹配不到中转站，成员从系统视图消失），`--- FAIL: TestPersonnelTransitPredicate2552`（tmp/red-2552-r2.txt）。绿：恢复修复后 SYSTEM_VIEW_TRANSIT=1，两条负例仍为 0（同 artifact）",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2552.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2552/R3-create-branch.txt"
+      ],
+      "assert": "exit 0；grep CREATE_TYPE_BRANCH=1、CREATE_PARENT_IS_NAMESPACE=1、DUPLICATE_NAME_409=1、NO_SITE_ON_EMPTY_TENANT=1、PRIMARY_ORG_UNRESOLVED=50000、ORPHAN_ORG_COMPENSATED=1、SITE_ROWS_ON_FAILURE=0",
+      "actual": "PASS：CREATE_TYPE_BRANCH=1 / CREATE_PARENT_IS_NAMESPACE=1 / CREATE_NO_ADMIN_INFO=1 / DUPLICATE_NAME_409=1 / NO_SITE_ON_EMPTY_TENANT=1 / PRIMARY_ORG_UNRESOLVED=50000（primaries=0 与 primaries=2 两例均 500 且不建站）/ ORPHAN_ORG_COMPENSATED=1 / SITE_ROWS_ON_FAILURE=0；R3_OK",
+      "expected": "PASS",
+      "negative": "CREATE_TYPE_BRANCH=0 或 NO_SITE_ON_EMPTY_TENANT=0（空租户仍建组织/建站）或 ORPHAN_ORG_COMPENSATED=0（本地落库失败留孤儿组织）或 PRIMARY_ORG_UNRESOLVED≠50000（主组织不唯一仍建站）→ FAIL",
+      "negative_result": "红：把 backend/handlers/transit_site_admin.go 回退到 HEAD^ 后跑同一套用例 → CREATE_TYPE_BRANCH=0、CREATE_PARENT_IS_NAMESPACE=0、PRIMARY_ORG_UNRESOLVED=0（primaries=0 时仍 200 并落库 sites 行）、ORPHAN_ORG_COMPENSATED=0，`--- FAIL: TestTransitSiteCreate2552_Contract` / `_PrimaryUnresolved` / `_OrphanCompensated`（tmp/red-2552-r1r3.txt）。绿：恢复修复后全部 PASS（同 artifact）",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2552.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2552/R4-backfill.txt"
+      ],
+      "assert": "exit 0；grep DRYRUN_WRITES=0、DRYRUN_IAM_CREATES=0、APPLY_CREATED=2、APPLY_UPDATED=2、SECOND_APPLY_UPDATED=0、MEMBERS_REBIND=1、IAM_FAILURE_EXPLICIT=1；BACKFILL_WIRED_TO_STARTUP=0",
+      "actual": "PASS：BACKFILL_WIRED_TO_STARTUP=0 / DRYRUN_WRITES=0 / DRYRUN_IAM_CREATES=0 / DRYRUN_UNCHANGED_SITES=4 / APPLY_CREATED=2 / APPLY_UPDATED=2 / APPLY_SKIPPED=2 / SECOND_APPLY_UPDATED=0 / SECOND_APPLY_CREATED=0 / MEMBERS_REBIND=1 / MEMBERS_BIND_CALLS=1 / IAM_FAILURE_EXPLICIT=1 / IAM_FAILURE_UNTOUCHED=1；R4_OK",
+      "expected": "PASS",
+      "negative": "DRYRUN_WRITES>0 或 DRYRUN_IAM_CREATES>0（dry-run 写了）或 SECOND_APPLY_UPDATED>0（条件更新不幂等）或 MEMBERS_REBIND≠1 → FAIL",
+      "negative_result": "红基线＝能力缺失：`backend/services/transit_site_org_backfill.go` 与 `backend/tools/backfill_transit_site_orgs/` 在 HEAD^ 不存在（`ls` 报 No such file），任何回填只能手写 UPDATE（B8）。当前实现下负例路径由 `TestTransitBackfill2552_IAMFailureExplicit` 覆盖：IAM 建组织失败 → 显式返回 error（IAM_FAILURE_EXPLICIT=1）且站点 org_id 不变（IAM_FAILURE_UNTOUCHED=1），不退化为静默跳过",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2552.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2552/R5-docs.txt"
+      ],
+      "assert": "exit 0；grep DOC_API_TRANSIT_TENANT=1、DOC_CASE_TRANSIT_ORG=1、DOC_OPS_AUDIT_ROW=1、DOC_DB_SITES_ORG=1",
+      "actual": "PASS：DOC_API_TRANSIT_TENANT=1 / DOC_CASE_TRANSIT_ORG=1 / DOC_OPS_AUDIT_ROW=1 / DOC_DB_SITES_ORG=1；R5_OK",
+      "expected": "PASS",
+      "negative": "任一 DOC_*=0（文档仍写旧归属/旧判据）→ FAIL",
+      "negative_result": "N/A（static 行）：修复前四份文档分别为「平台顶层组织（租户=平台根）」（cases/transit.md:61）、「tenant=org=平台租户」（tenant-id-audit.md:433）、「#1935 平台顶层组织」（:462）、`sites.org_id` 只写「网点自身的 IAM 组织 ID」（database.md §2.10），四项 grep 均为 0；修复后四项均为 1",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2552.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2552/R6-build-regression.txt"
+      ],
+      "assert": "exit 0；grep BUILD_RC=0、GOFMT_DIFF=0、REGRESSION_RC=0、REGRESSION_PASS=1、FAIL_COUNT=0、EXISTING_TRANSIT_IAM_PASS=1、EXISTING_PERSONNEL_SYSTEM_VIEW_PASS=1",
+      "actual": "PASS：BUILD_RC=0 / GOFMT_DIFF=0 / REGRESSION_RC=0 / REGRESSION_PASS=1 / FAIL_COUNT=0 / REGRESSION_PASS_COUNT=31 / EXISTING_TRANSIT_IAM_PASS=1 / EXISTING_PERSONNEL_SYSTEM_VIEW_PASS=1；R6_OK",
+      "expected": "PASS",
+      "negative": "任一 RC≠0 / FAIL_COUNT>0 / GOFMT_DIFF>0 → FAIL",
+      "negative_result": "N/A（回归行）：判据为「既有用例一个都不能坏」，失败即 FAIL；本轮首跑即暴露过 gofmt 差异 2 处（已格式化后归零），无既有用例 FAIL",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2552.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2552/R7-plan-source.txt"
+      ],
+      "assert": "exit 0；grep PLAN_SOURCE_FRESH=PASS、PLAN_MD_TRACKED=1",
+      "actual": "PASS：PLAN_SOURCE_FRESH=PASS（sha=343fb9ff…）/ PLAN_MD_TRACKED=1 / PLAN_SOURCE_RC=0；R7_OK",
+      "expected": "PASS",
+      "negative": "PLAN_SOURCE_FRESH=E_PLAN_STALE（plan.md 与最新 Accepted Plan 评论不一致）或 PLAN_MD_TRACKED=0（plan.md 未入库）→ FAIL",
+      "negative_result": "N/A（四源/可读性行）：四源（含 gate / evidence.json）一致性由 pre-ready gate 的 P15 独立校验（D6：合并后 origin/develop 可读性归 #2554）；本行只锁定「推送分支上 plan.md 与 Accepted Plan 一致且被 git 跟踪」",
+      "pass": true
+    }
+  ]
+}

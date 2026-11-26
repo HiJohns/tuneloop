@@ -1,0 +1,18 @@
+# build=1.0.7ca438baa # commit=7ca438baa7818a25198ef77fa10911d311920b96 # dirty=false
+== R3 建站契约：type=branch / parent=主组织 / 错误映射 / 孤儿补偿 ==
+CREATE_TYPE_BRANCH=1
+CREATE_PARENT_IS_NAMESPACE=1
+CREATE_NO_ADMIN_INFO=1
+DUPLICATE_NAME_409=1
+NO_SITE_ON_EMPTY_TENANT=1
+--- PASS: TestTransitSiteCreate2552_Contract (0.85s)
+PRIMARY_ORG_UNRESOLVED=50000
+PRIMARY_ORG_CASE primaries=0 status=500
+PRIMARY_ORG_UNRESOLVED=50000
+PRIMARY_ORG_CASE primaries=2 status=500
+--- PASS: TestTransitSiteCreate2552_PrimaryUnresolved (0.62s)
+ORPHAN_ORG_COMPENSATED=1
+SITE_ROWS_ON_FAILURE=0
+CREATE_STATUS=500
+--- PASS: TestTransitSiteCreate2552_OrphanCompensated (0.62s)
+R3_OK
