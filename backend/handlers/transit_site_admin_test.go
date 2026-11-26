@@ -71,6 +71,15 @@ func newTransitMockIAM(t *testing.T, failTemplates bool) *httptest.Server {
 			"token_type":   "Bearer",
 		})
 	})
+	mux.HandleFunc("/api/v1/organizations", func(w http.ResponseWriter, r *http.Request) {
+		// #2552: 建站需解析命名空间主组织（ListOrganizations 的 is_primary 恰好 1 个）。
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"organizations": []map[string]interface{}{
+				{"id": uuid.New().String(), "name": "平台根组织", "is_primary": true},
+			},
+		})
+	})
 	mux.HandleFunc("/api/v1/organizations/", func(w http.ResponseWriter, r *http.Request) {
 		// bind/unbind/role-update all return 200
 		w.Header().Set("Content-Type", "application/json")
