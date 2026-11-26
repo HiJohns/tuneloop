@@ -262,9 +262,11 @@ export default function InstrumentStock() {
   // D4：统一走 fetchBlob（带 Bearer + 空参剔除），产物为 xlsx，命名与乐器列表一致。
   const handleExport = async () => {
     try {
-      const blob = await fetchBlob('/instruments/export', {
-        params: buildStockExportParams({ filters, isManagerLike }),
-      })
+      const exportParams = buildStockExportParams({ filters, isManagerLike })
+      // #2579：导出列与表格列一致（#2578 的 sn,category_name,status 扩展到级别/金额列）。
+      // 只覆盖 fields，筛选口径仍由 buildStockExportParams 单点产出。
+      exportParams.fields = 'sn,category_name,level,daily_rate,deposit,overdue_daily_fee,status'
+      const blob = await fetchBlob('/instruments/export', { params: exportParams })
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url

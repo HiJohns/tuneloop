@@ -1593,6 +1593,11 @@ API 来源：
   - **筛选变化**（搜索/分类/状态/清空）→ 回第 1 页 + 清空行选择（批量设价/删除只作用当前可见选中行）
   - **首屏 loading** 走 `Table loading`（不整页 `Spin`），筛选时不卸载工具栏（输入框不失焦）
 
+- **导出字段集合（#2579）**：
+  - 库存监控页（固定集合，与表格列一致）：`sn,category_name,level,daily_rate,deposit,overdue_daily_fee,status`
+  - 乐器列表页（弹窗可选）：识别码 / 分类 / 级别 / 日租金 / 押金 / 逾期租金 / 状态 / 描述（默认 `sn,category_name,status`）；**不再提供** 品牌 / 型号 / 库存 / 月租金
+  - 金额列展示「元、2 位小数」；无值显示 `-`（显式 0 显示 `0.00`）
+
 - **导出（#2578）**：工具栏「导出 Excel」**跟随当前筛选**（识别码 / 分类（含后代）/ 状态 / 可见性范围），
   请求 `GET /api/instruments/export`（参数 `sn` / `category_id` / `status` / `exclude_status` / `fields=sn,category_name,status`），
   统一走 `fetchBlob`（带 Bearer、空参剔除）；产物为 `.xlsx`，文件名 `instruments_export_<date>.xlsx`（与乐器列表一致）。

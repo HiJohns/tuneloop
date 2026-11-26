@@ -19,19 +19,18 @@ func NewInstrumentService(db *gorm.DB) *InstrumentService {
 	return &InstrumentService{db: db}
 }
 
+// #2579：headerMap 只保留**有数据源**的字段（D3）。brand / model 的模型字段已删除，
+// monthly_rate 定价链不产出，stock 无库存概念 —— 导出它们只会得到空列/恒 0 列。
 var headerMap = map[string]string{
-	"brand":         "品牌",
-	"model":         "型号",
-	"sn":            "识别码",
-	"category_name": "分类名称",
-	"level":         "级别",
-	"daily_rate":    "日租金",
-	"monthly_rate":  "月租金",
-	"deposit":       "押金",
-	"stock":         "库存数量",
-	"status":        "状态",
-	"description":   "描述",
-	"images":        "图片URL",
+	"sn":                "识别码",
+	"category_name":     "分类名称",
+	"level":             "级别",
+	"daily_rate":        "日租金",
+	"deposit":           "押金",
+	"overdue_daily_fee": "逾期租金",
+	"status":            "状态",
+	"description":       "描述",
+	"images":            "图片URL",
 }
 
 var requiredFields = []string{"category_name"}
@@ -72,6 +71,12 @@ type ExportOptions struct {
 	CategoryIDs   []string                `json:"category_ids"`   // 已展开后代分类的 ID 集合（handler 用 getDescendantCategoryIDs）
 	ExcludeStatus []string                `json:"exclude_status"` // stock_status NOT IN（csv）
 	Scope         func(*gorm.DB) *gorm.DB `json:"-"`              // 可见性作用域闭包（applyInstrumentListScope）
+
+	// #2579：金额字段的唯一数据源由 handler 注入（instrumentListPriceFields 同链，
+	// D1：导出侧禁止自行解析 pricing / pricing_overrides JSONB）。
+	// 返回 map 的键为 daily_rate / deposit / overdue_daily_fee（已格式化为「元，2 位小数」）；
+	// 缺键表示无法解析 → 导出显示 `-`。nil 时所有金额列输出 `-`（不 panic）。
+	MoneyFields func(*models.Instrument) map[string]string `json:"-"`
 }
 
 func (s *InstrumentService) ImportInstruments(file *excelize.File, tenantID string) (*ImportResult, error) {
@@ -385,7 +390,8 @@ func (s *InstrumentService) ExportInstruments(opts ExportOptions, tenantID strin
 	}
 
 	var instruments []models.Instrument
-	if err := query.Find(&instruments).Error; err != nil {
+	// #2579 D4：level 取 InstrumentLevel.Caption，需要预加载关联。
+	if err := query.Preload("InstrumentLevel").Find(&instruments).Error; err != nil {
 		return nil, fmt.Errorf("failed to fetch instruments: %w", err)
 	}
 
@@ -394,7 +400,8 @@ func (s *InstrumentService) ExportInstruments(opts ExportOptions, tenantID strin
 	}
 
 	if len(opts.Fields) == 0 {
-		opts.Fields = []string{"brand", "level", "daily_rate", "monthly_rate", "deposit", "stock_status"}
+		// #2579 D6：默认字段集改为有数据源的识别码/分类/状态（原默认集全是死字段）。
+		opts.Fields = []string{"sn", "category_name", "status"}
 	}
 
 	headers := make([]string, len(opts.Fields))
@@ -411,7 +418,7 @@ func (s *InstrumentService) ExportInstruments(opts ExportOptions, tenantID strin
 		rowNum := rowIdx + 2
 		for colIdx, field := range opts.Fields {
 			cell, _ := excelize.CoordinatesToCellName(colIdx+1, rowNum)
-			value := s.getFieldValue(&instrument, field)
+			value := s.getFieldValue(&instrument, field, opts)
 			f.SetCellValue(sheetName, cell, value)
 		}
 	}
@@ -458,21 +465,43 @@ func (s *InstrumentService) resolveCategory(instrument *models.Instrument, tenan
 	return defaultCategory.ID, nil
 }
 
-func (s *InstrumentService) getFieldValue(instrument *models.Instrument, field string) string {
+// FormatCentsYuan 把「分」格式化为「元，2 位小数」（#2579 D2）。
+// 导出与测试共用同一格式化口径，避免导出侧各自实现。
+func FormatCentsYuan(cents int64) string {
+	return strconv.FormatFloat(float64(cents)/100, 'f', 2, 64)
+}
+
+func (s *InstrumentService) getFieldValue(instrument *models.Instrument, field string, opts ExportOptions) string {
 	switch field {
 	case "sn":
 		return s.sanitizeValue(instrument.SN)
 	case "level":
-		return s.sanitizeValue(instrument.Level)
-	case "stock":
-		return "0"
+		// D4：优先 InstrumentLevel.Caption（LevelID 关联），否则回落受弃用字符串，都没有则 `-`。
+		if instrument.InstrumentLevel != nil && strings.TrimSpace(instrument.InstrumentLevel.Caption) != "" {
+			return s.sanitizeValue(instrument.InstrumentLevel.Caption)
+		}
+		if v := strings.TrimSpace(instrument.Level); v != "" {
+			return s.sanitizeValue(v)
+		}
+		return "-"
 	case "status":
 		return s.sanitizeValue(instrument.StockStatus)
 	case "category_name":
 		return s.sanitizeValue(instrument.CategoryName)
 	case "description":
 		return s.sanitizeValue(instrument.Description)
-	// name, brand 字段已删除
+	case "images":
+		return s.sanitizeValue(instrument.Images)
+	case "daily_rate", "deposit", "overdue_daily_fee":
+		// D1/D2：金额只经注入的单一链取值；缺键/不可解析 → `-`（不得用 0 冒充缺失）。
+		if opts.MoneyFields == nil {
+			return "-"
+		}
+		values := opts.MoneyFields(instrument)
+		if v, ok := values[field]; ok && strings.TrimSpace(v) != "" {
+			return v
+		}
+		return "-"
 	default:
 		return ""
 	}

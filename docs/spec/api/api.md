@@ -1759,7 +1759,19 @@ curl -X POST http://localhost:5554/api/instruments/import \  -H "Authorization: 
 - `category_id`: 分类筛选，**服务端展开后代分类**（#2578，与 `GET /api/instruments?category_id=` 同一实现 `getDescendantCategoryIDs`）
 - `exclude_status`: 排除状态，逗号分隔，服务端按 `stock_status NOT IN (...)` 过滤（#2578，非管理级默认排除 `lost,archived,sold`）
 - `search_text`: 搜索文本，匹配name或brand (可选)
-- `fields`: 导出字段，逗号分隔 (可选，默认全部；有效值含 `sn`→「识别码」、`category_name`→「分类名称」)
+- `fields`: 导出字段，逗号分隔 (可选；默认 `sn,category_name,status`)。**有效值**（#2579）：
+  `sn`→「识别码」、`category_name`→「分类名称」、`level`→「级别」、`daily_rate`→「日租金」、
+  `deposit`→「押金」、`overdue_daily_fee`→「逾期租金」、`status`→「状态」（原始码）、
+  `description`→「描述」、`images`→「图片URL」
+
+> **注（#2579 字段取值口径）**：金额三列（`daily_rate` / `deposit` / `overdue_daily_fee`）取自
+> **分** → 展示为**元、2 位小数**（如 `100.00`）；无法解析（无定价、缺配置）→ `-`；
+> 显式 `0` → `0.00`。`level` 取 `instrument_levels.caption`（`level_id` 关联），未设置时回落受弃用
+> 字符串、仍为空则 `-`。金额口径与列表/详情/定价 v2 同为 `instrumentListPriceFields` 单一链，
+> 导出侧不得自行解析 `pricing` / `pricing_overrides`。
+>
+> **已移除字段（#2579）**：`brand`（品牌）、`model`（型号）、`monthly_rate`（月租金）、`stock`（库存数量）——
+> 模型字段已删除或定价链不产出，导出只会得到空列/恒 0 列，故不再接收。
 
 > **注（#2578 可见性与过滤口径）**：导出与列表 `GET /api/instruments` 使用**同一套**过滤与可见性语义——
 > 可见性由 `applyInstrumentListScope` 注入（网点员工/维修师傅只看所属网点，其余按 `ApplyOrgScope`），

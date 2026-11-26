@@ -52,7 +52,7 @@ export default function InstrumentList() {
   
   // Import/Export state
   const [exportFieldModalVisible, setExportFieldModalVisible] = useState(false)
-  const [selectedExportFields, setSelectedExportFields] = useState([])
+  const [selectedExportFields, setSelectedExportFields] = useState(['sn', 'category_name', 'status']) // #2579 D6
 
   useEffect(() => {
     fetchCategories()
@@ -495,11 +495,15 @@ export default function InstrumentList() {
     }
   }
 
+  // #2579 D3/D6：只暴露**有数据源**的导出字段（品牌/型号/库存/月租金已从后端 headerMap 移除），
+  // 默认选中识别码 + 分类 + 状态（原默认集全是死字段）。
   const fieldOptions = [
-    { label: '品牌', value: 'brand' },
-    { label: '型号', value: 'model' },
+    { label: '识别码', value: 'sn' },
     { label: '分类', value: 'category_name' },
-    { label: '库存', value: 'stock' },
+    { label: '级别', value: 'level' },
+    { label: '日租金', value: 'daily_rate' },
+    { label: '押金', value: 'deposit' },
+    { label: '逾期租金', value: 'overdue_daily_fee' },
     { label: '状态', value: 'status' },
     { label: '描述', value: 'description' }
   ]

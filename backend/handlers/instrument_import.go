@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 	"tuneloop-backend/middleware"
+	"tuneloop-backend/models"
 	"tuneloop-backend/service"
 
 	"github.com/gin-gonic/gin"
@@ -209,6 +210,24 @@ func ExportInstruments(c *gin.Context) {
 		for i := range opts.Fields {
 			opts.Fields[i] = strings.TrimSpace(opts.Fields[i])
 		}
+	}
+
+	// #2579 D1/D2：金额列走列表/定价同一条链（instrumentListPriceFields），
+	// 导出侧不解析 pricing / pricing_overrides JSONB；configCache 单次导出内复用。
+	pricingConfigCache := map[string]string{}
+	opts.MoneyFields = func(inst *models.Instrument) map[string]string {
+		priced := instrumentListPriceFields(ctx, inst, pricingConfigCache)
+		values := map[string]string{}
+		if priced.ResolvedDailyRate > 0 {
+			values["daily_rate"] = service.FormatCentsYuan(priced.ResolvedDailyRate)
+		}
+		if priced.Deposit != nil {
+			values["deposit"] = service.FormatCentsYuan(*priced.Deposit)
+		}
+		if priced.OverdueDailyFee != nil {
+			values["overdue_daily_fee"] = service.FormatCentsYuan(*priced.OverdueDailyFee)
+		}
+		return values
 	}
 
 	// Create service and export
