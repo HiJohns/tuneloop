@@ -27,7 +27,12 @@
 }
 ```
 
-> **用户可见文案（#1675 / #2480 / #2504）**：后端 `message` 为机器可读标识（英文为主，**不得原样展示给用户**），前端统一由 `resolveErrorMessage` 解析（`frontend-mobile/src/services/errorMessages.js` / `frontend-pc/src/services/errorMessages.js`，层序 owner 为 `errorMessageResolution.mjs`）翻译为用户友好中文。五层回退：L1 `message_map` 精确匹配（高频错误，如 `order not found` → 「未找到订单」）→ L2 `human_message` 可读中文透传（含 CJK，优先于 code 家族，#2480）→ L3 `code_map` code 家族映射（如 40400 → 「未找到相关数据」、40303 → 「暂无权限访问该页面」）→ L4 `raw_message`（**已不可达**：含 CJK 的文案在 L2 已返回，本层仅保留层名以兼容历史断言/日志；#2504 D8）→ L5 调用点业务 fallback（ASCII 机器串不外溢）。完整错误码分类见 [`docs/archive/reports/backend_api_error_codes_report.md`](../../archive/reports/backend_api_error_codes_report.md)。新增后端错误消息时，如属用户可见高频错误，请同步补充 `ERROR_MESSAGE_MAP`；新增错误码请同时补 `ERROR_CODE_MAP`（PC + mobile，文案逐字一致）。
+> **用户可见文案（#1675 / #2480 / #2504 / #2560）**：后端 `message` 为机器可读标识（英文为主，**不得原样展示给用户**），前端统一由 `resolveErrorMessage` 解析（`frontend-mobile/src/services/errorMessages.js` / `frontend-pc/src/services/errorMessages.js`，层序 owner 为 `errorMessageResolution.mjs`）翻译为用户友好中文。五层回退：L1 `message_map` 精确匹配（高频错误，如 `order not found` → 「未找到订单」）→ L2 `human_message` 可读中文透传（含 CJK **且非内部诊断形态**才透传，优先于 code 家族；#2480/#2560）→ L3 `code_map` code 家族映射（如 40400 → 「未找到相关数据」、40303 → 「暂无权限访问该页面」）→ L4 `raw_message`（**已不可达**：含 CJK 的文案在 L2 已返回，本层仅保留层名以兼容历史断言/日志；#2504 D8）→ L5 调用点业务 fallback（ASCII 机器串不外溢）。完整错误码分类见 [`docs/archive/reports/backend_api_error_codes_report.md`](../../archive/reports/backend_api_error_codes_report.md)。新增后端错误消息时，如属用户可见高频错误，请同步补充 `ERROR_MESSAGE_MAP`；新增错误码请同时补 `ERROR_CODE_MAP`（PC + mobile，文案逐字一致）。
+
+> **5xx 文案口径（#2560）**：`code >= 50000` 的 `message` 按**形态**（不是状态族）判定，双端同口径（`isInternalDiagnosticMessage`，PC 与 mobile 逐字一致）：
+> 1. **固定用户文案**（面向用户、可操作，如「切换网点失败且 IAM 回滚失败，请联系管理员人工核对 IAM 组织关系」「SMTP 配置校验失败，请检查端口与凭据后重试」）→ **原样透传**（L2 `human_message`，PC/mobile 一致）；
+> 2. **内部诊断形态**（`pq:` / `sqlstate` / `rpc error` / `grpc:` / `dial tcp` / `connection refused` / `connection reset` / `no such host` / `i/o timeout` / `context deadline exceeded` / `context canceled` / `unexpected eof` / `invalid memory address` / `nil pointer` / `panic:` / `runtime error` / `unsupported protocol scheme` / `x509:` / `cannot unmarshal` / `record not found`，以及「中文前缀 + 冒号 + ASCII 尾串」形态）→ 一律由 `ERROR_CODE_MAP` 通用文案兜底（无映射则 L5 fallback），**绝不回显**；
+> 3. **后端契约约束**：5xx 的 `message` 必须是**固定字面量文案**，**禁止**拼接 `err.Error()`（诊断只能进日志）。后端侧的静态扫描为主保证（#2497 `CJK_ERR_CONCAT=0`），前端形态判定只是二次网；新增诊断形态需同步更新双端 marker 表与 fixture。
 
 **PC 客户端非 2xx 契约（#2563）**：本节定义**服务端**响应格式；客户端如何消费非 2xx 由 `frontend-pc/src/services/apiError.js`（唯一 owner，纯函数 `resolveHttpFailure`）决定，不得在页面内联解析：
 

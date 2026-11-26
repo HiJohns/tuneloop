@@ -28,6 +28,8 @@ const CODE_MAP = {
   40303: '暂无权限访问该页面',
   40900: '数据冲突，请刷新后重试',
   40901: '数据冲突，请刷新后重试',
+  50000: '服务器开小差了，请稍后再试',
+  50001: '服务暂不可用，请稍后再试',
 }
 const MESSAGE_MAP = { 'order not found': '未找到订单' }
 
@@ -110,4 +112,54 @@ test('八条 fixture 的层序与 PC 完全一致', () => {
   console.log(`L_40912=${byKey['40912'].layer}`)
   console.log(`L_NULL=${byKey.NULL.layer}`)
   console.log(`LAYERS=${layers.join(',')}`)
+})
+
+// #2560：5xx 改按「内部诊断形态」判定——固定用户文案透传，诊断形态仍屏蔽。
+// 5 条 fixture 与 frontend-pc/tests/errorMessages-5xx-2497.test.mjs 逐字一致（双端平价）。
+const FIVE_XX_FIXTURES = [
+  {
+    key: '5xx_actionable_iam_rollback',
+    input: { code: 50000, message: '切换网点失败且 IAM 回滚失败，请联系管理员人工核对 IAM 组织关系' },
+    layer: 'human_message',
+  },
+  {
+    key: '5xx_actionable_smtp',
+    input: { code: 50000, message: 'SMTP 配置校验失败，请检查端口与凭据后重试' },
+    layer: 'human_message',
+  },
+  {
+    key: '5xx_diag_pq',
+    input: { code: 50000, message: '标记删除失败：pq: duplicate key value violates unique constraint' },
+    layer: 'code_map',
+  },
+  {
+    key: '5xx_diag_rpc',
+    input: { code: 50001, message: '级联解除商户成员失败：rpc error: connection refused' },
+    layer: 'code_map',
+  },
+  {
+    key: '5xx_diag_timeout',
+    input: { code: 50999, message: '内部诊断：dial tcp 10.0.0.1: i/o timeout' },
+    layer: 'fallback',
+  },
+]
+
+test('5xx 形态判定：可操作文案透传、内部诊断屏蔽（#2560）', () => {
+  let pos = 0
+  let neg = 0
+  for (const fixture of FIVE_XX_FIXTURES) {
+    const result = core(fixture.input)
+    assert.equal(result.layer, fixture.layer, `${fixture.key} layer`)
+    if (fixture.layer === 'human_message') {
+      assert.equal(result.text, fixture.input.message, `${fixture.key}: 文案必须逐字透传`)
+      pos += 1
+    } else {
+      assert.ok(!result.text.includes('pq:'), `${fixture.key}: 内部串不得回显`)
+      assert.ok(!result.text.includes('rpc error'), `${fixture.key}: 内部串不得回显`)
+      assert.ok(!result.text.includes('i/o timeout'), `${fixture.key}: 内部串不得回显`)
+      neg += 1
+    }
+  }
+  console.log(`M2560_POS=${pos}`)
+  console.log(`M2560_NEG=${neg}`)
 })
