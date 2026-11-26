@@ -1,39 +1,39 @@
-# build=1.0.3cef421b6 # commit=3cef421b688ac25003736e9722d7114bd34725f8 # dirty=false
-GENERATED_AT_HEAD=3cef421b688ac25003736e9722d7114bd34725f8
+# build=1.0.29eea1dae # commit=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b # dirty=false
+GENERATED_AT_HEAD=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b
 # R15 actor 授权矩阵：4 条路由对 merchant_admin 放行（数据面收窄），平台专属写路由仍 403
-# build=1.0.3cef421b6 # commit=3cef421b688ac25003736e9722d7114bd34725f8 # dirty=false
-GENERATED_AT_HEAD=3cef421b688ac25003736e9722d7114bd34725f8
+# build=1.0.29eea1dae # commit=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b # dirty=false
+GENERATED_AT_HEAD=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b
 # CMD go test -count=1 -run 'TestMerchantAdminActorAuthorization_2546' ./handlers/
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 at_ms=1795711840182 wait_ms=200
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 wait_ms=200
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s107-p107-350703 at_ms=1795730833446 wait_ms=69
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s107-p107-350703 wait_ms=69
 [DEBUG] Loaded .env from: ../.env
-2026/11/26 16:50:46 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d sslmode=disable
-2026/11/26 16:50:47 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d
-2026/11/26 16:50:47 [DB] Connected to database 'tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d'
+2026/11/26 22:07:17 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e sslmode=disable
+2026/11/26 22:07:18 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e
+2026/11/26 22:07:18 [DB] Connected to database 'tuneloop_test_node_opencode_s107_p107_350703_ff978a8e'
 === RUN   TestMerchantAdminActorAuthorization_2546
-2026/11/26 16:50:47 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d sslmode=disable
-2026/11/26 16:50:47 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d
-2026/11/26 16:50:47 [DB] Connected to database 'tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d'
+2026/11/26 22:07:18 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e sslmode=disable
+2026/11/26 22:07:18 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e
+2026/11/26 22:07:18 [DB] Connected to database 'tuneloop_test_node_opencode_s107_p107_350703_ff978a8e'
 
-2026/11/26 16:50:48 [32m/home/coder/worktrees/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[720.064ms] [33m[rows:0][35m TRUNCATE TABLE "merchant_pricing_configs", "properties", "roles", "pricing_templates", "membership_levels", "rebate_config", "schema_migrations", "coupons", "instrument_levels", "gift_policies", "membership_gift_ratios", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
-2026/11/26 16:50:48 [IAMClient] NewIAMClient: baseURL=http://opencode.linxdeep.com:5561, clientID=test-ns, namespace=test-ns
+2026/11/26 22:07:19 [32m/tmp/opencode/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[621.019ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/26 22:07:19 [IAMClient] NewIAMClient: baseURL=http://localhost:5561, clientID=test-ns, namespace=test-ns
 
-2026/11/26 16:50:48 [31;1m/home/coder/worktrees/tuneloop/wt-2546/backend/handlers/merchant.go:150 [35;1mrecord not found
-[0m[33m[1.356ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE id = 'f79cc309-514c-4852-9999-c35f390dbb6d' AND org_id = '93394b41-aafd-41f7-b8e4-721c4d8ccc49' ORDER BY "merchants"."id" LIMIT 1
-2026/11/26 16:50:48 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:33281, clientID=test-ns, namespace=test-ns
-2026/11/26 16:50:48 [IAMClient] Transferred org 93394b41-aafd-41f7-b8e4-721c4d8ccc49 ownership to user f07eaf9d-1f65-4b35-8907-6efa2ebb5bfc (user token)
+2026/11/26 22:07:19 [31;1m/tmp/opencode/tuneloop/wt-2546/backend/handlers/merchant.go:156 [35;1mrecord not found
+[0m[33m[0.421ms] [34;1m[rows:0][0m SELECT * FROM "merchants" WHERE id = 'bd6702f7-c3bb-473b-9495-1fe3946886c6' AND org_id = 'e1d0cb74-5f5b-4569-8c36-5b983d8287d2' ORDER BY "merchants"."id" LIMIT 1
+2026/11/26 22:07:19 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:43615, clientID=test-ns, namespace=test-ns
+2026/11/26 22:07:19 [IAMClient] Transferred org e1d0cb74-5f5b-4569-8c36-5b983d8287d2 ownership to user fbea2add-a7ad-4b13-8b8b-485f149e7ba5 (user token)
     merchant_owner_entry_2546_test.go:129: MA_LIST_STATUS=200 MA_LIST_ROWS=1 MA_GET_OWN_STATUS=200 MA_GET_OTHER_STATUS=404 MA_MEMBERS_STATUS=200 MA_TRANSFER_STATUS=200 MA_CREATE_MERCHANT_STATUS=403 MA_UPDATE_MERCHANT_STATUS=403 MA_DELETE_MERCHANT_STATUS=403 MA_ADD_MEMBER_STATUS=403
---- PASS: TestMerchantAdminActorAuthorization_2546 (1.36s)
+--- PASS: TestMerchantAdminActorAuthorization_2546 (0.91s)
 PASS
-ok  	tuneloop-backend/handlers	2.091s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795711848882 hold_ms=8700
+ok  	tuneloop-backend/handlers	1.697s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795730839401 hold_ms=5955
 GO_TEST_RC=0
-# build=1.0.3cef421b6 # commit=3cef421b688ac25003736e9722d7114bd34725f8 # dirty=false
-GENERATED_AT_HEAD=3cef421b688ac25003736e9722d7114bd34725f8
+# build=1.0.29eea1dae # commit=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b # dirty=false
+GENERATED_AT_HEAD=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b
 # CMD go test -count=1 -run 'TestRequireSysPermOrRole_2546' ./middleware/
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 at_ms=1795711849168 wait_ms=180
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 wait_ms=180
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s107-p107-350703 at_ms=1795730839526 wait_ms=75
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s107-p107-350703 wait_ms=75
 [DEBUG] Loaded .env from: ../.env
 === RUN   TestRequireSysPermOrRole_2546
 === RUN   TestRequireSysPermOrRole_2546/sys_perm_命中即放行（既有平台管理员路径不变）
@@ -50,6 +50,6 @@ GENERATED_AT_HEAD=3cef421b688ac25003736e9722d7114bd34725f8
     --- PASS: TestRequireSysPermOrRole_2546/其他业务角色仍_403/40303 (0.00s)
     --- PASS: TestRequireSysPermOrRole_2546/sys_perm==0_保持既有直通语义 (0.00s)
 PASS
-ok  	tuneloop-backend/middleware	0.020s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795711850898 hold_ms=1730
+ok  	tuneloop-backend/middleware	0.013s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795730842692 hold_ms=3166
 GO_TEST_RC=0

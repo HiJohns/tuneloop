@@ -1,16 +1,16 @@
-# build=1.0.3cef421b6 # commit=3cef421b688ac25003736e9722d7114bd34725f8 # dirty=false
-GENERATED_AT_HEAD=3cef421b688ac25003736e9722d7114bd34725f8
+# build=1.0.29eea1dae # commit=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b # dirty=false
+GENERATED_AT_HEAD=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b
 # R9 审计路由接线（auditRouteMap 表项驱动，handler 不手写审计）
-# build=1.0.3cef421b6 # commit=3cef421b688ac25003736e9722d7114bd34725f8 # dirty=false
-GENERATED_AT_HEAD=3cef421b688ac25003736e9722d7114bd34725f8
+# build=1.0.29eea1dae # commit=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b # dirty=false
+GENERATED_AT_HEAD=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b
 # CMD go test -count=1 -run 'TestAuditRouteTransferOwnership_2546' ./middleware/
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 at_ms=1795711807796 wait_ms=186
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 wait_ms=186
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s107-p107-350703 at_ms=1795730766089 wait_ms=89
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s107-p107-350703 wait_ms=89
 [DEBUG] Loaded .env from: ../.env
 === RUN   TestAuditRouteTransferOwnership_2546
     audit_route_2546_test.go:20: AUDIT_ROUTE_FOUND=1 AUDIT_ACTION=TRANSFER_OWNERSHIP AUDIT_RESOURCE=merchant AUDIT_PRIORITY=CRITICAL
 --- PASS: TestAuditRouteTransferOwnership_2546 (0.00s)
 PASS
-ok  	tuneloop-backend/middleware	0.022s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795711810735 hold_ms=2939
+ok  	tuneloop-backend/middleware	0.016s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795730775094 hold_ms=9005
 GO_TEST_RC=0

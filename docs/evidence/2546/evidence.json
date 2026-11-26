@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "issue": 2546,
-  "build": "1.0.3cef421b6",
-  "commit": "3cef421b688ac25003736e9722d7114bd34725f8",
+  "build": "1.0.29eea1dae",
+  "commit": "29eea1daebfca235ea38fa55a3dd30a9e29d9e1b",
   "dirty": false,
-  "plan_sha256": "4ecafab862883e424fd68a19e1e19d3ac999a6124b4be8603fc5e92e4e9e58dc",
-  "tooling_commit": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
-  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2546 (branch issue-2546); go1.27.x; node v22.23.5 (frontend-pc type=module); postgres 127.0.0.1:5432 via backend/.env (test template clone); fake IAM via httptest (method/path/body + status matrix); scripts/verify-2546.sh r1-r16 under host heavy-lock",
+  "plan_sha256": "f293bebf3127aa9db568478d384eb44b03d83767225729db4232a05e6fac61c6",
+  "tooling_commit": "acab7d27d28832d1ad366dd4c944ffb3e2ff9ca8",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2546 (branch issue-2546); go1.27.4; node v24.13.0 (frontend-pc type=module); postgres 127.0.0.1:5432 via backend/.env (test template clone); fake IAM via httptest (method/path/body + status matrix); scripts/verify-2546.sh r1-r18 under host heavy-lock",
   "rows": [
     {
       "id": "R1",
@@ -16,7 +16,7 @@
         "docs/evidence/2546/R1-transfer-success.txt"
       ],
       "assert": "exit 0；grep TRANSFER_STATUS=200、IAM_METHOD=POST、IAM_PATH_SUFFIX=/transfer-ownership、IAM_BODY_USER_ID=1、LOCAL_OWNER_UPDATED=1、OLD_OWNER_LOCAL_ROLE=merchant_admin、TARGET_LOCAL_ROLE=merchant_admin、ADMIN_PENDING_CLEARED=1、OWNER_FIELD_PRESENT=1",
-      "actual": "TRANSFER_STATUS=200 IAM_METHOD=POST IAM_PATH_SUFFIX=/transfer-ownership IAM_BODY_USER_ID=1 LOCAL_OWNER_UPDATED=1 OLD_OWNER_LOCAL_ROLE=merchant_admin TARGET_LOCAL_ROLE=merchant_admin ADMIN_PENDING_CLEARED=1 OWNER_FIELD_PRESENT=1（同批 IAM_TRANSFER_CALLS=1）",
+      "actual": "TRANSFER_STATUS=200 IAM_METHOD=POST IAM_PATH_SUFFIX=/transfer-ownership IAM_BODY_USER_ID=1 LOCAL_OWNER_UPDATED=1 OLD_OWNER_LOCAL_ROLE=merchant_admin TARGET_LOCAL_ROLE=merchant_admin ADMIN_PENDING_CLEARED=1 OWNER_FIELD_PRESENT=1",
       "expected": "PASS",
       "negative": "IAM_PATH_SUFFIX 非转让端或 LOCAL_OWNER_UPDATED=0 → FAIL",
       "negative_result": "转让路径下未出现 bind/role 调用（R6 断言 IAM_BIND_CALLS=0、IAM_ROLE_CALLS=0）；本地指针与 IAM 调用一一对应",
@@ -86,7 +86,7 @@
         "docs/evidence/2546/R6-update-merchant-transfer.txt"
       ],
       "assert": "exit 0；grep UPD_ADMIN_STATUS=200、UPD_ADMIN_IAM_PATH_SUFFIX=/transfer-ownership、UPD_ADMIN_LOCAL=1、UPD_ADMIN_IS_OWNER_FLIP=1、CLEAR_OWNER_STATUS=400、CLEAR_OWNER_CODE=40002",
-      "actual": "UPD_ADMIN_STATUS=200 UPD_ADMIN_IAM_PATH_SUFFIX=/transfer-ownership UPD_ADMIN_LOCAL=1 UPD_ADMIN_IS_OWNER_FLIP=1 CLEAR_OWNER_STATUS=400 CLEAR_OWNER_CODE=40002（附 IAM_TRANSFER_CALLS=1 IAM_BIND_CALLS=0 IAM_ROLE_CALLS=0 IAM_UNBIND_CALLS=0 ADMIN_UID_SWITCHED=1）",
+      "actual": "UPD_ADMIN_STATUS=200 UPD_ADMIN_IAM_PATH_SUFFIX=/transfer-ownership UPD_ADMIN_LOCAL=1 UPD_ADMIN_IS_OWNER_FLIP=1 CLEAR_OWNER_STATUS=400 CLEAR_OWNER_CODE=40002",
       "expected": "PASS",
       "negative": "UPD_ADMIN_IAM_PATH_SUFFIX 非转让端，或 CLEAR_OWNER_STATUS=200 → FAIL",
       "negative_result": "PUT 改 admin_uid 只走 transfer-ownership（bind/role/unbind 全 0）；置空被 400/40002 拒绝",
@@ -114,7 +114,7 @@
         "docs/evidence/2546/R8-pc-owner-tab.txt"
       ],
       "assert": "exit 0；grep NODE_TEST_RC=0、TAB_RENAMED=1、TRANSFER_BUTTON_USES_VIEWER_IS_OWNER=1、OWNER_REMOVE_DISABLED=1、CANDIDATE_PAGE_SIZE=100、FRONTEND_LINT_RC=0、FRONTEND_BUILD_RC=0",
-      "actual": "NODE_TEST_RC=0 TAB_RENAMED=1 TRANSFER_BUTTON_USES_VIEWER_IS_OWNER=1 OWNER_REMOVE_DISABLED=1 OWNER_CARD_RENDERED=1 CANDIDATE_PAGE_SIZE=100 FRONTEND_LINT_RC=0 FRONTEND_BUILD_RC=0",
+      "actual": "NODE_TEST_RC=0 TAB_RENAMED=1 TRANSFER_BUTTON_USES_VIEWER_IS_OWNER=1 OWNER_REMOVE_DISABLED=1 CANDIDATE_PAGE_SIZE=100 FRONTEND_LINT_RC=0 FRONTEND_BUILD_RC=0",
       "expected": "PASS",
       "negative": "TAB_RENAMED=0 或 CANDIDATE_PAGE_SIZE 大于 100 → FAIL",
       "negative_result": "组件内已无平台级 owner 标记（GATE_USERINFO_OWNER_USAGE=0 在 R12 断言），候选分页常量为 100",
@@ -156,7 +156,7 @@
         "docs/evidence/2546/R11-docs.txt"
       ],
       "assert": "exit 0；grep DOC_API_TRANSFER=1、DOC_API_MEMBERS_OWNER=1、DOC_API_BIT8=1、DOC_UI_OWNER_TAB=1、DOC_DB_ADMIN_UID=1、DOC_CASE_PATH_ALIGNED=1、DOC_PERM_MERCHANTS_SCOPED=1",
-      "actual": "DOC_API_TRANSFER=1 DOC_API_MEMBERS_OWNER=1 DOC_API_BIT8=1 DOC_UI_OWNER_TAB=1 DOC_UI_MERCHANT_ADMIN_VIEW=1 DOC_DB_ADMIN_UID=1 DOC_CASE_PATH_ALIGNED=1 DOC_PERM_MERCHANTS_SCOPED=1",
+      "actual": "DOC_API_TRANSFER=1 DOC_API_MEMBERS_OWNER=1 DOC_API_BIT8=1 DOC_UI_OWNER_TAB=1 DOC_DB_ADMIN_UID=1 DOC_CASE_PATH_ALIGNED=1 DOC_PERM_MERCHANTS_SCOPED=1",
       "expected": "PASS",
       "negative": "任一 =0 → FAIL",
       "negative_result": "五份契约文档均落字；cases 不再含旧路径 /admin/merchants/:id/transfer-ownership",
@@ -169,11 +169,11 @@
       "artifacts": [
         "docs/evidence/2546/R12-owner-gate.txt"
       ],
-      "assert": "exit 0；grep GATE_FIELD=viewer_is_owner、BE_VIEWER_IS_OWNER_TRUE=1、BE_VIEWER_IS_OWNER_FALSE=1、GATE_OWNER_TRUE=1、GATE_DEMOTED_FALSE=1、GATE_UNANCHORED_FALSE=1、GATE_NO_CANDIDATE_FALSE=1、GATE_USERINFO_OWNER_USAGE=0、NODE_TEST_RC=0",
-      "actual": "GATE_FIELD=viewer_is_owner BE_VIEWER_IS_OWNER_TRUE=1 BE_VIEWER_IS_OWNER_FALSE=1 VIEWER_UID_MATCHED=1 GATE_OWNER_TRUE=1 GATE_DEMOTED_FALSE=1 GATE_UNANCHORED_FALSE=1 GATE_NO_CANDIDATE_FALSE=1 GATE_USERINFO_OWNER_USAGE=0 NODE_TEST_RC=0",
+      "assert": "exit 0；grep GATE_FIELD=viewer_is_owner、BE_VIEWER_IS_OWNER_TRUE=1、BE_VIEWER_IS_OWNER_FALSE=1、VIEWER_UID_EQUALS_LOCAL_ID=1、GATE_FIELD_SPACE=local_user_id、GATE_OWNER_TRUE=1、GATE_DEMOTED_FALSE=1、GATE_UNANCHORED_FALSE=1、GATE_NO_CANDIDATE_FALSE=1、GATE_USERINFO_OWNER_USAGE=0、NODE_TEST_RC=0",
+      "actual": "GATE_FIELD=viewer_is_owner BE_VIEWER_IS_OWNER_TRUE=1 BE_VIEWER_IS_OWNER_FALSE=1 VIEWER_UID_EQUALS_LOCAL_ID=1 GATE_FIELD_SPACE=local_user_id GATE_OWNER_TRUE=1 GATE_DEMOTED_FALSE=1 GATE_UNANCHORED_FALSE=1 GATE_NO_CANDIDATE_FALSE=1 GATE_USERINFO_OWNER_USAGE=0 NODE_TEST_RC=0",
       "expected": "PASS",
       "negative": "GATE_FIELD 非 viewer_is_owner，或 GATE_DEMOTED_FALSE=0，或 GATE_USERINFO_OWNER_USAGE=1 → FAIL",
-      "negative_result": "被降级/未锚定/无候选三种场景均不可转让；组件源码零平台级 owner 标记",
+      "negative_result": "被降级/未锚定/无候选三种场景均可判定为不可转让；fixture 的 users.id != users.iam_sub 且 JWT sub = iam_sub（VIEWER_UID_EQUALS_LOCAL_ID=1 / GATE_FIELD_SPACE=local_user_id）",
       "pass": true
     },
     {
@@ -212,7 +212,7 @@
         "docs/evidence/2546/R15-actor-authz.txt"
       ],
       "assert": "exit 0；grep MA_LIST_STATUS=200、MA_LIST_ROWS=1、MA_GET_OWN_STATUS=200、MA_GET_OTHER_STATUS=404、MA_MEMBERS_STATUS=200、MA_TRANSFER_STATUS=200、MA_CREATE_MERCHANT_STATUS=403、MA_UPDATE_MERCHANT_STATUS=403、MA_DELETE_MERCHANT_STATUS=403、MA_ADD_MEMBER_STATUS=403",
-      "actual": "MA_LIST_STATUS=200 MA_LIST_ROWS=1 MA_GET_OWN_STATUS=200 MA_GET_OTHER_STATUS=404 MA_MEMBERS_STATUS=200 MA_TRANSFER_STATUS=200 MA_CREATE_MERCHANT_STATUS=403 MA_UPDATE_MERCHANT_STATUS=403 MA_DELETE_MERCHANT_STATUS=403 MA_ADD_MEMBER_STATUS=403（附 MA_ROLE_PASS=1 MA_ROLE_DENY_STATUS=403 MA_ZERO_PASSTHROUGH=1）",
+      "actual": "MA_LIST_STATUS=200 MA_LIST_ROWS=1 MA_GET_OWN_STATUS=200 MA_GET_OTHER_STATUS=404 MA_MEMBERS_STATUS=200 MA_TRANSFER_STATUS=200 MA_CREATE_MERCHANT_STATUS=403 MA_UPDATE_MERCHANT_STATUS=403 MA_DELETE_MERCHANT_STATUS=403 MA_ADD_MEMBER_STATUS=403",
       "expected": "PASS",
       "negative": "MA_GET_OTHER_STATUS=200 或任一平台专属写路由非 403 → FAIL",
       "negative_result": "商户管理员只读到自己那 1 个商户；创建/编辑/删除商户与成员新增仍 40303",
@@ -226,10 +226,38 @@
         "docs/evidence/2546/R16-merchant-admin-entry.txt"
       ],
       "assert": "exit 0；grep CHECKPERM_MA=1、CHECKPERM_PLATFORM=1、MENU_BUSINESS_ROLES=1、ROUTE_BUSINESS_ROLES=1、PROTECTED_ROUTE_USERINFO=1、NEW_ROUTE_PLATFORM_ONLY=1、PLATFORM_ACTIONS_HIDDEN=1、FRONTEND_LINT_RC=0",
-      "actual": "CHECKPERM_MA=1 CHECKPERM_PLATFORM=1 MENU_BUSINESS_ROLES=1 ROUTE_BUSINESS_ROLES=1 PROTECTED_ROUTE_USERINFO=1 NEW_ROUTE_PLATFORM_ONLY=1 PLATFORM_ACTIONS_HIDDEN=1 NODE_TEST_RC=0 FRONTEND_LINT_RC=0",
+      "actual": "CHECKPERM_MA=1 CHECKPERM_PLATFORM=1 MENU_BUSINESS_ROLES=1 ROUTE_BUSINESS_ROLES=1 PROTECTED_ROUTE_USERINFO=1 NEW_ROUTE_PLATFORM_ONLY=1 PLATFORM_ACTIONS_HIDDEN=1 FRONTEND_LINT_RC=0",
       "expected": "PASS",
       "negative": "MENU_BUSINESS_ROLES=0 或 NEW_ROUTE_PLATFORM_ONLY=0 → FAIL",
       "negative_result": "/merchants/new 未带 businessRoles（平台专属）；商户管理员视图隐藏至少 4 类平台专属操作",
+      "pass": true
+    },
+    {
+      "id": "R17",
+      "command": "bash scripts/verify-2546.sh r17",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2546/R17-admin-uid-space.txt"
+      ],
+      "assert": "exit 0；grep ADMIN_UID_SPACE=iam_sub、VIEWER_IS_OWNER=1",
+      "actual": "ADMIN_UID_SPACE=iam_sub VIEWER_IS_OWNER=1",
+      "expected": "PASS",
+      "negative": "归一化缺失 → FAIL",
+      "negative_result": "红绿实证：将 ListMembers 的 ownerUID 换回未归一化的 merchantOwnerUID（RED-PROBE）→ IS_OWNER_HITS=0、viewer_is_owner=false、测试 FAIL；恢复归一化 → PASS。历史 IAM-id 形态下 OWNER 守卫仍拒绝移除(403)/降级(400)",
+      "pass": true
+    },
+    {
+      "id": "R18",
+      "command": "bash scripts/verify-2546.sh r18",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2546/R18-member-actions.txt"
+      ],
+      "assert": "exit 0；grep MEMBER_ACTIONS_HIDDEN=1",
+      "actual": "MEMBER_ACTIONS_HIDDEN=1",
+      "expected": "PASS",
+      "negative": "仍显示成员操作 → FAIL",
+      "negative_result": "结构断言：merchant_admin 视角下「添加管理员」按钮包在 !isMerchantAdmin 分支内，行内「移除」在 isMerchantAdmin 时返回空 Space（后端成员写路由仍 40303，见 R15）",
       "pass": true
     }
   ]

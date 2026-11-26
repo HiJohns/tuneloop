@@ -1,25 +1,31 @@
-# build=1.0.3cef421b6 # commit=3cef421b688ac25003736e9722d7114bd34725f8 # dirty=false
-GENERATED_AT_HEAD=3cef421b688ac25003736e9722d7114bd34725f8
+# build=1.0.29eea1dae # commit=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b # dirty=false
+GENERATED_AT_HEAD=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b
 # R7 列表 is_owner/status/owner_uid + include=all（默认口径不变）
-# build=1.0.3cef421b6 # commit=3cef421b688ac25003736e9722d7114bd34725f8 # dirty=false
-GENERATED_AT_HEAD=3cef421b688ac25003736e9722d7114bd34725f8
+# build=1.0.29eea1dae # commit=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b # dirty=false
+GENERATED_AT_HEAD=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b
 # CMD go test -count=1 -run 'TestListMembersOwnerFlag_2546' ./handlers/
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 at_ms=1795711798801 wait_ms=182
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 wait_ms=182
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s107-p107-350703 at_ms=1795730732511 wait_ms=71
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s107-p107-350703 wait_ms=71
 [DEBUG] Loaded .env from: ../.env
-2026/11/26 16:50:04 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d sslmode=disable
-2026/11/26 16:50:05 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d
-2026/11/26 16:50:05 [DB] Connected to database 'tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d'
+2026/11/26 22:05:39 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e sslmode=disable
+2026/11/26 22:05:39 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e
+2026/11/26 22:05:39 [DB] Connected to database 'tuneloop_test_node_opencode_s107_p107_350703_ff978a8e'
 === RUN   TestListMembersOwnerFlag_2546
-2026/11/26 16:50:05 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d sslmode=disable
-2026/11/26 16:50:05 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d
-2026/11/26 16:50:05 [DB] Connected to database 'tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d'
+2026/11/26 22:05:39 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e sslmode=disable
+2026/11/26 22:05:39 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e
+2026/11/26 22:05:39 [DB] Connected to database 'tuneloop_test_node_opencode_s107_p107_350703_ff978a8e'
 
-2026/11/26 16:50:06 [32m/home/coder/worktrees/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[801.778ms] [33m[rows:0][35m TRUNCATE TABLE "merchant_pricing_configs", "properties", "roles", "pricing_templates", "membership_levels", "rebate_config", "schema_migrations", "coupons", "instrument_levels", "gift_policies", "membership_gift_ratios", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
-    merchant_ownership_2546_test.go:668: OWNER_FLAG_HITS=1 OWNER_UID_MATCH=1 DEFAULT_ROWS=2 ALL_ROWS=3 OWNER_FIELD_PRESENT=1
---- PASS: TestListMembersOwnerFlag_2546 (1.49s)
+2026/11/26 22:05:40 [32m/tmp/opencode/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[601.297ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+
+2026/11/26 22:05:40 [31;1m/tmp/opencode/tuneloop/wt-2546/backend/middleware/iam.go:611 [35;1mrecord not found
+[0m[33m[0.558ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE iam_sub = 'f196f7da-4979-4f73-b9c4-c7fc52980bdf' ORDER BY "users"."id" LIMIT 1
+
+2026/11/26 22:05:40 [31;1m/tmp/opencode/tuneloop/wt-2546/backend/middleware/iam.go:611 [35;1mrecord not found
+[0m[33m[0.557ms] [34;1m[rows:0][0m SELECT * FROM "users" WHERE iam_sub = 'f196f7da-4979-4f73-b9c4-c7fc52980bdf' ORDER BY "users"."id" LIMIT 1
+    merchant_ownership_2546_test.go:672: OWNER_FLAG_HITS=1 OWNER_UID_MATCH=1 DEFAULT_ROWS=2 ALL_ROWS=3 OWNER_FIELD_PRESENT=1
+--- PASS: TestListMembersOwnerFlag_2546 (0.88s)
 PASS
-ok  	tuneloop-backend/handlers	2.474s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795711807275 hold_ms=8474
+ok  	tuneloop-backend/handlers	1.609s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795730741057 hold_ms=8546
 GO_TEST_RC=0

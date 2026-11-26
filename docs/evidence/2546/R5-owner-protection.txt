@@ -1,32 +1,32 @@
-# build=1.0.3cef421b6 # commit=3cef421b688ac25003736e9722d7114bd34725f8 # dirty=false
-GENERATED_AT_HEAD=3cef421b688ac25003736e9722d7114bd34725f8
+# build=1.0.29eea1dae # commit=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b # dirty=false
+GENERATED_AT_HEAD=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b
 # R5 OWNER 移除/降级保护（不调 IAM）+ 非 owner 管理员移除回归
-# build=1.0.3cef421b6 # commit=3cef421b688ac25003736e9722d7114bd34725f8 # dirty=false
-GENERATED_AT_HEAD=3cef421b688ac25003736e9722d7114bd34725f8
+# build=1.0.29eea1dae # commit=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b # dirty=false
+GENERATED_AT_HEAD=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b
 # CMD go test -count=1 -run 'TestMerchantOwnerProtection_2546' ./handlers/
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 at_ms=1795711772774 wait_ms=180
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 wait_ms=180
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s107-p107-350703 at_ms=1795730706369 wait_ms=70
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s107-p107-350703 wait_ms=70
 [DEBUG] Loaded .env from: ../.env
-2026/11/26 16:49:38 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d sslmode=disable
-2026/11/26 16:49:38 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d
-2026/11/26 16:49:38 [DB] Connected to database 'tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d'
+2026/11/26 22:05:12 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e sslmode=disable
+2026/11/26 22:05:13 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e
+2026/11/26 22:05:13 [DB] Connected to database 'tuneloop_test_node_opencode_s107_p107_350703_ff978a8e'
 === RUN   TestMerchantOwnerProtection_2546
-2026/11/26 16:49:39 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d sslmode=disable
-2026/11/26 16:49:39 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d
-2026/11/26 16:49:39 [DB] Connected to database 'tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d'
+2026/11/26 22:05:13 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e sslmode=disable
+2026/11/26 22:05:13 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e
+2026/11/26 22:05:13 [DB] Connected to database 'tuneloop_test_node_opencode_s107_p107_350703_ff978a8e'
 
-2026/11/26 16:49:40 [32m/home/coder/worktrees/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[675.641ms] [33m[rows:0][35m TRUNCATE TABLE "merchant_pricing_configs", "properties", "roles", "pricing_templates", "membership_levels", "rebate_config", "schema_migrations", "coupons", "instrument_levels", "gift_policies", "membership_gift_ratios", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
-2026/11/26 16:49:40 [TenantScope][observe] auto-scope injected for table=merchant_members (add explicit scope, then set ExplicitTenantScopeOnly)
-2026/11/26 16:49:40 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:35073, clientID=test-ns, namespace=test-ns
-2026/11/26 16:49:40 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
-2026/11/26 16:49:40 [IAMClient] Unbound user with user token: user=72fbe8e1-ecc6-41e2-8c7c-834c7aedd99d org=4ad5379f-dd0b-40fc-bf2c-7b17c7d9f27e
-2026/11/26 16:49:40 [IAMClient] Obtained client credentials token, expires in 3600s
-2026/11/26 16:49:40 [TenantScope][observe] auto-scope injected for table=site_members (add explicit scope, then set ExplicitTenantScopeOnly)
-2026/11/26 16:49:40 [TenantScope][observe] auto-scope injected for table=technician_profiles (add explicit scope, then set ExplicitTenantScopeOnly)
-    merchant_ownership_2546_test.go:567: REMOVE_OWNER_STATUS=403 REMOVE_OWNER_CODE=40303 REMOVE_OWNER_IAM_CALLS=0 OWNER_ROW_KEPT=1 DEMOTE_OWNER_STATUS=400 DEMOTE_OWNER_CODE=40002 REMOVE_ADMIN_STATUS=200
---- PASS: TestMerchantOwnerProtection_2546 (1.57s)
+2026/11/26 22:05:14 [32m/tmp/opencode/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[590.166ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/26 22:05:14 [TenantScope][observe] auto-scope injected for table=merchant_members (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/26 22:05:14 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:32921, clientID=test-ns, namespace=test-ns
+2026/11/26 22:05:14 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/26 22:05:14 [IAMClient] Unbound user with user token: user=5bc58d9f-7d2b-4cb7-b214-43891442d81d org=db318127-996b-487e-8447-1c7c9500b270
+2026/11/26 22:05:14 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/26 22:05:14 [TenantScope][observe] auto-scope injected for table=site_members (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/26 22:05:14 [TenantScope][observe] auto-scope injected for table=technician_profiles (add explicit scope, then set ExplicitTenantScopeOnly)
+    merchant_ownership_2546_test.go:571: REMOVE_OWNER_STATUS=403 REMOVE_OWNER_CODE=40303 REMOVE_OWNER_IAM_CALLS=0 OWNER_ROW_KEPT=1 DEMOTE_OWNER_STATUS=400 DEMOTE_OWNER_CODE=40002 REMOVE_ADMIN_STATUS=200
+--- PASS: TestMerchantOwnerProtection_2546 (0.94s)
 PASS
-ok  	tuneloop-backend/handlers	2.501s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795711781715 hold_ms=8941
+ok  	tuneloop-backend/handlers	1.726s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795730714645 hold_ms=8276
 GO_TEST_RC=0

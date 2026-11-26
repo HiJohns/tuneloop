@@ -1,102 +1,50 @@
-# build=1.0.3cef421b6 # commit=3cef421b688ac25003736e9722d7114bd34725f8 # dirty=false
-GENERATED_AT_HEAD=3cef421b688ac25003736e9722d7114bd34725f8
+# build=1.0.29eea1dae # commit=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b # dirty=false
+GENERATED_AT_HEAD=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b
 # R12 转让门控真值：后端 viewer_is_owner + 纯函数 canTransferOwnership（四类 fixture）
-# build=1.0.3cef421b6 # commit=3cef421b688ac25003736e9722d7114bd34725f8 # dirty=false
-GENERATED_AT_HEAD=3cef421b688ac25003736e9722d7114bd34725f8
+# build=1.0.29eea1dae # commit=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b # dirty=false
+GENERATED_AT_HEAD=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b
 # CMD go test -count=1 -run 'TestListMembersViewerOwnerGate_2546' ./handlers/
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 at_ms=1795711811273 wait_ms=-124
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 wait_ms=-124
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s107-p107-350703 at_ms=1795730815188 wait_ms=67
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s107-p107-350703 wait_ms=67
 [DEBUG] Loaded .env from: ../.env
-2026/11/26 16:50:19 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d sslmode=disable
-2026/11/26 16:50:19 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d
-2026/11/26 16:50:19 [DB] Connected to database 'tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d'
+2026/11/26 22:06:59 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e sslmode=disable
+2026/11/26 22:06:59 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e
+2026/11/26 22:06:59 [DB] Connected to database 'tuneloop_test_node_opencode_s107_p107_350703_ff978a8e'
 === RUN   TestListMembersViewerOwnerGate_2546
-2026/11/26 16:50:19 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d sslmode=disable
-2026/11/26 16:50:19 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d
-2026/11/26 16:50:19 [DB] Connected to database 'tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d'
+2026/11/26 22:07:00 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e sslmode=disable
+2026/11/26 22:07:00 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e
+2026/11/26 22:07:00 [DB] Connected to database 'tuneloop_test_node_opencode_s107_p107_350703_ff978a8e'
 
-2026/11/26 16:50:21 [32m/home/coder/worktrees/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[753.053ms] [33m[rows:0][35m TRUNCATE TABLE "merchant_pricing_configs", "properties", "roles", "pricing_templates", "membership_levels", "rebate_config", "schema_migrations", "coupons", "instrument_levels", "gift_policies", "membership_gift_ratios", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
-2026/11/26 16:50:21 [TenantScope][observe] auto-scope injected for table=merchant_members (add explicit scope, then set ExplicitTenantScopeOnly)
-2026/11/26 16:50:21 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
-2026/11/26 16:50:21 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:38641, clientID=test-ns, namespace=test-ns
-2026/11/26 16:50:21 [IAMClient] Transferred org bd7723bf-b8b4-430e-9b2a-da861e5138d7 ownership to user 4546dc63-8870-4303-a9c2-ce64589452bc (user token)
-    merchant_ownership_2546_test.go:710: GATE_FIELD=viewer_is_owner BE_VIEWER_IS_OWNER_TRUE=1 BE_VIEWER_IS_OWNER_FALSE=1 VIEWER_UID_MATCHED=1
---- PASS: TestListMembersViewerOwnerGate_2546 (1.45s)
+2026/11/26 22:07:00 [32m/tmp/opencode/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[601.330ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/26 22:07:00 [TenantScope][observe] auto-scope injected for table=merchant_members (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/26 22:07:00 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/26 22:07:00 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:35609, clientID=test-ns, namespace=test-ns
+2026/11/26 22:07:00 [IAMClient] Transferred org b6829c16-a917-4ba4-adc4-26df6d34a45a ownership to user c3c55fc4-bcb3-4c64-93b7-3d3b8776214f (user token)
+    merchant_ownership_2546_test.go:719: GATE_FIELD=viewer_is_owner BE_VIEWER_IS_OWNER_TRUE=1 BE_VIEWER_IS_OWNER_FALSE=1 VIEWER_UID_EQUALS_LOCAL_ID=1 GATE_FIELD_SPACE=local_user_id VIEWER_UID_MATCHED=1
+--- PASS: TestListMembersViewerOwnerGate_2546 (0.88s)
 PASS
-ok  	tuneloop-backend/handlers	2.234s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795711821517 hold_ms=10244
+ok  	tuneloop-backend/handlers	1.633s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795730821118 hold_ms=5930
 GO_TEST_RC=0
-TAP version 13
-# Subtest: pickOwnerRow 返回唯一的 is_owner 行
-ok 1 - pickOwnerRow 返回唯一的 is_owner 行
-  ---
-  duration_ms: 2.23727
-  type: 'test'
-  ...
-# Subtest: pickOwnerRow 在未锚定所有人时返回 null（不得猜测）
-ok 2 - pickOwnerRow 在未锚定所有人时返回 null（不得猜测）
-  ---
-  duration_ms: 0.412673
-  type: 'test'
-  ...
-# Subtest: transferCandidates 排除当前所有人（含 is_owner 与 owner_uid 两种标记）
-ok 3 - transferCandidates 排除当前所有人（含 is_owner 与 owner_uid 两种标记）
-  ---
-  duration_ms: 1.789446
-  type: 'test'
-  ...
-# Subtest: transferCandidates 在只有所有人时为空（禁用转让入口）
-ok 4 - transferCandidates 在只有所有人时为空（禁用转让入口）
-  ---
-  duration_ms: 0.348961
-  type: 'test'
-  ...
-# Subtest: canRemoveMember 禁止移除所有人，允许移除其他成员
-ok 5 - canRemoveMember 禁止移除所有人，允许移除其他成员
-  ---
-  duration_ms: 0.678621
-  type: 'test'
-  ...
-# Subtest: transferConfirmText 固定声明「转让后你将成为管理员」
-ok 6 - transferConfirmText 固定声明「转让后你将成为管理员」
-  ---
-  duration_ms: 0.467054
-  type: 'test'
-  ...
-# Subtest: canTransferOwnership：当前登录账号是本商户所有人且存在候选 → 允许
-ok 7 - canTransferOwnership：当前登录账号是本商户所有人且存在候选 → 允许
-  ---
-  duration_ms: 1.467066
-  type: 'test'
-  ...
-# Subtest: canTransferOwnership：被降级的原所有人（viewer_is_owner=false）→ 禁止
-ok 8 - canTransferOwnership：被降级的原所有人（viewer_is_owner=false）→ 禁止
-  ---
-  duration_ms: 0.308369
-  type: 'test'
-  ...
-# Subtest: canTransferOwnership：未锚定所有人（owner_uid 为空）→ 禁止
-ok 9 - canTransferOwnership：未锚定所有人（owner_uid 为空）→ 禁止
-  ---
-  duration_ms: 0.96969
-  type: 'test'
-  ...
-# Subtest: canTransferOwnership：无候选成员 → 禁止（避免空转让端点调用）
-ok 10 - canTransferOwnership：无候选成员 → 禁止（避免空转让端点调用）
-  ---
-  duration_ms: 0.896838
-  type: 'test'
-  ...
-1..10
-# tests 10
-# suites 0
-# pass 10
-# fail 0
-# cancelled 0
-# skipped 0
-# todo 0
-# duration_ms 173.585711
+✔ pickOwnerRow 返回唯一的 is_owner 行 (1.580224ms)
+✔ pickOwnerRow 在未锚定所有人时返回 null（不得猜测） (0.193144ms)
+✔ transferCandidates 排除当前所有人（含 is_owner 与 owner_uid 两种标记） (1.103203ms)
+✔ transferCandidates 在只有所有人时为空（禁用转让入口） (0.242305ms)
+✔ canRemoveMember 禁止移除所有人，允许移除其他成员 (0.279476ms)
+✔ transferConfirmText 固定声明「转让后你将成为管理员」 (0.342378ms)
+✔ canTransferOwnership：当前登录账号是本商户所有人且存在候选 → 允许 (0.599803ms)
+✔ canTransferOwnership：被降级的原所有人（viewer_is_owner=false）→ 禁止 (0.197474ms)
+✔ canTransferOwnership：未锚定所有人（owner_uid 为空）→ 禁止 (0.654054ms)
+✔ canTransferOwnership：无候选成员 → 禁止（避免空转让端点调用） (0.605093ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 112.632392
 GATE_OWNER_TRUE=1
 GATE_DEMOTED_FALSE=1
 GATE_UNANCHORED_FALSE=1
