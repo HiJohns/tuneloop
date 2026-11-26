@@ -449,3 +449,4 @@
 - 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2587, #2576｜REJECT: #2586（文档层：permissions.md §3.2.1 表被新子表切断 + 端点-权限对照缺 batch-import/media，R6 计数断言漏抓，退回 fixreview）、#2579（导出价格列越过「价格字段员工隐藏」口径 + ui.md 新旧口径自相矛盾 + api.md「已移除字段不再接收」与实现（200 + 无名空列）不符）
 - 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2546
 - 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2591
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2487
