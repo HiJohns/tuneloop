@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "issue": 2540,
+  "build": "1.0.8f72c057a",
+  "commit": "8f72c057aef3fe59aa9ab7878a7ef5e4e22c501b",
+  "dirty": false,
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2540.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2540/R1-activate-role.txt"
+      ],
+      "assert": "exit 0；含 `ADMIN_BIND_ROLE=ADMIN`、`LEGACY_BIND_ROLE=STAFF`",
+      "actual": "MEMBER_BIND_ROLE=STAFF ADMIN_BIND_ROLE=ADMIN LEGACY_BIND_ROLE=STAFF CUSTOMER_BIND_ROLE=STAFF UNKNOWN_BIND_ROLE=STAFF ILLEGAL_ROLE_COUNT=0 ADMIN_PERM_TEMPLATE=site_admin PERM_TEMPLATE=site_member CUS_PERM_MATCH=1",
+      "expected": "PASS",
+      "negative": "非法角色 → FAIL",
+      "negative_result": "修复前调用点复跑：ILLEGAL_ROLE_COUNT=5（bind role 写成 user/organization_admin）、site_admin 权限位等于 site_member 位图（CUS_PERM 断言 NotEqual 失败）→ FAIL",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2540.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2540/R2-bulk-import-role.txt"
+      ],
+      "assert": "exit 0；含 `BIND_ROLES=STAFF,ADMIN`、`BUSINESS_ROLE_AS_IAM=0`",
+      "actual": "BIND_ROLES=STAFF,ADMIN LEGACY_BIND_ROLE=STAFF BUSINESS_ROLE_AS_IAM=0",
+      "expected": "PASS",
+      "negative": "业务角色入 payload → FAIL",
+      "negative_result": "修复前：BIND_ROLES=user,organization_admin、LEGACY_BIND_ROLE=user、BUSINESS_ROLE_AS_IAM=3 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2540.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2540/R3-no-business-role-static.txt"
+      ],
+      "assert": "exit 0；含 `BIND_WITH_BUSINESS_ROLE=0`、`HARDCODED_SITE_MEMBER=0`",
+      "actual": "BIND_WITH_BUSINESS_ROLE=0 GETBUSINESSROLE_AS_IAMROLE=0 HARDCODED_SITE_MEMBER=0 SERVICE_TOIAMROLE=1 HANDLER_THIN_WRAPPER=1 NORMALIZE_WHITELIST=1",
+      "expected": "PASS",
+      "negative": "残留 → FAIL",
+      "negative_result": "修复前源码（HEAD~2）：GETBUSINESSROLE_AS_IAMROLE=2、HARDCODED_SITE_MEMBER=1 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2540.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2540/R6-merchant-owner.txt"
+      ],
+      "assert": "exit 0；含 `BIND_ROLE=OWNER`",
+      "actual": "BIND_ROLE=OWNER PERM_TEMPLATE=merchant_admin CUS_PERM_MATCH=1 NON_OWNER_ROLE_COUNT=0 MERCHANT_LITERAL_ADMIN=0",
+      "expected": "PASS",
+      "negative": "仍为 ADMIN/admin → FAIL",
+      "negative_result": "修复前绑定字面量 admin：BIND_ROLE=admin、NON_OWNER_ROLE_COUNT=1 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2540.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2540/R4-docs.txt"
+      ],
+      "assert": "exit 0；含 `DOC_TOIAMROLE=1`",
+      "actual": "DOC_TOIAMROLE=2 DOC_STAFF_FALLBACK=2 DOC_ACTIVATE_SECTION=1 DOC_MERCHANT_OWNER=1",
+      "expected": "PASS",
+      "negative": "缺文档 → FAIL",
+      "negative_result": "文档未补 activate 小节 / 商户管理员 OWNER 口径时，r4 报 “docs 缺 activate 口径小节”→“缺商户管理员绑定 OWNER 口径”→ FAIL",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2540.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2540/R5-build.txt"
+      ],
+      "assert": "exit 0；含 `GO_TEST_OK=1`、`BUILD_OK=1`",
+      "actual": "GO_TEST_OK=1 BUILD_OK=1",
+      "expected": "PASS",
+      "negative": "编译/测试失败 → FAIL",
+      "negative_result": "编译或定向测试失败时 GO_TEST_OK=0/BUILD_OK=0 → r5 fail（不生成 R5_OK）",
+      "pass": true
+    }
+  ]
+}

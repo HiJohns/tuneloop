@@ -1,0 +1,7 @@
+# build=1.0.8f72c057a # commit=8f72c057aef3fe59aa9ab7878a7ef5e4e22c501b # dirty=false
+== R2 批量导入：关系角色映射 + 白名单兜底 ==
+BIND_ROLES=STAFF,ADMIN
+LEGACY_BIND_ROLE=STAFF
+BUSINESS_ROLE_AS_IAM=0
+--- PASS: TestBulkImportIAMRole2540 (0.02s)
+R2_OK

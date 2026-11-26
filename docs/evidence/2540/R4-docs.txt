@@ -1,0 +1,7 @@
+# build=1.0.8f72c057a # commit=8f72c057aef3fe59aa9ab7878a7ef5e4e22c501b # dirty=false
+== R4 文档：关系角色口径 ==
+DOC_TOIAMROLE=2
+DOC_STAFF_FALLBACK=2
+DOC_ACTIVATE_SECTION=1
+DOC_MERCHANT_OWNER=1
+R4_OK
