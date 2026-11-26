@@ -60,8 +60,9 @@
 
 - remote: `origin/issue-2564`
 - fix: `5cd3c900a` / `5463d3d98` / `869bd336c` / `a30c6e250`（pushed=yes）
-- evidence（含本次 Rev.2 快照刷新与 R4 断言对齐）: 见本文件所在提交（pushed=yes）
-- gate 报告: `docs/evidence/2564/pre-ready-2564.json`（本批次提交，pushed=yes）
+- evidence（含本次 Rev.2 快照刷新与 R4 断言对齐）: `7b3d5449c`（pushed=yes）
+- gate 报告: `58e6cb8da` → `docs/evidence/2564/pre-ready-2564.json`（pushed=yes）
+- remote tip: `origin/issue-2564@58e6cb8dab699e1da8778ac7cc9fd9196b38ccdd`
 
 ### 红绿实证
 
