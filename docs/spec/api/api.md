@@ -6296,8 +6296,13 @@ GET /api/admin/dashboard/near-transfers
 |---|---|
 | merchant_admin | 本商户全员 = 各网点成员 ∪ **商户直属员工**（`merchant_members`）∪ **维修师傅**（`technician_profiles`）；直属/师傅行 site_name=「直属商户」、师傅 position=「维修师傅」。**归属锚定 membership**：由 `site_members→sites.tenant_id` / `merchant_members.tenant_id` / `technician_profiles.tenant_id` 决定，users 按 id 取回（**不按 `users.tenant_id` 过滤**——本地缓存该列不可靠） |
 | site_admin | **本网点（组织域）全部成员**：`JOIN sites s ON s.id = sm.site_id WHERE s.org_id = JWT oid`；不含维修师傅。JWT `oid` 是**网点自身的 IAM 组织 ID**（`sites.org_id`），与 `site_members.site_id`（`sites.id`）**不是同一域**（#2508）。一个组织下有多个站点时返回**该组织全部站点**成员，**不递归**子网点（`sites.parent_id`） |
-| system_admin | **平台员工**（根组织 users，role∈staff/namespace_admin/sys_admin）∪ **中转网点成员**（`sites.type='transit'`）；平台员工无网点归属时 site_name=「平台」 |
+| system_admin | **平台员工**（根组织 users，role∈staff/namespace_admin/sys_admin）∪ **中转网点成员**（`site_members.site_id → sites`，且 `sites.type='transit'` **且** `sites.tenant_id = 平台租户`；平台租户=JWT `tid`，为空回落 `oid`）；平台员工无网点归属时 site_name=「平台」 |
 | 其他（customer 等） | `40303` |
+
+**中转网点的组织域（#2552 / #2547 D2）**: 中转网点持有**自己的** `branch` 子组织（`sites.org_id`，父组织 = 命名空间主组织 `is_primary`，无 owner），成员的 IAM 绑定/角色/解绑目标 = 该组织；而 `sites.tenant_id` 仍是平台租户。两列不同域，**禁止互相替代**：
+- **术语对照**：IAM 侧语义为 `kind=branch`（组织类型）；`POST /api/v1/namespaces/{ns}/organizations` 的请求字段名是 `type`，取值 `branch`（`CreateOrganizationRequest.Type`，`json:"type,omitempty"`）。同一概念的两个名字，勿引入第三种写法。
+- 成员行的本地租户列（`site_members.tenant_id` / 新建用户的 `users.tenant_id`）必须是**平台租户**（唯一键含 tenant，写成组织 ID 会让幂等判定失配 → 重复成员行）；
+- 中转成员判据用 `sites.tenant_id`（站点维度），**不用** `sites.org_id`（否则网点一旦有了子组织，既有成员会从系统视图/详情消失）。
 
 **Query**: `page`（默认 1）、`page_size`（默认 20，≤100）、`name`（姓名 ILIKE；页面搜索表单参数）、`site_id`（**merchant 视图**按网点过滤成员，师傅/直属员工不属网点故排除；**site_admin 视图亦生效**，语义为「与本组织求交」——跨组织站点 ID 得到空集，不报错、不泄漏）、`direct`（**merchant 视图**：`true`=只看直属员工（`merchant_members`）+ 维修师傅；与 `site_id` 同传时 **direct 优先**）、`search`（name/phone/email ILIKE，通用口径；name 优先）
 
@@ -6496,6 +6501,8 @@ username,name,email,phone,site,role
 zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 ```
 
+**IAM 关系角色（#2540）**: `role` 列经 `services.ToIAMRole` 映射后写入 IAM 组织关系——`site_member`→`STAFF`、`site_admin`→`ADMIN`、`merchant_admin`→`OWNER`、`repair_technician`→`repair_technician`；**无法识别/空值回落 `STAFF`**（白名单 `NormalizeIAMRelationRole`）。业务角色字面量（`site_member` 的业务码 `user`、`organization_admin`、`tenant_admin`、小写 `staff`）**不得**写入 IAM 关系——beaconiam 侧对未知关系角色按「权限 None」处理。
+
 **响应**:
 ```json
 {
@@ -6533,7 +6540,7 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 |---|---|
 | merchant_admin | `site_members→sites.tenant_id = tid`（active）或 `merchant_members.tenant_id = tid`（active）或 `technician_profiles.tenant_id = tid`；否则 `users.tenant_id = tid` 且 `lower(role) ∉ {"", "user"}` |
 | site_admin | `site_members→sites.org_id = oid`（active）；否则 `users.tenant_id = tid` + `org_id` 在可见组织内，且 `lower(role) ∉ {"", "user"}` |
-| system_admin | `users.org_id = oid` 且 `lower(role) ∈ {staff, namespace_admin, sys_admin}`；或中转网点成员（`sites.type='transit'` 且 `sites.tenant_id/org_id = oid`）；或 `tid` 非空时 `users.tenant_id = tid` |
+| system_admin | `users.org_id = oid` 且 `lower(role) ∈ {staff, namespace_admin, sys_admin}`；或中转网点成员（`site_members.site_id → sites`，`sites.type='transit'` **且** `sites.tenant_id = 平台租户`，平台租户=`tid`，空回落 `oid`；**不使用** `sites.org_id`——中转网点持有自己的 `branch` 子组织，与平台租户不同域，#2552）；或 `tid` 非空时 `users.tenant_id = tid` |
 | 其他 | 仅旧口径：`users.tenant_id = tid` + `org_id` 在可见组织内 |
 
 **纯顾客**: `lower(users.role) ∈ {"", "user"}` 且无任何成员关系 → 一律 `404 40400`（不得通过 `users.tenant_id` 命中被当作员工打开，避免个人信息越权读取）。
@@ -6545,6 +6552,26 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 **激活（POST）**: 可见性同源；`iam_sub` 已存在仍返回 `40001 user already activated`。
 
 **`attribution_missing`（§10.18.0 响应行字段）**: `users.tenant_id` 或 `users.org_id` 为空/nil UUID 时为 `true`（三视图同源）。该标记仅表示本地归属未回填，不影响可见性与编辑；存量回填需 Owner 授权（#2527）。
+
+#### 10.18.7 激活员工（IAM 关系角色与权限模板，#2540）
+
+**接口**: `POST /api/users/:id/activate`
+
+**说明**: 为已存在但 `iam_sub` 为空的本地员工行创建 IAM 用户、绑定组织关系并写入客户权限位。`iam_sub` 已存在时返回 `40001 user already activated`（幂等保护）。
+
+**关系角色与权限模板（同源，唯一口径）**:
+
+| 项 | 取值 |
+|---|---|
+| 业务角色模板 | 取自 `users.role`，须命中**员工级**白名单 `site_admin`/`site_member`/`merchant_staff`/`repair_technician`；平台级（`namespace_admin`/`sys_admin`）、`merchant_admin`、`customer`、空值、未知码 → legacy 兜底 `site_member`（Rev.3 D2：平台模板 + 员工关系角色属语义混搭） |
+| IAM 关系角色 | `iamRole = NormalizeIAMRelationRole(ToIAMRole(roleTemplate))`，即 `site_member`→`STAFF`、`site_admin`→`ADMIN`、`merchant_admin`→`OWNER`、`repair_technician`→`repair_technician`；无法识别 → `STAFF` |
+| 客户权限位 | 与关系角色**同一个** `roleTemplate` 的 `CusPermCodes` 计算（`ComputeCusPermBitmapExt`）——不得硬编码 `site_member` |
+| 功能角色模板 | 同样来自**同一个** `roleTemplate`：`AssignRoleTemplateToUserWithToken`（`role_ids=[roleTemplate]`，`org_id` = 绑定组织，namespace 取 JWT）。只写关系角色/权限位而不分配模板会使 `RoleTemplate.SysPermBits` 不落库、JWT `fn_roles` 为空 |
+
+**为何强制同源（#2540 / #2467）**: 早期实现固定 `GetBusinessRole("site_member")` → IAM 关系角色被写成业务码 `user`（beaconiam 不识别 → 权限 None），且客户权限位硬编码 `site_member`；激活一个 `site_admin` 会得到「关系角色 user + 权限位按 site_member」的**实质降权**。
+
+**失败补偿**: bind 失败 → purge IAM 用户；写权限位失败 → unbind + purge；本地 `iam_sub` 回写失败 → unbind + purge（不留半态）。
+
 
 ---
 
@@ -6722,6 +6749,8 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 - `40002`: 商户名已存在
 - `40001`: 请求参数错误
 - `40900`: IAM 组织名称冲突
+
+**IAM 关系角色（#2540 D4，Owner 2026-11-26 裁定）**: 商户管理员绑定商户组织的 **`OWNER`**（唯一权威映射 `toIAMRole("merchant_admin")`，见 10.18.7）。审批确认路径（`ConfirmationSession`，`action_type=merchant_admin`）同样绑定 `OWNER`，不得使用字面量 `"admin"`/`"ADMIN"`：beaconiam 的 `POST /organizations`（建网点）、角色模板定义、命名空间操作用均要求 `PermissionOwner`，绑定 `ADMIN` 会使商户创建者**无法再创建网点**。
 
 #### 12.3.2 商户列表
 

@@ -1,0 +1,16 @@
+# build=1.0.b31e7815d # commit=b31e7815d # dirty=false
+== R1 D2：成员 tenant 列 = 本地租户；IAM org = 站点 org（bind/role/unbind）；重复添加不增行 ==
+BIND_ORG_AS_TENANT=0
+LOCAL_TENANT_ARG=1
+MEMBER_ROWS=1
+MEMBER_TENANT_IS_LOCAL_TENANT=1
+MEMBER_IAM_ORG_IS_SITE_ORG=1
+NO_DUPLICATE_MEMBER_ROW=1
+--- PASS: TestTransitMemberScope2552_RepeatedAddKeepsSingleRow (1.10s)
+USER_TENANT_IS_LOCAL_TENANT=1
+USER_ORG_IS_SITE_ORG=1
+--- PASS: TestTransitMemberScope2552_NewUserTenantIsLocal (0.97s)
+MEMBER_ROLE_ORG_IS_SITE_ORG=1
+MEMBER_UNBIND_ORG_IS_SITE_ORG=1
+--- PASS: TestTransitMemberOrgPaths2552_RoleAndUnbind (0.99s)
+R1_OK

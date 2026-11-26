@@ -6,6 +6,8 @@ import { formatBeijingDate } from '../utils/date';
 import { adminApi, invitesApi } from '../services/api';
 import PasswordSettingFields from './PasswordSettingFields';
 import InitialPasswordModal from './InitialPasswordModal';
+import FormConflictAlert from './FormConflictAlert';
+import { conflictText, isBusinessCorrectableConflict } from '../utils/formConflict';
 
 const ROLE_NAMES = {
   admin: '网点管理员',
@@ -33,6 +35,8 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
   const [pageSize, setPageSize] = useState(20);
   const [total, setTotal] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
+  // #2485（沿用 #2480 D8）：业务可纠正冲突用表单内持久提示，不用 3 秒 toast。
+  const [formConflict, setFormConflict] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
   const [adding, setAdding] = useState(false);
   const [availableRoles, setAvailableRoles] = useState([]);
@@ -101,6 +105,10 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
         message.success('角色已更新');
         fetchMembers();
         onRefresh && onRefresh();
+      } else {
+        // #2485 D1：UpdateMemberRole 只导出 40001/40400/50000/20000，
+        // 业务可纠正持久提示分支不可达 → 保持瞬时 toast。
+        message.error(resp.message || '更新角色失败');
       }
     } catch { message.error('更新角色失败') }
   };
@@ -183,6 +191,9 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
             message.success('申请已提交，等待商户管理员审批');
             setModalVisible(false);
             resetForm();
+          } else if (isBusinessCorrectableConflict(resp)) {
+            // #2485：已有待处理申请等冲突改为持久提示。
+            setFormConflict(conflictText(resp, '提交申请失败，请调整后重试'));
           } else {
             message.error(resp.message || '提交申请失败');
           }
@@ -194,6 +205,7 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
   };
 
   const handleSubmit = async () => {
+    setFormConflict(''); // #2485 D8：提交开始即清空
     setAdding(true);
     try {
       if (formMode === 'existing') {
@@ -218,6 +230,8 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
         } else if (response.code === 40311 || response.code === 40911) {
           promptApply({ identifier: phone.trim() || email.trim() || username.trim(), role: selectedRole });
         } else {
+          // #2485 D1：POST /sites/:id/members（AddMember）只导出 40001/40911/40400/20000/20100，
+          // 不含 40002/40004/40005/40900 —— 业务可纠正持久提示在此分支不可达，保持 toast。
           message.error(response.message || '绑定失败');
         }
       } else {
@@ -287,6 +301,7 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
             content: response.message || '该手机号/邮箱已在本平台注册，请让本人登录后自助加入（作为员工加入 / 注册为顾客）。',
           });
         } else {
+          // #2485 D1：AddMember 不导出 40002/40004/40005/40900，持久提示分支不可达。
           message.error(response.message || '添加成员失败');
         }
       }
@@ -373,6 +388,7 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
           onChange={(e) => setSearchKeyword(e.target.value)}
         />
         <Button type="primary" icon={<PlusOutlined />} onClick={() => {
+          setFormConflict('');
           resetForm();
           setModalVisible(true);
         }}>
@@ -383,10 +399,11 @@ const SiteMemberManagement = ({ siteId, onRefresh, membersBase = '/sites', roles
       <Modal
         title="添加成员"
         open={modalVisible}
-        onCancel={() => { setModalVisible(false); resetForm(); }}
+        onCancel={() => { setFormConflict(''); setModalVisible(false); resetForm(); }}
         footer={null}
         width={520}
       >
+        <FormConflictAlert text={formConflict} testId="site-member-form-conflict" />
         {formMode === 'existing' && existingUser ? (
           <>
             <Alert

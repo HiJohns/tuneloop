@@ -189,9 +189,9 @@
 - `bind`: 完成用户与组织绑定
 
 **本地确认会话（状态跟踪）**:
-- Tuneloop 本地 `confirmation_sessions` 表仅用于状态跟踪
-- 新增 `iam_session_id` 字段关联 IAM 会话
-- 新增 `callback_url` 字段记录回调地址
+- Tuneloop 本地 `confirmation_sessions` 表仅用于状态跟踪（**2026-11-26 起该表通过迁移正式创建**，此前从未建表、特性不可用；见 #2543）
+- 列：`tenant_id/org_id/user_id/confirm_type/confirm_target/merchant_id/action_type/action_target_id/iam_session_id/callback_url/status/message/token(唯一)/expires_at/confirmed_at/created_at/updated_at`
+- **IAM 主体必须以 `users.iam_sub` 为准**：确认执行（如 `merchant_admin` 绑定组织）使用 `iam_sub`，`iam_sub` 为空时确认失败、**不得**发 IAM 请求（更不得发送本地 `users.id`）
 - 回调时同步更新本地会话状态
 
 **失败处理**:

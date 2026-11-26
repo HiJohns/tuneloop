@@ -96,7 +96,7 @@ func (h *PersonnelHandler) List(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "operator has no organization"})
 			return
 		}
-		rows, err = personnelSystemView(db, oid, keyword)
+		rows, err = personnelSystemView(db, oid, platformTenantIDFor(ctx), keyword)
 	default:
 		c.JSON(http.StatusForbidden, gin.H{"code": 40303, "message": "access denied"})
 		return
@@ -278,7 +278,7 @@ func personnelSiteView(db *gorm.DB, orgID, keyword, siteFilter string) ([]person
 
 // personnelSystemView 平台员工（根组织 users，与 platform_staff.go 同源）∪ 中转网点成员。
 // 注意：平台员工通常无 site_members 记录，不能走 assemblePersonnel 的「无归属即过滤」逻辑。
-func personnelSystemView(db *gorm.DB, rootOrgID, keyword string) ([]personnelRow, error) {
+func personnelSystemView(db *gorm.DB, rootOrgID, platformTenantID, keyword string) ([]personnelRow, error) {
 	rows := []personnelRow{}
 	seen := map[string]int{}
 
@@ -304,12 +304,19 @@ func personnelSystemView(db *gorm.DB, rootOrgID, keyword string) ([]personnelRow
 		})
 	}
 
-	// 2) 中转网点成员（sites.type='transit'，归属根组织）
+	// 2) 中转网点成员（sites.type='transit' 且 sites.tenant_id = 平台租户）
+	//
+	// #2552 D2（#2547 变更点 4）：判据必须与建站写入维度一致 —— 建站时
+	// `sites.tenant_id` = 创建者平台租户、`sites.org_id` = 该中转网点自己的
+	// branch 子组织，两者不同域。旧判据 `s.tenant_id = ? OR s.org_id = ?` 以
+	// rootOrgID 比较：中转网点一旦有了自己的子组织（回填/新建），既有的
+	// `s.tenant_id = rootOrgID` 也不再成立时成员会从系统视图消失。
+	// 成员仍经 `site_members.site_id → sites` 关联。
 	var sms []siteMembershipRow
 	if err := db.Table("site_members AS sm").
 		Select("sm.user_id, sm.site_id, s.name AS site_name, sm.role").
 		Joins("JOIN sites s ON s.id = sm.site_id").
-		Where("s.type = ? AND (s.tenant_id = ? OR s.org_id = ?) AND sm.status = 'active'", "transit", rootOrgID, rootOrgID).
+		Where("s.type = ? AND s.tenant_id = ? AND sm.status = 'active'", "transit", platformTenantID).
 		Scan(&sms).Error; err != nil {
 		return nil, fmt.Errorf("transit site_members scan failed: %w", err)
 	}
@@ -556,7 +563,7 @@ func personnelUserVisible(db *gorm.DB, ctx context.Context, u *models.User) (boo
 				return true, nil
 			}
 		}
-		if ok, err := hasTransitSiteMembership(db, ctx, u.ID, oid); err != nil || ok {
+		if ok, err := hasTransitSiteMembership(db, ctx, u.ID, platformTenantIDFor(ctx)); err != nil || ok {
 			return ok, err
 		}
 		// 带租户 claim 的 NAMESPACE_ADMIN 等仍按旧口径放行，避免收窄既有访问。
@@ -629,16 +636,32 @@ func hasSiteMembershipByOrg(db *gorm.DB, ctx context.Context, userID, orgID stri
 	return count > 0, nil
 }
 
-// hasTransitSiteMembership 报告用户是否属于该组织下的中转网点（与 personnelSystemView 同源）。
-func hasTransitSiteMembership(db *gorm.DB, ctx context.Context, userID, orgID string) (bool, error) {
+// hasTransitSiteMembership 报告用户是否属于平台租户下的中转网点
+// （与 personnelSystemView 同源）。#2552 D2：判据为站点维度
+// `sites.type='transit' AND sites.tenant_id = 平台租户`，不再比较 `sites.org_id`
+// （中转网点持有自己的 branch 子组织，与平台租户不同域）。
+func hasTransitSiteMembership(db *gorm.DB, ctx context.Context, userID, platformTenantID string) (bool, error) {
 	scoped := db.WithContext(database.ExplicitTenantScopeOnly(ctx))
 	var count int64
 	if err := scoped.Table("site_members AS sm").
 		Joins("JOIN sites s ON s.id = sm.site_id").
-		Where("sm.user_id = ? AND sm.status = 'active' AND s.type = ? AND (s.tenant_id = ? OR s.org_id = ?)",
-			userID, "transit", orgID, orgID).
+		Where("sm.user_id = ? AND sm.status = 'active' AND s.type = ? AND s.tenant_id = ?",
+			userID, "transit", platformTenantID).
 		Count(&count).Error; err != nil {
-		return false, fmt.Errorf("transit membership check failed (user=%s org=%s): %w", userID, orgID, err)
+		return false, fmt.Errorf("transit membership check failed (user=%s tenant=%s): %w", userID, platformTenantID, err)
 	}
 	return count > 0, nil
+}
+
+// platformTenantIDFor 返回「平台租户」ID —— 中转网点 `sites.tenant_id` 的建站来源。
+//
+// #2552 D2：中转成员判据以站点维度（`sites.tenant_id`）为准，因此判据侧必须用与
+// 建站写入同源的租户取值：JWT `tid`；系统管理员上下文可能只有 `org_id`（`tid` 为空），
+// 此时回落 `oid`（与 `CreateAdminTransitSite` 用 `middleware.GetTenantID` 写
+// `sites.tenant_id` 的历史口径一致，避免收窄既有可见性）。
+func platformTenantIDFor(ctx context.Context) string {
+	if tid := middleware.GetTenantID(ctx); tid != "" {
+		return tid
+	}
+	return middleware.GetOrgID(ctx)
 }

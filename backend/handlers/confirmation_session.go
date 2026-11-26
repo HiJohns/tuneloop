@@ -357,7 +357,10 @@ func (h *ConfirmationSessionHandler) executeAction(session *models.ConfirmationS
 			}
 			if merchant.OrgID != "" {
 				iamClient := services.NewIAMClient()
-				if err := iamClient.BindUserToOrganization(session.UserID, merchant.OrgID, "admin", ""); err != nil {
+				// #2540 D4（Owner 2026-11-26 裁定）：新建商户的管理员是商户的 OWNER。
+				// 旧写法字面量 "admin" 把创建者降为 ADMIN → 无法再用 POST /organizations
+				// 创建网点（beaconiam 该路由要求 PermissionOwner）。唯一权威映射 = toIAMRole。
+				if err := iamClient.BindUserToOrganization(session.UserID, merchant.OrgID, toIAMRole("merchant_admin"), ""); err != nil {
 					return fmt.Errorf("IAM bind failed: %w", err)
 				}
 				if t, ok := services.AllRoleTemplates["merchant_admin"]; ok && len(t.CusPermCodes) > 0 {

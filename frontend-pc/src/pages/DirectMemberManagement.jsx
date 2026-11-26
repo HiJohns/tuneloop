@@ -8,6 +8,8 @@ import PasswordSettingFields from '../components/PasswordSettingFields'
 import InitialPasswordModal from '../components/InitialPasswordModal'
 import { resolveCreateFeedback } from '../utils/createFeedback'
 import { createIntentState } from '../utils/staffCreateIntent'
+import FormConflictAlert from '../components/FormConflictAlert'
+import { conflictText, isBusinessCorrectableConflict } from '../utils/formConflict'
 
 // #2114 直属成员管理（子页）：
 // - 商户管理员：管理/邀请本商户直属员工（merchant_staff）
@@ -33,6 +35,9 @@ export default function DirectMemberManagement() {
   const [inviteOpen, setInviteOpen] = useState(false)
   const [inviteKind, setInviteKind] = useState('merchant_staff')
   const [inviteForm] = Form.useForm()
+  // #2485（沿用 #2480 D8）：业务可纠正冲突用表单内持久提示，不用 3 秒 toast。
+  const [inviteConflict, setInviteConflict] = useState('')
+  const [techConflict, setTechConflict] = useState('')
   const [inviting, setInviting] = useState(false)
   // #2122：创建维修师（user_type=repair_technician → 直属商户，建师傅档案）
   const [techOpen, setTechOpen] = useState(false)
@@ -75,6 +80,7 @@ export default function DirectMemberManagement() {
   const openInvite = (kind) => {
     setInviteKind(kind)
     inviteForm.resetFields()
+    setInviteConflict('')
     setInviteOpen(true)
   }
 
@@ -82,6 +88,7 @@ export default function DirectMemberManagement() {
     try {
       const values = await inviteForm.validateFields()
       setInviting(true)
+      setInviteConflict('') // #2485 D8：提交开始即清空
       let resp
       if (inviteKind === 'platform_staff') {
         resp = await invitesApi.invitePlatformStaff({ identifier: values.identifier.trim() })
@@ -98,7 +105,11 @@ export default function DirectMemberManagement() {
       }
       if (resp.code === 20100) {
         message.success('邀请已发出，待对方接受')
+        setInviteConflict('')
         setInviteOpen(false)
+      } else if (isBusinessCorrectableConflict(resp)) {
+        // #2485：已有待处理邀请/已被占用等业务冲突改为表单内持久提示。
+        setInviteConflict(conflictText(resp, '邀请失败，请调整后重试'))
       } else {
         message.error(resp.message || '邀请失败')
       }
@@ -114,6 +125,7 @@ export default function DirectMemberManagement() {
     try {
       const values = await techForm.validateFields()
       setCreating(true)
+      setTechConflict('') // #2485 D8：提交开始即清空
       // #2372：username 为唯一必填登录标识（#2376）；email 选填。
       const payload = {
         user_type: 'repair_technician',
@@ -170,7 +182,13 @@ export default function DirectMemberManagement() {
         setTechForcePasswordChange(true)
         fetchList()
       } else {
-        message.error(resp.message || '创建失败')
+        // #2485：手机号/邮箱/用户名冲突（CreateUser 40900，HTTP 409）→ 表单内持久提示。
+        // 同一 handler 的 40002（邀请模式需邮箱）走 HTTP 400，客户端会 throw 丢码（见 #2563）。
+        if (isBusinessCorrectableConflict(resp)) {
+          setTechConflict(conflictText(resp, '创建失败，请调整后重试'))
+        } else {
+          message.error(resp.message || '创建失败')
+        }
       }
     } catch (err) {
       if (err?.errorFields) return
@@ -222,7 +240,7 @@ export default function DirectMemberManagement() {
               </Button>
             )}
             {isMerchantAdmin && (
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => { techForm.resetFields(); setTechOpen(true) }}>
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => { setTechConflict(''); techForm.resetFields(); setTechOpen(true) }}>
                 创建维修师
               </Button>
             )}
@@ -258,7 +276,7 @@ export default function DirectMemberManagement() {
       <Modal
         title={inviteKind === 'platform_staff' ? '邀请平台员工' : '邀请商户直属员工'}
         open={inviteOpen}
-        onCancel={() => setInviteOpen(false)}
+        onCancel={() => { setInviteConflict(''); setInviteOpen(false); }}
         onOk={handleInvite}
         okText="发出邀请"
         okButtonProps={{ loading: inviting }}
@@ -276,6 +294,7 @@ export default function DirectMemberManagement() {
             </Typography.Text>
           }
         />
+        <FormConflictAlert text={inviteConflict} testId="direct-invite-conflict" />
         <Form form={inviteForm} layout="vertical">
           <Form.Item
             name="identifier"
@@ -291,7 +310,7 @@ export default function DirectMemberManagement() {
       <Modal
         title="创建维修师（直属商户）"
         open={techOpen}
-        onCancel={() => setTechOpen(false)}
+        onCancel={() => { setTechConflict(''); setTechOpen(false); }}
         onOk={handleCreateTech}
         okText="创建"
         okButtonProps={{ loading: creating }}
@@ -305,6 +324,7 @@ export default function DirectMemberManagement() {
           message="维修师直属商户（不挂靠网点）"
           description="创建后即成为本商户直属维修师；网点人员管理不再创建维修师。"
         />
+        <FormConflictAlert text={techConflict} testId="direct-tech-conflict" />
         <Form form={techForm} layout="vertical">
           <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
             <Input placeholder="姓名" />

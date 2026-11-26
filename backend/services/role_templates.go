@@ -115,6 +115,56 @@ var BusinessRoleMapping = map[string]string{
 	"repair_technician": "repair_technician",
 }
 
+// IAM 关系角色（organization relation role）。这是 beaconiam 侧真正识别的取值集合，
+// 由 backend 侧 roleToPermission 判定（OWNER/ADMIN/NAMESPACE_ADMIN/CLIENT），
+// repair_technician 由本系统自带语义（#2466/#2526）。
+const (
+	IAMRoleOwner            = "OWNER"
+	IAMRoleAdmin            = "ADMIN"
+	IAMRoleStaff            = "STAFF"
+	IAMRoleRepairTechnician = "repair_technician"
+)
+
+// IAMRelationRoles 是合法的 IAM 关系角色白名单（D3）。写入 IAM 前必须落在集合内。
+var IAMRelationRoles = map[string]struct{}{
+	IAMRoleOwner:            {},
+	IAMRoleAdmin:            {},
+	IAMRoleStaff:            {},
+	IAMRoleRepairTechnician: {},
+}
+
+// ToIAMRole 把 tuneloop 的业务角色/角色模板码映射为 IAM 关系角色（#2467/#2466）。
+//
+// 注意：这是**映射**而非**校验**——未知码原样返回，因此调用方在写入 IAM 前
+// 必须再经过 NormalizeIAMRelationRole 兜底，否则会把业务角色当 IAM 角色写入
+// （#2467 根因，`site_member` → `"user"`）。
+func ToIAMRole(tuneloopCode string) string {
+	switch tuneloopCode {
+	case "merchant_admin":
+		return IAMRoleOwner
+	case "site_admin":
+		return IAMRoleAdmin
+	case "site_member":
+		return IAMRoleStaff
+	case "repair_technician":
+		return IAMRoleRepairTechnician
+	case "merchant_staff":
+		return IAMRoleStaff // #2129：商户直属员工 → 商户组织 STAFF 关系
+	default:
+		return tuneloopCode
+	}
+}
+
+// NormalizeIAMRelationRole 把任意角色码收敛到 IAM 关系角色白名单，无法识别时回落 STAFF。
+// 空值/业务角色（`user`/`tenant_admin`/`organization_admin`）一律视为不可识别。
+func NormalizeIAMRelationRole(role string) string {
+	code := strings.TrimSpace(role)
+	if _, ok := IAMRelationRoles[code]; ok {
+		return code
+	}
+	return IAMRoleStaff
+}
+
 func GetBusinessRole(roleTemplate string) string {
 	role, ok := BusinessRoleMapping[roleTemplate]
 	if !ok {
