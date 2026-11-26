@@ -103,10 +103,13 @@ LOG="$WORK/$MODE.log"
 case "$MODE" in
   r1)
     NAME="R1-transport-unit.txt"
+    # Node >=22 的默认 reporter 是 spec（"ℹ fail 0"）；契约断言沿用 TAP 形态 "# fail 0"，
+    # 故显式钉死 --test-reporter=tap（Node 20/22/24 输出一致）。
+
     {
       printf '%s\n' "$PROV"
       echo "# 非 2xx 分类纯函数回归（resolveHttpFailure）：400/403/429/500/502 抛 Error 且带 code；404/409 返回对象"
-      ( cd "$REPO/frontend-pc" && heavy node --test tests/apiError.test.mjs ) 2>&1
+      ( cd "$REPO/frontend-pc" && heavy node --test --test-reporter=tap tests/apiError.test.mjs ) 2>&1
     } > "$LOG" 2>&1
     require_tokens "$LOG" 'THROW_40002=1' 'THROW_40004=1' 'THROW_403=1' 'THROW_429=1' \
       'THROW_500=1' 'THROW_502=1' 'MSG_40002=CJK_PASSTHROUGH' 'RESULT_404=1' 'RESULT_409=1' \
@@ -128,18 +131,20 @@ case "$MODE" in
     for c in 40104 40105 40106 40107; do grep -q "$c" "$BODY" && AUTH_CODES=$((AUTH_CODES + 1)); done
     PERM_VERSION="$(grep -c 'x-perm-version' "$BODY" || true)"
     # idle 守卫在 refreshAccessToken 内（request() 只调用 isIdleLogoutPending），故按整文件计数。
-    IDLE_GUARD="$(grep -cE 'isIdleTimeoutPayload|isIdleLogoutPending' "$REPO/$API_JS" || true)"
+    # Rev.2：矩阵断言改为 IDLE_GUARD_CALLS>=2（import + 定义 + 调用点至少要出现两处，
+    # 单点命中说明守卫被删或调用链断开）。
+    IDLE_GUARD_CALLS="$(grep -cE 'isIdleTimeoutPayload|isIdleLogoutPending' "$REPO/$API_JS" || true)"
     {
       printf '%s\n' "$PROV"
       echo "# api.js request() 结构：非 2xx 只经唯一 owner 映射；401/perm_version/idle 分支顺序不变"
       printf 'FAILURE_RESOLVER_CALLS=%s\nINLINE_STATUS_MAP=%s\nTHROW_PATH=%s\nNONOK_INLINE_RETURNS=%s\n' \
         "$RESOLVER_CALLS" "$INLINE_MAP" "$THROW_PATH" "$INLINE_RETURNS"
-      printf 'AUTH_BLOCK_BEFORE_NONOK=%s\nAUTH_CODES=%s\nPERM_VERSION=%s\nIDLE_GUARD=%s\n' \
-        "$AUTH_BEFORE" "$AUTH_CODES" "$PERM_VERSION" "$IDLE_GUARD"
+      printf 'AUTH_BLOCK_BEFORE_NONOK=%s\nAUTH_CODES=%s\nPERM_VERSION=%s\nIDLE_GUARD_CALLS=%s\n' \
+        "$AUTH_BEFORE" "$AUTH_CODES" "$PERM_VERSION" "$IDLE_GUARD_CALLS"
       printf 'AUTH_LINE=%s\nNONOK_LINE=%s\n' "${AUTH_LINE:-0}" "${NONOK_LINE:-0}"
       if [ "$RESOLVER_CALLS" = "1" ] && [ "$INLINE_MAP" = "0" ] && [ "$THROW_PATH" = "1" ] && \
          [ "$INLINE_RETURNS" = "0" ] && [ "$AUTH_BEFORE" = "1" ] && [ "$AUTH_CODES" = "4" ] && \
-         [ "$PERM_VERSION" -ge 1 ] && [ "$IDLE_GUARD" -ge 1 ]; then
+         [ "$PERM_VERSION" -ge 1 ] && [ "$IDLE_GUARD_CALLS" -ge 2 ]; then
         echo "R2_OK"
       else
         echo "R2_FAIL"
@@ -164,7 +169,7 @@ case "$MODE" in
         "$([ "$CONFLICT_BRANCH" -ge 1 ] && echo 1 || echo 0)" "$([ "$CONFLICT_TEXT" -ge 1 ] && echo 1 || echo 0)" \
         "$([ "$FALLBACK_TOAST" -ge 1 ] && echo 1 || echo 0)" "$([ "$ALERT_RENDERED" -ge 1 ] && echo 1 || echo 0)"
       echo "# rubric 对 Error 实例的判定（node --test frontend-pc/tests/formConflict.test.mjs）"
-      ( cd "$REPO/frontend-pc" && heavy node --test tests/formConflict.test.mjs ) 2>&1
+      ( cd "$REPO/frontend-pc" && heavy node --test --test-reporter=tap tests/formConflict.test.mjs ) 2>&1
       if [ "$CONFLICT_BRANCH" -ge 1 ] && [ "$CONFLICT_TEXT" -ge 1 ] && [ "$FALLBACK_TOAST" -ge 1 ] && \
          [ "$ALERT_RENDERED" -ge 1 ]; then
         echo "R3_OK"
