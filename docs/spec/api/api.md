@@ -1018,6 +1018,11 @@ GET /api/confirmation-sessions/:id
 >
 > **注**: `transit_site_id` 为受控商户（`merchant_type=controlled`）创建网点时的必填项。可选的中转网点通过 `GET /api/public/sites?type=transit` 获取（返回含 `address`）。
 
+> **注（2026-11-26 组织模型）**：`type` 取值收敛为 `direct`（直营店，默认）与 `franchise`（加盟店）；`partner`（合作店）**暂不支持**，传值 → `40002`。
+> - **直营店**：`manager_user_id` 可省略（允许零成员）；IAM 建 `parent_id = 商户 org_id` 的**分支组织**（`kind=branch`，无 OWNER），`sites.org_id` 为该子组织。
+> - **加盟店**：**必须**传 `owner_user_id`（否则 `40002`）；IAM 在命名空间下建**独立组织**（`parent_id = null`，`kind=franchise`）并把该用户绑为 **OWNER**，随后建 `org_link(kind=franchise)` 关联当前商户；`sites.org_id` 为该独立组织。
+> - 角色模板：直营店继承所属商户 OWNER 定义的模板；加盟店按 `org_link` 继承（默认开）。
+
 **响应**:
 ```json
 {

@@ -364,7 +364,7 @@ photos:
 | manager_id | UUID | INDEX | 负责人 ID |
 | name | VARCHAR(255) | NOT NULL | 网点名称 |
 | address | VARCHAR(500) | | 地址 |
-| type | VARCHAR(50) | | 网点类型 |
+| type | VARCHAR(50) | | 网点类型：`direct`（直营，默认）/ `franchise`（加盟）/ `transit`（平台直属中转，kind=branch，父组织=命名空间组织）/ `partner`（预留，暂不支持） |
 | latitude | DECIMAL(6,6) | | 纬度 |
 | longitude | DECIMAL(6,6) | | 经度 |
 | phone | VARCHAR(50) | | 联系电话 |
