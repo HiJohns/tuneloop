@@ -1,0 +1,15 @@
+# build=1.0.220785f52 # commit=220785f52d7eee81d62efcfa5b35c7da923535c5 # dirty=false
+== R5 same-class scan + read-only stock SQL ==
+ORG_WRITTEN_TO_SITE=0
+RESOLVER_CALLS=2
+RESOLVER_DEF=1
+ASSESSMENT_SAME_CLASS_HITS=1
+--- stock scan SQL (read-only, NOT executed) ---
+SQL_PRESENT=1
+SELECT i.id, i.sn, i.tenant_id, i.current_site_id
+FROM instruments i
+WHERE i.current_site_id IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM sites s WHERE s.id = i.current_site_id);
+-- Rows above have a cross-domain value in instruments.current_site_id.
+-- Fixing them requires Owner approval (AGENTS.md red line: no DB writes by AI).
+R5_OK

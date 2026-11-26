@@ -287,6 +287,7 @@
 
 **数据模型**:
 - `sites.org_id` 语义变更：网点自身的 IAM 组织 ID（非商户的组织 ID）
+- **ID 域（#2511）**：`sites.id` 是站点主键、`sites.org_id` 是组织 ID，两者不可互换。`instruments.current_site_id` 只能由「操作者 `site_members.site_id`」或「`order.OrgID` → `sites.id` 反查（`resolveSiteIDByOrg`：单站点直取；多站点优先锚点 `sites.org_id == sites.tenant_id`，否则 `created_at` 最早；0 个不写入 + WARN）」得到，**任何路径不得直接写入组织 ID**（写入即触发 `instruments_current_site_id_fkey` 23503 / 验收门查不到站点）
 - `confirmation_sessions` 新增 `iam_session_id`、`callback_url` 字段
 
 ### 通用 IAM 绑定三步骤
