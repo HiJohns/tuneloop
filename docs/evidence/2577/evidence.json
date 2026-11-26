@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "issue": 2577,
+  "build": "1.0.88b6e02b7",
+  "commit": "88b6e02b7abf01baddea208bce4171475e8ee3b5",
+  "dirty": false,
+  "plan_sha256": "7198fb090bdf42aac17cdd462acdf455b9cd3b0503d5f1424e56327f328886c5",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2577 (branch issue-2577, base origin/develop 32e80a843); Postgres test DB 127.0.0.1:15433/tuneloop_test_local; Node v24.13.0 (node --test, eslint 8, vite 5 build); Go build via host heavy-lock",
+  "tooling_commit": "a2304822399686597e4df12376b959406cc02983",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2577.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2577/R1-filter-unit.txt"
+      ],
+      "assert": "exit 0；含 TESTS_FAIL=0、FILTER_PATCH_PAGE=1、FILTER_PATCH_SELECTED=0、PARAMS_EXCLUDE=、LABEL_AVAILABLE=待租",
+      "actual": "PASS：TESTS_EXIT=0、TESTS_PASS=19、TESTS_FAIL=0；PARAMS_SN=CVZ-104、PARAMS_CATEGORY=c1、PARAMS_STATUS=available、PARAMS_EXCLUDE=（非管理级显式 lost 不叠加排除）、PARAMS_EXCLUDE_NONMGR=lost,archived,sold、FILTER_PATCH_PAGE=1、FILTER_PATCH_SELECTED=0、URL_STATUS=status=available、LABEL_AVAILABLE=待租、OPTIONS_NONMGR=5（8 项剔除 3 项）",
+      "expected": "PASS",
+      "negative": "断言不符或测试失败 → FAIL",
+      "negative_result": "断言集直接 import 生产纯函数（frontend-pc/src/utils/instrumentStockFilters.js）取值，不含任何替身实现；单测 19 条覆盖 D1/D3/D4/D5/D6，其中「显式 lost 不叠加 exclude_status」「applyFilterPatch 回第 1 页 + 清空选择」「status 优先于 stock_status」为对应负例的正向钉子",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2577.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2577/R2-api-params.txt"
+      ],
+      "assert": "exit 0；含 SN_HITS=1、CATEGORY_HITS=2、EXCLUDE_HITS=3、TOTAL_MATCH=1",
+      "actual": "PASS：SN_HITS=1、CATEGORY_HITS=2（父分类 P 经 getDescendantCategoryIDs 展开到子分类 C）、STATUS_HITS=3、EXCLUDE_HITS=3（lost 的 CVZ-107 被排除）、COMBINED_HITS=2、TOTAL_MATCH=1、GO_TEST_EXIT=0",
+      "expected": "PASS",
+      "negative": "后代未展开或排除失效 → FAIL",
+      "negative_result": "测试用真实 Postgres（testfixtures.SetupTestDB）造 4 条乐器 + 3 个分类（P→C 父子关系），对 5 组参数组合逐次断言命中集合与 total；只要后端参数名或后代展开语义漂移即红",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2577.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2577/R3-page-wiring.txt"
+      ],
+      "assert": "exit 0；含 SN_SEARCH_INPUT=1、EARLY_SPIN_RETURN=0、SELECTION_CLEAR_WIRED=1、STOCK_COL_COUNT=8",
+      "actual": "PASS：SN_SEARCH_INPUT=1、CATEGORY_SELECT=1、STATUS_SELECT=1、CLEAR_BUTTON=1、TABLE_LOADING=1、EARLY_SPIN_RETURN=0、FILTER_RESET_WIRED=1、SELECTION_CLEAR_WIRED=1、STOCK_COL_COUNT=8、STOCK_COL_HEADERS=图片,识别码,分类,所属网点,标准日租金,逾期租金,全额押金,差额押金、LEGACY_STATUS_BANNER=0、STATUS_COLORS_CONST=0、FILTER_FN_IMPORT=1",
+      "expected": "PASS",
+      "negative": "控件缺失或整页 Spin 残留 → FAIL",
+      "negative_result": "结构性断言直接解析修后源码：columns 数组切片内 title 逐项提取（操作列单独计数），控件/接线/Spin 残留均为可执行 regex 断言；PC 无组件测试运行器，真实渲染归部署侧复核（D9 Owner 豁免）",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2577.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2577/R4-docs.txt"
+      ],
+      "assert": "exit 0；含 UI_STOCK_FILTERS=1、UI_STATUS_VOCAB=1、API_FILTER_PARAMS_DOC=1",
+      "actual": "PASS：UI_STOCK_FILTERS=1（识别码/分类/状态/清空筛选四项齐全）、UI_STATUS_VOCAB=1（待租/在租/维修中/已预订/配送中/已丢失/已下架/已售出）、UI_STOCK_URL_PARAMS=1（?status= / stock_status / category_id / sn）、API_FILTER_PARAMS_DOC=1（api.md 参数未漂移）",
+      "expected": "PASS",
+      "negative": "文档未同步 → FAIL",
+      "negative_result": "断言限定在 ui.md §2.20.1「**筛选（#2577）**」小节内匹配（不是全文稀疏匹配），api.md 侧只校验既有参数登记未漂移（本单不改后端契约）",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2577.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2577/R5-build.txt"
+      ],
+      "assert": "exit 0；含 ESLINT_OK=1、PC_BUILD_OK=1、GO_BUILD_OK=1",
+      "actual": "PASS：ESLINT_EXIT=0（0 error，4 条既有 warning：exhaustive-deps / no-use-before-define）、PC_TESTS_EXIT=0、PC_BUILD_EXIT=0（✓ built in 25.40s）、GO_BUILD_EXIT=0",
+      "expected": "PASS",
+      "negative": "任一 lint/build 失败 → FAIL",
+      "negative_result": "全部重命令经 heavy-run.sh 取 host 锁执行（D10），失败即非零退出；日志保留在 tmp/verify-2577-r5-*.log",
+      "pass": true
+    }
+  ]
+}

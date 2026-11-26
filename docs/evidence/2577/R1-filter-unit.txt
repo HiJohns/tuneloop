@@ -1,0 +1,17 @@
+# build=1.0.88b6e02b7 # commit=88b6e02b7abf01baddea208bce4171475e8ee3b5 # dirty=false
+GENERATED_AT_HEAD=88b6e02b7abf01baddea208bce4171475e8ee3b5
+TESTS_CMD=cd frontend-pc && node --test tests/instrumentStockFilters.test.mjs
+TESTS_EXIT=0
+TESTS_PASS=19
+TESTS_FAIL=0
+PARAMS_SN=CVZ-104
+PARAMS_CATEGORY=c1
+PARAMS_STATUS=available
+PARAMS_EXCLUDE=
+PARAMS_EXCLUDE_NONMGR=lost,archived,sold
+FILTER_PATCH_PAGE=1
+FILTER_PATCH_SELECTED=0
+URL_STATUS=status=available
+LABEL_AVAILABLE=待租
+OPTIONS_NONMGR=5
+ASSERT_EXIT=0

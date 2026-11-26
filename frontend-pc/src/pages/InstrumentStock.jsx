@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { formatCents, yuanToCents } from '../utils/money'
-import { Table, Tag, Button, Space, Spin, Modal, Form, Input, InputNumber, Select, Radio, Upload, Descriptions, Image, message, Popconfirm, Alert } from 'antd'
+import { Table, Tag, Button, Space, Modal, Form, Input, InputNumber, Select, Radio, Upload, Descriptions, Image, message, Popconfirm, Alert } from 'antd'
 import { EditOutlined, WarningOutlined, RollbackOutlined, FileTextOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { inventoryApi, lossApi, api, pricingApi } from '../services/api'
+import { inventoryApi, lossApi, api, pricingApi, instrumentsApi } from '../services/api'
 import PermissionGate from '../components/PermissionGate'
 import { usePermission } from '../hooks/usePermission'
 import {
@@ -20,21 +20,16 @@ import {
   formatOverdueDailyFee,
   instrumentImageSrc,
 } from '../utils/instrumentDisplay'
-
-const statusColors = {
-  "在租": "green",
-  "待租": "blue",
-  "维修中": "orange",
-  "已熔断": "red",
-  "rented": "green",
-  "available": "blue",
-  "maintenance": "orange",
-  "lost": "red",
-}
+import {
+  applyFilterPatch,
+  buildStockFilterQuery,
+  buildStockListParams,
+  readStockFilters,
+  stockStatusOptions,
+} from '../utils/instrumentStockFilters'
 
 export default function InstrumentStock() {
-  const [searchParams] = useSearchParams()
-  const statusParam = searchParams.get('status')
+  const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const [assets, setAssets] = useState([])
   const [loading, setLoading] = useState(true)
@@ -45,6 +40,13 @@ export default function InstrumentStock() {
   const [priceModalVisible, setPriceModalVisible] = useState(false) // #2043 批量设价
   const [priceForm] = Form.useForm()
 
+  // #2577: URL 即筛选唯一来源（D1）；page/pageSize 仍为本地 state（D6）。
+  const filters = readStockFilters(searchParams)
+  const filterKey = searchParams.toString()
+  // 识别码为 `Input.Search`（回车/点搜索/清空触发，D3）——输入过程不取数。
+  const [snInput, setSnInput] = useState(filters.sn)
+  const [filterOptions, setFilterOptions] = useState({ categories: [], statuses: [] })
+
   // #2043: 管理员级可见性代理（删除权限=管理级）
   const { hasCusPerm } = usePermission()
   const isManagerLike = hasCusPerm('instrument:delete')
@@ -52,11 +54,10 @@ export default function InstrumentStock() {
   const loadData = async () => {
     setLoading(true)
     try {
-      // #2140：真分页——服务端 page/pageSize + 状态筛选服务端化；
-      // 非管理级状态范围（隐藏 下架/已售出/丢失）转服务端 exclude_status
-      const params = { page, pageSize }
-      if (statusParam) params.stock_status = statusParam
-      if (!isManagerLike) params.exclude_status = 'lost,archived,sold'
+      // #2140/#2577：真分页 + 服务端筛选；参数与可见性口径统一由
+      // utils/instrumentStockFilters 生成（sn / category_id / stock_status /
+      // exclude_status），页面不再各自拼装。
+      const params = buildStockListParams({ filters, page, pageSize, isManagerLike })
       const response = await inventoryApi.list(params)
       setAssets(response?.data?.list || [])
       setTotal(response?.data?.total || 0)
@@ -67,9 +68,41 @@ export default function InstrumentStock() {
     }
   }
 
+  // #2577: 只有 URL 变化才触发取数（控件回调只写 URL，不重复请求）。
   useEffect(() => {
     loadData()
-  }, [page, pageSize, statusParam, isManagerLike])
+  }, [filterKey, page, pageSize, isManagerLike])
+
+  // URL 外部变化（深链 / 清空 / 浏览器前进后退）回填识别码输入框。
+  useEffect(() => {
+    setSnInput(filters.sn)
+  }, [filters.sn])
+
+  // #2577: 分类/状态选项与乐器列表同源（filter-options）。
+  useEffect(() => {
+    instrumentsApi.getFilterOptions().then((res) => {
+      if (res?.code === 20000) setFilterOptions(res.data || {})
+    }).catch((error) => {
+      // 下拉不可用时列表仍可用（不阻塞主流程，见 Input Truth 损坏输入约定）。
+      console.error('Failed to load filter options:', error)
+    })
+  }, [])
+
+  // 筛选变化的唯一入口：合并 patch → 回第 1 页 → 清空行选择 → 写回 URL。
+  const patchFilters = (patch) => {
+    const next = applyFilterPatch({ filters, page, selectedRowKeys }, patch)
+    setPage(next.page)
+    setSelectedRowKeys(next.selectedRowKeys)
+    setSearchParams(buildStockFilterQuery(next.filters), { replace: true })
+  }
+
+  const clearFilters = () => patchFilters({ sn: '', categoryId: '', status: '' })
+
+  const statusOptions = stockStatusOptions({
+    statuses: filterOptions.statuses,
+    isManagerLike,
+    current: filters.status,
+  })
   
   const columns = [
     {
@@ -225,11 +258,12 @@ export default function InstrumentStock() {
   }
 
   // #2043/#2101: 导出 CSV（档案管理页已并入本页；按当前状态过滤直接导出）
+  // #2577: 状态取自统一筛选来源（URL），参数名仍为 `status`（D8：导出口径对齐见 #2578）。
   const handleExport = async () => {
     try {
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
       const params = new URLSearchParams()
-      if (statusParam) params.set('status', statusParam)
+      if (filters.status) params.set('status', filters.status)
       const resp = await fetch(`${API_BASE_URL}/instruments/export?${params.toString()}`)
       if (!resp.ok) throw new Error('导出失败')
       const blob = await resp.blob()
@@ -376,14 +410,8 @@ export default function InstrumentStock() {
     { title: '操作', key: 'op', render: (_, r) => <Button type="link" size="small" onClick={() => setLossDetail(r)}>详情</Button> },
   ]
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
-        <Spin size="large" />
-      </div>
-    )
-  }
-
+  // #2577 D7: 首屏 loading 改为 `Table loading`——整页 early return 会在每次筛选时
+  // 卸载工具栏，导致输入框失焦、控件闪烁。
   return (
     <div className="p-6">
       {/* #2043: 批量设价模态 */}
@@ -457,19 +485,44 @@ export default function InstrumentStock() {
           按状态查看乐器（待租 / 在租 / 维修中 / 已丢失）；乐器档案的新增与编辑请用「乐器列表」。
         </div>
       )}
-      {statusParam && (
-        <div className="mb-4 p-3 bg-blue-50 rounded">
-          <Space>
-            <span>当前筛选: 状态 = {statusParam}</span>
-            <Button type="link" size="small" onClick={() => navigate('/site/stock', { replace: true })}>清除筛选</Button>
-          </Space>
-        </div>
+      {view === 'stock' && (
+        <Space style={{ marginBottom: 12, flexWrap: 'wrap' }} wrap>
+          <Input.Search
+            placeholder="搜索识别码..."
+            value={snInput}
+            allowClear
+            style={{ width: 250 }}
+            onChange={(e) => setSnInput(e.target.value)}
+            onSearch={(value) => patchFilters({ sn: (value || '').trim() })}
+          />
+          <Select
+            placeholder="选择分类"
+            style={{ width: 180 }}
+            allowClear
+            value={filters.categoryId || undefined}
+            onChange={(value) => patchFilters({ categoryId: value || '' })}
+            options={(filterOptions.categories || []).map((cat) => ({
+              value: cat.category_id,
+              label: cat.category_name,
+            }))}
+          />
+          <Select
+            placeholder="选择状态"
+            style={{ width: 140 }}
+            allowClear
+            value={filters.status || undefined}
+            onChange={(value) => patchFilters({ status: value || '' })}
+            options={statusOptions}
+          />
+          <Button onClick={clearFilters}>清空筛选</Button>
+        </Space>
       )}
       {view === 'stock' ? (
         <Table
           columns={columns}
           dataSource={assets || []}
           rowKey="id"
+          loading={loading}
           rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
           pagination={{
             current: page, pageSize, total, showSizeChanger: true,
