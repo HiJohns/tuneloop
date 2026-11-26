@@ -708,6 +708,46 @@ func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
 		}
 	}
 
+	// #2540（审计 Bug 1 修复）：功能角色模板必须与客户权限位同源取自同一个 roleTemplate。
+	// 只写关系角色 + 客户权限位而不分配功能角色模板，IAM 侧 RoleTemplate.SysPermBits 不会落库，
+	// JWT fn_roles 为空 → 依赖职能角色的入口（维修师工作台、员工入口）出现缺口；
+	// CreateUser / MerchantAddMember 都会分配模板，激活路径必须与二者一致。
+	templateCode := ""
+	templates, listErr := iamClient.ListRoleTemplates(middleware.GetNamespaceID(ctx))
+	if listErr == nil {
+		for _, t := range templates {
+			if t.Code == roleTemplate {
+				templateCode = t.Code
+				break
+			}
+		}
+	}
+	var assignErr error
+	if listErr == nil && templateCode != "" {
+		assignErr = iamClient.AssignRoleTemplateToUserWithToken(
+			services.ExtractUserToken(c), iamResp.UserID, orgID, templateCode)
+	}
+	if listErr != nil || templateCode == "" || assignErr != nil {
+		reason := ""
+		switch {
+		case listErr != nil:
+			reason = "list role templates failed: " + listErr.Error()
+		case templateCode == "":
+			reason = "role template " + roleTemplate + " not found in namespace"
+		default:
+			reason = assignErr.Error()
+		}
+		log.Printf("[ActivateUser] assign role template %s failed for %s: %s", roleTemplate, iamResp.UserID, reason)
+		if unbindErr := iamClient.UnbindUserFromOrganization(iamResp.UserID, orgID, ""); unbindErr != nil {
+			log.Printf("[ActivateUser] rollback unbind failed for %s: %v", iamResp.UserID, unbindErr)
+		}
+		if purgeErr := iamClient.PurgeUser(iamResp.UserID); purgeErr != nil {
+			log.Printf("[ActivateUser] rollback purge failed for %s: %v", iamResp.UserID, purgeErr)
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "IAM assign role template failed: " + reason})
+		return
+	}
+
 	status := iamResp.Status
 	if status == "" {
 		status = "active"

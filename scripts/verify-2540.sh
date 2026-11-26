@@ -50,6 +50,8 @@ if [ -n "$(git status --porcelain --untracked-files=no -- . ':!docs/evidence' ':
   DIRTY=true
 fi
 echo "# build=${BUILD} # commit=${ANCHOR_SHA} # dirty=${DIRTY}"
+# 计划 ### Artifact Provenance：首行之后再锚定一次生成本产物时的 HEAD（可不同于 fix commit）。
+echo "GENERATED_AT_HEAD=$(git rev-parse HEAD)"
 
 fail() {
   echo "FAIL(${ROW}): $*" >&2
@@ -65,7 +67,7 @@ run_row() { # package test-name expected-token...
   # 必须在本层检查 rc：函数内 fail 的 stderr 会随重定向落入临时文件而丢失。
   ( cd backend && heavy go test "$pkg" -run "${name}" -count=1 -v ) > "$out" 2>&1
   local rc=$?
-  grep -E '^(MEMBER_|ADMIN_|LEGACY_|CUSTOMER_|UNKNOWN_|ILLEGAL_|PERM_|CUS_|BIND_|BUSINESS_|NON_)' "$out" || true
+  grep -E '^(MEMBER_|ADMIN_|LEGACY_|CUSTOMER_|UNKNOWN_|ILLEGAL_|PERM_|CUS_|BIND_|BUSINESS_|NON_|ROLE_TEMPLATE_)' "$out" || true
   grep -E '^--- (PASS|FAIL)' "$out" || true
   if [ "$rc" -ne 0 ]; then
     echo "--- go test output (tail) ---"
@@ -87,17 +89,22 @@ run_row() { # package test-name expected-token...
 
 case "$ROW" in
   r1)
-    echo "== R1 激活：关系角色 + 权限模板同源 =="
+    echo "== R1 激活：关系角色 + 权限模板 + 功能角色模板同源 =="
     run_row ./handlers TestActivateUser2540_RoleMapping \
       "MEMBER_BIND_ROLE=STAFF" \
+      "MEMBER_ROLE_TEMPLATE=site_member" \
       "ADMIN_BIND_ROLE=ADMIN" \
+      "ADMIN_ROLE_TEMPLATE=site_admin" \
       "LEGACY_BIND_ROLE=STAFF" \
+      "LEGACY_ROLE_TEMPLATE=site_member" \
       "CUSTOMER_BIND_ROLE=STAFF" \
       "UNKNOWN_BIND_ROLE=STAFF" \
       "ILLEGAL_ROLE_COUNT=0" \
+      "ILLEGAL_TEMPLATE_COUNT=0" \
       "ADMIN_PERM_TEMPLATE=site_admin" \
       "PERM_TEMPLATE=site_member" \
-      "CUS_PERM_MATCH=1"
+      "CUS_PERM_MATCH=1" \
+      "ROLE_TEMPLATE_MISMATCH=0"
     echo "R1_OK"
     ;;
 
@@ -162,14 +169,17 @@ case "$ROW" in
     DOC_STAFF_FALLBACK=$(grep -c 'NormalizeIAMRelationRole' "$DOC" || true)
     DOC_ACTIVATE_SECTION=$(grep -c '^#### 10.18.6 激活员工' "$DOC" || true)
     DOC_MERCHANT_OWNER=$(grep -c '商户管理员.*OWNER' "$DOC" || true)
+    DOC_ROLE_TEMPLATE=$(grep -c '功能角色模板 | 同样来自' "$DOC" || true)
     echo "DOC_TOIAMROLE=${DOC_TOIAMROLE}"
     echo "DOC_STAFF_FALLBACK=${DOC_STAFF_FALLBACK}"
     echo "DOC_ACTIVATE_SECTION=${DOC_ACTIVATE_SECTION}"
     echo "DOC_MERCHANT_OWNER=${DOC_MERCHANT_OWNER}"
+    echo "DOC_ROLE_TEMPLATE=${DOC_ROLE_TEMPLATE}"
     [ "${DOC_TOIAMROLE:-0}" -ge 1 ] || fail "docs 未写 ToIAMRole"
     [ "${DOC_STAFF_FALLBACK:-0}" -ge 1 ] || fail "docs 未写 NormalizeIAMRelationRole 兜底"
     [ "${DOC_ACTIVATE_SECTION:-0}" -ge 1 ] || fail "docs 缺 activate 口径小节"
     [ "${DOC_MERCHANT_OWNER:-0}" -ge 1 ] || fail "docs 缺商户管理员绑定 OWNER 口径"
+    [ "${DOC_ROLE_TEMPLATE:-0}" -ge 1 ] || fail "docs 缺「功能角色模板同样来自 roleTemplate」口径"
     echo "R4_OK"
     ;;
 

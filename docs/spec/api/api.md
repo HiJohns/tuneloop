@@ -6494,6 +6494,7 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 | 业务角色模板 | 取自 `users.role`，须命中 `services.AllRoleTemplates` 白名单；`users.role` 为空、`customer`、或未知码 → legacy 兜底 `site_member` |
 | IAM 关系角色 | `iamRole = NormalizeIAMRelationRole(ToIAMRole(roleTemplate))`，即 `site_member`→`STAFF`、`site_admin`→`ADMIN`、`merchant_admin`→`OWNER`、`repair_technician`→`repair_technician`；无法识别 → `STAFF` |
 | 客户权限位 | 与关系角色**同一个** `roleTemplate` 的 `CusPermCodes` 计算（`ComputeCusPermBitmapExt`）——不得硬编码 `site_member` |
+| 功能角色模板 | 同样来自**同一个** `roleTemplate`：`AssignRoleTemplateToUserWithToken`（`role_ids=[roleTemplate]`，`org_id` = 绑定组织，namespace 取 JWT）。只写关系角色/权限位而不分配模板会使 `RoleTemplate.SysPermBits` 不落库、JWT `fn_roles` 为空 |
 
 **为何强制同源（#2540 / #2467）**: 早期实现固定 `GetBusinessRole("site_member")` → IAM 关系角色被写成业务码 `user`（beaconiam 不识别 → 权限 None），且客户权限位硬编码 `site_member`；激活一个 `site_admin` 会得到「关系角色 user + 权限位按 site_member」的**实质降权**。
 

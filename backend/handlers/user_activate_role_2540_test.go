@@ -36,6 +36,12 @@ type iamCall2540 struct {
 	Body   string
 }
 
+// assignCall2540 是一次功能角色模板分配 payload（`role_ids[0]` + `org_id`）。
+type assignCall2540 struct {
+	TemplateCode string
+	OrgID        string
+}
+
 type fakeIAM2540 struct {
 	mu    sync.Mutex
 	calls []iamCall2540
@@ -88,6 +94,27 @@ func (f *fakeIAM2540) customerPerms() []int64 {
 	return out
 }
 
+// assignCalls 返回所有功能角色模板分配 payload（`POST /users/:id/roles`）。
+// #2540 审计 Bug 1：激活路径必须用同一个 roleTemplate 分配模板，不只是写权限位。
+func (f *fakeIAM2540) assignCalls() []assignCall2540 {
+	out := []assignCall2540{}
+	for _, c := range f.snapshot() {
+		if strings.HasSuffix(c.Path, "/roles") {
+			var req struct {
+				RoleIDs []string `json:"role_ids"`
+				OrgID   string   `json:"org_id"`
+			}
+			_ = json.Unmarshal([]byte(c.Body), &req)
+			code := ""
+			if len(req.RoleIDs) > 0 {
+				code = req.RoleIDs[0]
+			}
+			out = append(out, assignCall2540{TemplateCode: code, OrgID: req.OrgID})
+		}
+	}
+	return out
+}
+
 func installFakeIAM2540(t *testing.T) *fakeIAM2540 {
 	t.Helper()
 	f := &fakeIAM2540{}
@@ -102,6 +129,12 @@ func installFakeIAM2540(t *testing.T) *fakeIAM2540 {
 		switch {
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/users"):
 			_, _ = w.Write([]byte(`{"code":20000,"data":{"user_id":"` + uuid.NewString() + `","status":"active"}}`))
+		case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/role-templates"):
+			items := make([]string, 0, len(services.AllRoleTemplates))
+			for _, code := range sortedTemplateCodes() {
+				items = append(items, `{"id":"rt-`+code+`","code":"`+code+`"}`)
+			}
+			_, _ = w.Write([]byte(`{"role_templates":[` + strings.Join(items, ",") + `]}`))
 		case strings.HasSuffix(r.URL.Path, "/customer-permissions"):
 			_ = body
 			_, _ = w.Write([]byte(`{"code":20000,"data":{}}`))
@@ -217,18 +250,20 @@ func TestActivateUser2540_RoleMapping(t *testing.T) {
 		wantBindRole  string
 		wantTemplate  string
 		expectedToken string
+		templateToken string
 	}{
-		{"site_member", "site_member", services.IAMRoleStaff, "site_member", "MEMBER_BIND_ROLE=STAFF"},
-		{"site_admin", "site_admin", services.IAMRoleAdmin, "site_admin", "ADMIN_BIND_ROLE=ADMIN"},
-		{"legacy_empty", "", services.IAMRoleStaff, "site_member", "LEGACY_BIND_ROLE=STAFF"},
+		{"site_member", "site_member", services.IAMRoleStaff, "site_member", "MEMBER_BIND_ROLE=STAFF", "MEMBER_ROLE_TEMPLATE"},
+		{"site_admin", "site_admin", services.IAMRoleAdmin, "site_admin", "ADMIN_BIND_ROLE=ADMIN", "ADMIN_ROLE_TEMPLATE"},
+		{"legacy_empty", "", services.IAMRoleStaff, "site_member", "LEGACY_BIND_ROLE=STAFF", "LEGACY_ROLE_TEMPLATE"},
 		// customer 不是员工模板（激活只针对员工行）→ legacy 兜底 site_member。
-		{"customer", "customer", services.IAMRoleStaff, "site_member", "CUSTOMER_BIND_ROLE=STAFF"},
-		{"unknown", "tenant_admin", services.IAMRoleStaff, "site_member", "UNKNOWN_BIND_ROLE=STAFF"},
+		{"customer", "customer", services.IAMRoleStaff, "site_member", "CUSTOMER_BIND_ROLE=STAFF", "CUSTOMER_ROLE_TEMPLATE"},
+		{"unknown", "tenant_admin", services.IAMRoleStaff, "site_member", "UNKNOWN_BIND_ROLE=STAFF", "UNKNOWN_ROLE_TEMPLATE"},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			before := len(f.bindRoles())
+			beforeAssign := len(f.assignCalls())
 			userID := seedActivationUser(t, tenantID, tc.role)
 			permsBefore := len(f.customerPerms())
 
@@ -245,7 +280,17 @@ func TestActivateUser2540_RoleMapping(t *testing.T) {
 			assert.Equal(t, want, perms[len(perms)-1],
 				"%s: 客户权限位必须来自模板 %s（不得硬编码 site_member）", tc.name, tc.wantTemplate)
 
+			// 审计 Bug 1：功能角色模板必须与权限位同源（同一 roleTemplate）。
+			assigns := f.assignCalls()
+			require.Len(t, assigns, beforeAssign+1,
+				"%s: 激活必须分配一次功能角色模板（只写权限位不够）", tc.name)
+			assert.Equal(t, tc.wantTemplate, assigns[len(assigns)-1].TemplateCode,
+				"%s: 功能角色模板码必须等于权限位所用模板", tc.name)
+			assert.Equal(t, tenantID, assigns[len(assigns)-1].OrgID,
+				"%s: 模板分配必须落在绑定组织", tc.name)
+
 			fmt.Printf("%s\n", tc.expectedToken)
+			fmt.Printf("%s=%s\n", tc.templateToken, assigns[len(assigns)-1].TemplateCode)
 		})
 	}
 
@@ -261,6 +306,16 @@ func TestActivateUser2540_RoleMapping(t *testing.T) {
 	fmt.Printf("ILLEGAL_ROLE_COUNT=%d\n", illegal)
 	assert.Zero(t, illegal, "bind payload 只能出现 OWNER/ADMIN/STAFF/repair_technician")
 
+	// 模板分配的模板码同样不得出现业务角色以外的 IAM 角色字面量。
+	illegalTemplate := 0
+	for _, a := range f.assignCalls() {
+		if _, ok := services.AllRoleTemplates[a.TemplateCode]; !ok {
+			illegalTemplate++
+		}
+	}
+	fmt.Printf("ILLEGAL_TEMPLATE_COUNT=%d\n", illegalTemplate)
+	assert.Zero(t, illegalTemplate, "模板分配只能出现 AllRoleTemplates 中的业务模板码")
+
 	// 权限模板与角色模板同源：site_admin 必须拿到 site_admin 的位图（不是 site_member）。
 	perms := f.customerPerms()
 	require.GreaterOrEqual(t, len(perms), 2)
@@ -271,6 +326,19 @@ func TestActivateUser2540_RoleMapping(t *testing.T) {
 	fmt.Printf("ADMIN_PERM_TEMPLATE=site_admin\n")
 	fmt.Printf("PERM_TEMPLATE=site_member\n")
 	fmt.Printf("CUS_PERM_MATCH=1\n")
+
+	// 模板分配与权限位逐条同源（顺序：site_member、site_admin、legacy、customer、unknown）。
+	assigns := f.assignCalls()
+	require.Len(t, assigns, 5)
+	wantTemplates := []string{"site_member", "site_admin", "site_member", "site_member", "site_member"}
+	mismatch := 0
+	for i, wantCode := range wantTemplates {
+		if assigns[i].TemplateCode != wantCode {
+			mismatch++
+		}
+	}
+	fmt.Printf("ROLE_TEMPLATE_MISMATCH=%d\n", mismatch)
+	assert.Zero(t, mismatch, "功能角色模板必须逐条等于权限位所用模板")
 }
 
 // 纯函数：激活角色模板解析（空/非法/顾客 → legacy site_member）。

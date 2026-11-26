@@ -77,6 +77,14 @@ func newIAMRollbackMock2309(t *testing.T, newUserID string) *iamRollbackMock2309
 		writeJSON(w, map[string]interface{}{"data": map[string]interface{}{}})
 	})
 	mux.HandleFunc("/api/v1/namespaces/", func(w http.ResponseWriter, r *http.Request) {
+		// #2540：激活路径会先 ListRoleTemplates 再分配功能角色模板；mock 提供 site_member 模板，
+		// 否则「本地更新失败回滚」用例会提前止步于模板查询而不再触发第三处回滚。
+		if strings.HasSuffix(r.URL.Path, "/role-templates") {
+			writeJSON(w, map[string]interface{}{
+				"role_templates": []map[string]string{{"id": "rt-site_member", "code": "site_member"}},
+			})
+			return
+		}
 		writeJSON(w, map[string]interface{}{"data": []interface{}{}})
 	})
 	m.srv = httptest.NewServer(mux)
