@@ -1,0 +1,11 @@
+# build=1.0.0275ebc84 # commit=0275ebc843ea3087dcf9a9f316adb33619baadf2 # dirty=false
+== R1 SubmitAssessment fallback writes sites.id (red-green) ==
+STATUS=200
+OPERATOR_SITE=none
+RESOLVED_IS_SITE=1
+CURRENT_IS_SITE=1
+CURRENT_NOT_ORG=1
+OLD_VALUE_IS_ORG=1
+RED_CONFIRMED=1
+--- PASS: TestSubmitAssessment2532_FallbackWritesSiteNotOrg (0.87s)
+R1_OK

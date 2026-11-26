@@ -1,0 +1,12 @@
+backend/handlers/assessment.go
+backend/handlers/assessment_2532_test.go
+scripts/verify-2532.sh
+docs/evidence/2532/plan.md
+docs/evidence/2532/summary.md
+docs/evidence/2532/changed-files.txt
+docs/evidence/2532/evidence.json
+docs/evidence/2532/R1-assessment-fallback.txt
+docs/evidence/2532/R2-unresolvable-keeps.txt
+docs/evidence/2532/R3-primary-unchanged.txt
+docs/evidence/2532/R4-scan-build.txt
+docs/evidence/2532/pre-ready-2532.json

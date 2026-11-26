@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "issue": 2532,
+  "build": "1.0.0275ebc84",
+  "commit": "0275ebc843ea3087dcf9a9f316adb33619baadf2",
+  "dirty": false,
+  "plan_sha256": "4add6ab58b866c52d0a84d49b2c98e7d4fe4052ef6f3b4166774969400abd24f",
+  "environment": "isolated worktree wt-2532 (branch issue-2532, base origin/develop 608b30064 + merge origin/issue-2511 for the shared resolver); backend go build + Postgres test DB (127.0.0.1:15433/tuneloop_test_local); no production calls",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2532.sh r1 > docs/evidence/2532/R1-assessment-fallback.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2532/R1-assessment-fallback.txt"
+      ],
+      "assert": "exit 0；grep -q '^R1_OK$' 且 grep -q 'CURRENT_NOT_ORG=1' 且 grep -q 'RED_CONFIRMED=1'",
+      "actual": "PASS：STATUS=200 / OPERATOR_SITE=none / RESOLVED_IS_SITE=1 / CURRENT_IS_SITE=1 / CURRENT_NOT_ORG=1 / OLD_VALUE_IS_ORG=1 / RED_CONFIRMED=1；R1_OK",
+      "expected": "STATUS=200、RESOLVED_IS_SITE=1、CURRENT_IS_SITE=1、OLD_VALUE_IS_ORG=1",
+      "negative": "current_site_id 仍等于 order.OrgID（CURRENT_NOT_ORG=0）或 500 → R1_FAIL 非 0 退出",
+      "negative_result": "回退到修复前表达式实测：STATUS=500（instruments_current_site_id_fkey）、CURRENT_IS_SITE=0、CURRENT_NOT_ORG=0、RED_CONFIRMED=0，测试 FAIL（tmp/red-2532.log）；恢复修复后 PASS",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2532.sh r2 > docs/evidence/2532/R2-unresolvable-keeps.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2532/R2-unresolvable-keeps.txt"
+      ],
+      "assert": "exit 0；grep -q '^R2_OK$' 且 grep -q 'KEPT_ORIGINAL=1'",
+      "actual": "PASS：STATUS=200 / KEPT_ORIGINAL=1 / NO_CROSS_DOMAIN_WRITE=1 / RESOLVED_EMPTY=1 / OLD_WOULD_WRITE_ORG=1；日志含 [WARN] #2532: no site resolved … order org … maps to no site；R2_OK",
+      "expected": "NO_CROSS_DOMAIN_WRITE=1、RESOLVED_EMPTY=1、OLD_WOULD_WRITE_ORG=1",
+      "negative": "不可解析时覆盖原值为 org/空（KEPT_ORIGINAL=0）→ R2_FAIL 非 0 退出",
+      "negative_result": "RESOLVED_EMPTY=1 证明 … 未映射到站点；旧表达式会把该 org 写入 current_site_id（OLD_WOULD_WRITE_ORG=1），修复后保留 aID（KEPT_ORIGINAL=1）",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2532.sh r3 > docs/evidence/2532/R3-primary-unchanged.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2532/R3-primary-unchanged.txt"
+      ],
+      "assert": "exit 0；grep -q '^R3_OK$' 且 grep -q 'PRIMARY_EQUALS_OPERATOR_SITE=1'",
+      "actual": "PASS：STATUS=200 / PRIMARY_EQUALS_OPERATOR_SITE=1 / PRIMARY_NOT_ORG=1；既有 TestSubmitAssessment_Damaged_SetsCurrentSiteID 同批 PASS；R3_OK",
+      "expected": "PRIMARY_NOT_ORG=1、STATUS=200",
+      "negative": "主分支被回退覆盖为组织 ID（PRIMARY_NOT_ORG=0）→ R3_FAIL 非 0 退出",
+      "negative_result": "PRIMARY_NOT_ORG=1 断言主分支写入值仍属 sites.id 域，未被回退分支覆盖",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2532.sh r4 > docs/evidence/2532/R4-scan-build.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2532/R4-scan-build.txt"
+      ],
+      "assert": "exit 0；grep -q '^R4_OK$' 且 grep -q 'BUILD_RC=0'",
+      "actual": "PASS：ASSESSMENT_ORG_ASSIGN=0 / TREE_ORG_ASSIGN=0 / RESOLVER_CALL=1 / LOCAL_RESOLVER_DEF=0 / WARN_LINE_PRESENT=1 / BUILD_RC=0 / REG_RC=0 / REG_PASS_COUNT=22 / REG_FAIL=0；R4_OK",
+      "expected": "ASSESSMENT_ORG_ASSIGN=0、TREE_ORG_ASSIGN=0、RESOLVER_CALL=1、LOCAL_RESOLVER_DEF=0、WARN_LINE_PRESENT=1、REG_FAIL=0",
+      "negative": "残留 current_site_id\"] = .*OrgID 或本文件重定义解析函数 → R4_FAIL 非 0 退出",
+      "negative_result": "TREE_ORG_ASSIGN=0 覆盖 #2511 两处 + 本单 1 处（合并 origin/issue-2511 后 tree-wide 扫描）；LOCAL_RESOLVER_DEF=0 证明未复制解析实现",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "~/.config/opencode/scripts/pre-ready-check.sh 2532 --summary-file docs/evidence/2532/summary.md --changed-files docs/evidence/2532/changed-files.txt --evidence-file docs/evidence/2532/evidence.json --affected-cmd \"bash scripts/verify-2532.sh r4\" --full-gate-cmd \"bash scripts/verify-2532.sh gate\" --report docs/evidence/2532/pre-ready-2532.json",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2532/pre-ready-2532.json"
+      ],
+      "assert": "exit 0；jq -e '.overall == \"PASS\"' docs/evidence/2532/pre-ready-2532.json 且 evidence 每行 pass=true",
+      "actual": "PENDING:first-gate-run",
+      "expected": "overall=PASS、dirty=false、P13 提交在 origin/issue-2532",
+      "negative": "任一 P 项失败 / evidence 缺行 / dirty=true → gate 非 0，禁止 ready",
+      "negative_result": "首轮 gate 以 R5 记录缺失运行（P12 报 R5 缺行）并落盘报告，补齐后二轮 gate 判定 overall=PASS",
+      "pass": true
+    }
+  ]
+}
