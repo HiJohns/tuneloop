@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# scripts/verify-2470.sh — #2470「IAM 孤儿面板看不到无组织关系孤儿」证据生成器（R1–R7）。
+# scripts/verify-2470.sh — #2470「IAM 孤儿面板看不到无组织关系孤儿」证据生成器（R1–R9）。
 #
-# 用法：bash scripts/verify-2470.sh <r1|r2|r3|r4|r5|r6|r7>
+# 用法：bash scripts/verify-2470.sh <r1|r2|r3|r4|r5|r6|r7|r8|r9>
 #
 # 每行把结果写入 docs/evidence/2470/R*-*.txt（首行 provenance），并打印机器可判定的
 # 断言键值；任一行断言不成立以非 0 退出。
@@ -14,6 +14,10 @@
 #   R5 判定语义不变（本地行 / org_id / 年龄 三条负例全部排除）
 #   R7 清理同源（无关系孤儿 purged=1，不出现 not an orphan；含回退路径实时复算）
 #   R6 构建与定向回归（go build + go test + PC 构建）
+#   R8 全量后端回归（HEAD 与 origin/develop 基线各跑一次 go test -json ./...，按
+#      (package::test) 归一化失败身份，断言「HEAD 失败集 ⊆ 基线」+ PANIC_COUNT=0；
+#      口径见 Accepted Plan Rev.3（基线差异，逐单 gate；pre-51250 P5 同源））
+#   R9 接口/镜像语义文档（api.md 端点小节 + iam-notes 上游契约）
 set -uo pipefail
 
 ROW="${1:-}"
@@ -64,7 +68,15 @@ run_go_test() { # pkg run-regex logfile
     ( cd "$REPO/backend" && go test "$1" -run "$2" -v -count=1 -timeout 10m ) > "$3" 2>&1
 }
 
-usage() { echo "usage: $0 <r1|r2|r3|r4|r5|r6|r7>" >&2; exit 2; }
+heavy() { # host-lock wrapper（#69/#123：重命令只在命令期间持锁）
+    if [ -x "$HEAVY_RUN" ]; then
+        "$HEAVY_RUN" --timeout 2400 -- "$@"
+    else
+        "$@"
+    fi
+}
+
+usage() { echo "usage: $0 <r1|r2|r3|r4|r5|r6|r7|r8|r9>" >&2; exit 2; }
 
 case "$ROW" in
 r1)
@@ -164,6 +176,98 @@ r6)
     [ "$NPM_EXIT" = "0" ] && emit "NPM_BUILD_OK" || RC=1
     tail -2 "$NPM_LOG" | sed 's/^/NPM_TAIL: /' | while IFS= read -r l; do emit "$l"; done
     finish R6-build.txt || RC=1
+    ;;
+r8)
+    # R8（Rev.3 基线差异口径）：HEAD 全量失败集必须 ⊆ origin/develop 基线失败集。
+    # 基线里 3 个 user_staff_rollback_2309 失败属 #2565 的环境耦合缺陷（与本单无关，已登记）。
+    echo "== R8 full backend suite vs origin/develop baseline =="
+    BASELINE_REF="${BASELINE_REF:-origin/develop}"
+    BASELINE_DIR="$REPO/tmp/baseline-2470"
+    cleanup_baseline() {
+        if git -C "$REPO" worktree list --porcelain | grep -qx "worktree ${BASELINE_DIR}"; then
+            git -C "$REPO" worktree remove --force "$BASELINE_DIR" >/dev/null 2>&1 || true
+        fi
+        rm -rf "$BASELINE_DIR"
+    }
+    trap cleanup_baseline EXIT
+    cleanup_baseline
+    git -C "$REPO" worktree add --detach "$BASELINE_DIR" "$BASELINE_REF" >/dev/null 2>&1 || {
+        emit "BASELINE_WORKTREE=0"; RC=1; finish R8-gate.txt; exit 1;
+    }
+    BASELINE_SHA="$(git -C "$REPO" rev-parse "${BASELINE_REF}^{commit}")"
+
+    extract_failures() { # json-log -> sorted pkg::test identities
+        grep '^{' "$1" | jq -r 'select(.Action == "fail") | "\(.Package)::\(.Test // "PKG")"' | LC_ALL=C sort -u
+    }
+
+    CURRENT_LOG="$REPO/tmp/verify-$ISSUE-r8-current.log"
+    BASELINE_LOG="$REPO/tmp/verify-$ISSUE-r8-baseline.log"
+    ( cd "$REPO/backend" && heavy go test -json ./... -count=1 -timeout 20m -p 1 ) > "$CURRENT_LOG" 2>&1
+    FULL_GATE_EXIT=$?
+    ( cd "$BASELINE_DIR/backend" && heavy go test -json ./... -count=1 -timeout 20m -p 1 ) > "$BASELINE_LOG" 2>&1
+    BASELINE_GATE_EXIT=$?
+
+    CURRENT_FAILURES="$(mktemp)"
+    BASELINE_FAILURES="$(mktemp)"
+    NEW_FAILURES="$(mktemp)"
+    extract_failures "$CURRENT_LOG" > "$CURRENT_FAILURES"
+    extract_failures "$BASELINE_LOG" > "$BASELINE_FAILURES"
+    LC_ALL=C comm -13 "$BASELINE_FAILURES" "$CURRENT_FAILURES" > "$NEW_FAILURES"
+
+    CURRENT_COUNT="$(wc -l < "$CURRENT_FAILURES" | tr -d ' ')"
+    BASELINE_COUNT="$(wc -l < "$BASELINE_FAILURES" | tr -d ' ')"
+    NEW_COUNT="$(wc -l < "$NEW_FAILURES" | tr -d ' ')"
+    PANIC_COUNT="$(cat "$CURRENT_LOG" "$BASELINE_LOG" | grep -c '^panic:\| panic: ' || true)"
+    [ -n "$PANIC_COUNT" ] || PANIC_COUNT=0
+
+    emit "BASELINE_REF=${BASELINE_REF}"
+    emit "BASELINE_SHA=${BASELINE_SHA}"
+    emit "BASELINE_GATE_EXIT=${BASELINE_GATE_EXIT}"
+    emit "FULL_GATE_CMD=cd backend && go test -json ./... -count=1 -timeout 20m -p 1"
+    emit "FULL_GATE_EXIT=${FULL_GATE_EXIT}"
+    emit "FULL_GATE_CURRENT_FAILURES=${CURRENT_COUNT}"
+    emit "FULL_GATE_BASELINE_FAILURES=${BASELINE_COUNT}"
+    emit "FULL_GATE_NEW_FAILURES=${NEW_COUNT}"
+    emit "BASELINE_FAIL_COUNT=${BASELINE_COUNT}"
+    emit "PANIC_COUNT=${PANIC_COUNT}"
+    sed 's/^/BASELINE_FAIL: /' "$BASELINE_FAILURES" | while IFS= read -r l; do emit "$l"; done
+    if [ -s "$NEW_FAILURES" ]; then
+        sed 's/^/NEW_FAIL: /' "$NEW_FAILURES" | while IFS= read -r l; do emit "$l"; done
+    fi
+    rm -f "$CURRENT_FAILURES" "$BASELINE_FAILURES" "$NEW_FAILURES"
+
+    [ "$NEW_COUNT" = "0" ] || RC=1
+    [ "$PANIC_COUNT" = "0" ] || RC=1
+    require "FULL_GATE_NEW_FAILURES=0"
+    require "PANIC_COUNT=0"
+    require "BASELINE_FAIL_COUNT="
+    finish R8-gate.txt || RC=1
+    ;;
+r9)
+    # R9：接口/镜像语义文档（api.md 端点小节 + iam-notes 上游孤儿端点契约）。
+    echo "== R9 docs: tuneloop endpoint + upstream orphan contract =="
+    API_DOC="docs/spec/api/api.md"
+    IAM_NOTES="docs/topics/iam/iam-notes.md"
+    DOC_TOKENS=0
+    for tok in 'users/orphans' 'fallback_unsupported' 'scanned_pending'; do
+        hit=0
+        grep -Fq -- "$tok" "$API_DOC" && hit=1
+        grep -Fq -- "$tok" "$IAM_NOTES" && hit=1
+        emit "DOC_TOKEN[$tok]=${hit}"
+        DOC_TOKENS=$((DOC_TOKENS + hit))
+    done
+    API_SECTION=0
+    grep -Fq 'GET /api/admin/iam-orphans' "$API_DOC" && API_SECTION=1
+    NOTES_SECTION=0
+    grep -Fq 'IAM 孤儿查询端点' "$IAM_NOTES" && NOTES_SECTION=1
+    emit "DOC_API_SECTION=${API_SECTION}"
+    emit "DOC_NOTES_SECTION=${NOTES_SECTION}"
+    emit "DOC_TOKENS=${DOC_TOKENS}"
+    [ "$API_SECTION" = "1" ] || RC=1
+    [ "$NOTES_SECTION" = "1" ] || RC=1
+    [ "$DOC_TOKENS" = "3" ] || RC=1
+    require "DOC_TOKENS=3"
+    finish R9-docs.txt || RC=1
     ;;
 *)
     usage

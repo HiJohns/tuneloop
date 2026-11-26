@@ -194,3 +194,31 @@ CreateMerchant → CreateUser(CallbackURL)  ← CreateOrg(CallbackURL)
 - **PC 前端**：`/callback` 失败分支不落任何 token 并展示后端 message（2s 后重新发起 OAuth，可重选组织）；`40104` → `clearTokens()` + `logout_reason=org_context_missing` → 登出页提示「登录上下文缺失，请重新登录并选择组织」。
 - **部署顺序**（Ops Follow-up）：beaconiam 先发布（授权码绑定组织），tuneloop 后发布；否则 PC 会稳定收到可诊断的 `50202`（不可登录但不再静默弹回）。
 - 相关：#2457（组织名权威源）、#2455（同商户网点名唯一 + 组织名/网点名可辨识）、#2456（PC idle）。
+
+## IAM 孤儿查询端点（#2470 / beaconiam#502）
+
+- **问题**：`GET /api/v1/users?status=pending` 对非全局管理员**按活跃组织关系过滤**
+  （beaconiam `internal/handler/user_handler.go`：`VisibleOrgIDs > 0` 时
+  `id IN (SELECT user_id FROM user_org_relations WHERE org_id IN … AND is_active)`）。
+  创建流程本地事务回滚留下的孤儿**没有任何关系** → 永远不返回；实测 IAM 有 2 个 pending
+  而接口 `scanned=1`。
+- **上游修复（beaconiam#502）**：新增只读端点，命名空间内全量查询、不套用关系可见性过滤。
+
+| 项 | 契约 |
+|---|---|
+| 路径 | `GET /api/v1/users/orphans` |
+| Query | `min_age_minute`（创建时间早于该分钟数）、`page`、`page_size`（tuneloop 用 100，上限 100 页） |
+| 鉴权 | 用户 token（`Authorization`），命名空间管理员及以上 |
+| 响应 | `{ "users": [...], "total": n, "scanned_pending": n }`（`users` 与 tuneloop `services.User` 同构：`id`/`username`/`name`/`email`/`phone`/`status`/`org_id`/`created_at`） |
+| 语义 | `users` = 满足 `min_age_minute` 的**无活跃关系** pending 候选；`scanned_pending` = 命名空间内全量 pending 数（用于 `scanned` 展示，不得用 `users` 条数推断） |
+
+- **tuneloop 消费与回退（D2，先发 tuneloop 后发 IAM 也安全）**：
+  `services.IAMClient.ListOrphanCandidatesWithToken` 先调上述端点；遇到
+  **404 / 405**（旧 IAM 无该端点）或**响应缺 `users` 字段**（协议错误，区别于「合法空列表」）
+  时回退到既有 `GET /api/v1/users?status=pending`，置 `Unsupported=true`，
+  并 `log.Printf("[IAMOrphan] orphan endpoint unsupported, fallback to scoped pending list")`。
+- **对外标记**：`GET /api/admin/iam-orphans` 响应 `fallback_unsupported`（bool）+
+  `endpoint`（`orphans|pending`）+ `scanned`（新端点取 `scanned_pending`，回退取可见 pending 条数）；
+  PC 面板据 `fallback_unsupported` 显示「当前 IAM 版本不支持全量孤儿扫描（仅显示可见 pending）」。
+- **部署顺序**：tuneloop 先发（带回退）→ beaconiam#502 后发；回退期面板显示能力提示，不静默。
+- 相关：#2369（孤儿面板来源）、#2382（预生产回执被本缺陷阻塞）、#2469（同面板空态/告警 UX）。

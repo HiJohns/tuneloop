@@ -740,6 +740,99 @@ HTTP 401。H5（`client_type=wx`）与小程序 `/api/auth/wx-login` 令牌没�
 ---
 
 
+#### 2.6.5 IAM 孤儿账号诊断与清理（#2470）
+
+**背景**：创建用户时本地事务失败 → PurgeUser 被 IAM 拒绝（仅 namespace admin 可 purge），
+会在 IAM 留下 `pending` 且**没有任何组织关系**的孤儿账号，同邮箱/用户名重试永久 409。
+IAM 的 `GET /users?status=pending` 对非全局管理员**按活跃组织关系过滤**，这类无关系孤儿
+永远不返回，因此本面板改走 IAM 专用端点（上游契约见
+[`docs/topics/iam/iam-notes.md`](../../topics/iam/iam-notes.md) 的「IAM 孤儿查询端点」小节）。
+
+**孤儿判定（四条缺一不可）**：IAM `status=pending` **且** `org_id` 空 **且** 本地 `users`
+无该 `iam_sub` 行 **且** 创建时间早于 `min_age_minute`（服务端常量 60 分钟，用于避开正在进行的创建流程）。
+
+##### `GET /api/admin/iam-orphans`
+
+**权限**：系统管理员（namespace admin / owner）；缺失用户 token → `40100`。
+
+**请求参数**：无（`min_age_minute` 当前为服务端固定值 60，响应回显该值；后续若要可配，
+需同时收窄 D2 判定语义并另立 Issue）。
+
+**响应**:
+
+```json
+{
+  "code": 20000,
+  "message": "success",
+  "data": {
+    "list": [
+      {
+        "id": "1dd0d85e-…",
+        "username": "orphan_test_2469",
+        "name": "",
+        "email": "orphan@example.com",
+        "phone": "",
+        "created_at": "2026-11-24T17:00:00Z",
+        "age_minutes": 65
+      }
+    ],
+    "total": 1,
+    "scanned": 2,
+    "min_age_minute": 60,
+    "fallback_unsupported": false,
+    "endpoint": "orphans"
+  }
+}
+```
+
+**字段说明**:
+
+| 字段 | 说明 |
+|------|------|
+| `list[]` | 满足四条判定的孤儿（每项含 `id`/`username`/`name`/`email`/`phone`/`created_at`/`age_minutes`） |
+| `total` | 本次返回的孤儿数（`len(list)`，跨页聚合后） |
+| `scanned` | **全量 pending 数**（新端点取上游 `scanned_pending`；回退路径取可见 pending 条数）。用于区分「全平台只有 N 个 pending」与「本页只有 N 个孤儿」，不得据 `total` 推断 pending 规模 |
+| `min_age_minute` | 孤儿年龄阈值（服务端常量，回显供前端展示） |
+| `fallback_unsupported` | `true` = 当前 IAM 版本不支持孤儿端点（404/405 或协议缺字段），已自动回退到旧 `status=pending` 列表；此路径下列表受 IAM 活跃组织关系过滤，**可能漏掉无关系孤儿** |
+| `endpoint` | 本次取数来源：`orphans`（新端点）/ `pending`（回退） |
+
+**错误码**：
+
+- `40100`：缺少用户 token；
+- `40102`：非系统管理员（`requireSystemAdmin` 拦截）；
+- `50200`：调用 IAM 失败（含协议错误），`message` 为该次调用失败原因。
+
+##### `POST /api/admin/iam-orphans/purge`
+
+**权限**：系统管理员。
+
+**请求 Body**:
+
+```json
+{ "user_ids": ["1dd0d85e-…"] }
+```
+
+**响应**:
+
+```json
+{
+  "code": 20000,
+  "message": "success",
+  "data": {
+    "purged": 1,
+    "failed": [{ "user_id": "…", "error": "not an orphan (pending/org/age check failed)" }],
+    "notes": "IAM purge 不会清理 user_task_queues …"
+  }
+}
+```
+
+**语义（D5，List/Purge 同源）**：清理前用与 `List` **同一**候选来源（同一新端点、同一回退）
+实时复核；回退路径下对「不在旧列表」的 ID 逐条 `GetUser` 复算四条判定：
+本地 `users` 已存在该 `iam_sub` → 拒绝（`refuse to purge`）；不满足四条 → 进 `failed` 的
+`not an orphan`；`purged` 只统计 IAM 删除成功者。
+
+---
+
 ### 2.7 冷启动（Setup）
 ### 2.7.1 获取系统初始化状态
 
