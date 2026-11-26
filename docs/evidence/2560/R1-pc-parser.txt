@@ -1,0 +1,10 @@
+# build=1.0.73ecb551 # commit=73ecb5517fcb754c0f60b22a49306c85150b4017 # dirty=false
+GENERATED_AT_HEAD=73ecb5517fcb754c0f60b22a49306c85150b4017
+== R1 PC parser: actionable 5xx pass-through / diagnostics blocked ==
+# PC_POS=2
+# PC_NEG=3
+# LEAK=0
+# pass 9
+# fail 0
+PC_TEST_EXIT=0
+R1_OK

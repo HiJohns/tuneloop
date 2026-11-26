@@ -1,0 +1,9 @@
+# build=1.0.73ecb551 # commit=73ecb5517fcb754c0f60b22a49306c85150b4017 # dirty=false
+GENERATED_AT_HEAD=73ecb5517fcb754c0f60b22a49306c85150b4017
+== R3 production chokepoint (read-only wiring assertions) ==
+PC_CHAIN_LINKS=3
+PC_CHOKEPOINT=1
+MOBILE_CHAIN_LINKS=4
+MOBILE_CHOKEPOINT=1
+RAW_THROW=0
+R3_OK

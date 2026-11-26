@@ -1,0 +1,11 @@
+# build=1.0.73ecb551 # commit=73ecb5517fcb754c0f60b22a49306c85150b4017 # dirty=false
+GENERATED_AT_HEAD=73ecb5517fcb754c0f60b22a49306c85150b4017
+== R6 mobile H5 build (node 22) ==
+NODE_VERSION=v22.23.5
+
+webpack 5.91.0 compiled with [1m[33m2 warnings[39m[22m in 152346 ms
+
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795731223155 hold_ms=181970
+MOBILE_H5_BUILD_EXIT=0
+MOBILE_H5_BUILD_OK=1
+R6_OK

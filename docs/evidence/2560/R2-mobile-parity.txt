@@ -1,0 +1,28 @@
+# build=1.0.73ecb551 # commit=73ecb5517fcb754c0f60b22a49306c85150b4017 # dirty=false
+GENERATED_AT_HEAD=73ecb5517fcb754c0f60b22a49306c85150b4017
+== R2 mobile core + PC/mobile parity ==
+# M2560_POS=2
+# M2560_NEG=3
+# pass 10
+# fail 0
+MOBILE_TEST_EXIT=0
+# MOBILE_POS=2
+# MOBILE_NEG=3
+# pass 9
+# fail 0
+MOBILE_ASSERT_EXIT=0
+CASE=5xx_50000_iam_rollback PARITY=1 LAYER=human_message PC_LAYER=human_message PC="切换网点失败且 IAM 回滚失败，请联系管理员人工核对 IAM 组织关系" MOBILE="切换网点失败且 IAM 回滚失败，请联系管理员人工核对 IAM 组织关系"
+CASE=5xx_50000_smtp PARITY=1 LAYER=human_message PC_LAYER=human_message PC="SMTP 配置校验失败，请检查端口与凭据后重试" MOBILE="SMTP 配置校验失败，请检查端口与凭据后重试"
+CASE=5xx_50000_pq PARITY=1 LAYER=code_map PC_LAYER=code_map PC="服务器开小差了，请稍后再试" MOBILE="服务器开小差了，请稍后再试"
+CASE=5xx_50001_rpc PARITY=1 LAYER=code_map PC_LAYER=code_map PC="服务暂不可用，请稍后再试" MOBILE="服务暂不可用，请稍后再试"
+CASE=5xx_50999_timeout PARITY=1 LAYER=fallback PC_LAYER=fallback PC="操作失败，请重试" MOBILE="操作失败，请重试"
+CASES=17
+DIFFS=0
+LAYER_DIFFS=0
+PARITY=1
+PARITY_EXIT=0
+PARITY_CASES=17
+PARITY_5XX_CASES=5
+PARITY_5XX_COVERED=1
+MOBILE_POS=2
+R2_OK

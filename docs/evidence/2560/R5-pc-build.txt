@@ -1,0 +1,17 @@
+# build=1.0.73ecb551 # commit=73ecb5517fcb754c0f60b22a49306c85150b4017 # dirty=false
+GENERATED_AT_HEAD=73ecb5517fcb754c0f60b22a49306c85150b4017
+== R5 PC eslint + vite build ==
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s134-p134-093294 at_ms=1795730968271 wait_ms=-419
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s134-p134-093294 wait_ms=-419
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795730970993 hold_ms=2722
+PC_ESLINT_CHANGED_EXIT=0
+PC_ESLINT_OK=1
+PC_ESLINT_FULL_EXIT=1
+PC_ESLINT_BASELINE_ERRORS=1
+PC_ESLINT_NEW=0
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 40.15s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795731021267 hold_ms=42958
+PC_BUILD_EXIT=0
+PC_BUILD_OK=1
+R5_OK

@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "issue": 2560,
+  "build": "1.0.73ecb551",
+  "commit": "73ecb5517fcb754c0f60b22a49306c85150b4017",
+  "dirty": false,
+  "plan_sha256": "a8bd4e4403cd0be473a21cba415c9b4384a3058a468da45853b85bb2b4f32218",
+  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2560 (branch issue-2560, base origin/develop with #2497 merged); frontend-pc eslint + npx vite build; frontend-mobile npx taro build --type h5 on Node v22.23.5; node --test dual-side resolver fixtures; scripts/check-error-message-parity-2480.mjs; no backend/DB/IAM calls; HEAD=73ecb5517fcb754c0f60b22a49306c85150b4017",
+  "tooling_commit": "17d6543870675e1d8070740c7ba3e08ab908adf7",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2560.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2560/R1-pc-parser.txt"
+      ],
+      "assert": "exit 0 且含 PC_POS=2 PC_NEG=3 LEAK=0",
+      "actual": "PASS：PC_POS=2（IAM 回滚 / SMTP 配置两条固定文案逐字透传、layer=human_message）；PC_NEG=3（pq: / rpc error / i/o timeout 全部 layer∈{code_map,fallback}）；LEAK=0；node --test pass 9 / fail 0",
+      "expected": "PASS",
+      "negative": "正例被吞或负例回显 pq: rpc error i/o timeout 之一 → FAIL",
+      "negative_result": "若任一正例的 text 不等于原文或 layer≠human_message（被 code_map/fallback 遮蔽），或任一负例输出包含 pq: / rpc error / i/o timeout（LEAK>0）→ 脚本断言失败、R1 非 0 退出。",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2560.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2560/R2-mobile-parity.txt"
+      ],
+      "assert": "exit 0 且含 MOBILE_POS=2 MOBILE_NEG=3 PARITY=1 DIFFS=0 LAYER_DIFFS=0",
+      "actual": "PASS：MOBILE_POS=2 / MOBILE_NEG=3（mobile 纯核心同口径）；node --test pass 10 fail 0；parity CASES=17（含 5 条 5xx：2 正 3 负）DIFFS=0 LAYER_DIFFS=0 PARITY=1",
+      "expected": "PASS",
+      "negative": "任一端文案或 layer 不一致、或负例回显内部串 → FAIL",
+      "negative_result": "若 PC 与 mobile 对同一 fixture 的 text/layer 不一致（DIFFS>0 / LAYER_DIFFS>0 / PARITY=0）、或 5xx fixture 少于 5 条、或 mobile 负例回显内部串 → 脚本断言失败、R2 非 0 退出。",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2560.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2560/R3-chokepoint.txt"
+      ],
+      "assert": "exit 0 且含 PC_CHOKEPOINT=1 MOBILE_CHOKEPOINT=1 RAW_THROW=0",
+      "actual": "PASS：PC 链路 3 环（api.js resolveHttpFailure → apiError.js resolveErrorMessage → new Error(解析结果)）；mobile 链路 4 环（resolveErrorMessage 调用 / 赋值 / payload / new Error(resolvedMessage)）；RAW_THROW=0（两端均无原样抛后端 message，且双端均导出 isInternalDiagnosticMessage）",
+      "expected": "PASS",
+      "negative": "任一端请求层原样抛后端 message → FAIL",
+      "negative_result": "若 PC 或 mobile 的请求层出现 throw new Error(body|payload|error.message)、或解析层不再导出 isInternalDiagnosticMessage（形态判定被绕过/失效）→ RAW_THROW>0，R3 FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2560.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2560/R4-semantics.txt"
+      ],
+      "assert": "exit 0 且含 BACKEND_DIFF=0 CODE_MAP_BLOCK_UNCHANGED=1",
+      "actual": "PASS：BACKEND_DIFF=0（origin/develop...HEAD 无 backend/ 文件）；CODE_MAP_BLOCK_UNCHANGED=1（frontend-pc/src/services/errorMessages.js 与 frontend-mobile/src/services/errorMessages.js 的 ERROR_CODE_MAP 块与 origin/develop 逐字一致）；MOBILE_MAP_TOUCHED=0",
+      "expected": "PASS",
+      "negative": "backend/ 有改动或 ERROR_CODE_MAP 块变化 → FAIL",
+      "negative_result": "若 diff 触及 backend/、或任一端 ERROR_CODE_MAP 块与 origin/develop 不一致、或 frontend-mobile/src/services/errorMessages.js 被改动 → R4 FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2560.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2560/R5-pc-build.txt"
+      ],
+      "assert": "exit 0 且含 PC_ESLINT_OK=1 PC_BUILD_OK=1",
+      "actual": "PASS：PC_ESLINT_CHANGED_EXIT=0（本单文件 0 error）；全量 eslint 仅 1 个既有 error 且不在本单 diff（PC_ESLINT_NEW=0）；vite build exit 0（✓ built in 40.15s）",
+      "expected": "PASS",
+      "negative": "eslint 报错或 npm run build 非 0 → FAIL",
+      "negative_result": "若本单文件 eslint 非 0、或本单 diff 引入新的 eslint error 文件、或 npx vite build 非 0 → R5 FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2560.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2560/R6-mobile-build.txt"
+      ],
+      "assert": "exit 0 且含 MOBILE_H5_BUILD_OK=1",
+      "actual": "PASS：NODE_VERSION=v22.23.5；npx taro build --type h5 exit 0（webpack 5.91.0 compiled with 2 warnings in 152346 ms）",
+      "expected": "PASS",
+      "negative": "npm run build:h5 非 0 → FAIL",
+      "negative_result": "若 mobile H5 构建（node 22）非 0 退出（module 解析/语法错误）→ MOBILE_H5_BUILD_OK 缺失，R6 FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2560.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2560/R7-api-doc.txt"
+      ],
+      "assert": "exit 0 且含 API_DOC_5XX_RULE=1 API_DOC_STALE_RULE=0",
+      "actual": "PASS：API_DOC_5XX_SECTION=1（docs/spec/api/api.md 含「5xx 文案口径（#2560）」）；三句口径齐备（固定用户文案 / 内部诊断形态 / 禁止拼接 err.Error()）=3；旧口径「含 CJK 一律」类表述 STALE=0",
+      "expected": "PASS",
+      "negative": "api.md 未同步或仍写旧口径 → FAIL",
+      "negative_result": "若 api.md 缺 5xx 章节、三句口径不全（<3）、或仍出现「含 CJK，优先于 code 家族」「含 CJK 一律」「含 CJK）」等旧表述 → R7 FAIL。",
+      "pass": true
+    }
+  ]
+}

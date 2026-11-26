@@ -1,0 +1,9 @@
+# build=1.0.73ecb551 # commit=73ecb5517fcb754c0f60b22a49306c85150b4017 # dirty=false
+GENERATED_AT_HEAD=73ecb5517fcb754c0f60b22a49306c85150b4017
+== R4 semantics unchanged (backend + ERROR_CODE_MAP) ==
+BACKEND_DIFF=0
+CODE_MAP_SAME=frontend-pc/src/services/errorMessages.js
+CODE_MAP_SAME=frontend-mobile/src/services/errorMessages.js
+CODE_MAP_BLOCK_UNCHANGED=1
+MOBILE_MAP_TOUCHED=0
+R4_OK
