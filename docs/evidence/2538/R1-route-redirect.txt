@@ -1,0 +1,9 @@
+# build=1.0.308a48c02 # commit=308a48c029df8c1cccbc482d3f99270dd4d3b1f4 # dirty=false
+GENERATED_AT_HEAD=308a48c029df8c1cccbc482d3f99270dd4d3b1f4
+== R1 /site/stock/:id → /instruments/detail/:id ==
+NAVIGATE_REDIRECT=1
+ROUTE_WIRED=1
+REDIRECT_TARGET=/instruments/detail/
+STOCK_LIST_ROUTE_UNCHANGED=1
+STUB_ROUTE_REMOVED=1
+R1_OK

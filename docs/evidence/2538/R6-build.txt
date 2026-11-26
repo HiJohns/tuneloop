@@ -1,0 +1,26 @@
+# build=1.0.308a48c02 # commit=308a48c029df8c1cccbc482d3f99270dd4d3b1f4 # dirty=false
+GENERATED_AT_HEAD=308a48c029df8c1cccbc482d3f99270dd4d3b1f4
+== R6 tests + lint + builds ==
+# tests 20
+# pass 20
+# fail 0
+  165:9   warning  'fetchInstrument' was used before it was defined                                                                    no-use-before-define
+  183:9   warning  'fetchInstrument' was used before it was defined                                                                    no-use-before-define
+
+✖ 13 problems (0 errors, 13 warnings)
+
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 42.05s
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed at_ms=1795661794285 wait_ms=161
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed wait_ms=161
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795661802939 hold_ms=8654
+NODE_TEST_RC=0
+ESLINT_RC=0
+PC_BUILD_RC=0
+GO_BUILD_RC=0
+NODE_TEST_OK=1
+ESLINT_OK=1
+PC_BUILD_OK=1
+GO_BUILD_OK=1
+R6_OK

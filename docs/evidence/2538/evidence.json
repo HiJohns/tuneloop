@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "issue": 2538,
+  "build": "1.0.308a48c02",
+  "commit": "308a48c029df8c1cccbc482d3f99270dd4d3b1f4",
+  "dirty": false,
+  "plan_sha256": "3fce3af0139a33fac8549a0900ce46829cbdd531679d124be70d02a1d03b393a",
+  "environment": "isolated worktree wt-2538 (branch issue-2538, base origin/develop 608b30064); frontend-pc node --test + eslint + vite build; backend go build ./...; no production calls, no browser rendering (deployment-side recheck #2533)",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2538.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2538/R1-route-redirect.txt"
+      ],
+      "assert": "exit 0；含 NAVIGATE_REDIRECT=1、REDIRECT_TARGET=/instruments/detail/",
+      "actual": "PASS：NAVIGATE_REDIRECT=1 / ROUTE_WIRED=1 / REDIRECT_TARGET=/instruments/detail/ / STOCK_LIST_ROUTE_UNCHANGED=1 / STUB_ROUTE_REMOVED=1",
+      "expected": "PASS",
+      "negative": "无重定向 → FAIL",
+      "negative_result": "App.jsx 仍 import 或渲染 AssetDetail、或无 <Navigate replace> → R1_FAIL",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2538.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2538/R2-summary-helpers.txt"
+      ],
+      "assert": "exit 0；含 LABELS=6、REDUCED_EMPTY=未配置",
+      "actual": "PASS：TESTS_PASS=8 / TESTS_FAIL=0 / LABELS=6 / DAILY=¥100.00/天 / OVERDUE=¥36.00/天 / DEPOSIT=¥500.00 / REDUCED_EMPTY=未配置 / TOTAL_PRICE=¥3600.00 / JOIN_DATE=1月2日 11:04 / TOTAL_PRICE_CENTS=1 / JOIN_DATE_FROM_CREATED_AT=1",
+      "expected": "PASS",
+      "negative": "标签缺失 → FAIL",
+      "negative_result": "标签缺失、金额未按分换算（估值取 total_price 而非日租）、差额空值显示 `-` 而非 `未配置` → R2_FAIL",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2538.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2538/R3-stub-removed.txt"
+      ],
+      "assert": "exit 0；含 STUB_FILES=0、TIMELINE_TAB_LABEL=0",
+      "actual": "PASS：STUB_FILES=0（AssetDetail.jsx / assetDetail.js / assetDetail.test.mjs 均不存在）/ ASSETDETAIL_IMPORTS=0 / TIMELINE_TAB_LABEL=0 / DOCUMENTS_TAB_LABEL=0",
+      "expected": "PASS",
+      "negative": "残留存根/占位 → FAIL",
+      "negative_result": "任一存根文件、`from '…assetDetail'` import、或 '流转轨迹' / '关联单据' 字面量残留 → R3_FAIL（`工单流转轨迹` 是工单页模态标题，不同字面量，不误计）",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2538.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2538/R4-log-tab.txt"
+      ],
+      "assert": "exit 0；含 LOG_TAB=1、HERO_IMAGE=1",
+      "actual": "PASS：LOG_TAB=1 / ACTIVITY_LOG_CALL=1（instrumentsApi.getActivityLog）/ HERO_IMAGE=1（instrumentImageSrc + INSTRUMENT_IMAGE_PLACEHOLDER 回落）/ SUMMARY_RENDERED=1 / CREATE_TIME_ROW=0",
+      "expected": "PASS",
+      "negative": "日志缺失 → FAIL",
+      "negative_result": "日志 tab 或 activity-log 调用缺失、主图未接 instrumentImageSrc、基本信息仍重复「创建时间」→ R4_FAIL",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2538.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2538/R5-docs.txt"
+      ],
+      "assert": "exit 0；含 DOC_REDIRECT=1",
+      "actual": "PASS：DOC_SUMMARY=1 / DOC_JOIN_DATE=1 / DOC_REDIRECT=1 / DOC_LOGS=1（ui.md §2.20.1 唯一详情页 + 页头摘要 + 兼容重定向 + 日志）",
+      "expected": "PASS",
+      "negative": "缺文档 → FAIL",
+      "negative_result": "ui.md 缺任一口径 → R5_FAIL",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2538.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2538/R6-build.txt"
+      ],
+      "assert": "exit 0；含 PC_BUILD_OK=1、GO_BUILD_OK=1",
+      "actual": "PASS：NODE_TEST_OK=1（assetSummary 8 + instrumentDisplay 18）/ ESLINT_OK=1（0 error）/ PC_BUILD_OK=1（vite build）/ GO_BUILD_OK=1",
+      "expected": "PASS",
+      "negative": "任一失败 → FAIL",
+      "negative_result": "node --test / eslint / vite build / go build 任一非 0 → R6_FAIL",
+      "pass": true
+    }
+  ]
+}

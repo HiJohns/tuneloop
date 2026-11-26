@@ -1,0 +1,9 @@
+# build=1.0.308a48c02 # commit=308a48c029df8c1cccbc482d3f99270dd4d3b1f4 # dirty=false
+GENERATED_AT_HEAD=308a48c029df8c1cccbc482d3f99270dd4d3b1f4
+== R4 log tab + hero image ==
+LOG_TAB=1
+ACTIVITY_LOG_CALL=1
+HERO_IMAGE=1
+SUMMARY_RENDERED=1
+CREATE_TIME_ROW=0
+R4_OK
