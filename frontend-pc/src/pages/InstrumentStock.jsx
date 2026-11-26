@@ -3,7 +3,7 @@ import { formatCents, yuanToCents } from '../utils/money'
 import { Table, Tag, Button, Space, Modal, Form, Input, InputNumber, Select, Radio, Upload, Descriptions, Image, message, Popconfirm, Alert } from 'antd'
 import { EditOutlined, WarningOutlined, RollbackOutlined, FileTextOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { inventoryApi, lossApi, api, pricingApi, instrumentsApi } from '../services/api'
+import { inventoryApi, lossApi, api, pricingApi, instrumentsApi, fetchBlob } from '../services/api'
 import PermissionGate from '../components/PermissionGate'
 import { usePermission } from '../hooks/usePermission'
 import {
@@ -22,6 +22,7 @@ import {
 } from '../utils/instrumentDisplay'
 import {
   applyFilterPatch,
+  buildStockExportParams,
   buildStockFilterQuery,
   buildStockListParams,
   readStockFilters,
@@ -257,20 +258,17 @@ export default function InstrumentStock() {
     }
   }
 
-  // #2043/#2101: 导出 CSV（档案管理页已并入本页；按当前状态过滤直接导出）
-  // #2577: 状态取自统一筛选来源（URL），参数名仍为 `status`（D8：导出口径对齐见 #2578）。
+  // #2578: 导出 Excel 跟随当前筛选（识别码/分类/状态/可见性），与列表同一套参数口径。
+  // D4：统一走 fetchBlob（带 Bearer + 空参剔除），产物为 xlsx，命名与乐器列表一致。
   const handleExport = async () => {
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
-      const params = new URLSearchParams()
-      if (filters.status) params.set('status', filters.status)
-      const resp = await fetch(`${API_BASE_URL}/instruments/export?${params.toString()}`)
-      if (!resp.ok) throw new Error('导出失败')
-      const blob = await resp.blob()
+      const blob = await fetchBlob('/instruments/export', {
+        params: buildStockExportParams({ filters, isManagerLike }),
+      })
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `instruments_export_${new Date().toISOString().split('T')[0]}.csv`
+      a.download = `instruments_export_${new Date().toISOString().split('T')[0]}.xlsx`
       a.click()
       window.URL.revokeObjectURL(url)
       message.success('导出成功')
@@ -453,10 +451,10 @@ export default function InstrumentStock() {
         <Button icon={<WarningOutlined />} onClick={() => switchView(view === 'stock' ? 'loss' : 'stock')}>
           {view === 'stock' ? '丢失台账' : '返回库存'}
         </Button>
-        {/* #2043: 导出 CSV（需 instrument:read） */}
+        {/* #2043/#2578: 导出 Excel（跟随当前筛选；需 instrument:read） */}
         <PermissionGate code="instrument:read">
           {view === 'stock' && (
-            <Button onClick={handleExport}>导出 CSV</Button>
+            <Button onClick={handleExport}>导出 Excel</Button>
           )}
         </PermissionGate>
         {/* #2043: 批量导入（需 instrument:create） */}

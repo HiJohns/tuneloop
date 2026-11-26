@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "issue": 2578,
+  "build": "1.0.7842aed44",
+  "commit": "7842aed4499fc4b01e34c2de0783cdfa09d5d048",
+  "dirty": false,
+  "plan_sha256": "f9fe2315a7d13763705e07636d62a4bb3910ed64f86de74ee169deb2f1b31a93",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2578 (branch issue-2578, base origin/develop fc5dfe9e0); Postgres test DB 127.0.0.1:15433 (tuneloop_test_<node>); gin in-process routes for export/list; Go 1.27.4; Node 24 (node --test); host heavy-lock via heavy-run.sh",
+  "tooling_commit": "acab7d27d28832d1ad366dd4c944ffb3e2ff9ca8",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2578.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2578/R1-export-parity.txt"
+      ],
+      "assert": "exit 0；含 EXPORT_SN_FILTER=1、EXPORT_CATEGORY_DESC=2、EXPORT_SCOPE_SITE=2、EXPORT_ROWS_EQ_LIST=1",
+      "actual": "PASS：GO_TEST_EXIT=0；EXPORT_SN_FILTER=1、EXPORT_CATEGORY_DESC=2、EXPORT_EXCLUDE=3、EXPORT_SCOPE_SITE=2、EXPORT_HEADER_SN=1、EXPORT_ROWS_EQ_LIST=1（xlsx 逐行解析 SN 集合；导出 SN 集合 == 列表接口 SN 集合）",
+      "expected": "PASS",
+      "negative": "未展开后代/未限定网点/行数≠列表 → FAIL",
+      "negative_result": "测试内显式断言导出 SN 集合：未展开后代则 category_id=P 返回 0 行（导出 400/40006）→ EXPORT_CATEGORY_DESC≠2；site_admin 未注入 Scope 则含 siteB 的 CVZ-106/CVZ-107 → EXPORT_SCOPE_SITE=4；行数≠列表 → EXPORT_ROWS_EQ_LIST=0",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2578.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2578/R2-export-params.txt"
+      ],
+      "assert": "exit 0；含 TESTS_FAIL=0、EXPORT_FIELDS=sn,category_name,status、EXPORT_EXCLUDE_WITH_STATUS=",
+      "actual": "PASS：NODE_TEST_EXIT=0、TESTS_PASS=24、TESTS_FAIL=0；EXPORT_FIELDS=sn,category_name,status、EXPORT_EXCLUDE_NONMGR=lost,archived,sold、EXPORT_EXCLUDE_WITH_STATUS=（显式 lost 不叠加）",
+      "expected": "PASS",
+      "negative": "显式状态叠加排除或字段缺 sn → FAIL",
+      "negative_result": "若显式 lost 时仍叠加 exclude_status，EXPORT_EXCLUDE_WITH_STATUS 变为 lost,archived,sold → 断言失败；若 fields 缺 sn，EXPORT_FIELDS≠sn,category_name,status → 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2578.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2578/R3-export-wiring.txt"
+      ],
+      "assert": "exit 0；含 EXPORT_USES_FETCHBLOB=1、EXPORT_RAW_FETCH=0、EXPORT_XLSX_NAME=1",
+      "actual": "PASS：EXPORT_USES_FETCHBLOB=1、EXPORT_RAW_FETCH=0、EXPORT_XLSX_NAME=1、EXPORT_CSV_NAME=0、EXPORT_PASSES_FILTERS=1、EXPORT_BUTTON_LABEL=1（handleExport 函数体切片断言）",
+      "expected": "PASS",
+      "negative": "裸 fetch / .csv 命名 / 未透传筛选 → FAIL",
+      "negative_result": "若沿用裸 fetch(，EXPORT_RAW_FETCH>0；若命名 .csv，EXPORT_CSV_NAME=1 且 EXPORT_XLSX_NAME=0；若未透传筛选，EXPORT_PASSES_FILTERS=0 → 任一即 R3_FAIL",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2578.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2578/R4-docs.txt"
+      ],
+      "assert": "exit 0；含 API_EXPORT_PARAMS=1、API_EXPORT_FIELDS_SN=1、UI_EXPORT_FOLLOW_FILTER=1",
+      "actual": "PASS：API_EXPORT_PARAMS=1（sn/category_id/stock_status/exclude_status 四参数齐备）、API_EXPORT_FIELDS_SN=1（识别码）、UI_EXPORT_XLSX=1、UI_EXPORT_FOLLOW_FILTER=1",
+      "expected": "PASS",
+      "negative": "文档未同步 → FAIL",
+      "negative_result": "文档缺任一参数（sn/category_id/stock_status/exclude_status）→ API_EXPORT_PARAMS=0；ui.md 未写「跟随当前筛选」或 .xlsx → 对应 token 为 0 → R4_FAIL",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2578.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2578/R5-build.txt"
+      ],
+      "assert": "exit 0；含 ESLINT_OK=1、PC_BUILD_OK=1、GO_BUILD_OK=1、GO_EXPORT_TEST_OK=1",
+      "actual": "PASS：ESLINT_OK=1（0 error / 0 no-undef）、PC_BUILD_OK=1（vite build）、PC_TESTS_OK=1（24 pass）、GO_BUILD_OK=1、GO_EXPORT_TEST_OK=1",
+      "expected": "PASS",
+      "negative": "任一 lint/build/test 失败 → FAIL",
+      "negative_result": "任一 lint/build/test 非零 → 对应 *_OK=0 → R5_FAIL",
+      "pass": true
+    }
+  ]
+}

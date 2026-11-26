@@ -1,0 +1,27 @@
+# build=1.0.7842aed44 # commit=7842aed4499fc4b01e34c2de0783cdfa09d5d048 # dirty=false
+GENERATED_AT_HEAD=7842aed4499fc4b01e34c2de0783cdfa09d5d048
+# InstrumentStock.handleExport：fetchBlob + 筛选透传 + xlsx 命名；无裸 fetch / 无 .csv
+EXPORT_USES_FETCHBLOB=1
+EXPORT_RAW_FETCH=0
+EXPORT_XLSX_NAME=1
+EXPORT_CSV_NAME=0
+EXPORT_PASSES_FILTERS=1
+EXPORT_BUTTON_LABEL=1
+--- handleExport ---
+  const handleExport = async () => {
+    try {
+      const blob = await fetchBlob('/instruments/export', {
+        params: buildStockExportParams({ filters, isManagerLike }),
+      })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `instruments_export_${new Date().toISOString().split('T')[0]}.xlsx`
+      a.click()
+      window.URL.revokeObjectURL(url)
+      message.success('导出成功')
+    } catch (e) {
+      message.error(e.message || '导出失败')
+    }
+  }
+R3_OK

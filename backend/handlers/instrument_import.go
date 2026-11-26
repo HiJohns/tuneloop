@@ -135,8 +135,9 @@ func ImportInstruments(c *gin.Context) {
 
 // ExportInstruments handles instrument export to Excel
 func ExportInstruments(c *gin.Context) {
+	ctx := c.Request.Context()
 	// Get tenant ID from context
-	tenantID := middleware.GetTenantID(c.Request.Context())
+	tenantID := middleware.GetTenantID(ctx)
 	if tenantID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40001,
@@ -145,11 +146,59 @@ func ExportInstruments(c *gin.Context) {
 		return
 	}
 
+	// Get database connection
+	db, exists := c.Get("db")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50001,
+			"message": "Database connection not available",
+		})
+		return
+	}
+	gormDB, ok := db.(*gorm.DB)
+	if !ok || gormDB == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50001,
+			"message": "Database connection not available",
+		})
+		return
+	}
+
+	// #2578 D6：`status` 与 `stock_status` 双读（库存监控写 stock_status，Dashboard 写 status）。
+	statusParam := c.Query("status")
+	if statusParam == "" {
+		statusParam = c.Query("stock_status")
+	}
+
 	// Parse query parameters
 	opts := service.ExportOptions{
 		Category:   c.Query("category"),
-		Status:     c.Query("status"),
+		Status:     statusParam,
 		SearchText: c.Query("search_text"),
+		SN:         c.Query("sn"),
+	}
+
+	// #2578 D1：分类筛选按后代展开（与 GET /api/instruments 同一实现），空则回落等值。
+	if categoryID := c.Query("category_id"); categoryID != "" {
+		if ids := getDescendantCategoryIDs(gormDB, categoryID); len(ids) > 0 {
+			opts.CategoryIDs = ids
+		} else {
+			opts.CategoryIDs = []string{categoryID}
+		}
+	}
+
+	// #2578：排除状态（csv，stock_status NOT IN）。
+	if excludeParam := c.Query("exclude_status"); excludeParam != "" {
+		for _, raw := range strings.Split(excludeParam, ",") {
+			if v := strings.TrimSpace(raw); v != "" {
+				opts.ExcludeStatus = append(opts.ExcludeStatus, v)
+			}
+		}
+	}
+
+	// #2578 D1：可见性与列表同一函数（禁止在 service 重写权限逻辑）。
+	opts.Scope = func(q *gorm.DB) *gorm.DB {
+		return applyInstrumentListScope(gormDB.WithContext(ctx), ctx, q)
 	}
 
 	// Parse fields parameter (comma-separated)
@@ -162,18 +211,8 @@ func ExportInstruments(c *gin.Context) {
 		}
 	}
 
-	// Get database connection
-	db, exists := c.Get("db")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    50001,
-			"message": "Database connection not available",
-		})
-		return
-	}
-
 	// Create service and export
-	instrumentService := service.NewInstrumentService(db.(*gorm.DB))
+	instrumentService := service.NewInstrumentService(gormDB)
 	excelFile, err := instrumentService.ExportInstruments(opts, tenantID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
