@@ -355,7 +355,9 @@ function MainLayout() {
     icon: <SettingOutlined />,
     label: '平台管理',
     children: [
-      { key: '/merchants', label: '商户管理', permission: { sysPermBits: [6] } },
+      // #2546 D13：商户管理员（本商户 OWNER/ADMIN）可进入商户管理（列表收窄到本商户），
+      // 平台专属写操作在页面内按 businessRole 隐藏。
+      { key: '/merchants', label: '商户管理', permission: { sysPermBits: [6], businessRoles: ['merchant_admin'] } },
       { key: '/system/user-management', label: '账户管理', permission: { sysPermBits: [6] } }, // #2064: 平台级账户管理（全部人员查找+关停），仅 system/namespace admin
       { key: '/face-review', label: '实名审核队列', permission: { sysPermBits: [18] } }, // #1793 T5
       { key: '/platform-staff', label: '平台员工管理', permission: { sysPermBits: [5] } }, // #1795 T6
@@ -442,7 +444,7 @@ function onMenuClick(e) {
     const key = item.key || ''
     if (isNsAdmin && getNamespaceAdminMenuKeys().includes(key)) return true
     if (ownerAtMerchant && cusPerm === 0 && sysPerm === 0 && parentKey !== 'platform' && parentKey !== 'system') return true
-    return checkPermission(item.permission, sysPerm, cusPerm, cusPermMapping)
+    return checkPermission(item.permission, sysPerm, cusPerm, cusPermMapping, userInfo)
   }
   const filteredItems = menuConfig
     .map(item => item.children
@@ -716,8 +718,9 @@ function onMenuClick(e) {
             <Route path="/organization/iam-sync" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10], cusPermCodes: ['instrument:create', 'instrument:read'], requireAll: true }}><IAMSyncPage /></ProtectedRoute>} />
             <Route path="/organization/sites/:id/new" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10] }}><SiteManagement /></ProtectedRoute>} />
             <Route path="/organization/sites/:id" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10] }}><SiteManagement /></ProtectedRoute>} />
-            <Route path="/merchants" element={<ProtectedRoute requiredPermission={{ sysPermBits: [6] }}><MerchantManagement /></ProtectedRoute>} />
-            <Route path="/merchants/:id" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><MerchantManagement /></ProtectedRoute>} />
+            {/* #2546 D13：本商户 merchant_admin 可读（数据面收窄），/merchants/new 仍平台专属 */}
+            <Route path="/merchants" element={<ProtectedRoute requiredPermission={{ sysPermBits: [6], businessRoles: ['merchant_admin'] }}><MerchantManagement /></ProtectedRoute>} />
+            <Route path="/merchants/:id" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5], businessRoles: ['merchant_admin'] }}><MerchantManagement /></ProtectedRoute>} />
             <Route path="/merchants/new" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><MerchantManagement /></ProtectedRoute>} />
             <Route path="/system/audit-logs" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['audit_log:read'] }}><AuditLogPage /></ProtectedRoute>} />
             <Route path="/system/user-management" element={<ProtectedRoute requiredPermission={{ sysPermBits: [6] }}><UserManagement /></ProtectedRoute>} />

@@ -118,8 +118,8 @@
 | contact_phone | VARCHAR(50) | | 联系人电话 |
 | phone | VARCHAR(50) | | 联系电话 |
 | address | TEXT | | 地址 |
-| admin_uid | UUID | INDEX | 管理员用户 ID |
-| admin_pending | BOOLEAN | DEFAULT false | 管理员待确认 |
+| admin_uid | UUID | INDEX | **所有人（OWNER）用户 ID**（本地指针；权威关系在 IAM `user_org_relations.role='OWNER'`，每个组织至多 1 个）。业务角色 `merchant_admin` 由 JWT claims（`tid == oid`）判定，OWNER 与 ADMIN 在本地同为 `merchant_admin`；`merchant_members` **没有** `is_owner` 列 |
+| admin_pending | BOOLEAN | DEFAULT false | 创建商户时管理员绑定待确认（更换所有人不再使用该字段） |
 | status | VARCHAR(20) | DEFAULT 'active' | 状态 (active/inactive) |
 | merchant_type | VARCHAR(20) | DEFAULT 'full' | 商户类型: full/controlled |
 | transit_address | TEXT | | 受控商户转发地址 |

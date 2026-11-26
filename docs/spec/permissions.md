@@ -272,7 +272,7 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | 组织管理 | 人员管理 | /staff | sysPerm: [15] AND cusPerm: [instrument:create, instrument:read] |
 | 组织管理 | 申诉处理 | /appeals | cusPerm: appeal:read |
 | 组织管理 | 与 IAM 同步 | /organization/iam-sync | sysPerm: [10] AND cusPerm: [instrument:create, instrument:read] |
-| 系统管理 | 商户管理 | /merchants | sysPerm: [5] |
+| 系统管理 | 商户管理 | /merchants | sysPerm: [5] **OR** businessRole: merchant_admin（本商户，只读且列表收窄；创建/删除/编辑仍仅平台管理员） |
 | 系统管理 | 操作日志 | /system/audit-logs | sysPerm: [5] |
 | 系统管理 | 权限管理 | /system/permissions | sysPerm: [27] |
 | 系统管理 | 警告管理 | /system/warnings | sysPerm: [5] |
@@ -295,6 +295,21 @@ function getNamespaceAdminMenuKeys() {
 - **路由守卫**（`ProtectedRoute.jsx:143`）：白名单中的路由对 namespace_admin 直接放行
 
 > 注：白名单是安全网（补偿 `cus_perm=0` 时的菜单不可见问题），主源仍是 IAM 角色模板 `cus_perm`。
+
+### 5.3 商户管理员的路由级放行（#2546 D13）
+
+商户管理员模板 `sys_perm = 1073740800`（bit 10-29）**不含** tenant bit 5/6/8，因此不能靠 `sys_perm` 进入商户管理。放开方式 = 路由级 `RequireSysPermOrRole(bit, businessRole...)`，**恰好 4 条**：
+
+| 路由 | 中间件 | 数据面 |
+|------|--------|--------|
+| `GET /api/merchants` | `RequireSysPermOrRole(SysPermTenantList, merchant_admin)` | 按 JWT `oid` 收窄到本商户 |
+| `GET /api/merchants/:id` | `RequireSysPermOrRole(SysPermTenantView, merchant_admin)` | 按 `org_id` 收窄 |
+| `GET /api/admin/merchants/:id/members` | `RequireSysPermOrRole(SysPermTenantView, merchant_admin)` | `loadMerchantForAccess` |
+| `POST /api/merchants/:id/transfer-ownership` | `RequireSysPermOrRole(SysPermTenantUpdate, merchant_admin)` | `loadMerchantForAccess` + IAM 转让 |
+
+仍受 `sys_perm` 门控（商户管理员 `40303`，不得放行）：`POST/PUT/DELETE /api/merchants`、`POST/PUT/DELETE /api/admin/merchants/:id/members`、邀请类端点、前端 `/merchants/new`。
+
+> 不把 bit 5/6 授给商户管理员模板：会连带放开 `/system/user-management`、`/platform-staff`、`/system/warnings` 等平台页。
 
 ---
 

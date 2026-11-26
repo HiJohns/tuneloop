@@ -6795,9 +6795,25 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
   "merchant_type": "controlled",
   "transit_address": "新中转地址",
   "transit_phone": "13911112222",
-  "transit_contact_name": "新联系人"
+  "transit_contact_name": "新联系人",
+  "admin_uid": "new-owner-uuid"
 }
 ```
+
+**字段说明（#2546 所有权语义）**:
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| admin_uid | string \| null | **所有人（OWNER）** 用户 UUID。字段缺省 → 不变更所有权；提供且与当前所有人不同 → 走**转让所有权**（IAM `POST /organizations/:id/transfer-ownership`，原所有人自动降 ADMIN）；显式置空 / `null` / 全零 UUID → `40002`「所有人不能清空，只能转让所有权」 |
+
+**错误码（admin_uid 分支）**:
+- `40002`: 目标用户已是本商户所有人 / 目标用户缺少 IAM 账号 / 尝试清空所有人
+- `40303`: 仅当前所有人可转让所有权（IAM 403）
+- `40400`: 目标用户不是本商户的成员（IAM 404）
+- `40900`: 该商户当前没有所有人（IAM 409，需走修复流程）
+- `50200`: IAM 不可用/5xx（转让单事务失败，本地指针不变）
+
+> **组合请求顺序（#2546 D15）**：普通字段（name/phone/address/merchant_type/transit_*）先以 `Updates` 落库，再执行所有权转让；禁止「转让后重载整行再 Save」（会把同请求的普通字段覆盖回旧值）。响应中的商户对象为更新后的重新读取快照，不再写库。
 
 **响应**: 常规成功响应 `{ code: 20000, data: { ... } }`
 
@@ -6806,6 +6822,133 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 **接口**: `DELETE /api/merchants/:id`
 
 **响应**: `{ "code": 20000, "message": "success" }`
+
+#### 12.3.5 商户成员与所有人（#2546）
+
+> 每商户**恰好 1 个所有人（OWNER）**：IAM `user_org_relations` 部分唯一索引保证，OWNER 只能转让、不能删除/降级。
+> 本地所有权指针 = `merchants.admin_uid`；`merchant_members.role` 只表达业务角色（OWNER 与 ADMIN 在 tuneloop 内同为 `merchant_admin`，由 JWT `tid == oid` 判定）。
+> 因此本地**没有** `merchant_members.is_owner` 列，`is_owner` 只是响应级计算字段（`user_id == merchants.admin_uid`）。
+
+##### 12.3.5.1 商户成员列表
+
+**接口**: `GET /api/admin/merchants/:id/members`
+
+**权限**: sys_perm bit 5（`tenant:view`）**或** `businessRole=merchant_admin`（本商户，数据面按 org 收窄）
+
+> **路由授权口径（#2546 D13）**：仅 4 条路由对 `businessRole=merchant_admin` 放行——`GET /api/merchants`、`GET /api/merchants/:id`、`GET /api/admin/merchants/:id/members`、`POST /api/merchants/:id/transfer-ownership`；创建/删除/编辑商户与成员增删改仍仅 `sys_perm`（商户管理员 `40303`）。
+
+**查询参数**:
+| 参数 | 类型 | 默认 | 说明 |
+|------|------|------|------|
+| page | int | 1 | 页码 |
+| page_size | int | 20 | 每页数量（上限见 maxPageSize） |
+| include | string | — | `all` = 返回本商户全部 active 成员（供转让候选使用）；缺省只返回 `role='merchant_admin'`（既有口径不变） |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "user_id": "uuid",
+        "user_name": "张三",
+        "user_email": "zhangsan@example.com",
+        "role": "merchant_admin",
+        "status": "active",
+        "is_owner": true,
+        "created_at": "2026-11-26T08:00:00Z"
+      }
+    ],
+    "total": 1,
+    "page": 1,
+    "page_size": 20,
+    "owner_uid": "uuid",
+    "owner_anchor_present": true,
+    "viewer_uid": "uuid",
+    "viewer_is_owner": true
+  }
+}
+```
+
+**字段说明**:
+| 字段 | 说明 |
+|------|------|
+| is_owner | 该行是否为当前所有人（由归一化后的 `merchants.admin_uid` 计算，不落库） |
+| owner_uid | 本地所有人指针，**归一化到本地 `users.id` 空间**（#2546 D1b：`admin_uid` 命中 `users.id` 直接使用；否则按 `users.iam_sub = admin_uid` 解析本地 id；两者都不命中 → 空串）。 |
+| owner_anchor_present | `merchants.admin_uid` 是否有值。`owner_uid=""` 时用它区分两类空态：`false` = 未锚定所有人（`admin_uid` 无值）；`true` = 成员记录缺失（有值但两种 ID 空间都不命中）。两者都禁用转让。 |
+| viewer_uid | 当前登录账号的**本地 `users.id`**（`middleware.LocalUserID`，由 JWT `sub`/`iam_sub` 反查），与 `owner_uid` 同一 ID 空间。 |
+| viewer_is_owner | **转让门控唯一真值**：`owner_uid == viewer_uid`（均为本地 `users.id`）。禁止用平台级 JWT `is_owner`（= `users.is_owner` 遗留标记，与组织 OWNER 无关）。 |
+
+##### 12.3.5.2 添加商户成员
+
+**接口**: `POST /api/admin/merchants/:id/members`
+
+**请求 Body**: `{ "user_id": "uuid", "role": "merchant_admin" }`（或 `user_ids` / `new_users` 批量形态）
+
+**IAM 角色映射**: `merchant_admin → ADMIN`（#2546；所有权只能转让，不得追加第二个 OWNER）。
+
+**错误码**:
+- `40002`: 显式请求 `role=OWNER/owner`（提示走转让所有权）
+
+##### 12.3.5.3 修改商户成员角色
+
+**接口**: `PUT /api/admin/merchants/:id/members/:uid`
+
+**请求 Body**: `{ "role": "merchant_admin" }`
+
+**错误码**:
+- `40002`: 目标是当前所有人（`所有人不能改角色，请使用转让所有权`）；或显式请求 OWNER
+- `40400`: 成员不存在
+
+##### 12.3.5.4 移除商户成员
+
+**接口**: `DELETE /api/admin/merchants/:id/members/:uid`
+
+**错误码**:
+- `40303`: 目标是当前所有人（`所有人不能移除，只能转让所有权`，不调 IAM）
+- `40009`: 目标是最后一个非 owner 管理员（既有兜底，保持不变）
+
+##### 12.3.5.5 转让所有权
+
+**接口**: `POST /api/merchants/:id/transfer-ownership`
+
+**权限**: sys_perm **bit 8**（`tenant:update`）**或** `businessRole=merchant_admin`（本商户）；IAM 侧必须是当前 OWNER（或平台超管）
+
+**请求 Body**:
+```json
+{ "user_id": "target-user-uuid" }
+```
+
+**服务端动作**（顺序固定，失败不落本地）:
+1. 本地前置校验：目标必须是本商户 active `merchant_members` 行（否则 `40400`，**不调 IAM**）、不得等于当前所有人（`40002`）、必须有 `users.iam_sub`（`40002`）；
+2. IAM `POST /api/v1/organizations/:org_id/transfer-ownership {user_id: <iam_sub>}`（单事务：旧 OWNER→ADMIN、目标→OWNER、audit、perm_version 递增）；
+3. 本地同步（**单事务**）：`merchants.admin_uid = 目标本地 id`、`admin_pending=false`，并把目标 `merchant_members.role` 提升为 `merchant_admin`；任一 `RowsAffected != 1` 或报错 → **整体回滚** 并返回 `500/50000`「IAM 已转让，但本地同步失败…请联系平台人工核对」（禁止 log-only 半同步 + 200）；
+4. 审计由 `auditRouteMap` 表项（`TRANSFER_OWNERSHIP` / `merchant` / `CRITICAL`）自动落 `audit_logs`，handler 不手写审计。
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "merchant_id": "uuid",
+    "previous_owner_id": "old-owner-uuid",
+    "new_owner_id": "new-owner-uuid"
+  }
+}
+```
+
+**错误码**:
+| HTTP | code | 场景 |
+|------|------|------|
+| 400 | 40001 | `user_id` 缺失或非 UUID |
+| 400 | 40002 | 目标已是当前所有人 / 目标缺少 IAM 账号 / IAM 400（如 `user is already the owner`，文案透传） |
+| 403 | 40303 | IAM 403「仅当前所有人可转让所有权」 |
+| 404 | 40400 | 目标不是本商户成员 / IAM 404 |
+| 409 | 40900 | IAM 409「该商户当前没有所有人，请走修复流程」 |
+| 502 | 50200 | IAM 5xx / 网络失败（**不得**降级为 200） |
+
+> 本地 `admin_uid` 与 IAM OWNER 的存量一致性核对由运维单（#2553）负责，本端点不做存量猜测。
 ```
 
 ### 12.4 审计日志

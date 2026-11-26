@@ -1,0 +1,106 @@
+{
+  "issue": 2546,
+  "overall": "PASS",
+  "plan": "/tmp/opencode/tuneloop/wt-2546/tmp/pre-ready-2546.MXfrpq/plan.md",
+  "plan_sha256": "f293bebf3127aa9db568478d384eb44b03d83767225729db4232a05e6fac61c6",
+  "config_sha": "acab7d27d28832d1ad366dd4c944ffb3e2ff9ca8",
+  "provenance": {
+    "build": "1.0.29eea1dae",
+    "commit": "29eea1daebfca235ea38fa55a3dd30a9e29d9e1b",
+    "dirty": false
+  },
+  "summary": "tmp/work-summary-2546.md",
+  "timestamp": "20261126-220956",
+  "checks": [
+    {
+      "id": "P1",
+      "status": "PASS",
+      "detail": "plan has Verification Matrix / Input Truth & Tool Preflight / Decision Lock / Out of Scope"
+    },
+    {
+      "id": "P2",
+      "status": "PASS",
+      "detail": "Work Summary covers all 18 matrix rows with PASS/N/A"
+    },
+    {
+      "id": "P3",
+      "status": "PASS",
+      "detail": "all referenced evidence paths exist and are durable"
+    },
+    {
+      "id": "P4",
+      "status": "PASS",
+      "detail": "all 1 affected command(s) passed"
+    },
+    {
+      "id": "P12",
+      "status": "PASS",
+      "detail": "Evidence Contract complete: 18 row(s) match the plan and have durable artifacts"
+    },
+    {
+      "id": "P14",
+      "status": "PASS",
+      "detail": "artifact provenance matches evidence (18 artifacts)"
+    },
+    {
+      "id": "P18",
+      "status": "PASS",
+      "detail": "tooling_commit matches the running scripts (acab7d27d28832d1ad366dd4c944ffb3e2ff9ca8)"
+    },
+    {
+      "id": "P15",
+      "status": "N/A",
+      "detail": "no batch gate reference in the plan"
+    },
+    {
+      "id": "P16",
+      "status": "N/A",
+      "detail": "no UI render rows in the plan"
+    },
+    {
+      "id": "P17",
+      "status": "PASS",
+      "detail": "plan snapshot and Accepted Plan comment match the gated plan"
+    },
+    {
+      "id": "P5",
+      "status": "PASS",
+      "detail": "full gate clean worktree; HEAD failures are a subset of baseline (eb6579802e7f1083586a6428fef344c4c6c110bc); source head=run baseline=run"
+    },
+    {
+      "id": "P6",
+      "status": "PASS",
+      "detail": "all changed files are declared in the Accepted Plan"
+    },
+    {
+      "id": "P7",
+      "status": "PASS",
+      "detail": "contract three-way section present"
+    },
+    {
+      "id": "P8",
+      "status": "N/A",
+      "detail": "no panel/clarify files changed"
+    },
+    {
+      "id": "P9",
+      "status": "N/A",
+      "detail": "no session/build_version/aiaudit/.rpt/.dat evidence referenced"
+    },
+    {
+      "id": "P10",
+      "status": "N/A",
+      "detail": "no aiaudit reference"
+    },
+    {
+      "id": "P11",
+      "status": "PASS",
+      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /tmp/opencode/tuneloop/wt-2546; worktree guard: PASS isolated worktree=/tmp/opencode/tuneloop/wt-2546"
+    },
+    {
+      "id": "P13",
+      "status": "PASS",
+      "detail": "fix commit and evidence artifacts are on origin/issue-2546"
+    }
+  ]
+}
