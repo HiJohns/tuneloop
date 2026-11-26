@@ -77,7 +77,7 @@ func TestMerchantAdminActorAuthorization_2546(t *testing.T) {
 	actor := testutil.TestActor{
 		TenantID: f.orgID,
 		OrgID:    f.orgID,
-		UserID:   f.ownerID,
+		UserID:   f.ownerSub, // JWT sub（IAM 用户 id）；本地 users.id 由服务端解析
 		Role:     "OWNER",
 		SysPerm:  merchantAdminSysPerm2546,
 	}

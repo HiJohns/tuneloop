@@ -6,7 +6,7 @@ import { formatBeijingDate } from '../utils/date';
 import PasswordSettingFields from './PasswordSettingFields';
 import InitialPasswordModal from './InitialPasswordModal'
 import { resolveCreateFeedback } from '../utils/createFeedback';
-import { pickOwnerRow, transferCandidates, canRemoveMember, canTransferOwnership, transferConfirmText } from '../utils/merchantOwnership';
+import { transferCandidates, canRemoveMember, canTransferOwnership, transferConfirmText } from '../utils/merchantOwnership';
 
 // #2546 Low-2：后端 maxPageSize=100（backend/handlers/pagination_helpers.go），
 // 候选必须按此分页补拉，禁止一次要 200（会被静默截断）。
@@ -28,7 +28,10 @@ const ROLE_NAMES = {
 
 
 
-const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
+const MerchantMemberManagement = ({ merchantId, onRefresh, businessRole }) => {
+  // #2546 D13/§8：商户管理员视角只读 —— 成员增删是平台专属写路由，
+  // 前端必须隐藏「添加管理员」与行内「移除」，否则用户点到只会收到 40303。
+  const isMerchantAdmin = businessRole === 'merchant_admin';
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -58,6 +61,8 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
   // #2546：所有人（唯一 OWNER）与转让所有权。
   // 门控真值来自后端 viewer_is_owner（D14），不使用平台级遗留所有者标记。
   const [ownerUid, setOwnerUid] = useState('');
+  // #2546 D1b：admin_uid 是否有值（true=有值但没解析到本地账号 → 成员记录缺失）。
+  const [ownerAnchorPresent, setOwnerAnchorPresent] = useState(false);
   const [viewerUid, setViewerUid] = useState('');
   const [viewerIsOwner, setViewerIsOwner] = useState(false);
   const [allMembers, setAllMembers] = useState([]);
@@ -85,6 +90,7 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
       collected.push(...rows);
       expected = resp.data?.total || collected.length;
       if (resp.data?.owner_uid !== undefined) setOwnerUid(resp.data.owner_uid || '');
+      if (resp.data?.owner_anchor_present !== undefined) setOwnerAnchorPresent(resp.data.owner_anchor_present === true);
       if (resp.data?.viewer_uid !== undefined) setViewerUid(resp.data.viewer_uid || '');
       if (resp.data?.viewer_is_owner !== undefined) setViewerIsOwner(resp.data.viewer_is_owner === true);
       if (rows.length === 0 || collected.length >= expected) break;
@@ -101,6 +107,7 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
         setMembers(response.data?.list || []);
         setTotal(response.data?.total || 0);
         setOwnerUid(response.data?.owner_uid || '');
+        setOwnerAnchorPresent(response.data?.owner_anchor_present === true);
         setViewerUid(response.data?.viewer_uid || '');
         setViewerIsOwner(response.data?.viewer_is_owner === true);
       }
@@ -415,7 +422,8 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
       key: 'actions',
       render: (_, record) => {
         // #2546：所有人只能转让，不能移除（后端同样 40303）。
-        if (!canRemoveMember(record, ownerUid)) {
+        // #2546 §8：商户管理员视角不渲染移除入口（成员增删是平台专属写路由）。
+        if (isMerchantAdmin || !canRemoveMember(record, ownerUid)) {
           return <Space />;
         }
         // 最后管理员保护（#1718）：仅剩 1 个管理员时禁用移除（后端同样拒绝）。
@@ -436,13 +444,19 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
     },
   ];
 
-  const ownerRow = pickOwnerRow(members);
+  // #2546 Rev.5 D1b/§7：所有人卡片以归一化后的 owner_uid 为准 —— 不再按成员行
+  // 存在性判定（历史 admin_uid=IAM id 时行存在但 id 不匹配）。
+  const ownerRow = ownerUid
+    ? (allMembers.find((member) => member && member.user_id === ownerUid)
+      || members.find((member) => member && member.user_id === ownerUid)
+      || null)
+    : null;
   const candidates = transferCandidates(allMembers, ownerUid);
   const canTransfer = canTransferOwnership({ viewerIsOwner, ownerUid, viewerUid, candidates });
 
   return (
     <div>
-      {ownerRow ? (
+      {ownerUid ? (
         <div
           style={{
             marginBottom: 16, padding: 12, borderRadius: 6, background: '#fff1f0',
@@ -451,9 +465,11 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
         >
           <div>
             <Tag color="red">所有人（OWNER）</Tag>
-            <span style={{ fontWeight: 600 }}>{ownerRow.user_name || '-'}</span>
-            <span style={{ color: '#888', marginLeft: 8 }}>{ownerRow.user_email || '-'}</span>
-            <span style={{ color: '#888', marginLeft: 8 }}>加入时间：{formatBeijingDate(ownerRow.created_at)}</span>
+            <span style={{ fontWeight: 600 }}>{ownerRow?.user_name || ownerUid}</span>
+            <span style={{ color: '#888', marginLeft: 8 }}>{ownerRow?.user_email || '-'}</span>
+            {ownerRow?.created_at && (
+              <span style={{ color: '#888', marginLeft: 8 }}>加入时间：{formatBeijingDate(ownerRow.created_at)}</span>
+            )}
           </div>
           {canTransfer && (
             <Button icon={<SwapOutlined />} onClick={() => { setTransferTarget(''); setTransferOpen(true); }}>
@@ -462,12 +478,15 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
           )}
         </div>
       ) : (
+        // #2546 D1b：两类空态必须区分（admin_uid 无值 vs 有值但两种 ID 空间都不命中）。
         <Alert
           type="warning"
           showIcon
           style={{ marginBottom: 16 }}
-          message="未锚定所有人"
-          description="该商户当前没有有效所有人（请联系平台核对）。为避免产生第二个 OWNER，转让入口已禁用。"
+          message={ownerAnchorPresent ? '成员记录缺失' : '未锚定所有人'}
+          description={ownerAnchorPresent
+            ? '该商户记录的所有人账号在系统中已不存在（请联系平台核对），为避免产生第二个 OWNER，转让入口已禁用。'
+            : '该商户当前没有有效所有人（请联系平台核对）。为避免产生第二个 OWNER，转让入口已禁用。'}
         />
       )}
 
@@ -480,12 +499,14 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
           value={searchKeyword}
           onChange={(e) => setSearchKeyword(e.target.value)}
         />
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => {
-          resetForm();
-          setModalVisible(true);
-        }}>
-          添加管理员
-        </Button>
+        {!isMerchantAdmin && (
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => {
+            resetForm();
+            setModalVisible(true);
+          }}>
+            添加管理员
+          </Button>
+        )}
       </div>
 
       <Modal

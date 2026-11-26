@@ -198,9 +198,10 @@ steps:
       - platform: [pc]
         page: /merchants/:id
         role: [merchant_admin]
-        gate: "viewer_is_owner=true（本商户 merchants.admin_uid = 当前登录账号；禁止用平台级 JWT is_owner）"
+        gate: "viewer_is_owner=true（归一化 merchants.admin_uid = 当前登录账号的本地 users.id；禁止用平台级 JWT is_owner）"
         reach: "菜单「商户管理」→ 本商户详情 → 所有人 Tab → 转让所有权"
         controls: [目标成员选择（仅本商户 active 成员）, 二次确认（展示「转让后你将成为管理员」）]
+        empty_states: ["admin_uid 无值 → 未锚定所有人（请联系平台核对）", "admin_uid 有值但两种 ID 空间都不命中 → 成员记录缺失，请联系平台"]
         ops:
           - {type: api, method: POST, path: /api/merchants/:id/transfer-ownership}
     # 服务器端动作：
@@ -236,6 +237,7 @@ steps:
 ## 关键规则（2026-11-26 OWNER 模型）
 - **每商户恰好 1 个所有人（OWNER）**：IAM `user_org_relations` 部分唯一索引保证；负责人不再是「可多个的商户管理员」
 - **本地所有权指针 = `merchants.admin_uid`**：`merchant_members.role` 只表达业务角色（OWNER 与 ADMIN 同为 `merchant_admin`），本地**没有** `is_owner` 列（接口下发的 `is_owner` 只是按 `admin_uid` 计算的响应字段）
+- **`admin_uid` 读取侧 ID 空间归一化**（#2546 D1b）：命中 `users.id` 直接用；否则按 `users.iam_sub = admin_uid` 解析本地 id；两者都不命中 → `owner_uid=""` 且前端提示「成员记录缺失」（与「未锚定所有人」区分）；存量写入侧不一致由 #2553 收敛
 - **OWNER 不能删除、不能降级、不能清空**：唯一合法路径是「转让所有权」——原 OWNER 自动降为 ADMIN；`PUT /api/merchants/:id` 的 `admin_uid` 变化同样走转让端点，置空 → `40002`
 - **添加成员/改角色只能写 ADMIN**：成员 bind 用 `merchantMemberIAMRole`（`merchant_admin → ADMIN`）；显式 `role=OWNER` 请求 `400/40002`
 - 管理员（ADMIN）可多个；可建子组织（直营店）、加成员、分配角色、设直授权限

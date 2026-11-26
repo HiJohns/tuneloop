@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -48,10 +49,19 @@ func (h *MerchantMemberHandler) ListMembers(c *gin.Context) {
 	// #2546 D1/D3：默认口径仍是「商户管理员」（既有调用方行为不变）；
 	// include=all 返回本商户全部 active 成员，供「转让所有权」候选使用。
 	includeAll := strings.EqualFold(strings.TrimSpace(c.Query("include")), "all")
-	ownerUID := merchantOwnerUID(merchant)
-	// #2546 D14：转让门控真值 = 本商户 admin_uid 是否等于当前登录账号。
+	// #2546 D1b：admin_uid 读取侧归一化到本地 users.id（历史行写的是 IAM 用户 id）。
+	ownerUID, ownerAnchorPresent, ownerErr := merchantOwnerLocalUID(c.Request.Context(), db, merchant)
+	if ownerErr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "解析商户所有人失败：" + ownerErr.Error()})
+		return
+	}
+	// #2546 D14：转让门控真值 = 本商户 admin_uid 是否等于当前登录账号（同一本地 id 空间）。
 	// 平台级 users.is_owner（JWT is_owner）与组织 OWNER 无关，禁止作为门控。
-	viewerUID := middleware.GetUserID(c.Request.Context())
+	viewerUID, viewerErr := viewerLocalUserID(c, db)
+	if viewerErr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "解析当前登录账号失败：" + viewerErr.Error()})
+		return
+	}
 	viewerIsOwner := ownerUID != "" && viewerUID == ownerUID
 
 	applyFilters := func(q *gorm.DB) *gorm.DB {
@@ -99,7 +109,9 @@ func (h *MerchantMemberHandler) ListMembers(c *gin.Context) {
 			"page":      page,
 			"page_size": pageSize,
 			"owner_uid": ownerUID,
-			// #2546 D14：前端「转让所有权」入口的唯一门控真值。
+			// #2546 D1b：admin_uid 是否有值（区分「未锚定所有人」与「成员记录缺失」）。
+			"owner_anchor_present": ownerAnchorPresent,
+			// #2546 D14：前端「转让所有权」入口的唯一门控真值（本地 users.id 空间）。
 			"viewer_uid":      viewerUID,
 			"viewer_is_owner": viewerIsOwner,
 		},
@@ -479,7 +491,13 @@ func (h *MerchantMemberHandler) UpdateMemberRole(c *gin.Context) {
 		})
 		return
 	}
-	if ownerUID := merchantOwnerUID(merchant); ownerUID != "" && userID == ownerUID {
+	// #2546 D1b/D14：owner 比较统一在本地 users.id 空间（历史 admin_uid 可能是 IAM id）。
+	ownerUID, _, ownerErr := merchantOwnerLocalUID(c.Request.Context(), db, merchant)
+	if ownerErr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "解析商户所有人失败：" + ownerErr.Error()})
+		return
+	}
+	if ownerUID != "" && userID == ownerUID {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
 			"message": "所有人不能改角色，请使用转让所有权",
@@ -590,7 +608,13 @@ func (h *MerchantMemberHandler) RemoveMember(c *gin.Context) {
 	}
 	// #2546：所有人（OWNER）不能移除，只能转让所有权 —— 排在既有「最后负责人」
 	// 兜底之前，且不调 IAM（IAM 侧同样会 403）。
-	if ownerUID := merchantOwnerUID(merchant); ownerUID != "" && userID == ownerUID {
+	// #2546 D1b/D14：owner 比较统一在本地 users.id 空间（历史 admin_uid 可能是 IAM id）。
+	ownerUID, _, ownerErr := merchantOwnerLocalUID(c.Request.Context(), db, merchant)
+	if ownerErr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "解析商户所有人失败：" + ownerErr.Error()})
+		return
+	}
+	if ownerUID != "" && userID == ownerUID {
 		c.JSON(http.StatusForbidden, gin.H{"code": 40303, "message": "所有人不能移除，只能转让所有权"})
 		return
 	}
@@ -654,17 +678,68 @@ func (h *MerchantMemberHandler) RemoveMember(c *gin.Context) {
 // nilUUID2546 is the all-zero UUID Postgres/GORM uses for "no user".
 const nilUUID2546 = "00000000-0000-0000-0000-000000000000"
 
-// merchantOwnerUID returns the merchant's single OWNER pointer.
+// merchantOwnerUID returns the merchant's single OWNER pointer as stored in
+// merchants.admin_uid (#2546 D1). An empty or all-zero UUID means the merchant
+// is not anchored locally (see #2553 for stored-data reconciliation), and
+// callers must not guess an owner.
 //
-// Local authority for ownership is merchants.admin_uid (#2546 D1). An empty or
-// all-zero UUID means the merchant is not anchored locally (see #2553 for the
-// stored-data reconciliation), and callers must not guess an owner.
+// The returned value is in the *stored* ID space; use merchantOwnerLocalUID for
+// anything that compares against local users.id (D1b/D14).
 func merchantOwnerUID(merchant models.Merchant) string {
 	uid := strings.TrimSpace(merchant.AdminUID)
 	if uid == "" || uid == nilUUID2546 {
 		return ""
 	}
 	return uid
+}
+
+// merchantOwnerLocalUID normalizes merchants.admin_uid into the local users.id
+// space (#2546 D1b/D14).
+//
+// Stored rows have two historical shapes: the local users.id (written by
+// CreateMerchant and by ownership transfers) and the IAM user id (old rows
+// written before #2250 anchored writes). Read paths must accept both:
+//   - admin_uid matches users.id       -> use it directly
+//   - admin_uid matches users.iam_sub  -> resolve to that row's local id
+//
+// Returns (localUID, anchorPresent). localUID is "" when the pointer holds a
+// value but does not resolve; anchorPresent reports whether admin_uid holds a
+// value at all, so callers can distinguish "未锚定所有人" (no pointer) from
+// "成员记录缺失" (pointer present but unresolvable → contact the platform).
+// Stored-data convergence stays in #2553 (read-only ops checklist).
+func merchantOwnerLocalUID(ctx context.Context, db *gorm.DB, merchant models.Merchant) (string, bool, error) {
+	stored := merchantOwnerUID(merchant)
+	if stored == "" {
+		return "", false, nil
+	}
+	idb := db.WithContext(database.IdentityCtx(ctx))
+	// Find (not First) keeps a "no such row" from being logged as an error: both
+	// shapes are expected during the #2553 convergence window.
+	var byID []models.User
+	if err := idb.Select("id").Where("id = ?", stored).Limit(1).Find(&byID).Error; err != nil {
+		return "", true, fmt.Errorf("查询 users.id=%s: %w", stored, err)
+	}
+	if len(byID) == 1 && byID[0].ID != "" {
+		return byID[0].ID, true, nil
+	}
+	var bySub []models.User
+	if err := idb.Select("id").Where("iam_sub = ?", stored).Limit(1).Find(&bySub).Error; err != nil {
+		return "", true, fmt.Errorf("查询 users.iam_sub=%s: %w", stored, err)
+	}
+	if len(bySub) == 1 && bySub[0].ID != "" {
+		return bySub[0].ID, true, nil
+	}
+	return "", true, nil
+}
+
+// viewerLocalUserID resolves the logged-in account's local users.id (#2546
+// D14). Both the ownership pointer and the viewer gate must live in the same
+// ID space, otherwise a real OWNER can never match. iam_sub is globally unique,
+// so the lookup runs without tenant scoping (a platform admin's cached row may
+// live under the platform tenant while the request is scoped to a merchant).
+func viewerLocalUserID(c *gin.Context, db *gorm.DB) (string, error) {
+	ctx := c.Request.Context()
+	return middleware.LocalUserID(ctx, db.WithContext(database.IdentityCtx(ctx)))
 }
 
 // merchantMemberIAMRole maps a tuneloop business role to the IAM relation role
@@ -725,7 +800,16 @@ func mapTransferOwnershipIAMError(iamErr *services.IAMTransferOwnershipError) (i
 // Returns the previous owner's local user id ("" when the merchant was not
 // anchored locally).
 func transferMerchantOwnership(c *gin.Context, db *gorm.DB, merchant models.Merchant, targetUserID string) (string, error) {
-	previousOwnerID := merchantOwnerUID(merchant)
+	// #2546 D1b/D14：previous owner 归一化到本地 users.id —— 与目标（members.user_id）
+	// 以及 viewer 门控使用同一 ID 空间；历史行把 admin_uid 存成 IAM id 也能正确判重。
+	previousOwnerID, _, ownerErr := merchantOwnerLocalUID(c.Request.Context(), db, merchant)
+	if ownerErr != nil {
+		return "", &ownershipTransferError{
+			Status:  http.StatusInternalServerError,
+			Code:    50000,
+			Message: "解析商户所有人失败：" + ownerErr.Error(),
+		}
+	}
 
 	if targetUserID == "" || targetUserID == nilUUID2546 {
 		return previousOwnerID, &ownershipTransferError{

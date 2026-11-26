@@ -1,4 +1,4 @@
-## Accepted Plan — #2546 商户所有人（唯一 OWNER）+ 转让所有权（原 OWNER 降 ADMIN）｜Rev.3｜Rev.4
+## Accepted Plan — #2546 商户所有人（唯一 OWNER）+ 转让所有权（原 OWNER 降 ADMIN）｜Rev.3｜Rev.4｜Rev.5
 
 > Tags: enhancement, code:go, api-contract, scope:pc, code:js
 > 关联依据：beaconiam#508（`4a0cb5c`，预生产包 `beaconiam_20261126-063053_61f8a8f.zip`）已上线转让端点与单一 OWNER 不变量；用例/契约由 #2544 已修订（A1/A2）
@@ -50,7 +50,9 @@
 6. **本地转让同步 = 单事务（R14）**
    - `db.Transaction`：① `merchants` 置 `admin_uid=目标`、`admin_pending=false`（`RowsAffected == 1`）；② 目标 `merchant_members.role='merchant_admin'`（`RowsAffected == 1`）；③ 任一失败/行数不符 → **回滚** 并返回 `500/50000`「IAM 已转让，但本地同步失败，请联系平台人工核对（旧/新所有人：…）」；禁止 log-only + 200。
 7. **PC 前端（`MerchantMemberManagement.jsx`）**
-   - Tab 改名「所有人」；顶部唯一 OWNER 卡片（读 `is_owner` 行）；无 owner（`owner_uid` 空）→ 提示「未锚定所有人（请联系平台核对）」并禁用转让。
+   - Tab 改名「所有人」；顶部唯一 OWNER 卡片（**以归一化后的 `owner_uid` 为准**，不再用 `pickOwnerRow(members)` 行存在性判定）；两类空态必须区分：
+     - `owner_uid` 为空 **且** 成员列表无候选 → 「未锚定所有人（请联系平台核对）」；
+     - `admin_uid` 有值但在两种 ID 空间都不命中 → 「成员记录缺失，请联系平台」（Rev.5，D1b）。
    - **转让门控 = 后端 `viewer_is_owner`**（删除 `localStorage.user_info.isOwner`），由纯函数 `canTransferOwnership({viewerIsOwner, ownerUid, viewerUid, candidates})` 判定；`Modal` 内候选 `Select` + 固定文案「转让后你将成为管理员」+ `Modal.confirm` 二次确认 → `POST /merchants/:id/transfer-ownership` → 成功刷新；失败原样展示后端 `message`。
    - 候选来源：`include=all&page_size=100` **分页补拉**到 `total`（Low-2），排除当前 owner；owner 行不渲染移除入口；添加成员不再有「设为负责人」。
    - 纯函数集中于 `frontend-pc/src/utils/merchantOwnership.js`（`pickOwnerRow`/`transferCandidates`/`canRemoveMember`/`canTransferOwnership`/`transferConfirmText`）。
@@ -60,6 +62,7 @@
    - 数据面收窄沿用既有分支（`ListMerchants`/`GetMerchant` 按 `org_id`；成员/转让经 `loadMerchantForAccess`），**不新增第二套 scoping**。
    - 前端：`checkPermission` 增加可选 `perm.businessRoles`（命中 `userInfo.businessRole` → 通过，与 sys/cus 为 OR；调用方 `App.jsx` 与 `ProtectedRoute` 同批传 `userInfo`）；`/merchants` 菜单与 `/merchants/:id` 路由追加 `businessRoles: ['merchant_admin']`；`/merchants/new` **不追加**（平台专属）。
    - `MerchantManagement.jsx`：`businessRole === 'merchant_admin'` 时隐藏「创建商户」「删除」「编辑基本信息」「分账配置」与列表编辑入口，详情默认 Tab = 所有人（只读信息 + 转让）。平台管理员视图不变。
+   - `MerchantMemberManagement.jsx`：接收 `businessRole`（或 `readOnly`）入参；`merchant_admin` 视角下隐藏「**添加管理员**」与行内「**移除**」（Rev.5，§8 隐藏清单补齐；成员增删仍为平台专属写路由）。
 
 ### 语义变更（必须翻转的既有断言，强制清单）
 
@@ -98,12 +101,13 @@
 | R9 审计路由接线 | `backend/middleware/audit_logger.go` | `auditRouteMap` 单元断言 | 路由键存在且字段完整 | backend | `AUDIT_ROUTE_FOUND=1`、`AUDIT_ACTION=TRANSFER_OWNERSHIP`、`AUDIT_RESOURCE=merchant`、`AUDIT_PRIORITY=CRITICAL` | R9 |
 | R10 构建 + 既有成员/商户用例回归 | `backend/handlers/merchant_member.go`、`backend/handlers/merchant.go` | `go build ./...` + 定向回归 | 修后工作树 | backend | `BUILD_RC=0`、`REGRESSION_RC=0`、`REGRESSION_PASS=1` | R10 |
 | R11 文档同步落字（含位数与权限口径） | `docs/spec/api/api.md`、`docs/spec/ui/ui.md`、`docs/spec/database/database.md`、`docs/cases/organization.md`、`docs/spec/permissions.md` | grep 结构断言 | — | 文档 | `DOC_API_TRANSFER=1`、`DOC_API_MEMBERS_OWNER=1`、`DOC_API_BIT8=1`、`DOC_UI_OWNER_TAB=1`、`DOC_DB_ADMIN_UID=1`、`DOC_CASE_PATH_ALIGNED=1`、`DOC_PERM_MERCHANTS_SCOPED=1` | R11 |
-| R12 转让门控真值（后端 `viewer_is_owner` + 纯函数） | `backend/handlers/merchant_member.go`、`frontend-pc/src/utils/merchantOwnership.js`、`frontend-pc/src/components/MerchantMemberManagement.jsx` | `GET /admin/merchants/:id/members` + `node --test` | 当前登录者为 owner / 原 owner 已降 ADMIN / 未锚定 owner / 无候选 | backend + PC | `GATE_FIELD=viewer_is_owner`、`BE_VIEWER_IS_OWNER_TRUE=1`、`BE_VIEWER_IS_OWNER_FALSE=1`、`GATE_OWNER_TRUE=1`、`GATE_DEMOTED_FALSE=1`、`GATE_UNANCHORED_FALSE=1`、`GATE_NO_CANDIDATE_FALSE=1`、`GATE_USERINFO_OWNER_USAGE=0`、`NODE_TEST_RC=0` | R12 |
+| R12 转让门控真值（后端 `viewer_is_owner` + 纯函数） | `backend/handlers/merchant_member.go`、`frontend-pc/src/utils/merchantOwnership.js`、`frontend-pc/src/components/MerchantMemberManagement.jsx` | `GET /admin/merchants/:id/members` + `node --test` | 当前登录者为 owner / 原 owner 已降 ADMIN / 未锚定 owner / 无候选 | backend + PC | `GATE_FIELD=viewer_is_owner`、`BE_VIEWER_IS_OWNER_TRUE=1`、`BE_VIEWER_IS_OWNER_FALSE=1`、`VIEWER_UID_EQUALS_LOCAL_ID=1`、`GATE_FIELD_SPACE=local_user_id`、`GATE_OWNER_TRUE=1`、`GATE_DEMOTED_FALSE=1`、`GATE_UNANCHORED_FALSE=1`、`GATE_NO_CANDIDATE_FALSE=1`、`GATE_USERINFO_OWNER_USAGE=0`、`NODE_TEST_RC=0` | R12 |
 | R13 `PUT /merchants/:id` 组合字段不丢失 | `backend/handlers/merchant.go` | `PUT /merchants/:id` | 请求 `{"name","phone","admin_uid"}` 三者同时提交 | backend | `COMBINED_STATUS=200`、`NAME_PERSISTED=1`、`PHONE_PERSISTED=1`、`ADMIN_UID_SWITCHED=1` | R13 |
 | R14 角色提升失败不半同步 | `backend/handlers/merchant_member.go` | `POST /merchants/:id/transfer-ownership` | 注入 `merchant_members` 更新失败（GORM callback） | backend | `PROMOTE_FAIL_STATUS=500`、`PROMOTE_FAIL_CODE=50000`、`ADMIN_UID_UNCHANGED=1`、`ROLE_UNCHANGED=1`、`MSG_HAS_MANUAL_CHECK=1` | R14 |
 | R15 actor 授权矩阵（D13） | `backend/middleware/permissions.go`、`backend/main.go`、`backend/handlers/merchant.go`、`backend/handlers/merchant_member.go` | 4 条放开路由 + 平台专属写路由 | JWT: `businessRole=merchant_admin`、`sys_perm` 仅 bit 10-29 | backend | `MA_LIST_STATUS=200`、`MA_LIST_ROWS=1`、`MA_GET_OWN_STATUS=200`、`MA_GET_OTHER_STATUS=404`、`MA_MEMBERS_STATUS=200`、`MA_TRANSFER_STATUS=200`、`MA_CREATE_MERCHANT_STATUS=403`、`MA_UPDATE_MERCHANT_STATUS=403`、`MA_DELETE_MERCHANT_STATUS=403`、`MA_ADD_MEMBER_STATUS=403` | R15 |
 | R16 商户管理员入口接线（菜单/路由/平台操作隐藏 + 路由守卫传 `userInfo`） | `frontend-pc/src/config/menuPermissions.js`、`frontend-pc/src/App.jsx`、`frontend-pc/src/components/ProtectedRoute.jsx`、`frontend-pc/src/pages/MerchantManagement.jsx` | `node --test frontend-pc/src/config/menuPermissions.test.js` + 结构断言 + eslint | `businessRole=merchant_admin` / 平台管理员 | PC | `CHECKPERM_MA=1`、`CHECKPERM_PLATFORM=1`、`MENU_BUSINESS_ROLES=1`、`ROUTE_BUSINESS_ROLES=1`、`PROTECTED_ROUTE_USERINFO=1`（`ProtectedRoute.jsx` 把 `userInfo` 传给 `checkPermission`）、`NEW_ROUTE_PLATFORM_ONLY=1`、`PLATFORM_ACTIONS_HIDDEN=1`、`FRONTEND_LINT_RC=0` | R16 |
-
+| R17 `admin_uid` ID 空间兼容（Rev.5） | `backend/handlers/merchant_member.go` | `GET /admin/merchants/:id/members` + 转让守卫 | 商户的 `admin_uid` 写的是 **IAM 用户 id**（历史形态） | backend | `ADMIN_UID_SPACE=iam_sub`、`IS_OWNER_HITS=1`、`VIEWER_IS_OWNER=1`、`OWNER_CARD_RENDERED=1`、`REMOVE_OWNER_STATUS=403`、`DEMOTE_OWNER_STATUS=400` | R17 |
+| R18 商户管理员成员操作隐藏（Rev.5） | `frontend-pc/src/components/MerchantMemberManagement.jsx` | 结构断言 | `businessRole=merchant_admin` | PC | `MEMBER_ACTIONS_HIDDEN=1`、`ADD_MEMBER_BUTTON_HIDDEN=1`、`REMOVE_MEMBER_HIDDEN=1`（`evidence_type: static`） | R18 |
 ## G0 Golden Acceptance
 
 | 行 | fixture | entry | artifact | assertions | negative |
@@ -119,12 +123,13 @@
 | R9 | `auditRouteMap` 静态表 | `bash scripts/verify-2546.sh r9` | `docs/evidence/2546/R9-audit-route.txt` | `AUDIT_ROUTE_FOUND=1`、`AUDIT_ACTION=TRANSFER_OWNERSHIP`、`AUDIT_RESOURCE=merchant`、`AUDIT_PRIORITY=CRITICAL` | 路由键缺失或 action 不符 → FAIL |
 | R10 | 修后工作树 + 既有用例 | `bash scripts/verify-2546.sh r10` | `docs/evidence/2546/R10-regression.txt` | `BUILD_RC=0`、`REGRESSION_RC=0`、`REGRESSION_PASS=1` | `BUILD_RC` ≠ 0 或回归 FAIL → FAIL |
 | R11 | 五份契约文档修后内容 | `bash scripts/verify-2546.sh r11` | `docs/evidence/2546/R11-docs.txt` | `DOC_API_TRANSFER=1`、`DOC_API_MEMBERS_OWNER=1`、`DOC_API_BIT8=1`、`DOC_UI_OWNER_TAB=1`、`DOC_DB_ADMIN_UID=1`、`DOC_CASE_PATH_ALIGNED=1`、`DOC_PERM_MERCHANTS_SCOPED=1` | 任一为 `0` → FAIL |
-| R12 | 三组：A 是本地 owner / A 已被降级 / `owner_uid` 为空；`canTransferOwnership` 四类入参 | `bash scripts/verify-2546.sh r12` | `docs/evidence/2546/R12-owner-gate.txt` | `GATE_FIELD=viewer_is_owner`、`BE_VIEWER_IS_OWNER_TRUE=1`、`BE_VIEWER_IS_OWNER_FALSE=1`、`GATE_OWNER_TRUE=1`、`GATE_DEMOTED_FALSE=1`、`GATE_UNANCHORED_FALSE=1`、`GATE_NO_CANDIDATE_FALSE=1`、`GATE_USERINFO_OWNER_USAGE=0`、`NODE_TEST_RC=0` | `GATE_FIELD` 为 `user_info.isOwner`，或 `GATE_DEMOTED_FALSE=0`（被降级者仍可转让）→ FAIL |
+| R12 | 三组：A 是本地 owner / A 已被降级 / `owner_uid` 为空；`canTransferOwnership` 四类入参；**fixture 必须 `users.id != users.iam_sub`，且 JWT sub = `iam_sub`**（Rev.5） | `bash scripts/verify-2546.sh r12` | `docs/evidence/2546/R12-owner-gate.txt` | `GATE_FIELD=viewer_is_owner`、`BE_VIEWER_IS_OWNER_TRUE=1`、`BE_VIEWER_IS_OWNER_FALSE=1`、`VIEWER_UID_EQUALS_LOCAL_ID=1`、`GATE_FIELD_SPACE=local_user_id`、`GATE_OWNER_TRUE=1`、`GATE_DEMOTED_FALSE=1`、`GATE_UNANCHORED_FALSE=1`、`GATE_NO_CANDIDATE_FALSE=1`、`GATE_USERINFO_OWNER_USAGE=0`、`NODE_TEST_RC=0` | `GATE_FIELD` 为 `user_info.isOwner`，或 `GATE_DEMOTED_FALSE=0`（被降级者仍可转让）→ FAIL |
 | R13 | 同 R1；`PUT` body 同时含 `name=N2`、`phone`、`admin_uid=B` | `bash scripts/verify-2546.sh r13` | `docs/evidence/2546/R13-put-combined-fields.txt` | `COMBINED_STATUS=200`、`NAME_PERSISTED=1`、`PHONE_PERSISTED=1`、`ADMIN_UID_SWITCHED=1` | 任一 `PERSISTED=0`（组合请求静默丢字段）→ FAIL |
 | R14 | 同 R1；GORM callback 令 `merchant_members` UPDATE 失败 | `bash scripts/verify-2546.sh r14` | `docs/evidence/2546/R14-promote-failure.txt` | `PROMOTE_FAIL_STATUS=500`、`PROMOTE_FAIL_CODE=50000`、`ADMIN_UID_UNCHANGED=1`、`ROLE_UNCHANGED=1`、`MSG_HAS_MANUAL_CHECK=1` | `PROMOTE_FAIL_STATUS=200`，或 `ADMIN_UID` 已变而 role 未变（半同步）→ FAIL |
 | R15 | 两个商户 M1（呼叫者为其 OWNER）/ M2；JWT businessRole=merchant_admin、sys_perm=1073740800 | `bash scripts/verify-2546.sh r15` | `docs/evidence/2546/R15-actor-authz.txt` | `MA_LIST_STATUS=200`、`MA_LIST_ROWS=1`、`MA_GET_OWN_STATUS=200`、`MA_GET_OTHER_STATUS=404`、`MA_MEMBERS_STATUS=200`、`MA_TRANSFER_STATUS=200`、`MA_CREATE_MERCHANT_STATUS=403`、`MA_UPDATE_MERCHANT_STATUS=403`、`MA_DELETE_MERCHANT_STATUS=403`、`MA_ADD_MEMBER_STATUS=403` | `MA_GET_OTHER_STATUS=200`（跨商户可见），或平台专属写路由对商户管理员放行 → FAIL |
 | R16 | `checkPermission` 三类入参 + 源码结构断言（菜单/路由/平台操作分支） | `bash scripts/verify-2546.sh r16` | `docs/evidence/2546/R16-merchant-admin-entry.txt` | `CHECKPERM_MA=1`、`CHECKPERM_PLATFORM=1`、`MENU_BUSINESS_ROLES=1`、`ROUTE_BUSINESS_ROLES=1`、`PROTECTED_ROUTE_USERINFO=1`、`NEW_ROUTE_PLATFORM_ONLY=1`、`PLATFORM_ACTIONS_HIDDEN=1`、`FRONTEND_LINT_RC=0` | `MENU_BUSINESS_ROLES=0`（菜单仍不可见 → Issue 期望 2 不可达）或 `NEW_ROUTE_PLATFORM_ONLY=0`（`/merchants/new` 对商户管理员开放）→ FAIL |
-
+| R17 | 商户的 `admin_uid` = IAM 用户 id（`users.iam_sub`），登录者 sub 为该 iam_sub | `bash scripts/verify-2546.sh r17` | `docs/evidence/2546/R17-admin-uid-space.txt` | `ADMIN_UID_SPACE=iam_sub`、`IS_OWNER_HITS=1`、`VIEWER_IS_OWNER=1`、`OWNER_CARD_RENDERED=1`、`REMOVE_OWNER_STATUS=403`、`DEMOTE_OWNER_STATUS=400` | 归一化缺失（OWNER 卡片不出现 / 守卫放行降级）→ FAIL |
+| R18 | `businessRole=merchant_admin` 的成员管理组件 | `bash scripts/verify-2546.sh r18` | `docs/evidence/2546/R18-member-actions.txt` | `MEMBER_ACTIONS_HIDDEN=1`、`ADD_MEMBER_BUTTON_HIDDEN=1`、`REMOVE_MEMBER_HIDDEN=1` | 仍显示添加/移除 → FAIL |
 ### Evidence Types
 
 | 行 ID | evidence_type | 说明 |
@@ -161,12 +166,13 @@
 | R9 | `bash scripts/verify-2546.sh r9` | `docs/evidence/2546/R9-audit-route.txt` | exit 0；grep `AUDIT_ROUTE_FOUND=1`、`AUDIT_ACTION=TRANSFER_OWNERSHIP`、`AUDIT_RESOURCE=merchant`、`AUDIT_PRIORITY=CRITICAL` | PASS | 路由键缺失或 action 不符 → FAIL | dev |
 | R10 | `bash scripts/verify-2546.sh r10` | `docs/evidence/2546/R10-regression.txt` | exit 0；grep `BUILD_RC=0`、`REGRESSION_RC=0`、`REGRESSION_PASS=1` | PASS | `BUILD_RC` 非 0 或回归 FAIL → FAIL | dev |
 | R11 | `bash scripts/verify-2546.sh r11` | `docs/evidence/2546/R11-docs.txt` | exit 0；grep `DOC_API_TRANSFER=1`、`DOC_API_MEMBERS_OWNER=1`、`DOC_API_BIT8=1`、`DOC_UI_OWNER_TAB=1`、`DOC_DB_ADMIN_UID=1`、`DOC_CASE_PATH_ALIGNED=1`、`DOC_PERM_MERCHANTS_SCOPED=1` | PASS | 任一 `=0` → FAIL | dev |
-| R12 | `bash scripts/verify-2546.sh r12` | `docs/evidence/2546/R12-owner-gate.txt` | exit 0；grep `GATE_FIELD=viewer_is_owner`、`BE_VIEWER_IS_OWNER_TRUE=1`、`BE_VIEWER_IS_OWNER_FALSE=1`、`GATE_OWNER_TRUE=1`、`GATE_DEMOTED_FALSE=1`、`GATE_UNANCHORED_FALSE=1`、`GATE_NO_CANDIDATE_FALSE=1`、`GATE_USERINFO_OWNER_USAGE=0`、`NODE_TEST_RC=0` | PASS | `GATE_FIELD` 非 `viewer_is_owner`，或 `GATE_DEMOTED_FALSE=0`，或 `GATE_USERINFO_OWNER_USAGE=1` → FAIL | dev |
+| R12 | `bash scripts/verify-2546.sh r12` | `docs/evidence/2546/R12-owner-gate.txt` | exit 0；grep `GATE_FIELD=viewer_is_owner`、`BE_VIEWER_IS_OWNER_TRUE=1`、`BE_VIEWER_IS_OWNER_FALSE=1`、`VIEWER_UID_EQUALS_LOCAL_ID=1`、`GATE_FIELD_SPACE=local_user_id`、`GATE_OWNER_TRUE=1`、`GATE_DEMOTED_FALSE=1`、`GATE_UNANCHORED_FALSE=1`、`GATE_NO_CANDIDATE_FALSE=1`、`GATE_USERINFO_OWNER_USAGE=0`、`NODE_TEST_RC=0` | PASS | `GATE_FIELD` 非 `viewer_is_owner`，或 `GATE_DEMOTED_FALSE=0`，或 `GATE_USERINFO_OWNER_USAGE=1` → FAIL | dev |
 | R13 | `bash scripts/verify-2546.sh r13` | `docs/evidence/2546/R13-put-combined-fields.txt` | exit 0；grep `COMBINED_STATUS=200`、`NAME_PERSISTED=1`、`PHONE_PERSISTED=1`、`ADMIN_UID_SWITCHED=1` | PASS | 任一 `PERSISTED=0` 或 `ADMIN_UID_SWITCHED=0` → FAIL | dev |
 | R14 | `bash scripts/verify-2546.sh r14` | `docs/evidence/2546/R14-promote-failure.txt` | exit 0；grep `PROMOTE_FAIL_STATUS=500`、`PROMOTE_FAIL_CODE=50000`、`ADMIN_UID_UNCHANGED=1`、`ROLE_UNCHANGED=1`、`MSG_HAS_MANUAL_CHECK=1` | PASS | `PROMOTE_FAIL_STATUS=200`，或 `ADMIN_UID_UNCHANGED=0` 且 `ROLE_UNCHANGED=1` → FAIL | dev |
 | R15 | `bash scripts/verify-2546.sh r15` | `docs/evidence/2546/R15-actor-authz.txt` | exit 0；grep `MA_LIST_STATUS=200`、`MA_LIST_ROWS=1`、`MA_GET_OWN_STATUS=200`、`MA_GET_OTHER_STATUS=404`、`MA_MEMBERS_STATUS=200`、`MA_TRANSFER_STATUS=200`、`MA_CREATE_MERCHANT_STATUS=403`、`MA_UPDATE_MERCHANT_STATUS=403`、`MA_DELETE_MERCHANT_STATUS=403`、`MA_ADD_MEMBER_STATUS=403` | PASS | `MA_GET_OTHER_STATUS=200` 或任一平台专属写路由非 403 → FAIL | dev |
 | R16 | `bash scripts/verify-2546.sh r16` | `docs/evidence/2546/R16-merchant-admin-entry.txt` | exit 0；grep `CHECKPERM_MA=1`、`CHECKPERM_PLATFORM=1`、`MENU_BUSINESS_ROLES=1`、`ROUTE_BUSINESS_ROLES=1`、`PROTECTED_ROUTE_USERINFO=1`、`NEW_ROUTE_PLATFORM_ONLY=1`、`PLATFORM_ACTIONS_HIDDEN=1`、`FRONTEND_LINT_RC=0` | PASS | `MENU_BUSINESS_ROLES=0` 或 `NEW_ROUTE_PLATFORM_ONLY=0` → FAIL | dev |
-
+| R17 | `bash scripts/verify-2546.sh r17` | `docs/evidence/2546/R17-admin-uid-space.txt` | exit 0；grep `ADMIN_UID_SPACE=iam_sub`、`VIEWER_IS_OWNER=1` | PASS | 归一化缺失 → FAIL | dev |
+| R18 | `bash scripts/verify-2546.sh r18` | `docs/evidence/2546/R18-member-actions.txt` | exit 0；grep `MEMBER_ACTIONS_HIDDEN=1` | PASS | 仍显示成员操作 → FAIL | dev |
 ## Artifact Provenance
 
 | artifact | first_line |
@@ -187,6 +193,8 @@
 | `docs/evidence/2546/R14-promote-failure.txt` | `# build=1.0.<fix> # commit=<sha> # dirty=false` |
 | `docs/evidence/2546/R15-actor-authz.txt` | `# build=1.0.<fix> # commit=<sha> # dirty=false` |
 | `docs/evidence/2546/R16-merchant-admin-entry.txt` | `# build=1.0.<fix> # commit=<sha> # dirty=false` |
+| `docs/evidence/2546/R17-admin-uid-space.txt` | `# build=1.0.<fix> # commit=<sha> # dirty=false` |
+| `docs/evidence/2546/R18-member-actions.txt` | `# build=1.0.<fix> # commit=<sha> # dirty=false` |
 
 逐份另需第二行 `GENERATED_AT_HEAD=<40 位 sha>`；生成器 `scripts/verify-2546.sh`（`r1`–`r16`）在 fix commit 之后运行，`dirty=false` 必须与 evidence.json 的 `build`/`commit` 一致。
 
@@ -245,6 +253,8 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 - `docs/evidence/2546/R14-promote-failure.txt`
 - `docs/evidence/2546/R15-actor-authz.txt`
 - `docs/evidence/2546/R16-merchant-admin-entry.txt`
+- `docs/evidence/2546/R17-admin-uid-space.txt`
+- `docs/evidence/2546/R18-member-actions.txt`
 
 ## Input Truth & Tool Preflight
 
@@ -275,6 +285,7 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 | ID | 决策项 | 责任人 | 锁定条件 | 未锁定时的处理 |
 |---|---|---|---|---|
 | D1 | **本地所有权权威 = `merchants.admin_uid`**（target_semantics；historical_baseline = #1718「负责人可多个」，已废止）；`merchant_members.role` 只表达业务角色；`is_owner` 为响应级计算字段，**不落库、不建索引**；**无 DB 结构变更、无迁移** | Architect | 本计划锁定（`docs/cases/organization.md:219-223` + `middleware/iam.go:645`） | 若要求本地落 `is_owner` 列 → 需 migration + IAM 回填数据源，回 Architect |
+| D1b | **`merchants.admin_uid` ID 空间契约（Rev.5）**：读取侧归一化——命中 `users.id` 直接用；否则按 `users.iam_sub = admin_uid` 解析本地 id；两者皆不命中 → `owner_uid=""` 且前端显示「成员记录缺失，请联系平台」（与「未锚定所有人」区分）。写入侧历史不一致由 #2553 收敛 | Architect | 本计划锁定（采纳 Packet 方案 A） | 若要求同时统一写入侧 → 走方案 C，需复审建店事务与 #2461 断言 |
 | D2 | **IAM 转让是唯一所有权变更语义**：`AddMember`/`UpdateMemberRole` 经 `merchantMemberIAMRole` bind `ADMIN`；`toIAMRole` 不动（#2540 兼容）；显式 `role=OWNER/owner` → `40002` | Architect | 本计划锁定 | 改全局 `toIAMRole` → 需同步 #2540 计划 |
 | D3 | 转让候选 = 本商户任意 active `merchant_members` 行（含直属员工），排除当前 owner；成功后提升为 `merchant_admin` | Architect | 本计划锁定（`docs/cases/organization.md:196-206`） | 只允许管理员之间转让 → 前端过滤 + 后端 role 守卫，回 Architect |
 | D4 | `PUT /merchants/:id` 的 `admin_uid` 变化**复用同一转让 helper**；置空 → `400/40002`；**字段更新与转让分离且有序**（先普通字段，再转让；禁止重载后 Save） | Architect | 本计划锁定（避免两条所有权写入路径 + 组合字段丢失） | 若要求保留 bind+demote → 与 #508 冲突，回 Architect |
@@ -287,7 +298,7 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 | D11 | `merchants.admin_uid` 语义升级为「所有人（OWNER）指针」；`docs/spec/database/database.md:121` 同批改口径 | Architect | 本计划锁定 | 若要求新列 `owner_uid` → 需 migration + 回填授权 |
 | D12 | `PUT /merchants/:id` 既有 `40009`（最后负责人兜底）**保持不变**；owner 相关新增分支用 `40303/40002` | Architect | 本计划锁定 | 统一为 `40900` → 需同步前端文案与既有测试 |
 | D13 | **actor 与入口路径 = 方案 (a)**：`businessRole=merchant_admin` 可读 4 条路由（`GET /merchants`、`GET /merchants/:id`、`GET /admin/merchants/:id/members`、`POST /merchants/:id/transfer-ownership`），数据面收窄沿用既有 `org_id`/`loadMerchantForAccess`；平台专属写路由（创建/删除/编辑商户、成员增删改、`/merchants/new`）保持 `sys_perm` 门控；入口路径 = 平台管理 → 商户管理 → 唯一商户 → 所有人 Tab | Architect | 本计划锁定（Issue 期望 2 + O-03 `role: [tenant_admin]` + `docs/spec/permissions.md:275`/`ui.md:3172` 已声明 + 后端收窄分支已存在 #2274/#2276） | 若 Owner 改走「只允许平台超管代转」(b) → 必须同批改写 Issue 期望 2 与 O-03 `gate`/`role`，且需 Owner 书面确认；本单不得擅自回退产品语义 |
-| D14 | **转让门控真值 = 后端 `viewer_is_owner`**（`merchants.admin_uid == 当前 user_id`），禁止用 `users.is_owner`/JWT `is_owner`；漂移时表现为 IAM `40303` 显式错误（不静默） | Architect | 本计划锁定（对端语义核对结论；D7 承载漂移收敛） | 若改用 JWT `role==='OWNER'` → 多组织/超管上下文误判，回 Architect |
+| D14 | **转让门控真值 = 后端 `viewer_is_owner`**，两端统一到**本地 `users.id`**：`merchantOwnerLocalUID(db, merchant) == middleware.LocalUserID(ctx, db)`；`viewer_uid` 下发本地 `users.id`；禁止用 `users.is_owner`/JWT `is_owner`；漂移时表现为 IAM `40303` 显式错误（不静默） | Architect | 本计划锁定（Rev.5：修正 ID 空间混用；采纳 Packet 方案 A） | 若改用 JWT `role==='OWNER'` → 多组织/超管上下文误判，回 Architect |
 | D15 | **组合字段与所有权变更解耦**：`PUT /merchants/:id` 先写普通字段，再转让；转让后如需响应快照只能重载**不 Save**；R13 断言三者同时落库 | Architect | 本计划锁定（避免 `First` 重载覆盖内存字段） | 保留「重载 + Save」→ 组合请求静默丢字段，审计应判 FAIL |
 | D16 | **本地转让同步 = 单事务**（`admin_uid` 与目标 `role` 同时成功），任一失败回滚并 `500/50000` 显式文案；禁止 log-only 半同步 | Architect | 本计划锁定（AGENTS 红线 + 审计 Bug 3） | 若要求「允许半同步 + warning 字段」→ 需定义 warning 契约与消费方，回 Architect |
 
@@ -335,5 +346,6 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 - 关闭本单时需创建 `[Ops-Followup of #2546]`（仅 `waitForConfirm`）承载预生产真机回评与「所有人」Tab 截图（D8）。
 
 *Model: DeepSeek V4.1 Flash 1017*
+
 
 

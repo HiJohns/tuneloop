@@ -6806,6 +6806,7 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
     "page": 1,
     "page_size": 20,
     "owner_uid": "uuid",
+    "owner_anchor_present": true,
     "viewer_uid": "uuid",
     "viewer_is_owner": true
   }
@@ -6815,10 +6816,11 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 **字段说明**:
 | 字段 | 说明 |
 |------|------|
-| is_owner | 该行是否为当前所有人（由 `merchants.admin_uid` 计算，不落库） |
-| owner_uid | 本地所有人指针；空串 = 未锚定（前端显示「未锚定所有人」并禁用转让）。 |
-| viewer_uid | 当前登录账号（`middleware.GetUserID`），前端门控的对照值。 |
-| viewer_is_owner | **转让门控唯一真值**：`owner_uid == viewer_uid`。禁止用平台级 JWT `is_owner`（= `users.is_owner` 遗留标记，与组织 OWNER 无关）。
+| is_owner | 该行是否为当前所有人（由归一化后的 `merchants.admin_uid` 计算，不落库） |
+| owner_uid | 本地所有人指针，**归一化到本地 `users.id` 空间**（#2546 D1b：`admin_uid` 命中 `users.id` 直接使用；否则按 `users.iam_sub = admin_uid` 解析本地 id；两者都不命中 → 空串）。 |
+| owner_anchor_present | `merchants.admin_uid` 是否有值。`owner_uid=""` 时用它区分两类空态：`false` = 未锚定所有人（`admin_uid` 无值）；`true` = 成员记录缺失（有值但两种 ID 空间都不命中）。两者都禁用转让。 |
+| viewer_uid | 当前登录账号的**本地 `users.id`**（`middleware.LocalUserID`，由 JWT `sub`/`iam_sub` 反查），与 `owner_uid` 同一 ID 空间。 |
+| viewer_is_owner | **转让门控唯一真值**：`owner_uid == viewer_uid`（均为本地 `users.id`）。禁止用平台级 JWT `is_owner`（= `users.is_owner` 遗留标记，与组织 OWNER 无关）。 |
 
 ##### 12.3.5.2 添加商户成员
 

@@ -209,7 +209,11 @@ row_r8() {
   grep -qF 'transfer-ownership' "$component" && grep -qF '转让所有权' "$component" \
     && grep -qF 'transferConfirmText' "$component" && transfer_ui=1
   grep -qF 'canRemoveMember(record, ownerUid)' "$component" && owner_remove=1
-  grep -qF 'pickOwnerRow(members)' "$component" && grep -qF '未锚定所有人' "$component" \
+  # #2546 Rev.5 §7：卡片以归一化后的 owner_uid 为准（不再用行存在性判定），
+  # 且两类空态必须可区分（未锚定 / 成员记录缺失）。
+  grep -qF 'const ownerRow = ownerUid' "$component" \
+    && grep -qF '未锚定所有人' "$component" && grep -qF '成员记录缺失' "$component" \
+    && ! grep -qF 'pickOwnerRow(members)' "$component" \
     && grep -qF '转让后你将成为管理员' "$component" && owner_card=1
   # R8 由「源码出现字符串」升级为「门控真值 + 纯函数」：门控必须读后端 viewer_is_owner，
   # 且候选分页不得再要 page_size=200（后端 maxPageSize=100 会静默截断）。
@@ -370,6 +374,7 @@ console.log("GATE_NO_CANDIDATE_FALSE=" + (canTransferOwnership(noCandidate) === 
   } >>"$a"
 
   assert_grep "$a" 'GATE_FIELD=viewer_is_owner' 'BE_VIEWER_IS_OWNER_TRUE=1' 'BE_VIEWER_IS_OWNER_FALSE=1' \
+    'VIEWER_UID_EQUALS_LOCAL_ID=1' 'GATE_FIELD_SPACE=local_user_id' \
     'GATE_OWNER_TRUE=1' 'GATE_DEMOTED_FALSE=1' 'GATE_UNANCHORED_FALSE=1' 'GATE_NO_CANDIDATE_FALSE=1' \
     'GATE_USERINFO_OWNER_USAGE=0' 'NODE_TEST_RC=0'
 }
@@ -462,6 +467,59 @@ row_r16() {
     'NEW_ROUTE_PLATFORM_ONLY=1' 'PLATFORM_ACTIONS_HIDDEN=1' 'FRONTEND_LINT_RC=0'
 }
 
+row_r17() {
+  local a="$OUT/R17-admin-uid-space.txt"
+  local component="$ROOT/frontend-pc/src/components/MerchantMemberManagement.jsx"
+  {
+    echo "$PROVENANCE"
+    echo "# R17 admin_uid 历史形态（IAM 用户 id）读取侧归一化：owner 卡片 + 门控 + OWNER 守卫"
+  } >"$a"
+
+  go_test_row "$a" 'TestListMembersOwnerUIDSpace_2546' ./handlers/
+
+  # 前端卡片以归一化 owner_uid 为准（历史形态下也能渲染），并区分两类空态。
+  local card=0
+  grep -qF 'const ownerRow = ownerUid' "$component" \
+    && grep -qF 'owner_anchor_present' "$component" \
+    && grep -qF '成员记录缺失' "$component" && card=1
+
+  {
+    echo "OWNER_CARD_RENDERED=$card"
+  } >>"$a"
+
+  assert_grep "$a" 'ADMIN_UID_SPACE=iam_sub' 'IS_OWNER_HITS=1' 'VIEWER_IS_OWNER=1' \
+    'OWNER_CARD_RENDERED=1' 'REMOVE_OWNER_STATUS=403' 'DEMOTE_OWNER_STATUS=400'
+}
+
+row_r18() {
+  local a="$OUT/R18-member-actions.txt"
+  local component="$ROOT/frontend-pc/src/components/MerchantMemberManagement.jsx"
+  {
+    echo "$PROVENANCE"
+    echo "# R18 商户管理员视角成员操作隐藏（添加/移除）：结构断言（evidence_type: static，D8 豁免）"
+  } >"$a"
+
+  local role_prop=0 add_hidden=0 remove_hidden=0
+  grep -qF "const isMerchantAdmin = businessRole === 'merchant_admin';" "$component" && role_prop=1
+  # 「添加管理员」按钮必须整体包在 !isMerchantAdmin 分支内。
+  local guard_line
+  guard_line=$(grep -nF '{!isMerchantAdmin && (' "$component" | head -1 | cut -d: -f1)
+  if [ -n "$guard_line" ] && sed -n "${guard_line},$((guard_line + 8))p" "$component" | grep -qF '添加管理员'; then
+    add_hidden=1
+  fi
+  # 行内「移除」必须在 merchant_admin 视角下不渲染。
+  grep -qF 'if (isMerchantAdmin || !canRemoveMember(record, ownerUid))' "$component" && remove_hidden=1
+
+  {
+    echo "MEMBER_ROLE_PROP=$role_prop"
+    echo "ADD_MEMBER_BUTTON_HIDDEN=$add_hidden"
+    echo "REMOVE_MEMBER_HIDDEN=$remove_hidden"
+    echo "MEMBER_ACTIONS_HIDDEN=$([ "$add_hidden" = "1" ] && [ "$remove_hidden" = "1" ] && [ "$role_prop" = "1" ] && echo 1 || echo 0)"
+  } >>"$a"
+
+  assert_grep "$a" 'MEMBER_ACTIONS_HIDDEN=1' 'ADD_MEMBER_BUTTON_HIDDEN=1' 'REMOVE_MEMBER_HIDDEN=1'
+}
+
 case "$ROW" in
   r1) row_r1 ;;
   r2) row_r2 ;;
@@ -479,8 +537,10 @@ case "$ROW" in
   r14) row_r14 ;;
   r15) row_r15 ;;
   r16) row_r16 ;;
+  r17) row_r17 ;;
+  r18) row_r18 ;;
   *)
-    echo "Usage: bash scripts/verify-2546.sh r1..r16" >&2
+    echo "Usage: bash scripts/verify-2546.sh r1..r18" >&2
     exit 2
     ;;
 esac

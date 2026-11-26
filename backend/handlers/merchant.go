@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -68,10 +69,15 @@ func (h *MerchantHandler) ListMerchants(c *gin.Context) {
 		}
 	}
 	if len(adminUIDs) > 0 {
+		// #2546 D1b：读取侧归一化 —— admin_uid 历史行可能是 IAM 用户 id
+		// （users.iam_sub）；两种 ID 空间都要能解析到同一条 users 记录。
 		var adminUsers []models.User
-		database.GetDB().Where("id IN ? AND deleted_at IS NULL", adminUIDs).Find(&adminUsers)
+		database.GetDB().Where("(id IN ? OR iam_sub IN ?) AND deleted_at IS NULL", adminUIDs, adminUIDs).Find(&adminUsers)
 		for _, u := range adminUsers {
 			adminMap[u.ID] = u
+			if u.IAMSub != "" {
+				adminMap[u.IAMSub] = u
+			}
 		}
 	}
 
@@ -509,14 +515,14 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 	id := c.Param("id")
 
 	var input struct {
-		Name               string  `json:"name"`
-		Phone              string  `json:"phone"`
-		Address            string  `json:"address"`
-		MerchantType       string  `json:"merchant_type"`
-		TransitAddress     string  `json:"transit_address"`
-		TransitPhone       string  `json:"transit_phone"`
-		TransitContactName string  `json:"transit_contact_name"`
-		AdminUID           *string `json:"admin_uid"`
+		Name               string          `json:"name"`
+		Phone              string          `json:"phone"`
+		Address            string          `json:"address"`
+		MerchantType       string          `json:"merchant_type"`
+		TransitAddress     string          `json:"transit_address"`
+		TransitPhone       string          `json:"transit_phone"`
+		TransitContactName string          `json:"transit_contact_name"`
+		AdminUID           json.RawMessage `json:"admin_uid"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -589,15 +595,30 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 	}
 
 	// 2) 再转让所有权（唯一写入路径，见 transferMerchantOwnership）。
-	// 用指针区分「字段缺省（不动所有权）」与「显式清空（拒绝）」。
+	// RawMessage 区分「字段缺省（不动所有权）」「显式 null（拒绝）」「有值」：
+	// OWNER 不能删除也不能清空，只能转让（#2546 D4/Low-3，fail-fast 不静默）。
 	if input.AdminUID != nil {
-		requestedOwner := strings.TrimSpace(*input.AdminUID)
+		if strings.TrimSpace(string(input.AdminUID)) == "null" {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "所有人不能置空，只能转让所有权"})
+			return
+		}
+		var requestedOwner string
+		if err := json.Unmarshal(input.AdminUID, &requestedOwner); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "admin_uid 必须是字符串"})
+			return
+		}
+		requestedOwner = strings.TrimSpace(requestedOwner)
 		if requestedOwner == nilUUID2546 {
 			requestedOwner = ""
 		}
-		oldOwner := merchantOwnerUID(merchant)
 		if requestedOwner == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "所有人不能清空，只能转让所有权"})
+			return
+		}
+		// #2546 D1b/D14：所有权比较统一在本地 users.id 空间。
+		oldOwner, _, ownerErr := merchantOwnerLocalUID(c.Request.Context(), db, merchant)
+		if ownerErr != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "解析商户所有人失败：" + ownerErr.Error()})
 			return
 		}
 		if requestedOwner != oldOwner {

@@ -237,14 +237,17 @@ func ownershipRouter2546(t *testing.T, tenantID, orgID string) *gin.Engine {
 	return ownershipRouterWithActor2546(t, tenantID, orgID, uuid.NewString())
 }
 
-// ownershipRouterWithActor2546 lets a test pin the logged-in user id so that
-// viewer_is_owner (merchant.admin_uid == current user) can be exercised.
-func ownershipRouterWithActor2546(t *testing.T, tenantID, orgID, actorUserID string) *gin.Engine {
+// ownershipRouterWithActor2546 lets a test pin the logged-in account so that
+// viewer_is_owner (normalized merchant.admin_uid == viewer local users.id) can be
+// exercised. actorIAMSub is the JWT sub (IAM user id): the gate resolves it to
+// the local users.id via middleware.LocalUserID (#2546 D14) — passing a local id
+// here would not exercise the real production path.
+func ownershipRouterWithActor2546(t *testing.T, tenantID, orgID, actorIAMSub string) *gin.Engine {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
-		actor := testutil.TestActor{TenantID: tenantID, OrgID: orgID, UserID: actorUserID, Role: "OWNER"}
+		actor := testutil.TestActor{TenantID: tenantID, OrgID: orgID, UserID: actorIAMSub, Role: "OWNER"}
 		c.Request = c.Request.WithContext(actor.InjectContext(c.Request.Context()))
 		c.Next()
 	})
@@ -277,14 +280,15 @@ type ownershipResponse2546 struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 	Data    struct {
-		MerchantID      string `json:"merchant_id"`
-		PreviousOwnerID string `json:"previous_owner_id"`
-		NewOwnerID      string `json:"new_owner_id"`
-		OwnerUID        string `json:"owner_uid"`
-		ViewerUID       string `json:"viewer_uid"`
-		ViewerIsOwner   bool   `json:"viewer_is_owner"`
-		Total           int64  `json:"total"`
-		List            []struct {
+		MerchantID         string `json:"merchant_id"`
+		PreviousOwnerID    string `json:"previous_owner_id"`
+		NewOwnerID         string `json:"new_owner_id"`
+		OwnerUID           string `json:"owner_uid"`
+		OwnerAnchorPresent bool   `json:"owner_anchor_present"`
+		ViewerUID          string `json:"viewer_uid"`
+		ViewerIsOwner      bool   `json:"viewer_is_owner"`
+		Total              int64  `json:"total"`
+		List               []struct {
 			UserID  string `json:"user_id"`
 			Role    string `json:"role"`
 			Status  string `json:"status"`
@@ -669,19 +673,24 @@ func TestListMembersOwnerFlag_2546(t *testing.T) {
 		ownerHits, defaultList.Data.Total, allList.Data.Total)
 }
 
-// R12：转让门控真值 —— 后端下发 viewer_is_owner（merchants.admin_uid == 当前登录
-// 账号），不是平台级 users.is_owner（JWT is_owner）。被降级的原所有人必须为 false。
+// R12：转让门控真值 —— 后端下发 viewer_is_owner（归一化 admin_uid == 当前登录账号的
+// 本地 users.id），不是平台级 users.is_owner（JWT is_owner）。被降级的原所有人必须为 false。
+//
+// #2546 Rev.5：fixture 的 users.id != users.iam_sub，且 JWT sub = iam_sub —— 只有真正
+// 做 ID 空间归一化/解析时门控才会为 true（否则该断言直接失败）。
 func TestListMembersViewerOwnerGate_2546(t *testing.T) {
 	f := seedOwnershipFixture2546(t)
+	require.NotEqual(t, f.ownerID, f.ownerSub, "FIXTURE_ID_SPACE_DISTINCT=1")
+	require.NotEqual(t, f.adminID, f.adminSub, "FIXTURE_ID_SPACE_DISTINCT=1")
 
-	// 当前登录者 = 本地所有人 A。
-	rOwner := ownershipRouterWithActor2546(t, f.orgID, f.orgID, f.ownerID)
+	// 当前登录者 = 本地所有人 A（JWT sub 为其 iam_sub）。
+	rOwner := ownershipRouterWithActor2546(t, f.orgID, f.orgID, f.ownerSub)
 	wOwner := doOwnershipRequest2546(t, rOwner, http.MethodGet, "/admin/merchants/"+f.merchantID+"/members", "")
 	require.Equal(t, http.StatusOK, wOwner.Code, wOwner.Body.String())
 	ownerView := decodeOwnership2546(t, wOwner)
 
 	require.True(t, ownerView.Data.ViewerIsOwner, "BE_VIEWER_IS_OWNER_TRUE=1")
-	assert.Equal(t, f.ownerID, ownerView.Data.ViewerUID, "VIEWER_UID_MATCHED=1")
+	assert.Equal(t, f.ownerID, ownerView.Data.ViewerUID, "VIEWER_UID_EQUALS_LOCAL_ID=1")
 	assert.Equal(t, f.ownerID, ownerView.Data.OwnerUID, "GATE_FIELD=viewer_is_owner")
 	gateFieldsPresent := strings.Contains(wOwner.Body.String(), `"viewer_is_owner"`) &&
 		strings.Contains(wOwner.Body.String(), `"viewer_uid"`)
@@ -690,11 +699,11 @@ func TestListMembersViewerOwnerGate_2546(t *testing.T) {
 	// 转让后 A 被降为 ADMIN，新所有人是 B：A 再读列表必须 false（入口隐藏）。
 	mock := &ownershipIAMMock2546{}
 	setupOwnershipIAMMock2546(t, mock)
-	wTransfer := doOwnershipRequest2546(t, ownershipRouterWithActor2546(t, f.orgID, f.orgID, f.ownerID),
+	wTransfer := doOwnershipRequest2546(t, ownershipRouterWithActor2546(t, f.orgID, f.orgID, f.ownerSub),
 		http.MethodPost, "/merchants/"+f.merchantID+"/transfer-ownership", `{"user_id":"`+f.adminID+`"}`)
 	require.Equal(t, http.StatusOK, wTransfer.Code, wTransfer.Body.String())
 
-	rDemoted := ownershipRouterWithActor2546(t, f.orgID, f.orgID, f.ownerID)
+	rDemoted := ownershipRouterWithActor2546(t, f.orgID, f.orgID, f.ownerSub)
 	wDemoted := doOwnershipRequest2546(t, rDemoted, http.MethodGet, "/admin/merchants/"+f.merchantID+"/members", "")
 	require.Equal(t, http.StatusOK, wDemoted.Code, wDemoted.Body.String())
 	demotedView := decodeOwnership2546(t, wDemoted)
@@ -702,12 +711,54 @@ func TestListMembersViewerOwnerGate_2546(t *testing.T) {
 	assert.Equal(t, f.adminID, demotedView.Data.OwnerUID, "OWNER_UID_MOVED=1")
 
 	// 新所有人 B 读列表为 true（二次转让可达）。
-	rNewOwner := ownershipRouterWithActor2546(t, f.orgID, f.orgID, f.adminID)
+	rNewOwner := ownershipRouterWithActor2546(t, f.orgID, f.orgID, f.adminSub)
 	wNewOwner := doOwnershipRequest2546(t, rNewOwner, http.MethodGet, "/admin/merchants/"+f.merchantID+"/members", "")
 	require.Equal(t, http.StatusOK, wNewOwner.Code, wNewOwner.Body.String())
 	assert.True(t, decodeOwnership2546(t, wNewOwner).Data.ViewerIsOwner, "BE_VIEWER_IS_OWNER_NEW_OWNER_TRUE=1")
 
-	t.Logf("GATE_FIELD=viewer_is_owner BE_VIEWER_IS_OWNER_TRUE=1 BE_VIEWER_IS_OWNER_FALSE=1 VIEWER_UID_MATCHED=1")
+	t.Logf("GATE_FIELD=viewer_is_owner BE_VIEWER_IS_OWNER_TRUE=1 BE_VIEWER_IS_OWNER_FALSE=1 " +
+		"VIEWER_UID_EQUALS_LOCAL_ID=1 GATE_FIELD_SPACE=local_user_id VIEWER_UID_MATCHED=1")
+}
+
+// R17（Rev.5）：admin_uid 历史形态 = IAM 用户 id（users.iam_sub）。读取侧必须归一化到
+// 本地 users.id —— owner 卡片（is_owner/owner_uid）出现、viewer 门控为 true、且
+// OWNER 守卫（移除/降级）仍然生效。
+func TestListMembersOwnerUIDSpace_2546(t *testing.T) {
+	f := seedOwnershipFixture2546(t)
+
+	// 历史形态：admin_uid 写的是 owner 的 IAM 用户 id，不是本地 users.id。
+	require.NoError(t, database.GetDB().Model(&models.Merchant{}).
+		Where("id = ?", f.merchantID).Update("admin_uid", f.ownerSub).Error)
+
+	r := ownershipRouterWithActor2546(t, f.orgID, f.orgID, f.ownerSub)
+	w := doOwnershipRequest2546(t, r, http.MethodGet, "/admin/merchants/"+f.merchantID+"/members?include=all", "")
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	view := decodeOwnership2546(t, w)
+
+	ownerHits := 0
+	for _, row := range view.Data.List {
+		if row.IsOwner {
+			ownerHits++
+			assert.Equal(t, f.ownerID, row.UserID)
+		}
+	}
+	assert.Equal(t, 1, ownerHits, "IS_OWNER_HITS=1")
+	assert.Equal(t, f.ownerID, view.Data.OwnerUID, "OWNER_UID_NORMALIZED_TO_LOCAL_ID=1")
+	assert.Equal(t, f.ownerID, view.Data.ViewerUID, "VIEWER_UID_LOCAL_ID=1")
+	assert.True(t, view.Data.ViewerIsOwner, "VIEWER_IS_OWNER=1")
+	assert.True(t, view.Data.OwnerAnchorPresent, "OWNER_ANCHOR_PRESENT=1")
+
+	// OWNER 守卫必须同样走归一化后的 id（否则历史形态下可移除/降级 OWNER）。
+	wRemove := doOwnershipRequest2546(t, r, http.MethodDelete,
+		"/admin/merchants/"+f.merchantID+"/members/"+f.ownerID, "")
+	assert.Equal(t, http.StatusForbidden, wRemove.Code, "REMOVE_OWNER_STATUS=403")
+
+	wDemote := doOwnershipRequest2546(t, r, http.MethodPut,
+		"/admin/merchants/"+f.merchantID+"/members/"+f.ownerID, `{"role":"site_member"}`)
+	assert.Equal(t, http.StatusBadRequest, wDemote.Code, "DEMOTE_OWNER_STATUS=400")
+
+	t.Logf("ADMIN_UID_SPACE=iam_sub IS_OWNER_HITS=%d OWNER_UID_NORMALIZED_TO_LOCAL_ID=1 VIEWER_IS_OWNER=1 "+
+		"REMOVE_OWNER_STATUS=%d DEMOTE_OWNER_STATUS=%d", ownerHits, wRemove.Code, wDemote.Code)
 }
 
 // R13：PUT /merchants/:id 组合字段（name + phone + admin_uid）三者同时落库。

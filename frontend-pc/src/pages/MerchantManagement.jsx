@@ -287,7 +287,7 @@ const MerchantManagement = () => {
             )}
 
             <Tabs.TabPane tab="所有人" key="members">
-              <MerchantMemberManagement merchantId={m.id} onRefresh={() => {}} />
+              <MerchantMemberManagement merchantId={m.id} businessRole={businessRole} onRefresh={() => {}} />
             </Tabs.TabPane>
           </Tabs>
         </Card>
