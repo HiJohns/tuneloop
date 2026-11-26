@@ -2,6 +2,7 @@
 # #2552 verification harness — one subcommand per Evidence Contract row.
 #
 #   bash scripts/verify-2552.sh r1   # D2：成员 tenant 列 = 本地租户；IAM org = 站点 org；重复添加不增行
+#   bash scripts/verify-2552.sh r1b  # bind/role/unbind 三路径 org 段 = 站点组织（Audit R1b）
 #   bash scripts/verify-2552.sh r2   # 中转成员识别改为站点维度（列表 + by-id + 负例）
 #   bash scripts/verify-2552.sh r3   # 建站：type=branch + 父组织=命名空间主组织 + 错误映射 + 补偿
 #   bash scripts/verify-2552.sh r4   # 回填工具：dry-run 0 写入 + apply 幂等 + members 阶段
@@ -21,8 +22,8 @@ set -uo pipefail
 
 ROW="${1:-}"
 case "$ROW" in
-  r1|r2|r3|r4|r5|r6|r7|gate) ;;
-  *) echo "usage: $0 r1|r2|r3|r4|r5|r6|r7|gate" >&2; exit 2 ;;
+  r1|r1b|r2|r3|r4|r5|r6|r7|gate) ;;
+  *) echo "usage: $0 r1|r1b|r2|r3|r4|r5|r6|r7|gate" >&2; exit 2 ;;
 esac
 
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "not a git repository" >&2; exit 2; }
@@ -61,7 +62,7 @@ fail() {
 HEAVY="$HOME/.config/opencode/scripts/heavy-run.sh"
 heavy() { bash "$HEAVY" -- "$@"; }
 
-TOKEN_RE='^(MEMBER_|USER_|CREATE_|DUPLICATE_NAME_|NO_SITE_|NO_DUPLICATE_|PRIMARY_ORG_|ORPHAN_|SITE_ROWS_|SYSTEM_VIEW_|BYID_|NEG_|CLAIM_|OTHER_TENANT_|STORE_MEMBER_|TRANSIT_MEMBER_|DRYRUN_|APPLY_|SECOND_APPLY_|MEMBERS_|IAM_FAILURE_|--- (PASS|FAIL))'
+TOKEN_RE='^(MEMBER_|USER_|CREATE_|DUPLICATE_NAME_|NO_SITE_|NO_DUPLICATE_|PRIMARY_ORG_|ORPHAN_|SITE_ROWS_|SYSTEM_VIEW_|BYID_|NEG_|CLAIM_|OTHER_TENANT_|STORE_MEMBER_|TRANSIT_MEMBER_|DRYRUN_|APPLY_|SECOND_APPLY_|MEMBERS_|IAM_FAILURE_|UPDATE_FAILURE_|--- (PASS|FAIL))'
 
 go_test_row() { # pkg test-pattern...
   local pkg="$1" pattern="$2" out rc
@@ -110,6 +111,15 @@ case "$ROW" in
       "NO_DUPLICATE_MEMBER_ROW=1" \
       "USER_TENANT_IS_LOCAL_TENANT=1"
     echo "R1_OK"
+    ;;
+
+  r1b)
+    echo "== R1b bind/role/unbind 三路径 org 段 = 站点组织（sites.org_id） =="
+    # 审计 Round 1 Bug 1：计划 P1-1 要求锁定三条路径，原实现只锁了 bind。
+    run_row ./handlers 'TestTransitMemberOrgPaths2552_RoleAndUnbind' \
+      "MEMBER_ROLE_ORG_IS_SITE_ORG=1" \
+      "MEMBER_UNBIND_ORG_IS_SITE_ORG=1"
+    echo "R1b_OK"
     ;;
 
   r2)
@@ -166,7 +176,8 @@ case "$ROW" in
       "APPLY_UPDATED=2" \
       "SECOND_APPLY_UPDATED=0" \
       "MEMBERS_REBIND=1" \
-      "IAM_FAILURE_EXPLICIT=1"
+      "IAM_FAILURE_EXPLICIT=1" \
+      "UPDATE_FAILURE_COMPENSATED=1"
     echo "R4_OK"
     ;;
 

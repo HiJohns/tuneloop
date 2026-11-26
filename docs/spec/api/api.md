@@ -6267,6 +6267,7 @@ GET /api/admin/dashboard/near-transfers
 | 其他（customer 等） | `40303` |
 
 **中转网点的组织域（#2552 / #2547 D2）**: 中转网点持有**自己的** `branch` 子组织（`sites.org_id`，父组织 = 命名空间主组织 `is_primary`，无 owner），成员的 IAM 绑定/角色/解绑目标 = 该组织；而 `sites.tenant_id` 仍是平台租户。两列不同域，**禁止互相替代**：
+- **术语对照**：IAM 侧语义为 `kind=branch`（组织类型）；`POST /api/v1/namespaces/{ns}/organizations` 的请求字段名是 `type`，取值 `branch`（`CreateOrganizationRequest.Type`，`json:"type,omitempty"`）。同一概念的两个名字，勿引入第三种写法。
 - 成员行的本地租户列（`site_members.tenant_id` / 新建用户的 `users.tenant_id`）必须是**平台租户**（唯一键含 tenant，写成组织 ID 会让幂等判定失配 → 重复成员行）；
 - 中转成员判据用 `sites.tenant_id`（站点维度），**不用** `sites.org_id`（否则网点一旦有了子组织，既有成员会从系统视图/详情消失）。
 

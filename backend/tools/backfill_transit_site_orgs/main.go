@@ -72,12 +72,23 @@ func main() {
 
 	if !*apply {
 		// dry-run 必须在输出上自证 0 写入（不能只靠代码阅读）。
-		fmt.Printf("DRYRUN_WRITES=0\n")
-		fmt.Printf("DRYRUN_IAM_CREATES=0\n")
-		fmt.Printf("APPLY_CREATED=0\n")
-		fmt.Printf("APPLY_UPDATED=0\n")
-		fmt.Printf("APPLY_SKIPPED=%d\n", len(plan)-need)
-		fmt.Printf("MEMBERS_REBIND=0\n")
+		// #2552 L2（Round 1 审计）：计数由服务返回值派生，而不是写死常量——
+		// 一旦 `ApplyTransitSiteOrgBackfill` 在 Apply=false 时产生写入，这里会直接暴露。
+		dry, err := services.ApplyTransitSiteOrgBackfill(db, nil, services.TransitSiteBackfillOptions{
+			Apply:      false,
+			Phase:      phaseValue,
+			OperatorID: *operator,
+		})
+		if err != nil {
+			log.Fatalf("dry-run plan failed: %v", err)
+		}
+		fmt.Printf("DRYRUN_WRITES=%d\n", dry.Created+dry.Updated)
+		fmt.Printf("DRYRUN_IAM_CREATES=%d\n", dry.IAMCreates)
+		fmt.Printf("APPLY_CREATED=%d\n", dry.Created)
+		fmt.Printf("APPLY_UPDATED=%d\n", dry.Updated)
+		fmt.Printf("APPLY_SKIPPED=%d\n", dry.Skipped)
+		fmt.Printf("MEMBERS_REBIND=%d\n", dry.MembersRebind)
+		fmt.Printf("DRYRUN_UNCHANGED_SITES=%d\n", len(plan)-need)
 		return
 	}
 

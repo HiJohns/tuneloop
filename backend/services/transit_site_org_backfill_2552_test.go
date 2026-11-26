@@ -108,6 +108,8 @@ type backfillIAMRecorder struct {
 	unbinds   []string
 	primary   string
 	createOK  bool
+	// createOrgID 非空时用它作为建组织返回的 org_id（用于注入「本地写入失败」）。
+	createOrgID string
 }
 
 func (f *backfillIAMRecorder) snapshot() (creates, deletes int, binds, unbinds []string) {
@@ -173,14 +175,19 @@ func (f *backfillIAMRecorder) newServer(t *testing.T) *httptest.Server {
 			f.mu.Lock()
 			f.creates++
 			ok := f.createOK
+			forcedOrgID := f.createOrgID
 			f.mu.Unlock()
 			if !ok {
 				w.WriteHeader(http.StatusInternalServerError)
 				_, _ = w.Write([]byte(`{"message":"iam down"}`))
 				return
 			}
+			newOrgID := forcedOrgID
+			if newOrgID == "" {
+				newOrgID = uuid.New().String()
+			}
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
-				"org_id": uuid.New().String(), "admin_id": uuid.New().String(),
+				"org_id": newOrgID, "admin_id": uuid.New().String(),
 			})
 		default:
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{"id": uuid.New().String()})
@@ -326,4 +333,53 @@ func TestTransitBackfill2552_IAMFailureExplicit(t *testing.T) {
 	fmt.Printf("IAM_FAILURE_EXPLICIT=%d\n", 1)
 	fmt.Printf("IAM_FAILURE_UNTOUCHED=%d\n", untouched)
 	require.Equal(t, 1, untouched, "失败时不得写入 org_id")
+}
+
+// R4（负例，L1）：条件更新**本身失败**（不是并发命中）时同样必须补偿已建组织，
+// 不得在 IAM 里留下没有站点引用的孤儿组织。
+//
+// 注入方式：让 fake IAM 返回一个非 UUID 的 org_id → `sites.org_id`（uuid 列）
+// 更新失败（PG 22P02），走 `update.Error != nil` 分支。
+func TestTransitBackfill2552_UpdateFailureCompensated(t *testing.T) {
+	db, siteA, _, _, _, _ := seedBackfillFixture(t)
+
+	rec := &backfillIAMRecorder{
+		primary:     uuid.New().String(),
+		createOK:    true,
+		createOrgID: "not-a-uuid-2552",
+	}
+	rec.newServer(t)
+	iam := NewIAMClient()
+
+	_, err := ApplyTransitSiteOrgBackfill(db, iam, TransitSiteBackfillOptions{
+		Apply: true, Phase: TransitBackfillPhaseOrgs,
+	})
+	require.Error(t, err, "本地写入失败必须显式返回错误")
+
+	var after models.Site
+	require.NoError(t, db.Where("id = ?", siteA.ID).First(&after).Error)
+	creates, deletes, _, _ := rec.snapshot()
+
+	compensated := 0
+	if creates == 1 && deletes == 1 {
+		compensated = 1
+	}
+	untouched := 0
+	if after.OrgID == after.TenantID {
+		untouched = 1
+	}
+	fmt.Printf("UPDATE_FAILURE_COMPENSATED=%d\n", compensated)
+	fmt.Printf("UPDATE_FAILURE_UNTOUCHED=%d\n", untouched)
+	fmt.Printf("UPDATE_FAILURE_EXPLICIT=%d\n", flag2552(err != nil))
+
+	require.Equal(t, 1, compensated, "本地写入失败必须 best-effort 删除已建组织（不留孤儿）")
+	require.Equal(t, 1, untouched, "写入失败时站点 org_id 不得改变")
+}
+
+// flag2552 把布尔转成 0/1 token 值（与 handlers 侧 flag2526 同构）。
+func flag2552(cond bool) int {
+	if cond {
+		return 1
+	}
+	return 0
 }

@@ -36,11 +36,25 @@ import (
 	"tuneloop-backend/testutil"
 )
 
+// transitOrgCall 记录一次「组织内用户操作」，用于区分两条不同域的参数：
+// IAM 目标组织（`sites.org_id`）与本地租户（`sites.tenant_id`）。
+//
+// #2552 审计 Bug 1：bind 一条路径不足以锁定语义——role / unbind 同样必须指向
+// 站点自己的组织；只断言 bind 时，把 role/unbind 误传租户的实现仍会「全绿」。
+type transitOrgCall struct {
+	Method string
+	Org    string // 路径里的 /organizations/{org}/ 段
+	User   string // 路径里的 /users/{user}/ 段
+	Kind   string // bind | role
+	Action string // 仅 Kind=bind：bind | unbind（取自请求体）
+}
+
 // transitIAMRecorder 记录中转相关 IAM 调用，并可配置建组织的行为。
 type transitIAMRecorder struct {
 	mu sync.Mutex
 
 	binds       []string // bind 调用的 org 段
+	orgCalls    []transitOrgCall
 	deletes     []string // DELETE 组织调用命中的 org
 	creates     []map[string]interface{}
 	createdOrgs []string
@@ -73,13 +87,31 @@ func (f *transitIAMRecorder) handler() http.Handler {
 		}
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{"organizations": orgs})
 	})
-	// bind / unbind / role（PUT /api/v1/organizations/{org}/users/{user}/bind）
+	// bind / unbind / role（PUT /api/v1/organizations/{org}/users/{user}/{bind|role}）
+	// #2552 审计 Bug 1：按 method + path + body.action 分类记录，才能分别锁定
+	// bind / role / unbind 三条路径的 org 段。
 	mux.HandleFunc("/api/v1/organizations/", func(w http.ResponseWriter, r *http.Request) {
 		trimmed := strings.TrimPrefix(r.URL.Path, "/api/v1/organizations/")
 		parts := strings.Split(trimmed, "/")
-		if strings.HasSuffix(r.URL.Path, "/bind") && len(parts) > 0 {
+		if len(parts) >= 4 && parts[1] == "users" {
+			org, user, kind := parts[0], parts[2], parts[3]
+			action := ""
+			if kind == "bind" {
+				raw := new(bytes.Buffer)
+				_, _ = raw.ReadFrom(r.Body)
+				var parsed map[string]interface{}
+				_ = json.Unmarshal(raw.Bytes(), &parsed)
+				if s, ok := parsed["action"].(string); ok {
+					action = s
+				}
+			}
 			f.mu.Lock()
-			f.binds = append(f.binds, parts[0])
+			f.orgCalls = append(f.orgCalls, transitOrgCall{
+				Method: r.Method, Org: org, User: user, Kind: kind, Action: action,
+			})
+			if kind == "bind" {
+				f.binds = append(f.binds, org)
+			}
 			f.mu.Unlock()
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -165,6 +197,15 @@ func (f *transitIAMRecorder) snapshot() (binds, deletes []string, creates []map[
 	return b, d, c
 }
 
+// orgCallsSnapshot 返回组织内用户操作的分类记录（bind / unbind / role）。
+func (f *transitIAMRecorder) orgCallsSnapshot() []transitOrgCall {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	out := make([]transitOrgCall, len(f.orgCalls))
+	copy(out, f.orgCalls)
+	return out
+}
+
 func installTransitIAM(t *testing.T, rec *transitIAMRecorder) *httptest.Server {
 	t.Helper()
 	srv := httptest.NewServer(rec.handler())
@@ -190,6 +231,8 @@ func transitActorRouter2552() *gin.Engine {
 	})
 	r.POST("/api/admin/transit-sites", CreateAdminTransitSite)
 	r.POST("/api/admin/transit-sites/:id/members", AddTransitSiteMember)
+	r.PUT("/api/admin/transit-sites/:id/members/:user_id", UpdateTransitSiteMemberRole)
+	r.DELETE("/api/admin/transit-sites/:id/members/:user_id", RemoveTransitSiteMember)
 	return r
 }
 
@@ -320,6 +363,71 @@ func TestTransitMemberScope2552_NewUserTenantIsLocal(t *testing.T) {
 	fmt.Printf("USER_TENANT_IS_LOCAL_TENANT=%d\n", userTenantIsLocal)
 	fmt.Printf("USER_ORG_IS_SITE_ORG=%d\n", flag2526(created[0].OrgID == site.OrgID))
 	require.Equal(t, tenantID, created[0].TenantID, "users.tenant_id 必须是本地平台租户，不是分支组织")
+}
+
+// R1b：bind / role / unbind 三条 IAM 路径的 org 段都必须是站点自己的组织
+// （`sites.org_id`），而不是本地租户（`sites.tenant_id`）。
+//
+// #2552 审计 Bug 1：计划 P1-1 要求「补断言锁定 bind/role/unbind 三路径 org 段 =
+// sites.org_id」，但 R1 只锁了 bind；role 路径完全未记录，unbind 未区分 action。
+// 夹具必须满足 `site.OrgID ≠ site.TenantID`，否则断言无法区分两条不同域的参数
+// （`seedTransitSite1935` 的 `OrgID = tenantID` 即使断言也区分不了）。
+func TestTransitMemberOrgPaths2552_RoleAndUnbind(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := testfixtures.SetupTestDB(t)
+	testutil.SetDB(t, db)
+	tenantID, _, _ := testfixtures.NewTenantIDs("2552aa0c000c")
+	testfixtures.SeedTenantFK(t, db, tenantID)
+
+	rec := &transitIAMRecorder{primaryID: uuid.New().String(), createMode: "ok", primaries: 1}
+	installTransitIAM(t, rec)
+
+	site := seedTransitSite2552(t, tenantID)
+	require.NotEqual(t, site.OrgID, site.TenantID, "夹具前提：站点组织与平台租户必须是不同域的值")
+
+	userID := uuid.New().String()
+	require.NoError(t, db.Create(&models.User{
+		ID: userID, IAMSub: userID, TenantID: tenantID, OrgID: site.OrgID,
+		Name: "中转成员路径", Email: "paths2552@example.com", Role: "site_member", Status: "active",
+	}).Error)
+	require.NoError(t, db.Create(&models.SiteMember{
+		ID: uuid.New().String(), TenantID: tenantID, SiteID: site.ID, UserID: userID,
+		Role: "site_member", Roles: []string{"site_member"}, Status: "active",
+	}).Error)
+
+	router := transitActorRouter2552()
+	memberPath := "/api/admin/transit-sites/" + site.ID + "/members/" + userID
+
+	// 改角色 → PUT /organizations/{org}/users/{uid}/role
+	status, resp := doTransitJSON2552(t, router, http.MethodPut, memberPath, tenantID,
+		map[string]interface{}{"role": "site_admin"})
+	require.Equal(t, http.StatusOK, status, "role update: %v", resp)
+
+	// 移除成员 → PUT /organizations/{org}/users/{uid}/bind action=unbind
+	status, resp = doTransitJSON2552(t, router, http.MethodDelete, memberPath, tenantID, nil)
+	require.Equal(t, http.StatusOK, status, "remove member: %v", resp)
+
+	calls := rec.orgCallsSnapshot()
+	roleOrgIsSiteOrg, unbindOrgIsSiteOrg := 0, 0
+	for _, call := range calls {
+		if call.User != userID {
+			continue
+		}
+		switch {
+		case call.Kind == "role" && call.Method == http.MethodPut && call.Org == site.OrgID:
+			roleOrgIsSiteOrg = 1
+		case call.Kind == "bind" && call.Action == "unbind" && call.Org == site.OrgID:
+			unbindOrgIsSiteOrg = 1
+		}
+	}
+
+	fmt.Printf("MEMBER_ROLE_ORG_IS_SITE_ORG=%d\n", roleOrgIsSiteOrg)
+	fmt.Printf("MEMBER_UNBIND_ORG_IS_SITE_ORG=%d\n", unbindOrgIsSiteOrg)
+
+	require.Equal(t, 1, roleOrgIsSiteOrg,
+		"IAM 改角色路径的 org 段必须是站点组织（sites.org_id），不是本地租户")
+	require.Equal(t, 1, unbindOrgIsSiteOrg,
+		"IAM 解绑路径的 org 段必须是站点组织（sites.org_id），不是本地租户")
 }
 
 // R3：建站契约（type=branch / parent=主组织 / 无 admin_info）+ 空租户前置拒绝 + 补偿。

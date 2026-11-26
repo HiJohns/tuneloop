@@ -155,6 +155,16 @@ func ApplyTransitSiteOrgBackfill(db *gorm.DB, iam *IAMClient, opts TransitSiteBa
 			Where("id = ? AND (org_id IS NULL OR org_id = tenant_id)", row.SiteID).
 			Updates(map[string]interface{}{"org_id": created.OrgID, "updated_at": time.Now()})
 		if update.Error != nil {
+			// #2552 L1（Round 1 审计）：条件更新**本身失败**时也必须补偿已建组织。
+			// 旧实现只在 `RowsAffected == 0`（并发下已被回填）时删除；DB 报错路径
+			// 直接返回 → IAM 里留下一个没有任何站点引用的孤儿组织。
+			if delErr := iam.DeleteOrganization(created.OrgID); delErr != nil {
+				log.Printf("[TransitBackfill] WARN: orphan org cleanup failed org=%s site=%s: %v",
+					created.OrgID, row.SiteID, delErr)
+			} else {
+				log.Printf("[TransitBackfill] compensated orphan org=%s after update failure site=%s",
+					created.OrgID, row.SiteID)
+			}
 			return result, fmt.Errorf("update sites.org_id for %s: %w", row.SiteID, update.Error)
 		}
 		if update.RowsAffected == 0 {
