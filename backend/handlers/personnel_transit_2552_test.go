@@ -204,10 +204,13 @@ func TestPersonnelTransitPredicate2552(t *testing.T) {
 	require.Equal(t, http.StatusOK, byIDTransit, "中转成员详情必须可见")
 	require.Zero(t, negStore, "同租户普通网点成员不得进入系统视图")
 	require.Zero(t, negOtherTenant, "他租户中转成员不得进入系统视图")
-	// 注：带 tid claim 的系统管理员下，同租户 store 成员的 **by-id** 会经
-	// #2526 的「带租户 claim 旧口径兜底」（`u.tenant_id == tid`）放行——那是
-	// #2526 的既有决策，不在 #2552 范围，故此处不断言；by-id 负例在
-	// TestPersonnelTransitPredicate2552_WithTenantClaim（tid 为空）中断言。
+	// #2552 Rev.2 / Decision Lock D7：带 tid claim 的系统管理员下，同租户 store 成员的
+	// **by-id** 由 #2526 的「带租户 claim 旧口径兜底」（`u.tenant_id == tid`）放行，
+	// 该值是被断言的**期望值**（不是观察值），因此这里锁定 200 而不是 404。
+	// tid 为空时同两类负例的 by-id 一律 404 —— 见
+	// TestPersonnelTransitPredicate2552_WithTenantClaim。
+	require.Equal(t, http.StatusOK, byIDStore,
+		"带 tid claim 时同租户 store 成员 by-id 按 #2526 兼容口径返回 200（D7）")
 	require.Equal(t, http.StatusNotFound, byIDOther, "他租户中转成员详情不得打开")
 }
 
@@ -236,17 +239,24 @@ func TestPersonnelTransitPredicate2552_WithTenantClaim(t *testing.T) {
 	negStore := contains(f.storeMemberID)
 	negOther := contains(f.otherMemberID)
 
+	byIDStoreNoTid := getStaff2552(t, r, f.storeMemberID)
+	byIDOtherNoTid := getStaff2552(t, r, f.otherMemberID)
+
 	fmt.Printf("CLAIM_SYSTEM_VIEW_TRANSIT=%d\n", systemViewTransit)
 	fmt.Printf("CLAIM_NEG_STORE_SAME_TENANT=%d\n", negStore)
 	fmt.Printf("CLAIM_NEG_OTHER_TENANT_TRANSIT=%d\n", negOther)
+	fmt.Printf("BYID_STORE_NO_TID=%d\n", byIDStoreNoTid)
+	fmt.Printf("BYID_OTHER_TENANT_NO_TID=%d\n", byIDOtherNoTid)
 
 	require.Equal(t, 1, systemViewTransit, "带 tid claim 时中转成员仍必须可见")
 	require.Zero(t, negStore, "同租户普通网点成员不得进入系统视图")
 	require.Zero(t, negOther, "他租户中转成员不得进入系统视图")
 	require.Equal(t, http.StatusOK, getStaff2552(t, r, f.transitMemberID))
-	require.Equal(t, http.StatusNotFound, getStaff2552(t, r, f.storeMemberID),
+	// #2552 Rev.2 / D7：tid 为空（oid 回退）时没有 #2526 的旧口径兜底，
+	// 两类负例的 by-id 都必须 404。
+	require.Equal(t, http.StatusNotFound, byIDStoreNoTid,
 		"同租户普通网点成员详情不得打开（tid 为空时无旧口径兜底）")
-	require.Equal(t, http.StatusNotFound, getStaff2552(t, r, f.otherMemberID))
+	require.Equal(t, http.StatusNotFound, byIDOtherNoTid)
 }
 
 // R2（防回归）：`hasTransitSiteMembership` 关闭自动租户作用域，

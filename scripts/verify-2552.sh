@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # #2552 verification harness — one subcommand per Evidence Contract row.
 #
-#   bash scripts/verify-2552.sh r1   # D2：成员 tenant 列 = 本地租户；IAM org = 站点 org；重复添加不增行
-#   bash scripts/verify-2552.sh r1b  # bind/role/unbind 三路径 org 段 = 站点组织（Audit R1b）
+#   bash scripts/verify-2552.sh r1   # D2：成员 tenant 列 = 本地租户；IAM org = 站点 org（bind/role/unbind）；
+#                                    #     重复添加不增行（Rev.2：R1b 已并入 R1）
+#   bash scripts/verify-2552.sh r1b  # 别名：仅跑 role/unbind 两路径（Rev.2 起 R1 已包含）
 #   bash scripts/verify-2552.sh r2   # 中转成员识别改为站点维度（列表 + by-id + 负例）
 #   bash scripts/verify-2552.sh r3   # 建站：type=branch + 父组织=命名空间主组织 + 错误映射 + 补偿
 #   bash scripts/verify-2552.sh r4   # 回填工具：dry-run 0 写入 + apply 幂等 + members 阶段
@@ -95,7 +96,7 @@ REG_PATTERN='TestTransit|TestCreateAdminTransitSiteValidation|TestPersonnel2065|
 
 case "$ROW" in
   r1)
-    echo "== R1 D2：成员 tenant 列 = 本地租户；IAM org = 站点 org；重复添加不增行 =="
+    echo "== R1 D2：成员 tenant 列 = 本地租户；IAM org = 站点 org（bind/role/unbind）；重复添加不增行 =="
     # 现象级差异（实施前先跑）：第 4 参数必须是 site.TenantID，且不得再有 bindOrgID 回退。
     BIND_ORG_AS_TENANT="$(grep -c 'addMembersCore(c, db, site, bindOrgID' backend/handlers/transit_site_admin.go || true)"
     LOCAL_TENANT_ARG="$(grep -c 'addMembersCore(c, db, site, site.TenantID' backend/handlers/transit_site_admin.go || true)"
@@ -110,11 +111,16 @@ case "$ROW" in
       "MEMBER_IAM_ORG_IS_SITE_ORG=1" \
       "NO_DUPLICATE_MEMBER_ROW=1" \
       "USER_TENANT_IS_LOCAL_TENANT=1"
+    # Rev.2（Round 1 审计 Bug 1）：bind / role / unbind 三条 IAM 路径的 org 段都必须
+    # 等于 sites.org_id；夹具 seedTransitSite2552 保证 site.OrgID ≠ site.TenantID。
+    run_row ./handlers 'TestTransitMemberOrgPaths2552_RoleAndUnbind' \
+      "MEMBER_ROLE_ORG_IS_SITE_ORG=1" \
+      "MEMBER_UNBIND_ORG_IS_SITE_ORG=1"
     echo "R1_OK"
     ;;
 
   r1b)
-    echo "== R1b bind/role/unbind 三路径 org 段 = 站点组织（sites.org_id） =="
+    echo "== R1b（已并入 R1，Rev.2）：role/unbind 两路径 org 段 = 站点组织（sites.org_id） =="
     # 审计 Round 1 Bug 1：计划 P1-1 要求锁定三条路径，原实现只锁了 bind。
     run_row ./handlers 'TestTransitMemberOrgPaths2552_RoleAndUnbind' \
       "MEMBER_ROLE_ORG_IS_SITE_ORG=1" \
@@ -138,6 +144,8 @@ case "$ROW" in
       "BYID_TRANSIT=200" \
       "NEG_STORE_SAME_TENANT=0" \
       "NEG_OTHER_TENANT_TRANSIT=0" \
+      "BYID_STORE_SAME_TENANT=200" \
+      "BYID_STORE_NO_TID=404" \
       "CLAIM_SYSTEM_VIEW_TRANSIT=1" \
       "CLAIM_NEG_STORE_SAME_TENANT=0" \
       "CLAIM_NEG_OTHER_TENANT_TRANSIT=0" \
