@@ -1,0 +1,106 @@
+{
+  "issue": 2532,
+  "overall": "FAIL",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2532/tmp/pre-ready-2532.VLjRF6/plan.md",
+  "plan_sha256": "4add6ab58b866c52d0a84d49b2c98e7d4fe4052ef6f3b4166774969400abd24f",
+  "config_sha": "8a98b9aae65c6ac3cd894919a9cea280167e2e11",
+  "provenance": {
+    "build": "1.0.0275ebc84",
+    "commit": "0275ebc843ea3087dcf9a9f316adb33619baadf2",
+    "dirty": false
+  },
+  "summary": "docs/evidence/2532/summary.md",
+  "timestamp": "20261126-021924",
+  "checks": [
+    {
+      "id": "P1",
+      "status": "PASS",
+      "detail": "plan has Verification Matrix / Input Truth & Tool Preflight / Decision Lock / Out of Scope"
+    },
+    {
+      "id": "P2",
+      "status": "PASS",
+      "detail": "Work Summary covers all 5 matrix rows with PASS/N/A"
+    },
+    {
+      "id": "P3",
+      "status": "FAIL",
+      "detail": "evidence paths do not exist: .overall=PASS assessment.go assessment.go:132-140 build=1.0.0275ebc84 changed-files.txt docs/evidence/2532/pre-ready-2532.json instruments.current_site_id inventory.go order.OrgID sites.id"
+    },
+    {
+      "id": "P4",
+      "status": "PASS",
+      "detail": "all 1 affected command(s) passed"
+    },
+    {
+      "id": "P12",
+      "status": "FAIL",
+      "detail": "R5: artifact not found: docs/evidence/2532/pre-ready-2532.json"
+    },
+    {
+      "id": "P14",
+      "status": "FAIL",
+      "detail": "artifact missing: docs/evidence/2532/pre-ready-2532.json"
+    },
+    {
+      "id": "P18",
+      "status": "WARN",
+      "detail": "tooling_commit missing (legacy bundle); config_sha=8a98b9aae65c6ac3cd894919a9cea280167e2e11"
+    },
+    {
+      "id": "P15",
+      "status": "N/A",
+      "detail": "no batch gate reference in the plan"
+    },
+    {
+      "id": "P16",
+      "status": "N/A",
+      "detail": "no UI render rows in the plan"
+    },
+    {
+      "id": "P17",
+      "status": "PASS",
+      "detail": "plan snapshot and Accepted Plan comment match the gated plan"
+    },
+    {
+      "id": "P5",
+      "status": "N/A",
+      "detail": "skipped: P12/P14/P15/P16 static checks failed (static checks run first)"
+    },
+    {
+      "id": "P6",
+      "status": "PASS",
+      "detail": "all changed files are declared in the Accepted Plan"
+    },
+    {
+      "id": "P7",
+      "status": "N/A",
+      "detail": "no contract-affecting files changed"
+    },
+    {
+      "id": "P8",
+      "status": "N/A",
+      "detail": "no panel/clarify files changed"
+    },
+    {
+      "id": "P9",
+      "status": "N/A",
+      "detail": "no session/build_version/aiaudit/.rpt/.dat evidence referenced"
+    },
+    {
+      "id": "P10",
+      "status": "N/A",
+      "detail": "no aiaudit reference"
+    },
+    {
+      "id": "P11",
+      "status": "PASS",
+      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /home/coder/worktrees/tuneloop/wt-2532; worktree guard: PASS isolated worktree=/home/coder/worktrees/tuneloop/wt-2532"
+    },
+    {
+      "id": "P13",
+      "status": "FAIL",
+      "detail": "artifacts not on origin/issue-2532: docs/evidence/2532/pre-ready-2532.json"
+    }
+  ]
+}

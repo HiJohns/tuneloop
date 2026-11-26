@@ -1,4 +1,4 @@
-# Work Summary — #2532：SubmitAssessment 回退分支禁止把组织 ID 写入 `instruments.current_site_id`
+# Work Summary — #2532：SubmitAssessment 回退分支禁止把组织 ID 写入 instruments.current_site_id
 
 关联（非硬依赖）：#2509（同族 ID 域审计父任务）、#2511（`resolveSiteIDByOrg` 唯一实现 owner）
 
@@ -6,14 +6,14 @@
 
 | # | 改动 | 文件 |
 |---|------|------|
-| 1 | `SubmitAssessment`（`hasDamage=true`）回退分支改为「`order.OrgID` → `sites.id` 反查」：调用 #2511 的 `resolveSiteIDByOrg`（单一实现，未复制）；不可解析时**不写入**（保留原值）并打印含 instrument id 与 org 的 `[WARN] #2532` | `backend/handlers/assessment.go` |
+| 1 | `SubmitAssessment`（`hasDamage=true`）回退分支改为「order.OrgID → sites.id 反查」：调用 #2511 的 `resolveSiteIDByOrg`（单一实现，未复制）；不可解析时**不写入**（保留原值）并打印含 instrument id 与 org 的 `[WARN] #2532` | `backend/handlers/assessment.go` |
 | 2 | 新增自带夹具（`sites.id ≠ sites.org_id`，操作者无 `site_members` 确定性进入回退分支）的 3 个用例：回退写站点、不可解析保留原值、主分支不变 | `backend/handlers/assessment_2532_test.go` |
 | 3 | 证据生成器 `r1`–`r4` + `gate`（首行 provenance 锚定 fix commit） | `scripts/verify-2532.sh` |
 | 4 | Accepted Plan 快照（四源校验） | `docs/evidence/2532/plan.md` |
 
 **Commit**：fix `0275ebc84` → evidence（本提交）；证据 provenance 锚定 `0275ebc84`。
 
-**依赖合入方式**：#2511 的 `status:done` 代码位于 `origin/issue-2511`（未进 develop），本分支以 merge `e77597a7d` 引入其已审计实现（`resolveSiteIDByOrg`），merge 内容不属于本单改动、也不在本次 `changed-files.txt` 范围内；R4 的 `TREE_ORG_ASSIGN=0` 依赖该合入，未合入时脚本会 FAIL（未放宽断言）。
+**依赖合入方式**：#2511 的 `status:done` 代码位于 `origin/issue-2511`（未进 develop），本分支以 merge `e77597a7d` 引入其已审计实现（`resolveSiteIDByOrg`），merge 内容不属于本单改动、也不在本次 docs/evidence/2532/changed-files.txt 范围内；R4 的 `TREE_ORG_ASSIGN=0` 依赖该合入，未合入时脚本会 FAIL（未放宽断言）。
 
 ## 验证层级
 
@@ -28,7 +28,7 @@ remote: `origin/issue-2532`; fix=`0275ebc84` pushed=yes; evidence 提交在其�
 
 **R1（回退写站点 ID）—— 缺陷版 FAIL（HTTP 500 + 外键违例）→ 修复版 PASS**
 
-缺陷版（`git stash` 掉 `assessment.go` 的修复，用例与夹具不变，同一测试库）：
+缺陷版（`git stash` 掉 assessment.go 的修复，用例与夹具不变，同一测试库）：
 
 ```
 STATUS=500
@@ -47,7 +47,7 @@ FAIL	tuneloop-backend/handlers
 
 ## Accepted Plan 对照（6/6）
 
-1. 变更点 A1：回退分支改「组织 → 站点反查」，不可解析不写入 + WARN → 完成（`assessment.go:132-140`）
+1. 变更点 A1：回退分支改「组织 → 站点反查」，不可解析不写入 + WARN → 完成（assessment.go:132-140）
 2. 变更点 A2：禁止本文件新增解析函数，只消费 #2511 的 `resolveSiteIDByOrg` → 完成（`LOCAL_RESOLVER_DEF=0`、`RESOLVER_CALL=1`）
 3. 变更点 A3：主分支语义不变、不改其它 `current_site_id` 消费方、不改 `GetAssessmentData` → 完成（R3 + 定向回归）
 4. 变更点 B4：夹具 `sites.id ≠ sites.org_id` 且操作者无 `site_members` → 完成
@@ -74,7 +74,7 @@ FAIL	tuneloop-backend/handlers
 | R4 | PASS → `ASSESSMENT_ORG_ASSIGN=0、TREE_ORG_ASSIGN=0、RESOLVER_CALL=1、LOCAL_RESOLVER_DEF=0、WARN_LINE_PRESENT=1、BUILD_RC=0、REG_RC=0、REG_PASS_COUNT=22、REG_FAIL=0、R4_OK` | `docs/evidence/2532/R4-scan-build.txt` |
 | R5 | PASS → gate `overall=PASS`（P1–P18 逐项，R5 行 pass=true） | `docs/evidence/2532/pre-ready-2532.json` |
 
-机器可判定记录：`docs/evidence/2532/evidence.json`（5 行，全部 `pass=true`、`dirty=false`、`build=1.0.0275ebc84`、`commit=0275ebc84…`、`plan_sha256=4add6ab5…`）。
+机器可判定记录：`docs/evidence/2532/evidence.json`（5 行，全部 `pass=true`、`dirty=false`、build=1.0.0275ebc84、`commit=0275ebc84…`、`plan_sha256=4add6ab5…`）。
 
 ## G0 Golden Acceptance
 
@@ -84,7 +84,7 @@ FAIL	tuneloop-backend/handlers
 | R2 | `docs/evidence/2532/R2-unresolvable-keeps.txt` | `KEPT_ORIGINAL=1`／`NO_CROSS_DOMAIN_WRITE=1`／`RESOLVED_EMPTY=1`／`OLD_WOULD_WRITE_ORG=1`／`R2_OK` | 覆盖为 org/空 → `KEPT_ORIGINAL=0` → `R2_FAIL` |
 | R3 | `docs/evidence/2532/R3-primary-unchanged.txt` | `PRIMARY_EQUALS_OPERATOR_SITE=1`／`PRIMARY_NOT_ORG=1`／`STATUS=200`／`R3_OK` | 主分支被 org 覆盖 → `PRIMARY_NOT_ORG=0` → `R3_FAIL` |
 | R4 | `docs/evidence/2532/R4-scan-build.txt` | `ASSESSMENT_ORG_ASSIGN=0`／`TREE_ORG_ASSIGN=0`／`RESOLVER_CALL=1`／`LOCAL_RESOLVER_DEF=0`／`WARN_LINE_PRESENT=1`／`BUILD_RC=0`／`REG_FAIL=0`／`R4_OK` | 残留跨域写入或自建解析函数 → `R4_FAIL` |
-| R5 | `docs/evidence/2532/pre-ready-2532.json` | `.overall=PASS`、evidence 每行 `pass=true`、`dirty=false`、P13 在 `origin/issue-2532` | 任一 P 项失败 → 不得 ready |
+| R5 | `docs/evidence/2532/pre-ready-2532.json` | overall=PASS、evidence 每行 `pass=true`、`dirty=false`、P13 在 `origin/issue-2532` | 任一 P 项失败 → 不得 ready |
 
 ## Pre-ready gate
 
@@ -92,12 +92,12 @@ FAIL	tuneloop-backend/handlers
 
 ## 同类路径对称扫描
 
-`grep -rhE 'current_site_id"\] = .*OrgID' backend/handlers/` → **0**（本单 1 处 + #2511 两处均已收敛）。仓库级其它 `current_site_id` 写点（`inventory.go` 等）不涉及 `OrgID`，未改。
+`grep -rhE 'current_site_id"\] = .*OrgID' backend/handlers/` → **0**（本单 1 处 + #2511 两处均已收敛）。仓库级其它 `current_site_id` 写点（inventory.go 等）不涉及 `OrgID`，未改。
 
 ## 未纳入本单（Out of Scope，计划已登记）
 
 - 存量 `current_site_id` 域污染数据修复（需 Owner 授权改数据；#2511 已留只读排查 SQL 形态）。
-- `assessment.go` 中 `orders`/`instruments` 更新缺 `tenant_id` 条件的隔离加固（另立）。
+- assessment.go 中 `orders`/`instruments` 更新缺 `tenant_id` 条件的隔离加固（另立）。
 - #2509 父任务验收与其余同族子任务（#2512 / #2511 已 done）。
 
 *Model: DeepSeek V4.1 Flash 1017*
