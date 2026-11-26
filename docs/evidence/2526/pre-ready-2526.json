@@ -1,16 +1,16 @@
 {
   "issue": 2526,
   "overall": "PASS",
-  "plan": "/home/coder/worktrees/tuneloop/wt-2526/tmp/pre-ready-2526.DrTitd/plan.md",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2526/tmp/pre-ready-2526.IIZ9jM/plan.md",
   "plan_sha256": "e0e777106d0fb554b37b2191d217c3a0629c462f0a9743eadd36b3cc6a0936ce",
-  "config_sha": "8a98b9aae65c6ac3cd894919a9cea280167e2e11",
+  "config_sha": "6cc278a0a33c34d8ee386a2afb7c5b5314e37b13",
   "provenance": {
     "build": "1.0.44f9368c7",
     "commit": "44f9368c757143396bcaf0dabe3db2d3f2741441",
     "dirty": false
   },
   "summary": "tmp/work-summary-2526.md",
-  "timestamp": "20261126-041944",
+  "timestamp": "20261126-042154",
   "checks": [
     {
       "id": "P1",
@@ -45,7 +45,7 @@
     {
       "id": "P18",
       "status": "WARN",
-      "detail": "tooling_commit missing (legacy bundle); config_sha=8a98b9aae65c6ac3cd894919a9cea280167e2e11"
+      "detail": "tooling_commit missing (legacy bundle); config_sha=6cc278a0a33c34d8ee386a2afb7c5b5314e37b13"
     },
     {
       "id": "P15",
