@@ -10,7 +10,7 @@
     "dirty": false
   },
   "summary": "tmp/work-summary-2497.md",
-  "timestamp": "20261126-120307",
+  "timestamp": "20261126-122312",
   "checks": [
     {
       "id": "P1",
@@ -40,7 +40,7 @@
     {
       "id": "P14",
       "status": "PASS",
-      "detail": "artifact provenance matches evidence (7 artifacts)"
+      "detail": "artifact provenance matches evidence (8 artifacts)"
     },
     {
       "id": "P18",
