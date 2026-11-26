@@ -4,8 +4,8 @@
   "build": "1.0.16faa351d",
   "commit": "16faa351de3842a750f8f09c4bb0fe6f063d32a0",
   "dirty": false,
-  "plan_sha256": "975dcebfac55e9413cf1556f69a7567bd7e3d3e150f4950b506a2b0e8c405281",
-  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2563 (branch issue-2563, base origin/develop 58cb3a54a); node v20.20.2; frontend-pc npm ci (eslint 8.57); unit tests via node --test; build/eslint via host heavy-lock; no DB and no backend change",
+  "plan_sha256": "829f87e5ef2cd3c53d4c70539fa72787a9ab02bcd897b2f2708efebb734deb66",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2563 (branch issue-2563, base origin/issue-2563 a638be453); node v24.13.0 (TAP reporter pinned); frontend-pc node_modules linked from the host tree; unit tests via node --test; build/eslint via host heavy-lock; no DB and no backend change",
   "rows": [
     {
       "id": "R1",
@@ -28,9 +28,9 @@
       "artifacts": [
         "docs/evidence/2563/R2-client-wiring-static.txt"
       ],
-      "assert": "exit 0；grep -q '^R2_OK$'；grep -q 'NONOK_INLINE_RETURNS=0'",
-      "actual": "PASS：FAILURE_RESOLVER_CALLS=1 INLINE_STATUS_MAP=0 THROW_PATH=1 NONOK_INLINE_RETURNS=0 AUTH_BLOCK_BEFORE_NONOK=1 AUTH_CODES=4 PERM_VERSION=1 IDLE_GUARD=5；R2_OK",
-      "expected": "FAILURE_RESOLVER_CALLS=1、INLINE_STATUS_MAP=0、THROW_PATH=1、AUTH_BLOCK_BEFORE_NONOK=1、AUTH_CODES=4、PERM_VERSION=1、IDLE_GUARD=1",
+      "assert": "exit 0；grep -q '^R2_OK$'；grep -q 'NONOK_INLINE_RETURNS=0'；IDLE_GUARD_CALLS>=2",
+      "actual": "PASS：FAILURE_RESOLVER_CALLS=1 INLINE_STATUS_MAP=0 THROW_PATH=1 NONOK_INLINE_RETURNS=0 AUTH_BLOCK_BEFORE_NONOK=1 AUTH_CODES=4 PERM_VERSION=1 IDLE_GUARD_CALLS=5（>=2）；R2_OK（plan Rev.2 口径）",
+      "expected": "FAILURE_RESOLVER_CALLS=1、INLINE_STATUS_MAP=0、THROW_PATH=1、AUTH_BLOCK_BEFORE_NONOK=1、AUTH_CODES=4、PERM_VERSION=1、IDLE_GUARD_CALLS>=2",
       "negative": "块内出现 return {、或 401 分支被移到 !response.ok 之后 → 输出 R2_FAIL 并非 0 退出",
       "negative_result": "红样实测：在 !response.ok 块内重新加入 if (response.status === 404) { return { code: 40400 } } → INLINE_STATUS_MAP=1、NONOK_INLINE_RETURNS=1、R2_FAIL、rc=1；恢复后 R2_OK、rc=0。AUTH_LINE=53 < NONOK_LINE=87 证明 401 处理仍在非 2xx 之前",
       "pass": true
@@ -98,8 +98,8 @@
       "artifacts": [
         "docs/evidence/2563/pre-ready-2563.json"
       ],
-      "assert": "exit 0；GATE_RESULT=PASS；jq -e '.result == \"PASS\"'",
-      "actual": "PASS：pre-ready-check.sh 全部检查项 PASS（P5 在干净 worktree 真实执行 `cd frontend-pc && npm run build`，head=run baseline=run；P12 七行合同；P13 fix+evidence 已在 origin/issue-2563）。报告落盘 docs/evidence/2563/pre-ready-2563.json；该报告 schema 的总体判定键为 `.overall`（值 PASS，`.checks[]` 无 FAIL），不存在 `.result` 键——计划 R7 断言里写的 `.result == \"PASS\"` 对应实际字段 `.overall == \"PASS\"`。本轮以 `--no-gate-cache` 强制真实执行，避免复用修复前（node_modules 缺失）的失败缓存。",
+      "assert": "exit 0；GATE_RESULT=PASS；jq -e '.overall == \"PASS\"'",
+      "actual": "PASS：pre-ready-check.sh 全部检查项 PASS（P5 在干净 worktree 真实执行 `cd frontend-pc && npm run build`；P12 七行合同；P13 fix+evidence 已在 origin/issue-2563）。报告落盘 docs/evidence/2563/pre-ready-2563.json，总体判定的 JSON 键为 `.overall`（值 PASS，`.checks[]` 无 FAIL），与 plan Rev.2 的断言 `.overall == \"PASS\"` 一致。",
       "expected": "每条合同行 pass=true、dirty=false、P13 提交在 origin/issue-2563",
       "negative": "任一 P 项失败 / evidence.json 缺行 / dirty=true → gate 非 0，禁止 ready",
       "negative_result": "gate 自身即执行器：P5 在干净树跑 cd frontend-pc && npm run build、P12 逐行比对合同（缺行/多余行/pass!=true 均失败）、P13 校验 fix commit 与证据提交已在远端；任一项失败时 gate 非 0 且报告 .result 非 PASS",

@@ -10,8 +10,8 @@ dist/assets/index-CrejxPqK.js   2,628.37 kB │ gzip: 809.11 kB
 - Using dynamic import() to code-split the application
 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-✓ built in 1m 6s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795702051872 hold_ms=69355
+✓ built in 1m 28s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795705448247 hold_ms=93562
 BUILD_EXIT=0
 ESLINT_CMD=cd frontend-pc && npx eslint src/services/apiError.js src/services/api.js src/pages/SiteManagement.jsx
    24:7   warning  'form' was used before it was defined                                                                                         no-use-before-define
@@ -33,7 +33,7 @@ ESLINT_CMD=cd frontend-pc && npx eslint src/services/apiError.js src/services/ap
 
 ✖ 19 problems (0 errors, 19 warnings)
 
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795702059893 hold_ms=7661
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795705457075 hold_ms=8420
 ESLINT_EXIT=0
 ESLINT_NO_UNDEF=0
 R6_OK

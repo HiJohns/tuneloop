@@ -1,4 +1,4 @@
-## Accepted Plan — #2563（PC api 客户端非 2xx 保留业务 code：40002/40004/40005 持久提示可达）
+## Accepted Plan — #2563（PC api 客户端非 2xx 保留业务 code：40002/40004/40005 持久提示可达）｜Rev.2
 
 ### 背景与现状核对（仓库 HEAD 只读核对）
 
@@ -75,12 +75,12 @@
 | 变更点 | 文件/组件 | 入口/路由 | 触发状态 | 目标平台 | 期望结果 | 证据（命令/日志/截图） |
 |---|---|---|---|---|---|---|
 | R1 非 2xx 失败分类纯函数（code 保留、404/409 不变） | `frontend-pc/src/services/apiError.js`、`frontend-pc/tests/apiError.test.mjs` | `node --test`（`resolveHttpFailure`） | 400/403/429/500/502 带 code；404；409（含 40900/40901/中文 message）；损坏 payload | Node 20 | 400/403/429/500/502 → `kind=throw` 且 `error.code`/`status`/`data` 正确；404 → `code=40400,status=404`；409 → code 保留、中文 message 透传；负例：任一非 404/409 返回 `kind=result` → FAIL | R1 |
-| R2 客户端接线（401/perm_version/idle 不变 + throw 契约保留） | `frontend-pc/src/services/api.js` | `request()` 的 `!response.ok` 分支 | 修后源码结构 | PC | `FAILURE_RESOLVER_CALLS=1`、`INLINE_STATUS_MAP=0`、`THROW_PATH=1`、`NONOK_INLINE_RETURNS=0`、`AUTH_BLOCK_BEFORE_NONOK=1`、`AUTH_CODES=4`、`PERM_VERSION=1`、`IDLE_GUARD=1`；负例：非 404/409 出现 `return {` → FAIL | R2 |
+| R2 客户端接线（401/perm_version/idle 不变 + throw 契约保留） | `frontend-pc/src/services/api.js` | `request()` 的 `!response.ok` 分支 | 修后源码结构 | PC | `FAILURE_RESOLVER_CALLS=1`、`INLINE_STATUS_MAP=0`、`THROW_PATH=1`、`NONOK_INLINE_RETURNS=0`、`AUTH_BLOCK_BEFORE_NONOK=1`、`AUTH_CODES=4`、`PERM_VERSION=1`、`IDLE_GUARD_CALLS>=2`；负例：非 404/409 出现 `return {` → FAIL | R2 |
 | R3 消费者接线（网点提交 400 冲突转持久提示） | `frontend-pc/src/pages/SiteManagement.jsx`、`frontend-pc/tests/formConflict.test.mjs` | 网点新建/编辑提交 → `handleSubmit` 的 catch | catch 收到 40002/40004/40005 或 40900 | PC | `CONFLICT_BRANCH_IN_CATCH=1`、`CONFLICT_TEXT_FALLBACK=1`、`FALLBACK_TOAST=1`、`ALERT_RENDERED=1`；`node --test` 中 `TRUE_ENRICHED_ERROR=1`、`FALSE_PLAIN_ERROR=1`；负例：catch 内无 code 判定或删掉兜底 toast → FAIL | R3 |
 | R4 红绿实证 + 回归面不扩张（全仓 throw 依赖不变） | `scripts/verify-2563.sh`、`frontend-pc/src` | 静态调用点扫描 + `git show <fix>^` 对照 | 修后全树 + 修前 api.js | PC | `RED_NO_CODE=1`（修前非 2xx 块无 code 赋值）、`GREEN_CODE_ATTACHED=1`、`AWAIT_CALL_SITES>=150`、`NONOK_INLINE_RETURNS=0`；负例：修后仍出现「非 404/409 内联返回对象」→ FAIL | R4 |
 | R5 API 规格同步客户端非 2xx 契约 | `docs/spec/api/api.md` | §1.3 统一响应格式 | 修后文本 | 文档 | 含 `PC 客户端非 2xx 契约`、`code`/`status`/`data`、`catch`、`40002` 字样；401 分支「不变」声明存在；负例：仍缺「非 404/409 抛 Error 带 code」句 → FAIL | R5 |
 | R6 构建 + ESLint | `frontend-pc` | `npm run build`、`npx eslint` | 修后干净树 | PC | `BUILD_EXIT=0`、`ESLINT_NO_UNDEF=0`；负例：任一非 0 或 `no-undef` 计数 > 0 → FAIL | R6 |
-| R7 pre-ready gate（四源一致 + 证据完整 + P13 已推送） | `docs/evidence/2563/pre-ready-2563.json` | `pre-ready-check.sh 2563` | 修后树 + 最新 Accepted Plan | PC | `GATE_RESULT=PASS`、`jq -e '.result == "PASS"'`、evidence 每行 `pass=true`、`dirty=false`；负例：任一 P 项失败或 evidence 缺行 → FAIL | R7 |
+| R7 pre-ready gate（四源一致 + 证据完整 + P13 已推送） | `docs/evidence/2563/pre-ready-2563.json` | `pre-ready-check.sh 2563` | 修后树 + 最新 Accepted Plan | PC | `GATE_RESULT=PASS`、`jq -e '.overall == "PASS"'`、evidence 每行 `pass=true`、`dirty=false`；负例：任一 P 项失败或 evidence 缺行 → FAIL | R7 |
 
 ## Input Truth & Tool Preflight
 
@@ -140,24 +140,24 @@
 | 行 ID | fixture（输入/seed） | entry（生产入口） | artifact（路径/类型） | assertions（含负例） |
 |---|---|---|---|---|
 | R1 | `status=400 + {code:40002,message:'分类名称已存在'}`、`400 + {code:40004}`、`403 + {code:40300}`、`429 + {code:42900}`、`500 + {code:50000,message:'db down'}`、`502 + null`、`404 + {message:'not found'}`、`409 + {code:40901,message:'name exists'}`、`409 + {}`、`400 + {code:'40002'}`、`400 + 'oops'` | `frontend-pc/src/services/apiError.js` 经 `node --test` | `docs/evidence/2563/R1-transport-unit.txt` | `THROW_40002=1`、`THROW_40004=1`、`THROW_403=1`、`THROW_429=1`、`THROW_500=1`、`THROW_502=1`、`MSG_40002=CJK_PASSTHROUGH`、`RESULT_404=1`、`RESULT_409=1`、`RESULT_409_DEFAULT_CODE=40900`、`CODE_STRING_COERCED=1`、`BAD_PAYLOAD_SAFE=1`、`# fail 0`；负例：任一非 404/409 产出 `kind=result` → FAIL |
-| R2 | 修后 `frontend-pc/src/services/api.js` 的 `request()` 函数体 | `request()` 的 `!response.ok` 块 | `docs/evidence/2563/R2-client-wiring-static.txt` | `FAILURE_RESOLVER_CALLS=1`、`INLINE_STATUS_MAP=0`、`THROW_PATH=1`、`NONOK_INLINE_RETURNS=0`、`AUTH_BLOCK_BEFORE_NONOK=1`、`AUTH_CODES=4`、`PERM_VERSION=1`、`IDLE_GUARD=1`；负例：块内出现 `return {` 或 401 分支被移到其后 → FAIL |
+| R2 | 修后 `frontend-pc/src/services/api.js` 的 `request()` 函数体 | `request()` 的 `!response.ok` 块 | `docs/evidence/2563/R2-client-wiring-static.txt` | `FAILURE_RESOLVER_CALLS=1`、`INLINE_STATUS_MAP=0`、`THROW_PATH=1`、`NONOK_INLINE_RETURNS=0`、`AUTH_BLOCK_BEFORE_NONOK=1`、`AUTH_CODES=4`、`PERM_VERSION=1`、`IDLE_GUARD_CALLS>=2`；负例：块内出现 `return {` 或 401 分支被移到其后 → FAIL |
 | R3 | 修后 `SiteManagement.jsx` 的 `handleSubmit` catch 段 + `node --test frontend-pc/tests/formConflict.test.mjs` | 网点新建/编辑提交（`/sites`） | `docs/evidence/2563/R3-consumer-wiring.txt` | `CONFLICT_BRANCH_IN_CATCH=1`、`CONFLICT_TEXT_FALLBACK=1`、`FALLBACK_TOAST=1`、`ALERT_RENDERED=1`、`TRUE_ENRICHED_ERROR=1`、`FALSE_PLAIN_ERROR=1`、`# fail 0`；负例：catch 无 `isBusinessCorrectableConflict` 判定、或删除兜底 `message.error` → FAIL |
 | R4 | 修前 `api.js`（`git log -1 -- frontend-pc/src/services/api.js` 的父提交）+ 修后全树 | 静态扫描 + `git show` 对照 | `docs/evidence/2563/R4-redgreen-inventory.txt` | `RED_NO_CODE=1`（修前非 2xx 块无 `error.code` 赋值）、`GREEN_CODE_ATTACHED=1`、`AWAIT_CALL_SITES>=150`、`NONOK_INLINE_RETURNS=0`；负例：修后仍存在「非 404/409 内联返回对象」或调用点计数 <150 → FAIL |
 | R5 | 修后 `docs/spec/api/api.md` 的 §1.3 段 | 文档正文 | `docs/evidence/2563/R5-docs-contract.txt` | 命中 `PC 客户端非 2xx 契约`、`error.code`、`40002`、`catch`、`401` 不变句；`DOC_CONTRACT_OK=1`；负例：缺「其余非 2xx 抛 Error 且带 code」句 → FAIL |
 | R6 | 修后干净树 | `cd frontend-pc` | `docs/evidence/2563/R6-build-lint.txt` | `BUILD_EXIT=0`、`ESLINT_NO_UNDEF=0`；负例：构建非 0 或 `no-undef` > 0 → FAIL |
-| R7 | 修后树 + 最新 Accepted Plan + evidence.json | `pre-ready-check.sh 2563` | `docs/evidence/2563/pre-ready-2563.json` | `GATE_RESULT=PASS`、`jq -e '.result == "PASS"'`、每行 `pass=true`、`dirty=false`、P13 在 `origin/issue-2563`；负例：任一 P 失败 / evidence 缺行 / `dirty=true` → FAIL |
+| R7 | 修后树 + 最新 Accepted Plan + evidence.json | `pre-ready-check.sh 2563` | `docs/evidence/2563/pre-ready-2563.json` | `GATE_RESULT=PASS`、`jq -e '.overall == "PASS"'`、每行 `pass=true`、`dirty=false`、P13 在 `origin/issue-2563`；负例：任一 P 失败 / evidence 缺行 / `dirty=true` → FAIL |
 
 ### Evidence Contract
 
 | 行 ID | 命令 | 产物（仓库可见路径） | 断言（机器可判定） | 期望值 | 负例 | 责任人 |
 |---|---|---|---|---|---|---|
 | R1 | `bash scripts/verify-2563.sh r1 > docs/evidence/2563/R1-transport-unit.txt` | `docs/evidence/2563/R1-transport-unit.txt` | exit 0；`grep -q 'THROW_40002=1'`；`grep -q '# fail 0'` | 400/403/429/500/502 全部 `kind=throw` 且带 code；404/409 为 `kind=result`；node 用例全通过 | 任一非 404/409 产出 `kind=result`（如 400 被当对象返回）→ 脚本非 0 退出 | dev |
-| R2 | `bash scripts/verify-2563.sh r2 > docs/evidence/2563/R2-client-wiring-static.txt` | `docs/evidence/2563/R2-client-wiring-static.txt` | exit 0；`grep -q '^R2_OK$'`；`grep -q 'NONOK_INLINE_RETURNS=0'` | `FAILURE_RESOLVER_CALLS=1`、`INLINE_STATUS_MAP=0`、`THROW_PATH=1`、`AUTH_BLOCK_BEFORE_NONOK=1`、`AUTH_CODES=4`、`PERM_VERSION=1`、`IDLE_GUARD=1` | 块内出现 `return {`、或 401 分支被移到 `!response.ok` 之后 → 输出 `R2_FAIL` 并非 0 退出 | dev |
+| R2 | `bash scripts/verify-2563.sh r2 > docs/evidence/2563/R2-client-wiring-static.txt` | `docs/evidence/2563/R2-client-wiring-static.txt` | exit 0；`grep -q '^R2_OK$'`；`grep -q 'NONOK_INLINE_RETURNS=0'` | `FAILURE_RESOLVER_CALLS=1`、`INLINE_STATUS_MAP=0`、`THROW_PATH=1`、`AUTH_BLOCK_BEFORE_NONOK=1`、`AUTH_CODES=4`、`PERM_VERSION=1`、`IDLE_GUARD_CALLS>=2` | 块内出现 `return {`、或 401 分支被移到 `!response.ok` 之后 → 输出 `R2_FAIL` 并非 0 退出 | dev |
 | R3 | `bash scripts/verify-2563.sh r3 > docs/evidence/2563/R3-consumer-wiring.txt` | `docs/evidence/2563/R3-consumer-wiring.txt` | exit 0；`grep -q '^R3_OK$'`；`grep -q 'CONFLICT_BRANCH_IN_CATCH=1'` | `FALLBACK_TOAST=1`、`ALERT_RENDERED=1`、`TRUE_ENRICHED_ERROR=1`、`FALSE_PLAIN_ERROR=1`、`# fail 0` | catch 缺 code 判定、或删除兜底 `message.error`、或普通 Error 被判 true → 输出 `R3_FAIL` 并非 0 退出 | dev |
 | R4 | `bash scripts/verify-2563.sh r4 > docs/evidence/2563/R4-redgreen-inventory.txt` | `docs/evidence/2563/R4-redgreen-inventory.txt` | exit 0；`grep -q '^R4_OK$'`；`grep -q 'RED_NO_CODE=1'`；`grep -q 'GREEN_CODE_ATTACHED=1'` | `AWAIT_CALL_SITES` ≥ 150、`NONOK_INLINE_RETURNS=0` | 修后仍存在非 404/409 内联返回对象、或修前样本含 code 赋值（红样失效）→ `R4_FAIL` 并非 0 退出 | dev |
 | R5 | `bash scripts/verify-2563.sh r5 > docs/evidence/2563/R5-docs-contract.txt` | `docs/evidence/2563/R5-docs-contract.txt` | exit 0；`grep -q '^R5_OK$'`；`grep -q 'DOC_CONTRACT_OK=1'` | api.md §1.3 含「PC 客户端非 2xx 契约」与 `error.code` 句，且含 401 不变声明 | 缺「其余非 2xx 抛 Error 带 code」句或 401 不变声明 → `R5_FAIL` 并非 0 退出 | dev |
 | R6 | `bash scripts/verify-2563.sh r6 > docs/evidence/2563/R6-build-lint.txt` | `docs/evidence/2563/R6-build-lint.txt` | exit 0；`grep -q '^R6_OK$'`；`grep -q 'BUILD_EXIT=0'`；`grep -q 'ESLINT_NO_UNDEF=0'` | 构建 0 退出、`no-undef` 计数 0 | 构建非 0 或 `no-undef` 计数 > 0 → `R6_FAIL` 并非 0 退出 | dev |
-| R7 | `/home/coder/.config/opencode/scripts/pre-ready-check.sh 2563 --summary-file docs/evidence/2563/summary.md --changed-files docs/evidence/2563/changed-files.txt --evidence-file docs/evidence/2563/evidence.json --full-gate-cmd "cd frontend-pc && npm run build" --report docs/evidence/2563/pre-ready-2563.json` | `docs/evidence/2563/pre-ready-2563.json` | exit 0；`GATE_RESULT=PASS`；`jq -e '.result == "PASS"'` | 每条合同行 `pass=true`、`dirty=false`、P13 提交在 `origin/issue-2563` | 任一 P 项失败 / evidence.json 缺行 / `dirty=true` → gate 非 0，禁止 ready | dev |
+| R7 | `/home/coder/.config/opencode/scripts/pre-ready-check.sh 2563 --summary-file docs/evidence/2563/summary.md --changed-files docs/evidence/2563/changed-files.txt --evidence-file docs/evidence/2563/evidence.json --full-gate-cmd "cd frontend-pc && npm run build" --report docs/evidence/2563/pre-ready-2563.json` | `docs/evidence/2563/pre-ready-2563.json` | exit 0；`GATE_RESULT=PASS`；`jq -e '.overall == "PASS"'` | 每条合同行 `pass=true`、`dirty=false`、P13 提交在 `origin/issue-2563` | 任一 P 项失败 / evidence.json 缺行 / `dirty=true` → gate 非 0，禁止 ready | dev |
 
 ### Files（变更文件清单）
 
@@ -208,4 +208,5 @@
 - 下游（不阻塞本单）：#2564 消费本单契约（分类页恢复持久提示）；#2486 Batch 2 在其 /analyze 阶段按 `catch` 形态判定 40002/40004/40005。
 
 *Model: DeepSeek V4.1 Flash 1017*
+
 

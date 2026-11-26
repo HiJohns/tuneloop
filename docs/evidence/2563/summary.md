@@ -106,7 +106,7 @@ GREEN（npm ci 后）:      BUILD_EXIT=0  ESLINT_EXIT=0  ESLINT_NO_UNDEF=0  → 
 | 行 | 结果 | 产物 | 关键断言 |
 |---|---|---|---|
 | R1 | PASS | `docs/evidence/2563/R1-transport-unit.txt` | THROW_40002=1 … THROW_502=1、RESULT_404=1、RESULT_409=1、CODE_STRING_COERCED=1、BAD_PAYLOAD_SAFE=1、# fail 0 |
-| R2 | PASS | `docs/evidence/2563/R2-client-wiring-static.txt` | FAILURE_RESOLVER_CALLS=1、NONOK_INLINE_RETURNS=0、AUTH_BLOCK_BEFORE_NONOK=1、AUTH_CODES=4、PERM_VERSION=1、IDLE_GUARD=5、R2_OK |
+| R2 | PASS | `docs/evidence/2563/R2-client-wiring-static.txt` | FAILURE_RESOLVER_CALLS=1、NONOK_INLINE_RETURNS=0、AUTH_BLOCK_BEFORE_NONOK=1、AUTH_CODES=4、PERM_VERSION=1、IDLE_GUARD_CALLS=5、R2_OK |
 | R3 | PASS | `docs/evidence/2563/R3-consumer-wiring.txt` | CONFLICT_BRANCH_IN_CATCH=1、CONFLICT_TEXT_FALLBACK=1、FALLBACK_TOAST=1、ALERT_RENDERED=1、TRUE_ENRICHED_ERROR=1、FALSE_PLAIN_ERROR=1、# fail 0 |
 | R4 | PASS | `docs/evidence/2563/R4-redgreen-inventory.txt` | RED_NO_CODE=1、GREEN_CODE_ATTACHED=1、AWAIT_CALL_SITES=259、NONOK_INLINE_RETURNS=0、R4_OK |
 | R5 | PASS | `docs/evidence/2563/R5-docs-contract.txt` | DOC_CONTRACT_OK=1、DOC_SECTION_LINES=13、七个 token 全 1 |
@@ -125,7 +125,7 @@ GREEN（npm ci 后）:      BUILD_EXIT=0  ESLINT_EXIT=0  ESLINT_NO_UNDEF=0  → 
 | R4 | `docs/evidence/2563/R4-redgreen-inventory.txt` | RED_NO_CODE=1、GREEN_CODE_ATTACHED=1、调用点 ≥150 | 红样失效 / 修后仍内联返回 → FAIL |
 | R5 | `docs/evidence/2563/R5-docs-contract.txt` | 段落 13 行 + 7 token + DOC_CONTRACT_OK=1 | 缺关键句 → FAIL |
 | R6 | `docs/evidence/2563/R6-build-lint.txt` | BUILD_EXIT=0、ESLINT_NO_UNDEF=0 | 构建非 0 / no-undef > 0 → FAIL |
-| R7 | `docs/evidence/2563/pre-ready-2563.json` | gate `.result == PASS`、P5/P12/P13 通过 | 任一 P 失败 / 缺行 / dirty → 非 0 |
+| R7 | `docs/evidence/2563/pre-ready-2563.json` | gate `.overall == PASS`、P5/P12/P13 通过 | 任一 P 失败 / 缺行 / dirty → 非 0 |
 
 行间不复用证据：R1 纯函数、R2 客户端结构、R3 消费者结构 + rubric、R4 修前/修后对照、R5 文档、R6 构建 lint、R7 gate 报告各自独立 artifact。
 
