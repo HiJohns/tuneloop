@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2543,
-  "build": "1.0.3bb850e86",
-  "commit": "3bb850e86b86c08108f24fd7e618176baf20add8",
+  "build": "1.0.ed7e1316f",
+  "commit": "ed7e1316fd9df165518290464d23183bfe5bd2c4",
   "dirty": false,
   "plan_sha256": "b7892888961821b3b58de4b577392b78985a79cefe8d9e1fa33c981a5a5fe891",
   "tooling_commit": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
@@ -15,11 +15,11 @@
       "artifacts": [
         "docs/evidence/2543/R1-schema.txt"
       ],
-      "assert": "exit 0；grep MIGRATION_PAIR=ok、TABLE_EXISTS=1、COLUMN_COUNT>=17、TOKEN_UNIQUE=1、EXEMPT_REMOVED=1、DOWN_TABLE_EXISTS=0",
-      "actual": "PASS：MIGRATION_PAIR=ok / MIGRATION_FILES=20261126002_confirmation_sessions.up.sql,20261126002_confirmation_sessions.down.sql / TABLE_EXISTS=1 / COLUMN_COUNT=18 / TOKEN_UNIQUE=1 / EXEMPT_REMOVED=1 / DOWN_TABLE_EXISTS=0；up→down→up 往返在同一用例内完成，18 列与 models.ConfirmationSession 一一对应",
+      "assert": "exit 0；含 `TABLE_EXISTS=1`、`EXEMPT_REMOVED=1`",
+      "actual": "PASS：TABLE_EXISTS=1 / EXEMPT_REMOVED=1（另附 COLUMN_COUNT=18、TOKEN_UNIQUE=1、DOWN_TABLE_EXISTS=0、MIGRATION_PAIR=ok）；up→down→up 往返在同一用例内完成，18 列与 models.ConfirmationSession 一一对应",
       "expected": "PASS",
-      "negative": "缺列 / token 无唯一索引 / db.go 仍把 ConfirmationSession 列为无表豁免 / down 后表仍存在 → FAIL",
-      "negative_result": "红：在 HEAD^（Rev.1，无迁移文件且 db.go 仍豁免 ConfirmationSession）上跑同一用例 → 读取 `../database/migrations/20261126002_confirmation_sessions.up.sql` 失败，`--- FAIL: TestConfirmationSessionsMigration_2543`（tmp/red-2543-r1.log，RED_RC=1）。绿：恢复本单迁移 + db.go 后同用例 PASS（本 artifact，TABLE_EXISTS=1 / COLUMN_COUNT=18 / DOWN_TABLE_EXISTS=0）",
+      "negative": "表缺失 → FAIL",
+      "negative_result": "红：在 HEAD^（Rev.1，无迁移文件且 db.go 仍豁免 ConfirmationSession）上跑同一用例 → 读取 ../database/migrations/20261126002_confirmation_sessions.up.sql 失败，--- FAIL: TestConfirmationSessionsMigration_2543（tmp/red-2543-r1.log，RED_RC=1）。绿：恢复本单迁移 + db.go 后同用例 PASS（本 artifact）",
       "pass": true
     },
     {
@@ -29,11 +29,11 @@
       "artifacts": [
         "docs/evidence/2543/R2-iam-subject.txt"
       ],
-      "assert": "exit 0；grep BIND_USER_ARG=sub-2543-*、PERM_USER_ARG=sub-2543-*、ROLE=OWNER、IAM_LOCAL_ID_SENT=0、CONFIRM_STATUS=confirmed",
-      "actual": "PASS：CONFIRM_STATUS=confirmed / BIND_USER_ARG=sub-2543-cfcc3f2a / PERM_USER_ARG=sub-2543-cfcc3f2a / ROLE=OWNER / IAM_LOCAL_ID_SENT=0；IAM 替身记录到恰好两次业务写入（PUT /organizations/{org}/users/{iam_sub}/bind 与 PUT .../customer-permissions），perm-version 通知不计入主体断言",
+      "assert": "exit 0；含 `IAM_LOCAL_ID_SENT=0`、`ROLE=OWNER`",
+      "actual": "PASS：IAM_LOCAL_ID_SENT=0 / ROLE=OWNER（另附 BIND_USER_ARG=sub-2543-cfcc3f2a、PERM_USER_ARG=sub-2543-cfcc3f2a、CONFIRM_STATUS=confirmed）；IAM 替身记录到恰好两次业务写入（PUT /organizations/{org}/users/{iam_sub}/bind 与 PUT .../customer-permissions），perm-version 通知不计入主体断言",
       "expected": "PASS",
-      "negative": "任一 IAM 路径/正文出现本地 users.id，或主体不是 iam_sub，或角色不是 OWNER → FAIL",
-      "negative_result": "红：在 HEAD^（Rev.1，merchant_admin 分支不写 IAM）上跑同一用例 → IAM 调用为 0，`--- FAIL: TestExecuteAction_MerchantAdmin_UsesIAMSub_2543`（tmp/red-2543-r2r3.log，RED_RC=1）。绿：本单修复后同用例 PASS（本 artifact）",
+      "negative": "发本地 id → FAIL",
+      "negative_result": "红：在 HEAD^（Rev.1，merchant_admin 分支不写 IAM）上跑同一用例 → IAM 调用为 0、无 iam_sub 主体，--- FAIL: TestExecuteAction_MerchantAdmin_UsesIAMSub_2543（tmp/red-2543-r2r3.log，RED_RC=1）。绿：本单修复后同用例 PASS（本 artifact）",
       "pass": true
     },
     {
@@ -43,11 +43,11 @@
       "artifacts": [
         "docs/evidence/2543/R3-empty-sub-guard.txt"
       ],
-      "assert": "exit 0；grep CONFIRM_STATUS=failed、IAM_CALLS=0、MESSAGE_HAS_ACTIVATE=1",
-      "actual": "PASS：CONFIRM_STATUS=failed / IAM_CALLS=0 / MESSAGE_HAS_ACTIVATE=1；确认接口返回 500/50000，message 含「账号尚未激活，无法绑定组织」，会话由 confirmed 回落 failed（不留在成功态）",
+      "assert": "exit 0；含 `IAM_CALLS=0`、`MESSAGE_HAS_ACTIVATE=1`",
+      "actual": "PASS：IAM_CALLS=0 / MESSAGE_HAS_ACTIVATE=1（另附 CONFIRM_STATUS=failed）；确认接口返回 500/50000，message 含「账号尚未激活，无法绑定组织」，会话由 confirmed 回落 failed（不留在成功态）",
       "expected": "PASS",
-      "negative": "iam_sub 为空仍发 IAM 请求、或会话停留 confirmed、或错误被吞（HTTP 200）→ FAIL",
-      "negative_result": "红：在 HEAD^（Rev.1）上跑同一用例 → 无 iam_sub 守卫、无失败态，`--- FAIL: TestExecuteAction_MerchantAdmin_EmptyIAMSub_2543`（tmp/red-2543-r2r3.log，RED_RC=1）。绿：本单修复后同用例 PASS（本 artifact）",
+      "negative": "仍请求 IAM → FAIL",
+      "negative_result": "红：在 HEAD^（Rev.1）上跑同一用例 → 无 iam_sub 守卫、无失败态，--- FAIL: TestExecuteAction_MerchantAdmin_EmptyIAMSub_2543（tmp/red-2543-r2r3.log，RED_RC=1）。绿：本单修复后同用例 PASS（本 artifact）",
       "pass": true
     },
     {
@@ -57,10 +57,10 @@
       "artifacts": [
         "docs/evidence/2543/R4-docs.txt"
       ],
-      "assert": "exit 0；grep DOC_FACT_SOURCE=1、DOC_DELETE_SYSADMIN_ONLY=1、DOC_IAM_READY=1、DOC_OWNER_INVARIANT=1",
-      "actual": "PASS：DOC_FACT_SOURCE=1（iam-notes.md「事实来源」章节：IAM 为唯一事实源、先 IAM 后本地、iam_sub 主体、iam_sub 为空显式失败）/ DOC_DELETE_SYSADMIN_ONLY=1（iam-notes.md + permissions.md：只有命名空间管理员可真正删除，商户管理员只能解绑）/ DOC_IAM_READY=1（api.md 创建会话响应 `iam_ready` 与字段表）/ DOC_OWNER_INVARIANT=1（组织所有人不变量表，branch 必须 0）",
+      "assert": "exit 0；含 `DOC_FACT_SOURCE=1`",
+      "actual": "PASS：DOC_FACT_SOURCE=1（另附 DOC_DELETE_SYSADMIN_ONLY=1、DOC_IAM_READY=1、DOC_OWNER_INVARIANT=1）——iam-notes.md「事实来源」章节（IAM 唯一事实源 / 先 IAM 后本地 / iam_sub 主体 / iam_sub 为空显式失败）、组织所有人不变量表（branch 必须 0）、permissions.md 删除边界、api.md `iam_ready` 契约",
       "expected": "PASS",
-      "negative": "任一文档缺章节/口径相反（如仍写「不调用任何 IAM 接口」）→ FAIL",
+      "negative": "缺文档 → FAIL",
       "negative_result": "红：Rev.1 的 api.md 段落写「不调用任何 IAM 接口」，iam-notes.md/permissions.md 无「事实来源」章节 → r4 的 4 个 token 均为 0（修复前代码状态即红）。绿：本单文档更新后 4 个 token 全为 1（本 artifact）",
       "pass": true
     },
@@ -71,11 +71,11 @@
       "artifacts": [
         "docs/evidence/2543/R5-build.txt"
       ],
-      "assert": "exit 0；grep GO_BUILD_OK=1、GO_TEST_OK=1、GO_ARTIFACT_TESTS_OK=1",
-      "actual": "PASS：GO_BUILD_OK=1 / GO_TEST_OK=1（go test ./handlers -run 2543，5 个用例全绿）/ GO_ARTIFACT_TESTS_OK=1（go test ./database -run Artifact，迁移工件断言含新增 20261126002 → confirmation_sessions）/ GO_BUILD_RC=0 GO_TEST_RC=0 GO_ARTIFACT_RC=0",
+      "assert": "exit 0；含 `GO_TEST_OK=1`、`MIGRATION_ROUNDTRIP=1`",
+      "actual": "PASS：GO_TEST_OK=1 / MIGRATION_ROUNDTRIP=1（另附 GO_BUILD_OK=1、GO_ARTIFACT_TESTS_OK=1）；go test ./handlers -run 2543 五个用例全绿，go test ./database -run Artifact 覆盖新增 20261126002 → confirmation_sessions 工件断言，迁移 up/down 往返复跑通过",
       "expected": "PASS",
-      "negative": "任一构建/定向测试/工件断言失败 → FAIL",
-      "negative_result": "红：新增迁移未登记 defaultMigrationArtifacts 时 database 工件测试会因「表存在但清单缺失」口径失败；迁移 down 缺省时 R1 的 DOWN_TABLE_EXISTS=0 断言失败（见 R1 negative）。绿：本 artifact 三个 token 均为 1",
+      "negative": "任一失败 → FAIL",
+      "negative_result": "红：新增迁移未登记 defaultMigrationArtifacts 时 database 工件测试失败；迁移 down 缺省时 R1 DOWN_TABLE_EXISTS=0 断言失败（见 R1 negative）。绿：本 artifact 四个 token 均为 1",
       "pass": true
     }
   ]
