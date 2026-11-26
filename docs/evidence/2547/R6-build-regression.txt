@@ -1,0 +1,26 @@
+# build=1.0.81d2e2bd3 # commit=81d2e2bd38bd3e26f5234e937f4be539a5ed5407 # dirty=false
+GENERATED_AT_HEAD=81d2e2bd38bd3e26f5234e937f4be539a5ed5407
+== R6 构建 + gofmt + 定向回归 ==
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed at_ms=1795680128111 wait_ms=163
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed wait_ms=163
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795680139206 hold_ms=11095
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed at_ms=1795680139550 wait_ms=165
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed wait_ms=165
+ok  	tuneloop-backend/handlers	9.427s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795680154670 hold_ms=15120
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed at_ms=1795680154309 wait_ms=176
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed wait_ms=176
+ok  	tuneloop-backend/handlers	4.641s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795680164268 hold_ms=9959
+sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
+sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+123133 |   zTail = strrchr(zName, '_');
+       |         ^
+ok  	tuneloop-backend/services	0.074s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795680167544 hold_ms=3199
+BUILD_RC=0
+GOFMT_DIFF=0
+TRANSIT_SUITE_OK=1
+PERSONNEL_SUITE_OK=1
+SERVICES_SUITE_OK=1
+R6_OK
