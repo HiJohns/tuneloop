@@ -28,7 +28,7 @@ remote: `origin/issue-2532`; fix=`0275ebc84` pushed=yes; evidence 提交在其�
 
 **R1（回退写站点 ID）—— 缺陷版 FAIL（HTTP 500 + 外键违例）→ 修复版 PASS**
 
-缺陷版（预修复源码 `e77597a7d:backend/handlers/assessment.go` 在工作树中还原后运行，用例与夹具不变，同一测试库；等价于 `git stash` 掉修复）：
+缺陷版（预修复源码 e77597a7d:backend/handlers/assessment.go 在工作树中还原后运行，用例与夹具不变，同一测试库；等价于 `git stash` 掉修复）：
 
 ```
 STATUS=500
@@ -100,8 +100,8 @@ FAIL	tuneloop-backend/handlers
 
 | 审计项 | 问题 | 修复 | 修复后证据 |
 |---|---|---|---|
-| Bug 1（高） | 计划变更点 C6 / Input Truth 要求 `evidence.json` 的 `build/commit/dirty` 由脚本 `ledger` 从最新 fix commit 派生，但脚本只有 `r1`–`r4` / `gate`，账本靠手写 | 新增 `ledger` 子命令：从最新 `fix(issue-2532)` commit 派生 build / commit / dirty，用 `jq` 只写回顶层三字段（保留 rows）；报告缺失、overall 非 PASS、或报告 provenance.commit 与 fix commit 不一致时非 0 退出 | 见下方 Round 2 证据块（LEDGER_OK） |
-| Bug 2（高） | `evidence.json` 的 R5 行 `actual` 仍是首轮占位 `PENDING:first-gate-run`，与产物 overall=PASS 自相矛盾 | `ledger` 从 `docs/evidence/2532/pre-ready-2532.json` 派生 R5 `actual`（overall / plan_sha256 / provenance.build / provenance.commit / dirty / P12 / P13 + 来源路径），占位串清零 | `docs/evidence/2532/evidence.json` 的 R5 `actual` |
+| Bug 1（高） | 计划变更点 C6 / Input Truth 要求 `docs/evidence/2532/evidence.json` 的 `build/commit/dirty` 由脚本 `ledger` 从最新 fix commit 派生，但脚本只有 `r1`–`r4` / `gate`，账本靠手写 | 新增 `ledger` 子命令：从最新 `fix(issue-2532)` commit 派生 build / commit / dirty，用 `jq` 只写回顶层三字段（保留 rows）；报告缺失、overall 非 PASS、或报告 provenance.commit 与 fix commit 不一致时非 0 退出 | 见下方 Round 2 证据块（LEDGER_OK） |
+| Bug 2（高） | `docs/evidence/2532/evidence.json` 的 R5 行 `actual` 仍是首轮占位 `PENDING:first-gate-run`，与产物 overall=PASS 自相矛盾 | `ledger` 从 `docs/evidence/2532/pre-ready-2532.json` 派生 R5 `actual`（overall / plan_sha256 / provenance.build / provenance.commit / dirty / P12 / P13 + 来源路径），占位串清零 | `docs/evidence/2532/evidence.json` 的 R5 `actual` |
 | Bug 3（中） | 红证据只指向不可追溯的 `tmp/red-2532.log`（gitignored），账本引用不可核验路径 | 新增 `red` 子命令：把 fix commit 的父提交 `e77597a7d` 的 `backend/handlers/assessment.go` 还原到工作树后运行同一 R1 用例（等价 stash 掉修复），输出持久化到 `docs/evidence/2532/R1-red-prefix.txt`（首行 provenance 为预修复 commit + 还原说明，`trap` 保证工作树复原）；R1 `negative_result` 改指该文件 | `docs/evidence/2532/R1-red-prefix.txt`（STATUS=500 / CURRENT_NOT_ORG=0 / RED_CONFIRMED=0 / --- FAIL / RED_OK） |
 
 ### Round 2 证据（命令输出）
