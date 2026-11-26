@@ -602,6 +602,22 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	})
 }
 
+// resolveActivationRoleTemplate 返回激活时使用的业务角色模板码：
+// 仅采用**员工**角色模板（`services.AllRoleTemplates` 命中且不是 `customer`）；
+// 空/非法/客户 → "site_member"（legacy 兜底）。
+//
+// 纯函数，便于脱 DB 单测（#2540）。
+func resolveActivationRoleTemplate(userRole string) string {
+	role := strings.TrimSpace(userRole)
+	if role == "" || role == "customer" {
+		return "site_member"
+	}
+	if _, ok := services.AllRoleTemplates[role]; ok {
+		return role
+	}
+	return "site_member"
+}
+
 // ActivateUser creates IAM user for an existing local user that has no iam_sub
 // POST /api/users/:id/activate
 func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
@@ -666,10 +682,11 @@ func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
 		orgID = tenantID
 	}
 
-	iamRole := services.GetBusinessRole("site_member")
-	if iamRole == "" {
-		iamRole = "staff"
-	}
+	// #2540：关系角色与客户权限模板必须同源取自 users.role。
+	// 旧写法固定 GetBusinessRole("site_member") → IAM 关系角色被写成业务码 "user"
+	// （beaconiam 不识别 → 权限 None），且权限模板硬编码 site_member，激活 site_admin 会实质降权。
+	roleTemplate := resolveActivationRoleTemplate(user.Role)
+	iamRole := services.NormalizeIAMRelationRole(toIAMRole(roleTemplate))
 	if err := iamClient.BindUserToOrganization(iamResp.UserID, orgID, iamRole, ""); err != nil {
 		if purgeErr := iamClient.PurgeUser(iamResp.UserID); purgeErr != nil {
 			log.Printf("[ActivateUser] rollback purge failed for %s: %v", iamResp.UserID, purgeErr)
@@ -678,7 +695,7 @@ func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
 		return
 	}
 
-	template := services.AllRoleTemplates["site_member"]
+	template := services.AllRoleTemplates[roleTemplate]
 	if len(template.CusPermCodes) > 0 {
 		cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(template.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
 		if err := iamClient.SetUserCustomerPermissions(orgID, iamResp.UserID, cusPerm, cusPermExt); err != nil {

@@ -301,10 +301,10 @@ func ImportAccountsCSV(ctx context.Context, r io.Reader, tenantID string, iamCli
 
 		// IAM operations before local create
 		if newUser.IAMSub != "" && orgIDForIAM != "" {
-			iamRole := GetBusinessRole(acc.Role)
-			if iamRole == "" {
-				iamRole = "staff"
-			}
+			// #2540：IAM 关系角色必须经 ToIAMRole + 白名单兜底（#2467 邻居收敛）。
+			// 旧写法 GetBusinessRole(acc.Role) 会把业务角色（site_member→"user"、
+			// site_admin→"organization_admin"）当 IAM 关系角色写入，对端不识别 → 权限 None。
+			iamRole := NormalizeIAMRelationRole(ToIAMRole(acc.Role))
 			if err := iamClient.BindUserToOrganization(newUser.IAMSub, orgIDForIAM, iamRole, ""); err != nil {
 				LogImportError("account", acc.RowNum, acc.Email, err)
 				iamClient.DeleteUser(newUser.IAMSub)
