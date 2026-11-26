@@ -1,23 +1,22 @@
-# build=1.0.254dbaecf # commit=254dbaecf76bfc0b506ebf2c6a4f7af037b0b484 # dirty=false
+# build=1.0.9390b3de9 # commit=9390b3de9a658d8c8877652e5673aee506ccde44 # dirty=false
 # CMD go test -count=1 -v -run '^TestInstrumentLoss2515_MerchantAndPlatform$' ./handlers/
-[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795690670616 wait_ms=76
-[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=76
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s44-p44-bd1999 at_ms=1795691321110 wait_ms=106
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s44-p44-bd1999 wait_ms=106
 [DEBUG] Loaded .env from: ../.env
-2026/11/26 10:57:55 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c sslmode=disable
-2026/11/26 10:57:55 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c
-2026/11/26 10:57:55 [DB] Connected to database 'tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c'
+2026/11/26 11:08:53 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e sslmode=disable
+2026/11/26 11:08:53 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e
+2026/11/26 11:08:53 [DB] Connected to database 'tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e'
 === RUN   TestInstrumentLoss2515_MerchantAndPlatform
-2026/11/26 10:57:56 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c sslmode=disable
-2026/11/26 10:57:56 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c
-2026/11/26 10:57:56 [DB] Connected to database 'tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c'
+2026/11/26 11:08:54 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e sslmode=disable
+2026/11/26 11:08:54 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e
+2026/11/26 11:08:54 [DB] Connected to database 'tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e'
 
-2026/11/26 10:57:56 [32m/tmp/opencode/tuneloop/wt-2515/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[512.769ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
-2026/11/26 10:57:56 [TenantScope][observe] auto-scope injected for table=instrument_loss_records (add explicit scope, then set ExplicitTenantScopeOnly)
-R2 MERCHANT_SEES=2 PLATFORM_SEES=2 MERCHANT_IDS=38c248fe-59d1-41a7-8992-cd342a32334c,da46be67-ba51-4035-9e9b-8a23f554998a PLATFORM_IDS=38c248fe-59d1-41a7-8992-cd342a32334c,da46be67-ba51-4035-9e9b-8a23f554998a
---- PASS: TestInstrumentLoss2515_MerchantAndPlatform (0.79s)
+2026/11/26 11:08:55 [32m/tmp/opencode/tuneloop/wt-2515/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[567.634ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+R2 MERCHANT_SEES=2 PLATFORM_SEES=2 MERCHANT_IDS=c8bc5c8d-6085-4a2b-bb01-f810286ac3ef,29f0888c-f8d5-49d3-88b0-880e21ccaa6a PLATFORM_IDS=c8bc5c8d-6085-4a2b-bb01-f810286ac3ef,29f0888c-f8d5-49d3-88b0-880e21ccaa6a
+--- PASS: TestInstrumentLoss2515_MerchantAndPlatform (1.05s)
 PASS
-ok  	tuneloop-backend/handlers	1.536s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795690677090 hold_ms=6474
+ok  	tuneloop-backend/handlers	2.252s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795691335473 hold_ms=14363
 GO_TEST_RC=0
 R2_OK

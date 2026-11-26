@@ -1,22 +1,23 @@
-# build=1.0.254dbaecf # commit=254dbaecf76bfc0b506ebf2c6a4f7af037b0b484 # dirty=false
+# build=1.0.9390b3de9 # commit=9390b3de9a658d8c8877652e5673aee506ccde44 # dirty=false
 # R5 既有 TestInstrumentLoss_* 套件回归
---- PASS: TestInstrumentLoss2515_SiteScope (0.90s)
---- PASS: TestInstrumentLoss2515_MerchantAndPlatform (0.69s)
---- PASS: TestInstrumentLoss2515_MultiSiteStaff (0.70s)
---- PASS: TestInstrumentLoss2515_NegativeCrossSiteInstrument (0.70s)
---- PASS: TestInstrumentLoss_InLease_Settlement (0.72s)
---- PASS: TestInstrumentLoss_PreLease_FullRefund (0.77s)
---- PASS: TestInstrumentLoss_Returning_Rent (0.83s)
---- PASS: TestInstrumentLoss_Restore_Reversal (0.78s)
---- PASS: TestInstrumentLoss_Restore_Damaged_Hold (0.77s)
---- PASS: TestInstrumentLoss_NoLease_RecordsOnly (0.74s)
---- PASS: TestInstrumentLoss_ShortfallPayCallback (0.76s)
---- PASS: TestInstrumentLoss2510_IDDomainRootCause (0.77s)
---- PASS: TestInstrumentLoss2510_RegisterBySiteOrg (0.70s)
---- PASS: TestInstrumentLoss2510_RestoreBySiteOrg (0.71s)
---- PASS: TestInstrumentLoss2510_CrossOrgDenied (0.74s)
---- PASS: TestInstrumentLoss2510_OldOidConventionDenied (0.76s)
-ok  	tuneloop-backend/handlers	12.971s
+--- PASS: TestInstrumentLoss2515_SiteScope (1.20s)
+--- PASS: TestInstrumentLoss2515_SiteAdminScope (0.82s)
+--- PASS: TestInstrumentLoss2515_MerchantAndPlatform (0.86s)
+--- PASS: TestInstrumentLoss2515_MultiSiteStaff (0.89s)
+--- PASS: TestInstrumentLoss2515_NegativeCrossSiteInstrument (0.94s)
+--- PASS: TestInstrumentLoss_InLease_Settlement (0.84s)
+--- PASS: TestInstrumentLoss_PreLease_FullRefund (0.96s)
+--- PASS: TestInstrumentLoss_Returning_Rent (1.02s)
+--- PASS: TestInstrumentLoss_Restore_Reversal (1.01s)
+--- PASS: TestInstrumentLoss_Restore_Damaged_Hold (1.11s)
+--- PASS: TestInstrumentLoss_NoLease_RecordsOnly (0.83s)
+--- PASS: TestInstrumentLoss_ShortfallPayCallback (0.83s)
+--- PASS: TestInstrumentLoss2510_IDDomainRootCause (0.99s)
+--- PASS: TestInstrumentLoss2510_RegisterBySiteOrg (0.73s)
+--- PASS: TestInstrumentLoss2510_RestoreBySiteOrg (0.73s)
+--- PASS: TestInstrumentLoss2510_CrossOrgDenied (0.77s)
+--- PASS: TestInstrumentLoss2510_OldOidConventionDenied (0.71s)
+ok  	tuneloop-backend/handlers	18.285s
 REGRESSION_RC=0
 FAIL_COUNT=0
 REGRESSION_PASS=1
