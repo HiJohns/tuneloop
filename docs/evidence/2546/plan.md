@@ -1,4 +1,4 @@
-## Accepted Plan — #2546 商户所有人（唯一 OWNER）+ 转让所有权（原 OWNER 降 ADMIN）｜Rev.3
+## Accepted Plan — #2546 商户所有人（唯一 OWNER）+ 转让所有权（原 OWNER 降 ADMIN）｜Rev.3｜Rev.4
 
 > Tags: enhancement, code:go, api-contract, scope:pc, code:js
 > 关联依据：beaconiam#508（`4a0cb5c`，预生产包 `beaconiam_20261126-063053_61f8a8f.zip`）已上线转让端点与单一 OWNER 不变量；用例/契约由 #2544 已修订（A1/A2）
@@ -102,7 +102,7 @@
 | R13 `PUT /merchants/:id` 组合字段不丢失 | `backend/handlers/merchant.go` | `PUT /merchants/:id` | 请求 `{"name","phone","admin_uid"}` 三者同时提交 | backend | `COMBINED_STATUS=200`、`NAME_PERSISTED=1`、`PHONE_PERSISTED=1`、`ADMIN_UID_SWITCHED=1` | R13 |
 | R14 角色提升失败不半同步 | `backend/handlers/merchant_member.go` | `POST /merchants/:id/transfer-ownership` | 注入 `merchant_members` 更新失败（GORM callback） | backend | `PROMOTE_FAIL_STATUS=500`、`PROMOTE_FAIL_CODE=50000`、`ADMIN_UID_UNCHANGED=1`、`ROLE_UNCHANGED=1`、`MSG_HAS_MANUAL_CHECK=1` | R14 |
 | R15 actor 授权矩阵（D13） | `backend/middleware/permissions.go`、`backend/main.go`、`backend/handlers/merchant.go`、`backend/handlers/merchant_member.go` | 4 条放开路由 + 平台专属写路由 | JWT: `businessRole=merchant_admin`、`sys_perm` 仅 bit 10-29 | backend | `MA_LIST_STATUS=200`、`MA_LIST_ROWS=1`、`MA_GET_OWN_STATUS=200`、`MA_GET_OTHER_STATUS=404`、`MA_MEMBERS_STATUS=200`、`MA_TRANSFER_STATUS=200`、`MA_CREATE_MERCHANT_STATUS=403`、`MA_UPDATE_MERCHANT_STATUS=403`、`MA_DELETE_MERCHANT_STATUS=403`、`MA_ADD_MEMBER_STATUS=403` | R15 |
-| R16 商户管理员入口接线（菜单/路由/平台操作隐藏） | `frontend-pc/src/config/menuPermissions.js`、`frontend-pc/src/App.jsx`、`frontend-pc/src/pages/MerchantManagement.jsx` | `node --test frontend-pc/src/config/menuPermissions.test.js` + 结构断言 + eslint | `businessRole=merchant_admin` / 平台管理员 | PC | `CHECKPERM_MA=1`、`CHECKPERM_PLATFORM=1`、`MENU_BUSINESS_ROLES=1`、`ROUTE_BUSINESS_ROLES=1`、`NEW_ROUTE_PLATFORM_ONLY=1`、`PLATFORM_ACTIONS_HIDDEN=1`、`FRONTEND_LINT_RC=0` | R16 |
+| R16 商户管理员入口接线（菜单/路由/平台操作隐藏 + 路由守卫传 `userInfo`） | `frontend-pc/src/config/menuPermissions.js`、`frontend-pc/src/App.jsx`、`frontend-pc/src/components/ProtectedRoute.jsx`、`frontend-pc/src/pages/MerchantManagement.jsx` | `node --test frontend-pc/src/config/menuPermissions.test.js` + 结构断言 + eslint | `businessRole=merchant_admin` / 平台管理员 | PC | `CHECKPERM_MA=1`、`CHECKPERM_PLATFORM=1`、`MENU_BUSINESS_ROLES=1`、`ROUTE_BUSINESS_ROLES=1`、`PROTECTED_ROUTE_USERINFO=1`（`ProtectedRoute.jsx` 把 `userInfo` 传给 `checkPermission`）、`NEW_ROUTE_PLATFORM_ONLY=1`、`PLATFORM_ACTIONS_HIDDEN=1`、`FRONTEND_LINT_RC=0` | R16 |
 
 ## G0 Golden Acceptance
 
@@ -123,7 +123,7 @@
 | R13 | 同 R1；`PUT` body 同时含 `name=N2`、`phone`、`admin_uid=B` | `bash scripts/verify-2546.sh r13` | `docs/evidence/2546/R13-put-combined-fields.txt` | `COMBINED_STATUS=200`、`NAME_PERSISTED=1`、`PHONE_PERSISTED=1`、`ADMIN_UID_SWITCHED=1` | 任一 `PERSISTED=0`（组合请求静默丢字段）→ FAIL |
 | R14 | 同 R1；GORM callback 令 `merchant_members` UPDATE 失败 | `bash scripts/verify-2546.sh r14` | `docs/evidence/2546/R14-promote-failure.txt` | `PROMOTE_FAIL_STATUS=500`、`PROMOTE_FAIL_CODE=50000`、`ADMIN_UID_UNCHANGED=1`、`ROLE_UNCHANGED=1`、`MSG_HAS_MANUAL_CHECK=1` | `PROMOTE_FAIL_STATUS=200`，或 `ADMIN_UID` 已变而 role 未变（半同步）→ FAIL |
 | R15 | 两个商户 M1（呼叫者为其 OWNER）/ M2；JWT businessRole=merchant_admin、sys_perm=1073740800 | `bash scripts/verify-2546.sh r15` | `docs/evidence/2546/R15-actor-authz.txt` | `MA_LIST_STATUS=200`、`MA_LIST_ROWS=1`、`MA_GET_OWN_STATUS=200`、`MA_GET_OTHER_STATUS=404`、`MA_MEMBERS_STATUS=200`、`MA_TRANSFER_STATUS=200`、`MA_CREATE_MERCHANT_STATUS=403`、`MA_UPDATE_MERCHANT_STATUS=403`、`MA_DELETE_MERCHANT_STATUS=403`、`MA_ADD_MEMBER_STATUS=403` | `MA_GET_OTHER_STATUS=200`（跨商户可见），或平台专属写路由对商户管理员放行 → FAIL |
-| R16 | `checkPermission` 三类入参 + 源码结构断言（菜单/路由/平台操作分支） | `bash scripts/verify-2546.sh r16` | `docs/evidence/2546/R16-merchant-admin-entry.txt` | `CHECKPERM_MA=1`、`CHECKPERM_PLATFORM=1`、`MENU_BUSINESS_ROLES=1`、`ROUTE_BUSINESS_ROLES=1`、`NEW_ROUTE_PLATFORM_ONLY=1`、`PLATFORM_ACTIONS_HIDDEN=1`、`FRONTEND_LINT_RC=0` | `MENU_BUSINESS_ROLES=0`（菜单仍不可见 → Issue 期望 2 不可达）或 `NEW_ROUTE_PLATFORM_ONLY=0`（`/merchants/new` 对商户管理员开放）→ FAIL |
+| R16 | `checkPermission` 三类入参 + 源码结构断言（菜单/路由/平台操作分支） | `bash scripts/verify-2546.sh r16` | `docs/evidence/2546/R16-merchant-admin-entry.txt` | `CHECKPERM_MA=1`、`CHECKPERM_PLATFORM=1`、`MENU_BUSINESS_ROLES=1`、`ROUTE_BUSINESS_ROLES=1`、`PROTECTED_ROUTE_USERINFO=1`、`NEW_ROUTE_PLATFORM_ONLY=1`、`PLATFORM_ACTIONS_HIDDEN=1`、`FRONTEND_LINT_RC=0` | `MENU_BUSINESS_ROLES=0`（菜单仍不可见 → Issue 期望 2 不可达）或 `NEW_ROUTE_PLATFORM_ONLY=0`（`/merchants/new` 对商户管理员开放）→ FAIL |
 
 ### Evidence Types
 
@@ -165,7 +165,7 @@
 | R13 | `bash scripts/verify-2546.sh r13` | `docs/evidence/2546/R13-put-combined-fields.txt` | exit 0；grep `COMBINED_STATUS=200`、`NAME_PERSISTED=1`、`PHONE_PERSISTED=1`、`ADMIN_UID_SWITCHED=1` | PASS | 任一 `PERSISTED=0` 或 `ADMIN_UID_SWITCHED=0` → FAIL | dev |
 | R14 | `bash scripts/verify-2546.sh r14` | `docs/evidence/2546/R14-promote-failure.txt` | exit 0；grep `PROMOTE_FAIL_STATUS=500`、`PROMOTE_FAIL_CODE=50000`、`ADMIN_UID_UNCHANGED=1`、`ROLE_UNCHANGED=1`、`MSG_HAS_MANUAL_CHECK=1` | PASS | `PROMOTE_FAIL_STATUS=200`，或 `ADMIN_UID_UNCHANGED=0` 且 `ROLE_UNCHANGED=1` → FAIL | dev |
 | R15 | `bash scripts/verify-2546.sh r15` | `docs/evidence/2546/R15-actor-authz.txt` | exit 0；grep `MA_LIST_STATUS=200`、`MA_LIST_ROWS=1`、`MA_GET_OWN_STATUS=200`、`MA_GET_OTHER_STATUS=404`、`MA_MEMBERS_STATUS=200`、`MA_TRANSFER_STATUS=200`、`MA_CREATE_MERCHANT_STATUS=403`、`MA_UPDATE_MERCHANT_STATUS=403`、`MA_DELETE_MERCHANT_STATUS=403`、`MA_ADD_MEMBER_STATUS=403` | PASS | `MA_GET_OTHER_STATUS=200` 或任一平台专属写路由非 403 → FAIL | dev |
-| R16 | `bash scripts/verify-2546.sh r16` | `docs/evidence/2546/R16-merchant-admin-entry.txt` | exit 0；grep `CHECKPERM_MA=1`、`CHECKPERM_PLATFORM=1`、`MENU_BUSINESS_ROLES=1`、`ROUTE_BUSINESS_ROLES=1`、`NEW_ROUTE_PLATFORM_ONLY=1`、`PLATFORM_ACTIONS_HIDDEN=1`、`FRONTEND_LINT_RC=0` | PASS | `MENU_BUSINESS_ROLES=0` 或 `NEW_ROUTE_PLATFORM_ONLY=0` → FAIL | dev |
+| R16 | `bash scripts/verify-2546.sh r16` | `docs/evidence/2546/R16-merchant-admin-entry.txt` | exit 0；grep `CHECKPERM_MA=1`、`CHECKPERM_PLATFORM=1`、`MENU_BUSINESS_ROLES=1`、`ROUTE_BUSINESS_ROLES=1`、`PROTECTED_ROUTE_USERINFO=1`、`NEW_ROUTE_PLATFORM_ONLY=1`、`PLATFORM_ACTIONS_HIDDEN=1`、`FRONTEND_LINT_RC=0` | PASS | `MENU_BUSINESS_ROLES=0` 或 `NEW_ROUTE_PLATFORM_ONLY=0` → FAIL | dev |
 
 ## Artifact Provenance
 
@@ -217,6 +217,7 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 - `frontend-pc/src/config/menuPermissions.js`
 - `frontend-pc/src/config/menuPermissions.test.js`
 - `frontend-pc/src/App.jsx`
+- `frontend-pc/src/components/ProtectedRoute.jsx`
 - `frontend-pc/src/utils/merchantOwnership.js`
 - `frontend-pc/src/utils/merchantOwnership.test.js`
 - `scripts/verify-2546.sh`
@@ -334,4 +335,5 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 - 关闭本单时需创建 `[Ops-Followup of #2546]`（仅 `waitForConfirm`）承载预生产真机回评与「所有人」Tab 截图（D8）。
 
 *Model: DeepSeek V4.1 Flash 1017*
+
 

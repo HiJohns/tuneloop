@@ -56,7 +56,7 @@ const MerchantMemberManagement = ({ merchantId, onRefresh }) => {
   const [checking, setChecking] = useState(false);
 
   // #2546：所有人（唯一 OWNER）与转让所有权。
-  // 门控真值来自后端 viewer_is_owner（D14），不使用平台级 user_info.isOwner。
+  // 门控真值来自后端 viewer_is_owner（D14），不使用平台级遗留所有者标记。
   const [ownerUid, setOwnerUid] = useState('');
   const [viewerUid, setViewerUid] = useState('');
   const [viewerIsOwner, setViewerIsOwner] = useState(false);

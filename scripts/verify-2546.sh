@@ -226,16 +226,17 @@ row_r8() {
   {
     echo "NODE_TEST_RC=$node_rc"
     echo "TAB_RENAMED=$tab_renamed"
-    echo "TRANSFER_UI_WIRED=$transfer_ui"
+    echo "TRANSFER_BUTTON_USES_VIEWER_IS_OWNER=$transfer_ui"
     echo "OWNER_REMOVE_DISABLED=$owner_remove"
     echo "OWNER_CARD_RENDERED=$owner_card"
-    echo "CANDIDATE_PAGE_SIZE=$candidate_page_size"
+    # 直接记录常量的实际数值（后端 maxPageSize=100，超限会被静默截断）。
+    echo "CANDIDATE_PAGE_SIZE=$([ "$candidate_page_size" = "1" ] && echo 100 || echo 0)"
     echo "FRONTEND_LINT_RC=$lint_rc"
     echo "FRONTEND_BUILD_RC=$build_rc"
   } >>"$a"
 
-  assert_grep "$a" 'NODE_TEST_RC=0' 'TAB_RENAMED=1' 'TRANSFER_UI_WIRED=1' \
-    'OWNER_REMOVE_DISABLED=1' 'OWNER_CARD_RENDERED=1' 'CANDIDATE_PAGE_SIZE=1' \
+  assert_grep "$a" 'NODE_TEST_RC=0' 'TAB_RENAMED=1' 'TRANSFER_BUTTON_USES_VIEWER_IS_OWNER=1' \
+    'OWNER_REMOVE_DISABLED=1' 'OWNER_CARD_RENDERED=1' 'CANDIDATE_PAGE_SIZE=100' \
     'FRONTEND_LINT_RC=0' 'FRONTEND_BUILD_RC=0'
   # 纯函数消费方必须存在，否则后端端点/字段没有前端入口（死代码）。
   [ -f "$util" ] || { echo "MISSING: $util" >&2; FAILURES=$((FAILURES + 1)); }
@@ -411,12 +412,13 @@ row_r16() {
   local a="$OUT/R16-merchant-admin-entry.txt"
   local app="$ROOT/frontend-pc/src/App.jsx"
   local page="$ROOT/frontend-pc/src/pages/MerchantManagement.jsx"
+  local protected="$ROOT/frontend-pc/src/components/ProtectedRoute.jsx"
   {
     echo "$PROVENANCE"
     echo "# R16 商户管理员入口接线：checkPermission businessRoles + 菜单/路由 + 平台操作隐藏"
   } >"$a"
 
-  local node_rc lint_rc menu_roles=0 route_roles=0 new_platform=0 actions_hidden=0
+  local node_rc lint_rc menu_roles=0 route_roles=0 new_platform=0 actions_hidden=0 protected_userinfo=0
   ( cd "$ROOT/frontend-pc" && node --test src/config/menuPermissions.test.js ) >>"$a" 2>&1
   node_rc=$?
 
@@ -435,8 +437,11 @@ row_r16() {
   fi
   grep -qF "const isMerchantAdmin = businessRole === 'merchant_admin'" "$page" \
     && [ "$(grep -cF '!isMerchantAdmin' "$page")" -ge 4 ] && actions_hidden=1
+  # 路由守卫必须把 userInfo 传给 checkPermission（否则 businessRoles 永远不命中）。
+  grep -A6 'const hasPermission = checkPermission(' "$protected" | grep -qF 'userInfo' \
+    && protected_userinfo=1
 
-  ( cd "$ROOT/frontend-pc" && npx eslint src/config/menuPermissions.js src/pages/MerchantManagement.jsx ) >>"$a" 2>&1
+  ( cd "$ROOT/frontend-pc" && npx eslint src/config/menuPermissions.js src/pages/MerchantManagement.jsx "$protected" ) >>"$a" 2>&1
   lint_rc=$?
 
   {
@@ -445,14 +450,15 @@ row_r16() {
     echo "CHECKPERM_PLATFORM=$(grep -qF 'CHECKPERM_PLATFORM' "$a" && echo 1 || echo 0)"
     echo "MENU_BUSINESS_ROLES=$menu_roles"
     echo "ROUTE_BUSINESS_ROLES=$route_roles"
+    echo "PROTECTED_ROUTE_USERINFO=$protected_userinfo"
     echo "NEW_ROUTE_PLATFORM_ONLY=$new_platform"
     echo "PLATFORM_ACTIONS_HIDDEN=$actions_hidden"
     echo "FRONTEND_LINT_RC=$lint_rc"
   } >>"$a"
 
   assert_grep "$a" 'NODE_TEST_RC=0' 'CHECKPERM_MA=1' 'CHECKPERM_PLATFORM=1' \
-    'MENU_BUSINESS_ROLES=1' 'ROUTE_BUSINESS_ROLES=1' 'NEW_ROUTE_PLATFORM_ONLY=1' \
-    'PLATFORM_ACTIONS_HIDDEN=1' 'FRONTEND_LINT_RC=0'
+    'MENU_BUSINESS_ROLES=1' 'ROUTE_BUSINESS_ROLES=1' 'PROTECTED_ROUTE_USERINFO=1' \
+    'NEW_ROUTE_PLATFORM_ONLY=1' 'PLATFORM_ACTIONS_HIDDEN=1' 'FRONTEND_LINT_RC=0'
 }
 
 case "$ROW" in
