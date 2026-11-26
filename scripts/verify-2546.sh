@@ -55,6 +55,7 @@ if [ -n "$(git status --porcelain --untracked-files=no | grep -v 'docs/evidence/
 fi
 
 PROVENANCE="# build=$BUILD # commit=$COMMIT # dirty=$DIRTY"
+PROVENANCE="$PROVENANCE"$'\n'"GENERATED_AT_HEAD=$COMMIT"
 
 FAILURES=0
 
