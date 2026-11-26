@@ -1,4 +1,4 @@
-# build=1.0.1f53e729d # commit=1f53e729dd4e98929182fb6245f9f3ee27d6d33c # dirty=false
+# build=1.0.b31e7815d # commit=b31e7815d # dirty=false
 == R5 四份文档口径同步 ==
 DOC_API_TRANSIT_TENANT=1
 DOC_CASE_TRANSIT_ORG=1

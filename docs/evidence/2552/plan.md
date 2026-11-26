@@ -1,4 +1,4 @@
-## Accepted Plan — #2552 中转网点成员把分支组织 ID 当租户写库（D2 违反）+ #2547 计划项未落地
+## Accepted Plan — #2552 中转网点成员把分支组织 ID 当租户写库（D2 违反）+ #2547 计划项未落地｜Rev.2
 
 > Tags: bug, code:go, api-contract, data-replay
 > 来源：#2547（`status:done`，Accepted Plan + Work Summary + Round 1 审计）+ PR #2549（merged `e83ee8bd7`，随 `c37655eb0` 上预生产 1.0.100）
@@ -29,13 +29,14 @@
 1. **D2 修复（成员租户作用域）**：`backend/handlers/transit_site_admin.go`
    - `AddTransitSiteMember` 恢复 `addMembersCore(c, db, site, site.TenantID, siteID, input)`；**删除** `bindOrgID` 及其 legacy 回退（回退本身也是把 org 当 tenant）。
    - 注释锁定语义：「第 4 参数只写本地租户列与幂等判定；IAM 绑定目标由 core 固定取 `site.OrgID`（#2547 D2）」。
-   - `UpdateTransitSiteMemberRole` / `RemoveTransitSiteMember` 不动实现（已用 `site.OrgID`），补断言锁定 bind/role/unbind 三路径 org 段 = `sites.org_id`。
+   - `UpdateTransitSiteMemberRole` / `RemoveTransitSiteMember` 不动实现（已用 `site.OrgID`），补断言锁定 **bind / role / unbind 三路径** org 段 = `sites.org_id`（Rev.2，审计 Bug 1）：扩展 fake IAM recorder 按 `method + path + body.action` 分类，新增 `TestTransitMemberOrgPaths2552_RoleAndUnbind`；夹具必须 `sites.org_id ≠ tenant_id`（现有 `seedTransitSite1935` 的 `OrgID=tenantID` 无法区分，需改用 `seedTransitSite2552`）。
    - 负例来源（#2547 审计 R2b）：站点已有 `site_members` 行（`tenant_id = 平台租户`）时，重复添加同一用户 → `site_members` 行数保持 1。
 2. **中转成员识别切站点维度**：`backend/handlers/personnel.go`
    - 新增 `platformTenantIDFor(ctx) string`：`middleware.GetTenantID`，空时回落 `middleware.GetOrgID`（与 `sites.tenant_id` 建站来源同源）。
    - `personnelSystemView(db, rootOrgID, platformTenantID, keyword)`（新增形参）：中转段判据改为 `s.type = 'transit' AND s.tenant_id = ? AND sm.status = 'active'`（成员仍经 `JOIN sites s ON s.id = sm.site_id`）。
    - `hasTransitSiteMembership(db, ctx, userID, platformTenantID)`（参数由 org 改为平台租户）：同判据；两处调用点（`:99`、`:559`）改传 `platformTenantIDFor(ctx)`。
-   - 负例：同租户 `type='store'` 站点成员不得进系统视图；他租户 `type='transit'` 站点成员不得进系统视图；by-id 对中转成员返回 200、对上述两类负例返回 404。
+   - 负例：同租户 `type='store'` 站点成员不得进系统视图；他租户 `type='transit'` 站点成员不得进系统视图。
+   - **by-id 口径（Rev.2，采纳审计 Bug 2 选项 1）**：中转成员 by-id `200`；同租户 `store` 成员 by-id 在**带 `tid` claim** 时按 #2526 既有兼容语义返回 `200`（`personnel.go:566-570`，本单不改），该值必须作为**期望值断言**（`BYID_STORE_SAME_TENANT=200`），不再以注释观察；`tid` 为空时 by-id 对上述两类负例均 `404`。
 3. **建站契约（#2547 变更点 1/2 未落地部分）**：`backend/services/iam_client.go` + `backend/handlers/transit_site_admin.go`
    - `CreateOrganizationRequest` 增 `Type string \`json:"type,omitempty"\``；`Organization` 增 `Type string \`json:"type"\``（既有调用方不传 → 请求体不变）。
    - `CreateOrganization` / `CreateOrganizationWithToken` 的 409 改为**哨兵错误**：`services.ErrOrganizationNameConflict`（`fmt.Errorf("%w: %s", ErrOrganizationNameConflict, body)`），handler 用 `errors.Is` 映射，禁止字符串匹配。
@@ -80,8 +81,8 @@
 
 | 变更点 | 文件/组件 | 入口/路由 | 触发状态 | 目标平台 | 期望结果 | 证据 |
 |---|---|---|---|---|---|---|
-| R1 D2：成员 tenant 列 = 本地租户；IAM org = 站点 org；重复添加不产生第二行 | `backend/handlers/transit_site_admin.go` | `POST /api/admin/transit-sites/:id/members` | 站点 `tenant_id=平台租户`、`org_id=分支组织`（两者不等）；先添加一次，再重复添加同一用户 | backend（Postgres 测试库 + fake IAM） | `MEMBER_TENANT_IS_LOCAL_TENANT=1`、`MEMBER_IAM_ORG_IS_SITE_ORG=1`、`NO_DUPLICATE_MEMBER_ROW=1`、`MEMBER_ROWS=1`；`users.tenant_id = 平台租户` | R1 |
-| R2 中转成员识别改为站点维度（列表 + by-id） | `backend/handlers/personnel.go` | `GET /api/admin/personnel`、`GET /api/admin/staff/:id` | 中转站 `org_id=分支组织`、`tenant_id=平台租户`；另有同租户 `type=store` 站、他租户 `type=transit` 站 | backend | `SYSTEM_VIEW_TRANSIT=1`、`BYID_TRANSIT=200`、`NEG_STORE_SAME_TENANT=0`、`NEG_OTHER_TENANT_TRANSIT=0`、`OLD_ORG_EQUALS_TENANT_RULE=0` | R2 |
+| R1 D2：成员 tenant 列 = 本地租户；IAM org = 站点 org；重复添加不产生第二行 | `backend/handlers/transit_site_admin.go` | `POST /api/admin/transit-sites/:id/members` | 站点 `tenant_id=平台租户`、`org_id=分支组织`（两者不等）；先添加一次，再重复添加同一用户 | backend（Postgres 测试库 + fake IAM） | `MEMBER_TENANT_IS_LOCAL_TENANT=1`、`MEMBER_IAM_ORG_IS_SITE_ORG=1`、`MEMBER_ROLE_ORG_IS_SITE_ORG=1`、`MEMBER_UNBIND_ORG_IS_SITE_ORG=1`、`NO_DUPLICATE_MEMBER_ROW=1`、`MEMBER_ROWS=1`；`users.tenant_id = 平台租户` | R1 |
+| R2 中转成员识别改为站点维度（列表 + by-id） | `backend/handlers/personnel.go` | `GET /api/admin/personnel`、`GET /api/admin/staff/:id` | 中转站 `org_id=分支组织`、`tenant_id=平台租户`；另有同租户 `type=store` 站、他租户 `type=transit` 站 | backend | `SYSTEM_VIEW_TRANSIT=1`、`BYID_TRANSIT=200`、`NEG_STORE_SAME_TENANT=0`（列表）、`BYID_STORE_SAME_TENANT=200`（#2526 兼容，显式断言）、`BYID_STORE_NO_TID=404`、`NEG_OTHER_TENANT_TRANSIT=0`、`OLD_ORG_EQUALS_TENANT_RULE=0` | R2 |
 | R3 建站：`type=branch` + 父组织 = 命名空间主组织 + 错误映射 + 补偿 | `backend/handlers/transit_site_admin.go`、`backend/services/iam_client.go` | `POST /api/admin/transit-sites` | fake IAM：`is_primary` 恰 1；另测名冲突 409、`tenant_id` 空、无/多主组织、本地落库失败 | backend | `CREATE_TYPE_BRANCH=1`、`CREATE_PARENT_IS_NAMESPACE=1`、`DUPLICATE_NAME_409=1`、`NO_SITE_ON_EMPTY_TENANT=1`、`PRIMARY_ORG_UNRESOLVED=50000`、`ORPHAN_ORG_COMPENSATED=1` | R3 |
 | R4 回填工具：dry-run 0 写入 + apply 幂等（含 members 阶段） | `backend/services/transit_site_org_backfill.go`、`backend/tools/backfill_transit_site_orgs/main.go` | 服务函数 + CLI | 2 个存量站（`org_id=tenant_id`）+ 1 个已回填站 + 1 个有成员的站 | backend | `DRYRUN_WRITES=0`、`DRYRUN_IAM_CREATES=0`、`APPLY_UPDATED=2`、`APPLY_CREATED=2`、`SECOND_APPLY_UPDATED=0`、`MEMBERS_REBIND=1` | R4 |
 | R5 四份文档口径同步 | `docs/spec/api/api.md`、`docs/cases/transit.md`、`docs/ops/tenant-id-audit.md`、`docs/spec/database/database.md` | grep 结构断言 | 修后文档 | 文档 | `DOC_API_TRANSIT_TENANT=1`、`DOC_CASE_TRANSIT_ORG=1`、`DOC_OPS_AUDIT_ROW=1`、`DOC_DB_SITES_ORG=1` | R5 |
@@ -92,7 +93,7 @@
 
 | 行 | fixture | entry | artifact | assertions | negative |
 |---|---|---|---|---|---|
-| R1 | 站点 T（`type=transit`，`tenant_id=tid`，`org_id=branchOrg`）+ 用户 U（无成员行） | `bash scripts/verify-2552.sh r1` | `docs/evidence/2552/R1-member-tenant.txt` | `MEMBER_TENANT_IS_LOCAL_TENANT=1`、`MEMBER_IAM_ORG_IS_SITE_ORG=1`、`NO_DUPLICATE_MEMBER_ROW=1`、`MEMBER_ROWS=1` | `MEMBER_TENANT_IS_LOCAL_TENANT=0`（tenant 列被写成 org）或 `MEMBER_ROWS=2`（重复行）→ FAIL |
+| R1 | 站点 T（`type=transit`，`tenant_id=tid`，`org_id=branchOrg`）+ 用户 U（无成员行） | `bash scripts/verify-2552.sh r1` | `docs/evidence/2552/R1-member-tenant.txt` | `MEMBER_TENANT_IS_LOCAL_TENANT=1`、`MEMBER_IAM_ORG_IS_SITE_ORG=1`、`MEMBER_ROLE_ORG_IS_SITE_ORG=1`、`MEMBER_UNBIND_ORG_IS_SITE_ORG=1`、`NO_DUPLICATE_MEMBER_ROW=1`、`MEMBER_ROWS=1` | `MEMBER_TENANT_IS_LOCAL_TENANT=0`（tenant 列被写成 org）、`MEMBER_ROWS=2`（重复行）或 role/unbind 的 org 段不等于 `sites.org_id` → FAIL |
 | R2 | 中转成员 M（T + branchOrg）；负例：同租户 `type=store` 成员 S、他租户 transit 成员 X | `bash scripts/verify-2552.sh r2` | `docs/evidence/2552/R2-personnel-predicate.txt` | `SYSTEM_VIEW_TRANSIT=1`、`BYID_TRANSIT=200`、`NEG_STORE_SAME_TENANT=0`、`NEG_OTHER_TENANT_TRANSIT=0`、`OLD_ORG_EQUALS_TENANT_RULE=0` | `SYSTEM_VIEW_TRANSIT=0`（改口径后既有成员消失）或任一负例 =1（越权可见）→ FAIL |
 | R3 | fake IAM：`organizations` 列表含 1 个 `is_primary`；create 返回 `newOrg`；另测 409/空 tenant/0 或 2 主组织/本地落库失败 | `bash scripts/verify-2552.sh r3` | `docs/evidence/2552/R3-create-branch.txt` | `CREATE_TYPE_BRANCH=1`、`CREATE_PARENT_IS_NAMESPACE=1`、`DUPLICATE_NAME_409=1`、`NO_SITE_ON_EMPTY_TENANT=1`、`PRIMARY_ORG_UNRESOLVED=50000`、`ORPHAN_ORG_COMPENSATED=1` | `CREATE_TYPE_BRANCH=0` 或 `NO_SITE_ON_EMPTY_TENANT=0`（空 tenant 仍建站/建组织）或 `ORPHAN_ORG_COMPENSATED=0` → FAIL |
 | R4 | 站 A/B（`org_id=tenant_id`）、站 C（已回填）、站 D（1 成员，测 members 阶段） | `bash scripts/verify-2552.sh r4` | `docs/evidence/2552/R4-backfill.txt` | `DRYRUN_WRITES=0`、`DRYRUN_IAM_CREATES=0`、`APPLY_UPDATED=2`、`APPLY_CREATED=2`、`SECOND_APPLY_UPDATED=0`、`MEMBERS_REBIND=1` | `DRYRUN_WRITES>0`（dry-run 写了）或 `SECOND_APPLY_UPDATED>0`（不幂等）→ FAIL |
@@ -116,7 +117,7 @@
 
 | 行 ID | 命令 | 产物（仓库可见路径） | 断言（机器可判定） | 期望值 | 负例 | 责任人 |
 |---|---|---|---|---|---|---|
-| R1 | `bash scripts/verify-2552.sh r1` | `docs/evidence/2552/R1-member-tenant.txt` | exit 0；grep `MEMBER_TENANT_IS_LOCAL_TENANT=1`、`MEMBER_IAM_ORG_IS_SITE_ORG=1`、`NO_DUPLICATE_MEMBER_ROW=1`、`MEMBER_ROWS=1` | PASS | `MEMBER_TENANT_IS_LOCAL_TENANT=0` 或 `MEMBER_ROWS=2` → FAIL | dev |
+| R1 | `bash scripts/verify-2552.sh r1` | `docs/evidence/2552/R1-member-tenant.txt` | exit 0；grep `MEMBER_TENANT_IS_LOCAL_TENANT=1`、`MEMBER_IAM_ORG_IS_SITE_ORG=1`、`MEMBER_ROLE_ORG_IS_SITE_ORG=1`、`MEMBER_UNBIND_ORG_IS_SITE_ORG=1`、`NO_DUPLICATE_MEMBER_ROW=1`、`MEMBER_ROWS=1` | PASS | tenant 列写成 org / 重复行 / role/unbind 的 org 段不符 → FAIL | dev |
 | R2 | `bash scripts/verify-2552.sh r2` | `docs/evidence/2552/R2-personnel-predicate.txt` | exit 0；grep `SYSTEM_VIEW_TRANSIT=1`、`BYID_TRANSIT=200`、`NEG_STORE_SAME_TENANT=0`、`NEG_OTHER_TENANT_TRANSIT=0`、`OLD_ORG_EQUALS_TENANT_RULE=0` | PASS | 任一负例 `=1` 或 `SYSTEM_VIEW_TRANSIT=0` → FAIL | dev |
 | R3 | `bash scripts/verify-2552.sh r3` | `docs/evidence/2552/R3-create-branch.txt` | exit 0；grep `CREATE_TYPE_BRANCH=1`、`CREATE_PARENT_IS_NAMESPACE=1`、`DUPLICATE_NAME_409=1`、`NO_SITE_ON_EMPTY_TENANT=1`、`PRIMARY_ORG_UNRESOLVED=50000`、`ORPHAN_ORG_COMPENSATED=1` | PASS | `NO_SITE_ON_EMPTY_TENANT=0` 或 `ORPHAN_ORG_COMPENSATED=0` → FAIL | dev |
 | R4 | `bash scripts/verify-2552.sh r4` | `docs/evidence/2552/R4-backfill.txt` | exit 0；grep `DRYRUN_WRITES=0`、`DRYRUN_IAM_CREATES=0`、`APPLY_UPDATED=2`、`APPLY_CREATED=2`、`SECOND_APPLY_UPDATED=0`、`MEMBERS_REBIND=1` | PASS | `DRYRUN_WRITES>0` 或 `SECOND_APPLY_UPDATED>0` → FAIL | dev |
@@ -198,6 +199,7 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 | D6 | “集成分支可读性”拆两段：R7 断言**推送分支**四源 FRESH + plan.md 被跟踪；`origin/develop` 可读性 + 合并后四源 PASS 归 #2554（合并后 Ops 回评） | Architect / ops | 本计划锁定（合并前不可能满足） | 若审计要求合同行覆盖 develop → 会永久 FAIL，须由 Owner 改验收口径 |
 | D7 | 分阶段 gate（P1 正确性 → P2 工具 → P3 文档 → P4 验证），**不拆子任务** | Architect | 本计划锁定（同一验收链；拆分会造成“判据已换、工具未上”的中间态） | 若 Owner 要求拆分 → 按 P1/P2 切两单，P3 随 P2 |
 | D8 | 存量重复成员行/已污染 tenant 的回写**不在本单**（数据修复需授权）→ #2554 | Owner / ops | #2554 已建（`waitForConfirm`） | 未授权 → 只修「不再产生新重复」，存量行由 #2554 清单决定 |
+| D7 | by-id 同租户 `store` 成员在带 `tid` claim 时返回 `200`（#2526 既有兼容），`tid` 为空时 `404`；本单不改该分支，只把它写成显式期望值 | 本计划锁定（Rev.2，采纳审计 Bug 2 选项 1） |
 
 ## Out of Scope
 
@@ -240,4 +242,5 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 - #2554：预生产 tenant 污染/重复行只读清单（含 SQL）、Owner 授权后的收敛、`origin/develop` 上 `docs/evidence/2552/` 可读性 + `plan-source.sh --issue 2552` 四源 PASS（合并后回评）。
 
 *Model: DeepSeek V4.1 Flash 1017*
+
 
