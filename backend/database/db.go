@@ -551,6 +551,16 @@ func modelTableName(db *gorm.DB, instance interface{}) string {
 	}
 }
 
+// nonPersistedTables lists models that intentionally have no table (no
+// migration ever created one). Listing a table here disables the #1716
+// fail-fast check for it, so the list must stay minimal and reviewed.
+//
+// #2543: confirmation_sessions was removed from this list — it is created by
+// migration 20261126002 and a missing table must be FATAL at startup.
+var nonPersistedTables = map[string]bool{
+	"labels": true,
+}
+
 // validateModelColumns checks that all columns defined in the gorm tags
 // of a model struct exist in the database table.
 func validateModelColumns(db *gorm.DB, instance interface{}) error {
@@ -569,10 +579,12 @@ func validateModelColumns(db *gorm.DB, instance interface{}) error {
 		// #1716: a missing table for a persistence model is a hard failure —
 		// the migration is missing (models without a table previously slipped
 		// through silently; see merchant_members/damage_reports incidents).
-		// Exempt known non-persisted/deprecated models so startup still works.
-		switch tableName {
-		case "confirmation_sessions", "labels":
-			return nil // intentionally non-persisted
+		// Only genuinely non-persisted models are exempt (see nonPersistedTables).
+		// #2543: confirmation_sessions is persisted again by migration
+		// 20261126002, so a missing table must fail fast instead of being
+		// exempted (the exemption used to hide a package/database version skew).
+		if nonPersistedTables[tableName] {
+			return nil
 		}
 		return fmt.Errorf("table %q for model %s is missing — a migration is required (models must have matching up/down SQL)", tableName, typ.Name())
 	}
@@ -721,6 +733,12 @@ var modelsToValidate = []interface{}{
 
 // ModelsToValidateForTest 暴露启动校验清单（测试用，#2360 R4）。
 func ModelsToValidateForTest() []interface{} { return modelsToValidate }
+
+// ValidateModelColumnsForTest 导出一个模型的列/表校验（测试用，#2543 R1）。
+// 用于把「表缺失必须报错」的 fail-fast 行为做成可判定的断言，而不是检查注释文本。
+func ValidateModelColumnsForTest(db *gorm.DB, instance interface{}) error {
+	return validateModelColumns(db, instance)
+}
 
 // validateDatabaseSchema checks that all model struct columns exist in the database.
 func validateDatabaseSchema(db *gorm.DB) error {

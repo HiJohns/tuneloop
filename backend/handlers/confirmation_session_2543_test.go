@@ -32,6 +32,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 
+	"tuneloop-backend/database"
 	"tuneloop-backend/handlers/testfixtures"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
@@ -193,9 +194,22 @@ func TestConfirmationSessionsMigration_2543(t *testing.T) {
 	require.NoError(t, db.Exec("DROP TABLE IF EXISTS confirmation_sessions").Error)
 	require.False(t, tableExists2543(t, db, "confirmation_sessions"))
 
+	// #2543 R1 (behavioural negative): with the table missing, the per-model
+	// schema validation MUST return an error — i.e. the code-level "no table"
+	// exemption is really gone, not just its comment. If the exemption is
+	// reintroduced this assertion fails (it is not a text match on db.go).
+	require.Error(t, database.ValidateModelColumnsForTest(db, &models.ConfirmationSession{}),
+		"missing confirmation_sessions table must be a hard validation error (no exemption)")
+	t.Log("MISSING_TABLE_ERR=1")
+
 	execSQLFile2543(t, db, fmt.Sprintf(confirmationSessionMigration2543, "up"))
 	require.True(t, tableExists2543(t, db, "confirmation_sessions"), "up migration must create the table")
 	t.Log("TABLE_EXISTS=1")
+
+	// Positive half of the same assertion: once the table exists with all
+	// model columns, validation must pass (guards against a false positive).
+	require.NoError(t, database.ValidateModelColumnsForTest(db, &models.ConfirmationSession{}),
+		"existing confirmation_sessions table must pass column validation")
 
 	type colRow struct {
 		ColumnName string
@@ -231,11 +245,14 @@ func TestConfirmationSessionsMigration_2543(t *testing.T) {
 	require.True(t, uniqueOK, "token must have a unique index")
 	t.Log("TOKEN_UNIQUE=1")
 
-	// The model must no longer be listed as "no table ever created".
+	// The model must no longer carry a code-level "no table" exemption: a
+	// missing table has to fail fast (#2543 Bug 1). MISSING_TABLE_ERR above
+	// proves the behaviour; this check proves the exemption branch is not
+	// merely unreachable-but-present.
 	dbGo, err := os.ReadFile("../database/db.go")
 	require.NoError(t, err)
-	exempt := strings.Contains(string(dbGo), "ConfirmationSession, Label")
-	require.False(t, exempt, "db.go must not list ConfirmationSession in the no-table exemption")
+	require.NotContains(t, string(dbGo), `case "confirmation_sessions"`,
+		"db.go must not keep a code-level confirmation_sessions exemption")
 	t.Log("EXEMPT_REMOVED=1")
 
 	// down must roll the table back (round-trip).

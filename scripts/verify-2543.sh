@@ -79,7 +79,7 @@ run_row_test() {
   local pattern="$1" log="$2"
   ( cd "$ROOT/backend" && heavy go test ./handlers -run "$pattern" -count=1 -v ) > "$log" 2>&1
   local rc=$?
-  grep -E '^ *[a-z_0-9]+_test\.go:[0-9]+: (TABLE_EXISTS|COLUMN_COUNT|TOKEN_UNIQUE|EXEMPT_REMOVED|DOWN_TABLE_EXISTS|CONFIRM_STATUS|BIND_USER_ARG|PERM_USER_ARG|ROLE|IAM_LOCAL_ID_SENT|IAM_CALLS|MESSAGE_HAS_ACTIVATE|IAM_READY_|SITE_MEMBER_)' "$log" \
+  grep -E '^ *[a-z_0-9]+_test\.go:[0-9]+: (TABLE_EXISTS|COLUMN_COUNT|TOKEN_UNIQUE|EXEMPT_REMOVED|MISSING_TABLE_ERR|DOWN_TABLE_EXISTS|CONFIRM_STATUS|BIND_USER_ARG|PERM_USER_ARG|ROLE|IAM_LOCAL_ID_SENT|IAM_CALLS|MESSAGE_HAS_ACTIVATE|IAM_READY_|SITE_MEMBER_)' "$log" \
     | sed -E 's/^ *[a-z_0-9]+_test\.go:[0-9]+: //'
   grep -E '^--- (PASS|FAIL)' "$log" || true
   [ "$rc" = "0" ] || { tail -30 "$log"; fail "go test '$pattern' failed (see $log)"; }
@@ -109,6 +109,7 @@ case "$ROW" in
     assert_token "COLUMN_COUNT="
     assert_token "TOKEN_UNIQUE=1"
     assert_token "EXEMPT_REMOVED=1"
+    assert_token "MISSING_TABLE_ERR=1"
     assert_token "DOWN_TABLE_EXISTS=0"
     ;;
 
@@ -170,7 +171,16 @@ case "$ROW" in
       echo "== R5 build + targeted tests =="
       ( cd "$ROOT/backend" && heavy go build ./... ) > "$WORK_TMP/r5-build.log" 2>&1
       rc=$?
-      if [ "$rc" = "0" ]; then echo "GO_BUILD_OK=1"; else echo "GO_BUILD_OK=0"; tail -20 "$WORK_TMP/r5-build.log"; fi
+      if [ "$rc" = "0" ]; then
+        echo "GO_BUILD_OK=1"
+        # G0 R5 (Accepted Plan) spells this key BUILD_OK; keep both so the
+        # plan's literal assertion and the detailed key both resolve.
+        echo "BUILD_OK=1"
+      else
+        echo "GO_BUILD_OK=0"
+        echo "BUILD_OK=0"
+        tail -20 "$WORK_TMP/r5-build.log"
+      fi
       ( cd "$ROOT/backend" && heavy go test ./handlers -run '2543' -count=1 ) > "$WORK_TMP/r5-test.log" 2>&1
       rc2=$?
       if [ "$rc2" = "0" ]; then echo "GO_TEST_OK=1"; else echo "GO_TEST_OK=0"; tail -40 "$WORK_TMP/r5-test.log"; fi
@@ -183,6 +193,7 @@ case "$ROW" in
       echo "GO_BUILD_RC=$rc GO_TEST_RC=$rc2 GO_ARTIFACT_RC=$rc3 MIGRATION_RC=$rc4"
     } | collect
     assert_token "GO_BUILD_OK=1"
+    assert_token "BUILD_OK=1"
     assert_token "GO_TEST_OK=1"
     assert_token "GO_ARTIFACT_TESTS_OK=1"
     assert_token "MIGRATION_ROUNDTRIP=1"
