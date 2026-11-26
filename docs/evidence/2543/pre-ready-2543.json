@@ -10,7 +10,7 @@
     "dirty": false
   },
   "summary": "tmp/fix-summary-2543.md",
-  "timestamp": "20261126-163826",
+  "timestamp": "20261126-164410",
   "checks": [
     {
       "id": "P1",
@@ -65,7 +65,7 @@
     {
       "id": "P5",
       "status": "PASS",
-      "detail": "full gate clean worktree; HEAD failures are a subset of baseline (758e447ed62c6438bf437a4dd9659271a2494797); source head=run baseline=run"
+      "detail": "full gate clean worktree; HEAD failures are a subset of baseline (758e447ed62c6438bf437a4dd9659271a2494797); source head=cache(reused:non-input) baseline=cache"
     },
     {
       "id": "P6",
