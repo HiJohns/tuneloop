@@ -359,7 +359,7 @@ photos:
 |--------|------|------|------|
 | id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
 | tenant_id | UUID | INDEX, NOT NULL | 租户 ID |
-| org_id | UUID | INDEX | 网点自身的 IAM 组织 ID（非商户组织 ID，创建网点时由 IAM Create Organization 返回） |
+| org_id | UUID | INDEX | 网点自身的 IAM 组织 ID（非商户组织 ID，创建网点时由 IAM Create Organization 返回）。中转网点同规则：组织为命名空间组织下的 `branch` 子组织（`parent_id` = 命名空间主组织，无 owner），由建站时 IAM 创建（#2547） |
 | parent_id | UUID | INDEX | 父网点 ID (顶级为 NULL) |
 | manager_id | UUID | INDEX | 负责人 ID |
 | name | VARCHAR(255) | NOT NULL | 网点名称 |

@@ -5,9 +5,11 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -56,12 +58,74 @@ func setup1935Test(t *testing.T) (*gin.Engine, string) {
 	return router, tenantID
 }
 
-// newTransitMockIAM stubs the IAM endpoints the transit member handlers call:
-// client-credentials token, org bind/unbind/role-update, role templates.
-// failTemplates=true makes the role-templates endpoint return 500 (audit
-// #1935 Bug A failure-path coverage).
-func newTransitMockIAM(t *testing.T, failTemplates bool) *httptest.Server {
+// transitMockIAMOptions controls the stub IAM used by transit-site tests.
+type transitMockIAMOptions struct {
+	failTemplates bool
+	// failCreateOrg makes POST /namespaces/:ns/organizations return 500 (#2547 R1).
+	failCreateOrg bool
+	// conflictCreate makes POST /namespaces/:ns/organizations return 409 (#2547 R1).
+	conflictCreate bool
+	// primaryOrgs overrides GET /api/v1/organizations (nil → one primary org).
+	primaryOrgs []map[string]interface{}
+	// primaryOrgID is the default single primary organization id.
+	primaryOrgID string
+	// createOrgID is returned as org_id by the create-organization endpoint.
+	createOrgID string
+}
+
+// transitIAMCall records one request the stub IAM received (method/path/body),
+// so tests can assert the exact payload written to IAM (#2547 R1/R2).
+type transitIAMCall struct {
+	Method string
+	Path   string
+	Body   string
+}
+
+// transitMockIAM is a recording stub: tests assert the *payload* sent to IAM,
+// not just the handler's HTTP response (#2547).
+type transitMockIAM struct {
+	*httptest.Server
+	mu             sync.Mutex
+	createRequests []map[string]interface{}
+	calls          []transitIAMCall
+	createCount    int
+	orgListCount   int
+}
+
+func (m *transitMockIAM) createReqs() []map[string]interface{} {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := make([]map[string]interface{}, len(m.createRequests))
+	copy(out, m.createRequests)
+	return out
+}
+
+func (m *transitMockIAM) recorded() []transitIAMCall {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := make([]transitIAMCall, len(m.calls))
+	copy(out, m.calls)
+	return out
+}
+
+func (m *transitMockIAM) counts() (creates, lists int) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.createCount, m.orgListCount
+}
+
+// newTransitMockIAMWithOptions stubs the IAM endpoints the transit handlers call:
+// client-credentials token, namespace lookup, organization list/create,
+// org bind/unbind/role-update, role templates.
+func newTransitMockIAMWithOptions(t *testing.T, opts transitMockIAMOptions) *transitMockIAM {
 	t.Helper()
+	if opts.primaryOrgID == "" {
+		opts.primaryOrgID = uuid.New().String()
+	}
+	if opts.createOrgID == "" {
+		opts.createOrgID = uuid.New().String()
+	}
+	m := &transitMockIAM{}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v1/auth/token", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -71,6 +135,20 @@ func newTransitMockIAM(t *testing.T, failTemplates bool) *httptest.Server {
 			"token_type":   "Bearer",
 		})
 	})
+	// Exact path: GET /api/v1/organizations?namespace_id=... (ListOrganizations)
+	mux.HandleFunc("/api/v1/organizations", func(w http.ResponseWriter, r *http.Request) {
+		m.mu.Lock()
+		m.orgListCount++
+		m.mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		orgs := opts.primaryOrgs
+		if orgs == nil {
+			orgs = []map[string]interface{}{
+				{"id": opts.primaryOrgID, "name": "namespace-root", "is_primary": true, "type": "namespace"},
+			}
+		}
+		json.NewEncoder(w).Encode(map[string]interface{}{"organizations": orgs})
+	})
 	mux.HandleFunc("/api/v1/organizations/", func(w http.ResponseWriter, r *http.Request) {
 		// bind/unbind/role-update all return 200
 		w.Header().Set("Content-Type", "application/json")
@@ -78,8 +156,9 @@ func newTransitMockIAM(t *testing.T, failTemplates bool) *httptest.Server {
 	})
 	mux.HandleFunc("/api/v1/namespaces/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if strings.HasSuffix(r.URL.Path, "/role-templates") {
-			if failTemplates {
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/role-templates"):
+			if opts.failTemplates {
 				http.Error(w, "iam role templates down", http.StatusInternalServerError)
 				return
 			}
@@ -87,11 +166,50 @@ func newTransitMockIAM(t *testing.T, failTemplates bool) *httptest.Server {
 				{"id": uuid.New().String(), "code": "site_member"},
 				{"id": uuid.New().String(), "code": "site_admin"},
 			})
-			return
+		case strings.HasSuffix(r.URL.Path, "/organizations") && r.Method == http.MethodPost:
+			var body map[string]interface{}
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			m.mu.Lock()
+			m.createRequests = append(m.createRequests, body)
+			m.createCount++
+			m.mu.Unlock()
+			if opts.conflictCreate {
+				http.Error(w, `{"message":"organization name conflict"}`, http.StatusConflict)
+				return
+			}
+			if opts.failCreateOrg {
+				http.Error(w, "iam create org down", http.StatusInternalServerError)
+				return
+			}
+			json.NewEncoder(w).Encode(map[string]interface{}{"org_id": opts.createOrgID})
+		default:
+			json.NewEncoder(w).Encode(map[string]interface{}{"id": "mock-namespace-id"})
 		}
-		json.NewEncoder(w).Encode(map[string]interface{}{"id": uuid.New().String()})
 	})
-	return httptest.NewServer(mux)
+	m.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasSuffix(r.URL.Path, "/auth/token") {
+			body := ""
+			if r.Body != nil {
+				raw, _ := io.ReadAll(r.Body)
+				body = string(raw)
+				r.Body = io.NopCloser(bytes.NewReader(raw))
+			}
+			m.mu.Lock()
+			m.calls = append(m.calls, transitIAMCall{Method: r.Method, Path: r.URL.Path, Body: body})
+			m.mu.Unlock()
+		}
+		mux.ServeHTTP(w, r)
+	}))
+	return m
+}
+
+// newTransitMockIAM stubs the IAM endpoints the transit member handlers call:
+// client-credentials token, org bind/unbind/role-update, role templates.
+// failTemplates=true makes the role-templates endpoint return 500 (audit
+// #1935 Bug A failure-path coverage).
+func newTransitMockIAM(t *testing.T, failTemplates bool) *httptest.Server {
+	t.Helper()
+	return newTransitMockIAMWithOptions(t, transitMockIAMOptions{failTemplates: failTemplates}).Server
 }
 
 func seedTransitSite1935(t *testing.T, tenantID string) models.Site {

@@ -274,9 +274,13 @@ func (c *IAMClient) doRequestWithToken(method, path, token string, payload inter
 }
 
 type CreateOrganizationRequest struct {
-	Name             string             `json:"name"`
-	ParentID         string             `json:"parent_id,omitempty"`
-	NamespaceID      string             `json:"namespace_id,omitempty"`
+	Name        string `json:"name"`
+	ParentID    string `json:"parent_id,omitempty"`
+	NamespaceID string `json:"namespace_id,omitempty"`
+	// Type maps to `organizations.type` in beaconiam ("merchant" / "branch" / ...).
+	// #2547: 中转网点建「命名空间组织下的直营分支」时传 "branch"；既有调用方不传 →
+	// omitempty 不改变请求体（merchant.go / site.go 行为不变）。
+	Type             string             `json:"type,omitempty"`
 	Address          string             `json:"address,omitempty"`
 	ContactPhone     string             `json:"contact_phone,omitempty"`
 	AdminInfo        *OrganizationAdmin `json:"admin_info,omitempty"`
@@ -399,11 +403,13 @@ type Organization struct {
 	Name        string  `json:"name"`
 	ParentID    *string `json:"parent_id"`
 	NamespaceID string  `json:"namespace_id"`
-	IsPrimary   bool    `json:"is_primary"`
-	Status      string  `json:"status"`
-	Description string  `json:"description"`
-	CreatedAt   string  `json:"created_at"`
-	UpdatedAt   string  `json:"updated_at"`
+	// Type is `organizations.type` (#2547: 中转网点子组织为 "branch").
+	Type        string `json:"type"`
+	IsPrimary   bool   `json:"is_primary"`
+	Status      string `json:"status"`
+	Description string `json:"description"`
+	CreatedAt   string `json:"created_at"`
+	UpdatedAt   string `json:"updated_at"`
 }
 
 // OrgRelation represents a user's membership in an organization.

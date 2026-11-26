@@ -8,6 +8,7 @@ package handlers
 import (
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"tuneloop-backend/database"
@@ -80,13 +81,53 @@ func CreateAdminTransitSite(c *gin.Context) {
 
 	db := database.GetDB()
 	tenantID := middleware.GetTenantID(c.Request.Context())
+	// #2547：sites.tenant_id NOT NULL —— 空租户提前显式拒绝（不写空值）。
+	if strings.TrimSpace(tenantID) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "缺少租户上下文，无法创建中转网点"})
+		return
+	}
 
-	// #1935: 中转网点直辖平台顶层组织 —— OrgID 填平台租户 ID（顶层）
+	// #2547：中转网点 = 平台直属直营，归属「命名空间组织下的 branch 子组织」。
+	// 先建 IAM 子组织，再落本地 sites 行；失败时不留下无 IAM 组织的站点（D5）。
+	iamClient := services.NewIAMClient()
+	parentOrgID, err := services.ResolveNamespacePrimaryOrg(iamClient)
+	if err != nil {
+		log.Printf("[CreateAdminTransitSite] resolve namespace primary org failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "无法确定命名空间主组织: " + err.Error()})
+		return
+	}
+
+	orgResp, err := iamClient.CreateOrganizationWithToken(services.ExtractUserToken(c), &services.CreateOrganizationRequest{
+		Name:             req.Name,
+		ParentID:         parentOrgID,
+		Type:             "branch",
+		Address:          req.Address,
+		ContactPhone:     req.Phone,
+		NotificationLang: middleware.GetCulture(c),
+		OperatorID:       middleware.GetUserID(c.Request.Context()),
+		AdminInfo:        nil, // 分支组织无 owner
+	})
+	if err != nil {
+		log.Printf("[CreateAdminTransitSite] IAM CreateOrganization failed: %v", err)
+		if strings.Contains(err.Error(), "name conflict") || strings.Contains(err.Error(), "already exists") {
+			c.JSON(http.StatusConflict, gin.H{
+				"code":    40900,
+				"message": "同名组织已存在: " + err.Error(),
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    50000,
+			"message": "Failed to create transit site organization in IAM: " + err.Error(),
+		})
+		return
+	}
+
 	// #1935 audit Bug4: contact_name 持久化（此前被静默丢弃）
 	site := models.Site{
 		ID:          uuid.New().String(),
 		TenantID:    tenantID,
-		OrgID:       tenantID,
+		OrgID:       orgResp.OrgID,
 		Name:        req.Name,
 		Address:     req.Address,
 		Phone:       req.Phone,
@@ -97,6 +138,10 @@ func CreateAdminTransitSite(c *gin.Context) {
 		UpdatedAt:   time.Now(),
 	}
 	if err := db.Create(&site).Error; err != nil {
+		// 补偿：本地落库失败 → 删除刚建的组织（best-effort + 日志，仍返回 500）。
+		if delErr := iamClient.DeleteOrganization(orgResp.OrgID); delErr != nil {
+			log.Printf("[CreateAdminTransitSite] rollback DeleteOrganization failed for org %s: %v", orgResp.OrgID, delErr)
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to create transit site"})
 		return
 	}
@@ -268,6 +313,10 @@ func AddTransitSiteMember(c *gin.Context) {
 		}
 	}
 
+	// #2547 D2：`addMembersCore` 的第 4 个参数（tenantID）只是**本地租户列作用域**
+	// （`site_members.tenant_id` / `users.tenant_id`）；IAM 绑定目标始终是
+	// `site.OrgID` —— 中转网点即建站时创建的 branch 子组织。不要把该参数改成
+	// `site.OrgID`，否则会破坏 `site_members → sites.tenant_id` 的本地隔离。
 	res, fail := addMembersCore(c, db, site, site.TenantID, siteID, input)
 	if fail != nil {
 		c.JSON(fail.Status, fail.Body)

@@ -6258,7 +6258,7 @@ GET /api/admin/dashboard/near-transfers
 |---|---|
 | merchant_admin | 本商户全员 = 各网点成员 ∪ **商户直属员工**（`merchant_members`）∪ **维修师傅**（`technician_profiles`）；直属/师傅行 site_name=「直属商户」、师傅 position=「维修师傅」。**归属锚定 membership**：由 `site_members→sites.tenant_id` / `merchant_members.tenant_id` / `technician_profiles.tenant_id` 决定，users 按 id 取回（**不按 `users.tenant_id` 过滤**——本地缓存该列不可靠） |
 | site_admin | **本网点（组织域）全部成员**：`JOIN sites s ON s.id = sm.site_id WHERE s.org_id = JWT oid`；不含维修师傅。JWT `oid` 是**网点自身的 IAM 组织 ID**（`sites.org_id`），与 `site_members.site_id`（`sites.id`）**不是同一域**（#2508）。一个组织下有多个站点时返回**该组织全部站点**成员，**不递归**子网点（`sites.parent_id`） |
-| system_admin | **平台员工**（根组织 users，role∈staff/namespace_admin/sys_admin）∪ **中转网点成员**（`sites.type='transit'`）；平台员工无网点归属时 site_name=「平台」 |
+| system_admin | **平台员工**（根组织 users，role∈staff/namespace_admin/sys_admin）∪ **中转网点成员**（判据：`sites.type='transit' AND s.tenant_id = 平台租户`，成员经 `site_members.site_id → sites`）；平台员工无网点归属时 site_name=「平台」。中转网点持有**自己的 branch 子组织**（`sites.org_id`，`parent_id` = 命名空间主组织），因此**不得**再用 `sites.org_id = 平台组织` 判定（#2547：子组织建立后两者不相等，旧判据会让中转成员从系统视图消失） |
 | 其他（customer 等） | `40303` |
 
 **Query**: `page`（默认 1）、`page_size`（默认 20，≤100）、`name`（姓名 ILIKE；页面搜索表单参数）、`site_id`（**merchant 视图**按网点过滤成员，师傅/直属员工不属网点故排除；**site_admin 视图亦生效**，语义为「与本组织求交」——跨组织站点 ID 得到空集，不报错、不泄漏）、`direct`（**merchant 视图**：`true`=只看直属员工（`merchant_members`）+ 维修师傅；与 `site_id` 同传时 **direct 优先**）、`search`（name/phone/email ILIKE，通用口径；name 优先）
@@ -6495,7 +6495,7 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 |---|---|
 | merchant_admin | `site_members→sites.tenant_id = tid`（active）或 `merchant_members.tenant_id = tid`（active）或 `technician_profiles.tenant_id = tid`；否则 `users.tenant_id = tid` 且 `lower(role) ∉ {"", "user"}` |
 | site_admin | `site_members→sites.org_id = oid`（active）；否则 `users.tenant_id = tid` + `org_id` 在可见组织内，且 `lower(role) ∉ {"", "user"}` |
-| system_admin | `users.org_id = oid` 且 `lower(role) ∈ {staff, namespace_admin, sys_admin}`；或中转网点成员（`sites.type='transit'` 且 `sites.tenant_id/org_id = oid`）；或 `tid` 非空时 `users.tenant_id = tid` |
+| system_admin | `users.org_id = oid` 且 `lower(role) ∈ {staff, namespace_admin, sys_admin}`；或中转网点成员（`sites.type='transit'` 且 `sites.tenant_id = 平台租户(tid，空时回落 oid)`；**不再**用 `sites.org_id` 判定，#2547）；或 `tid` 非空时 `users.tenant_id = tid` |
 | 其他 | 仅旧口径：`users.tenant_id = tid` + `org_id` 在可见组织内 |
 
 **纯顾客**: `lower(users.role) ∈ {"", "user"}` 且无任何成员关系 → 一律 `404 40400`（不得通过 `users.tenant_id` 命中被当作员工打开，避免个人信息越权读取）。

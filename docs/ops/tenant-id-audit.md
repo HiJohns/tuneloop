@@ -430,7 +430,7 @@ bash scripts/tenant-audit-coverage.sh
 | `forwarding_session.go` | ⚪ 不适用（调用方数据锚） | `createForwardingSession`（:82）由调用方传 tenant：`user_rental.go:704` 传 `instrument.TenantID`；`merchant_id` 优先操作者 org、无 org 时回退该 tenant（:85-89）。写入值来自订单/乐器数据归属，非创建者上下文 |
 | `label.go` | ⚪ 不适用（P 表 / S6） | `label.go:75` 写入 `tenant_id = 操作者 tid`，但 Label 属 A2 的 **P（平台级）** 表，tenant 仅创建者元数据；按 tenant 做访问范围属 S6，归 P3/P5 统一，不属本批 S4 |
 | A3-8 其余必修（前批已修） | ✅ 已修（非本批） | `user_staff.go`(#2247)、`merchant_member.go`(#2250)、`iam_proxy.go`(#2249)、`repair_service.go`/`repair_service_admin_2129.go`(#2248)、`instrument_batch_import.go`/`public.go`/`pricing.go`/`merchant_rebate.go`/`points_policy.go`(#2251) |
-| `transit_site_admin.go` | ⚪ 不适用 | 中转网点按 #1935 直辖平台顶层组织，tenant=org=平台租户（注释明确） |
+| `transit_site_admin.go` | ⚪ 不适用 | 中转网点 tenant=平台租户；org=中转子组织（#2547：建站时在命名空间主组织下创建 `type=branch` 子组织并写入 `sites.org_id`） |
 | `transit_order.go` | ⚪ 不适用 | 中转域操作行，锚 = 平台顶层组织（同 #1935）；未来若允许商户级操作需复核 |
 | `property.go` | ⚪ 不适用 | 平台级资源（P 表），tenant = 创建者元数据（设计如此） |
 | `confirmation_session.go` | ⚪ 不适用 | 会话归属 user_id，tenant 仅上下文元数据 |

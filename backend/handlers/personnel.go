@@ -96,7 +96,7 @@ func (h *PersonnelHandler) List(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "operator has no organization"})
 			return
 		}
-		rows, err = personnelSystemView(db, oid, keyword)
+		rows, err = personnelSystemView(db, oid, tid, keyword)
 	default:
 		c.JSON(http.StatusForbidden, gin.H{"code": 40303, "message": "access denied"})
 		return
@@ -278,7 +278,17 @@ func personnelSiteView(db *gorm.DB, orgID, keyword, siteFilter string) ([]person
 
 // personnelSystemView 平台员工（根组织 users，与 platform_staff.go 同源）∪ 中转网点成员。
 // 注意：平台员工通常无 site_members 记录，不能走 assemblePersonnel 的「无归属即过滤」逻辑。
-func personnelSystemView(db *gorm.DB, rootOrgID, keyword string) ([]personnelRow, error) {
+//
+// #2547 D3：中转判据改为**站点维度** —— `sites.type='transit'` +
+// `sites.tenant_id = 平台租户`，成员关系经 `site_members.site_id → sites`。
+// 子组织建立后 `sites.org_id` 是网点自己的 branch 组织（≠ 平台组织），
+// 继续用 `s.org_id = oid` 会让既有中转成员从系统视图消失。
+// tid 为空时回落 rootOrgID（沿用调用方解析口径）。
+func personnelSystemView(db *gorm.DB, rootOrgID, tid, keyword string) ([]personnelRow, error) {
+	platformTenantID := strings.TrimSpace(tid)
+	if platformTenantID == "" {
+		platformTenantID = rootOrgID
+	}
 	rows := []personnelRow{}
 	seen := map[string]int{}
 
@@ -304,12 +314,12 @@ func personnelSystemView(db *gorm.DB, rootOrgID, keyword string) ([]personnelRow
 		})
 	}
 
-	// 2) 中转网点成员（sites.type='transit'，归属根组织）
+	// 2) 中转网点成员（sites.type='transit'，平台租户下的中转站点）
 	var sms []siteMembershipRow
 	if err := db.Table("site_members AS sm").
 		Select("sm.user_id, sm.site_id, s.name AS site_name, sm.role").
 		Joins("JOIN sites s ON s.id = sm.site_id").
-		Where("s.type = ? AND (s.tenant_id = ? OR s.org_id = ?) AND sm.status = 'active'", "transit", rootOrgID, rootOrgID).
+		Where("s.type = ? AND s.tenant_id = ? AND sm.status = 'active'", "transit", platformTenantID).
 		Scan(&sms).Error; err != nil {
 		return nil, fmt.Errorf("transit site_members scan failed: %w", err)
 	}
@@ -556,7 +566,7 @@ func personnelUserVisible(db *gorm.DB, ctx context.Context, u *models.User) (boo
 				return true, nil
 			}
 		}
-		if ok, err := hasTransitSiteMembership(db, ctx, u.ID, oid); err != nil || ok {
+		if ok, err := hasTransitSiteMembership(db, ctx, u.ID, platformTenantIDFor(tid, oid)); err != nil || ok {
 			return ok, err
 		}
 		// 带租户 claim 的 NAMESPACE_ADMIN 等仍按旧口径放行，避免收窄既有访问。
@@ -629,16 +639,26 @@ func hasSiteMembershipByOrg(db *gorm.DB, ctx context.Context, userID, orgID stri
 	return count > 0, nil
 }
 
-// hasTransitSiteMembership 报告用户是否属于该组织下的中转网点（与 personnelSystemView 同源）。
-func hasTransitSiteMembership(db *gorm.DB, ctx context.Context, userID, orgID string) (bool, error) {
+// hasTransitSiteMembership 报告用户是否属于该平台租户下的中转网点（与 personnelSystemView 同源）。
+// #2547 D3：判据是站点维度（`sites.type='transit'` + `sites.tenant_id = 平台租户`），
+// 不再用 `sites.org_id`（子组织建立后与平台组织不同）。
+func hasTransitSiteMembership(db *gorm.DB, ctx context.Context, userID, platformTenantID string) (bool, error) {
 	scoped := db.WithContext(database.ExplicitTenantScopeOnly(ctx))
 	var count int64
 	if err := scoped.Table("site_members AS sm").
 		Joins("JOIN sites s ON s.id = sm.site_id").
-		Where("sm.user_id = ? AND sm.status = 'active' AND s.type = ? AND (s.tenant_id = ? OR s.org_id = ?)",
-			userID, "transit", orgID, orgID).
+		Where("sm.user_id = ? AND sm.status = 'active' AND s.type = ? AND s.tenant_id = ?",
+			userID, "transit", platformTenantID).
 		Count(&count).Error; err != nil {
-		return false, fmt.Errorf("transit membership check failed (user=%s org=%s): %w", userID, orgID, err)
+		return false, fmt.Errorf("transit membership check failed (user=%s tenant=%s): %w", userID, platformTenantID, err)
 	}
 	return count > 0, nil
+}
+
+// platformTenantIDFor 返回平台租户 ID：优先 JWT `tid`，空时回落组织 ID（oid）。
+func platformTenantIDFor(tid, oid string) string {
+	if tid = strings.TrimSpace(tid); tid != "" {
+		return tid
+	}
+	return oid
 }
