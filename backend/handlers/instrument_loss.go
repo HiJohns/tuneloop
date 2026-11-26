@@ -409,7 +409,19 @@ func (h *InstrumentLossHandler) List(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
 		return
 	}
-	query := db.Where("tenant_id = ?", tid)
+	query := db.Model(&models.InstrumentLossRecord{}).
+		Where("instrument_loss_records.tenant_id = ?", tid)
+	// #2515：台账可见性 = 乐器可见性（#1911 applyInstrumentListScope 口径）。
+	// 网点级账号按 instruments.site_id（归属站点）过滤；商户/平台保持全商户可见。
+	// 绝不使用 current_site_id（调拨会改写 → 历史凭证随乐器搬家）。
+	if role := middleware.GetBusinessRole(ctx); role == middleware.BusinessRoleSiteAdmin ||
+		role == middleware.BusinessRoleSiteMember {
+		visible := db.Model(&models.Instrument{}).
+			Select("id").
+			Where("instruments.tenant_id = ?", tid)
+		visible = applyInstrumentListScope(db, ctx, visible)
+		query = query.Where("instrument_id IN (?)", visible)
+	}
 	if iid := c.Query("instrument_id"); iid != "" {
 		query = query.Where("instrument_id = ?", iid)
 	}

@@ -2232,6 +2232,37 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
 
 ---
 
+### 5.12 乐器丢失 / 找回 / 台账（#2515）
+
+**接口**:
+
+| 方法 | 路径 | 权限 | 说明 |
+|---|---|---|---|
+| POST | `/api/instruments/:id/lost` | `instrument:update` | 登记丢失（写 `instrument_loss_records`，乐器 `stock_status='lost'`） |
+| POST | `/api/instruments/:id/restore` | `instrument:update` | 找回 = 恢复上架（乐器 `stock_status='available'`；订单保持 `cancelled`） |
+| GET | `/api/instrument-loss` | `instrument:read` | 丢失/赔偿台账列表 |
+
+**台账查询参数（`GET /api/instrument-loss`）**:
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `instrument_id` | uuid | 否 | 只查该乐器的记录（与可见范围取交集） |
+| `open` | bool | 否 | `true` 时只返回未找回（`restored_at IS NULL`） |
+
+**响应**: `{ "code": 20000, "data": { "list": [...], "total": <n> } }`（`total = len(list)`，当前上限 200 条）
+
+**可见性口径（#2515 D1，唯一权威）**:
+
+| 账号 | 台账可见范围 |
+|---|---|
+| 网点员工 / 网点管理员（`business_role ∈ {site_member, site_admin}`，`oid ≠ tid`） | **本网点归属站点**：`instrument_id ∈ (instruments WHERE site_id IN 本人 site_members)`，即与乐器列表同一权威（`applyInstrumentListScope`，#1911）；无 `site_members` 行时回退 `org_id IN (自身 org)`（fail-closed） |
+| 商户管理员（`oid == tid`） | 本商户全量（组织 + 下级站点） |
+| 平台 / 系统管理员 | 全量（不再收敛） |
+
+**重要约束**: 站点归属判定使用 `instruments.site_id`（**归属站点**），**不使用** `current_site_id`（调拨会改写物理位置，若据此判定会让历史凭证随乐器搬家、产生新的跨网点泄漏）。`instruments.site_id IS NULL` 的历史乐器，其台账对网点级账号不可见（fail-closed），由部署侧抽样核对。
+
+---
+
 ## 六、订单模块
 
 ### 6.1 预计算首期费用
