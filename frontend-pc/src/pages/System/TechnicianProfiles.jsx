@@ -3,6 +3,8 @@ import { Card, Table, Tag, Button, Space, Modal, Form, Input, InputNumber, Selec
 import { PlusOutlined, EditOutlined } from '@ant-design/icons'
 import ReactQuill from 'react-quill'
 import PhotoUploader from '../../components/PhotoUploader'
+import FormConflictAlert from '../../components/FormConflictAlert'
+import { conflictText, isBusinessCorrectableConflict } from '../../utils/formConflict'
 import 'react-quill/dist/quill.snow.css'
 import { technicianApi, staffApi } from '../../services/api'
 import { formatBeijingDateTimeShort } from '../../utils/date'
@@ -30,6 +32,8 @@ export default function TechnicianProfiles() {
   const [photoUrl, setPhotoUrl] = useState('')
   const [pendingPhoto, setPendingPhoto] = useState(null) // #2049 待上传文件（保存时走媒体管线）
   const [form] = Form.useForm()
+  // #2487 / #2480 v2：业务可纠正冲突（40900 该用户已是维修师 / 40002 关联必填）走模态框内持久提示。
+  const [formConflict, setFormConflict] = useState('')
 
   const fetchList = async () => {
     setLoading(true)
@@ -49,6 +53,7 @@ export default function TechnicianProfiles() {
     setEditing(null)
     setPhotoUrl('')
     setPendingPhoto(null)
+    setFormConflict('') // #2480 D8：打开表单即清空
     form.resetFields()
     form.setFieldsValue({ experience: [{ craft: '', years: undefined }] })
     setModalOpen(true)
@@ -63,6 +68,7 @@ export default function TechnicianProfiles() {
     setEditing(row)
     setPhotoUrl(row.photo || '')
     setPendingPhoto(null)
+    setFormConflict('') // #2480 D8：打开表单即清空
     form.setFieldsValue({
       user_id: row.user_id,
       bio: row.bio,
@@ -84,6 +90,7 @@ export default function TechnicianProfiles() {
       .filter(e => e && e.craft)
       .map(e => ({ craft: e.craft, years: Number(e.years) || 0 }))
     setSubmitting(true)
+    setFormConflict('') // #2480 D8：提交开始即清空旧提示
     // #2049：先保存档案（bio/experience），再经媒体管线上传照片（需 profile id）
     const savePhoto = async (id) => {
       if (!pendingPhoto || !id) return
@@ -103,11 +110,25 @@ export default function TechnicianProfiles() {
       }
       if (resp.code === 20000) {
         message.success(editing ? '已更新' : '已新增')
+        setFormConflict('') // #2480 D8：成功后清空
         setModalOpen(false)
         setPendingPhoto(null)
         fetchList()
-      } else message.error(resp.message || '保存失败')
-    } catch (e) { message.error(e.message || '保存失败') }
+      } else if (isBusinessCorrectableConflict(resp)) {
+        // #2487：先拿回 code 再分类（technician_profile.go:171 同一商户下重复关联 → 409 + 40900）。
+        setFormConflict(conflictText(resp, '该员工已是维修师，请选择其他人'))
+      } else {
+        // 40003（账号不可用/不在本商户）等非 rubric 错误保持瞬时提示
+        message.error(resp.message || '保存失败')
+      }
+    } catch (e) {
+      // #2563 起 400 族以带 code 的 Error 抛出（services/apiError.js），按共享 rubric 判定。
+      if (isBusinessCorrectableConflict(e)) {
+        setFormConflict(conflictText(e, '该员工已是维修师，请选择其他人'))
+      } else {
+        message.error(e.message || '保存失败')
+      }
+    }
     setSubmitting(false)
   }
 
@@ -165,13 +186,19 @@ export default function TechnicianProfiles() {
       <Modal
         title={editing ? '编辑维修师档案' : '新增维修师档案'}
         open={modalOpen}
-        onCancel={() => setModalOpen(false)}
+        onCancel={() => { setModalOpen(false); setFormConflict('') }}
         onOk={submit}
         confirmLoading={submitting}
         width={640}
         okText="保存"
       >
-        <Form form={form} layout="vertical">
+        <Form
+          form={form}
+          layout="vertical"
+          onValuesChange={() => { if (formConflict) setFormConflict('') }} // #2480 D8：改输入即清空
+        >
+          {/* #2487：业务可纠正冲突的持久提示（共享件，禁止本地 Alert） */}
+          <FormConflictAlert text={formConflict} testId="technician-form-conflict" />
           {!editing && (
             <Form.Item name="user_id" label="关联维修师（用户）" rules={[{ required: true, message: '请选择或填写维修师 user_id' }]}>
               {users.length > 0 ? (

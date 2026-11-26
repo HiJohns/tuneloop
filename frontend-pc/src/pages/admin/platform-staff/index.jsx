@@ -5,6 +5,8 @@ import { useState, useCallback, useEffect } from 'react'
 import { Table, Card, Button, Space, Tag, Modal, Form, Input, Radio, Checkbox, message, Popconfirm } from 'antd'
 import { PlusOutlined, StopOutlined } from '@ant-design/icons'
 import { platformStaffApi } from '../../../services/api'
+import FormConflictAlert from '../../../components/FormConflictAlert'
+import { conflictText, isBusinessCorrectableConflict } from '../../../utils/formConflict'
 
 export default function PlatformStaffPage() {
   const [list, setList] = useState([])
@@ -16,6 +18,8 @@ export default function PlatformStaffPage() {
   const [creating, setCreating] = useState(false)
   const [autoGenerate, setAutoGenerate] = useState(true)
   const [form] = Form.useForm()
+  // #2487 / #2480 v2：创建平台员工的业务可纠正冲突（40900 用户名/手机号重复）走表单内持久提示。
+  const [createConflict, setCreateConflict] = useState('')
 
   const fetchList = useCallback(async () => {
     setLoading(true)
@@ -39,12 +43,14 @@ export default function PlatformStaffPage() {
   const handleCreate = async () => {
     const values = await form.validateFields()
     setCreating(true)
+    setCreateConflict('') // #2480 D8：提交开始即清空旧提示
     try {
       const resp = await platformStaffApi.create(values)
       if (resp.code === 20000) {
         setCreateVisible(false)
         form.resetFields()
         setAutoGenerate(true)
+        setCreateConflict('') // #2480 D8：成功后清空
         fetchList()
         const initialPwd = resp.data?.initial_password
         if (initialPwd) {
@@ -65,11 +71,19 @@ export default function PlatformStaffPage() {
         } else {
           message.success('平台员工已创建')
         }
+      } else if (isBusinessCorrectableConflict(resp)) {
+        // #2487：先拿回 code 再分类（platform_staff.go:185/189 用户名/手机号重复 → 409 + 40900）。
+        setCreateConflict(conflictText(resp, '用户名或手机号已被占用，请修改后重新提交'))
       } else {
         message.error(resp.message || '创建失败')
       }
     } catch (error) {
-      message.error(error.message || '创建失败')
+      // #2563 起 400 族以带 code 的 Error 抛出（services/apiError.js），按共享 rubric 判定。
+      if (isBusinessCorrectableConflict(error)) {
+        setCreateConflict(conflictText(error, '用户名或手机号已被占用，请修改后重新提交'))
+      } else {
+        message.error(error.message || '创建失败')
+      }
     } finally {
       setCreating(false)
     }
@@ -151,12 +165,18 @@ export default function PlatformStaffPage() {
         title="新建平台员工"
         open={createVisible}
         onOk={handleCreate}
-        onCancel={() => { setCreateVisible(false); setAutoGenerate(true) }}
+        onCancel={() => { setCreateVisible(false); setAutoGenerate(true); setCreateConflict('') }}
         okText="创建"
         cancelText="取消"
         confirmLoading={creating}
       >
-        <Form form={form} layout="vertical">
+        <Form
+          form={form}
+          layout="vertical"
+          onValuesChange={() => { if (createConflict) setCreateConflict('') }} // #2480 D8：改输入即清空
+        >
+          {/* #2487：业务可纠正冲突的持久提示（共享件，禁止本地 Alert） */}
+          <FormConflictAlert text={createConflict} testId="platform-staff-form-conflict" />
           <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请填写姓名' }]}>
             <Input placeholder="请输入姓名" />
           </Form.Item>

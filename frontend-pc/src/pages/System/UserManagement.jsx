@@ -4,6 +4,8 @@ import { Table, Input, Button, Space, Modal, Form, InputNumber, Select, Switch, 
 import { DownloadOutlined, IdcardOutlined, ScanOutlined, CheckCircleOutlined, WarningOutlined, QuestionCircleOutlined } from '@ant-design/icons'
 import { api, faceReviewApi, fetchBlob } from '../../services/api'
 import IdPhotoDisplay from '../../components/IdPhotoDisplay'
+import FormConflictAlert from '../../components/FormConflictAlert'
+import { conflictText, isBusinessCorrectableConflict } from '../../utils/formConflict'
 import { formatBeijingDate, formatBeijingDateTimeShort } from '../../utils/date'
 import { shouldShowWarning, orphanTitle, orphanEmptyText, isEmptyState } from '../../utils/orphanPanel'
 
@@ -43,6 +45,8 @@ export default function UserManagement() {
   const [idPhotos, setIdPhotos] = useState({ front: '', back: '', other: '' })
   const [detail, setDetail] = useState(null)
   const [idCardForm] = Form.useForm()
+  // #2487 / #2480 v2：业务可纠正冲突（rubric 40002/40004/40005/40900）的表单内持久提示。
+  const [idCardConflict, setIdCardConflict] = useState('')
   const [form] = Form.useForm()
   const [grantVisible, setGrantVisible] = useState(false)
   const [grantForm] = Form.useForm()
@@ -301,6 +305,7 @@ export default function UserManagement() {
 
   const handleSaveIdCard = async () => {
     const values = await idCardForm.validateFields()
+    setIdCardConflict('') // #2480 D8：提交开始即清空旧提示
     try {
       const resp = await api.put(`/admin/user-management/${current.id}/id-card`, {
         real_name: values.real_name?.trim() || '',
@@ -311,12 +316,21 @@ export default function UserManagement() {
       })
       if (resp?.code === 20000) {
         message.success('身份证信息已保存')
+        setIdCardConflict('') // #2480 D8：成功后清空
         loadDetail(current.id)
+      } else if (isBusinessCorrectableConflict(resp)) {
+        // #2487：先把 code 拿回来再分类（40002 身份证号格式等，用户改输入即可重试）。
+        setIdCardConflict(conflictText(resp, '身份证信息有误，请修改后重新提交'))
       } else {
         message.error(resp?.message || '保存失败')
       }
     } catch (err) {
-      message.error('保存失败: ' + (err.message || ''))
+      // #2563 起 400 族以带 code 的 Error 抛出（services/apiError.js），此处按共享 rubric 判定。
+      if (isBusinessCorrectableConflict(err)) {
+        setIdCardConflict(conflictText(err, '身份证信息有误，请修改后重新提交'))
+      } else {
+        message.error('保存失败: ' + (err.message || ''))
+      }
     }
   }
 
@@ -514,7 +528,14 @@ export default function UserManagement() {
                   <Alert type="info" showIcon message="用户未上传证件照，无法采集身份证信息" />
                 ) : (
                   <div>
-                    <Form form={idCardForm} layout="vertical" disabled={idCardStatusTag === 'verified'}>
+                    <Form
+                      form={idCardForm}
+                      layout="vertical"
+                      disabled={idCardStatusTag === 'verified'}
+                      onValuesChange={() => { if (idCardConflict) setIdCardConflict('') }} // #2480 D8：改输入即清空
+                    >
+                      {/* #2487：业务可纠正冲突的持久提示（共享件，禁止本地 Alert） */}
+                      <FormConflictAlert text={idCardConflict} testId="user-idcard-conflict" />
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
                         <Form.Item label="真实姓名" name="real_name">
                           <Input placeholder="按证件照填写" />
