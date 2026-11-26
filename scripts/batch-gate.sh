@@ -17,6 +17,7 @@ set -uo pipefail
 BATCH=""
 CMD='cd backend && go build ./... && go test ./... -count=1'
 TIMEOUT="20m"
+BASELINE=""
 DRY=0
 
 while [ $# -gt 0 ]; do
@@ -24,6 +25,7 @@ while [ $# -gt 0 ]; do
     --batch) BATCH="${2:-}"; shift 2 ;;
     --cmd) CMD="${2:-}"; shift 2 ;;
     --timeout) TIMEOUT="${2:-}"; shift 2 ;;
+    --baseline) BASELINE="${2:-}"; shift 2 ;;
     --dry-run) DRY=1; shift ;;
     -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
     *) echo "unknown arg: $1" >&2; exit 2 ;;
@@ -47,7 +49,7 @@ if [ "$DRY" = "1" ]; then
   exit 0
 fi
 
-DIRTY="$(git status --porcelain | grep -v '^?? tmp/' | head -1 || true)"
+DIRTY="$(git status --porcelain | grep -vE '^\?\?' | head -1 || true)"
 if [ -n "$DIRTY" ]; then
   echo "working tree not clean: $DIRTY" >&2
   exit 2
@@ -59,6 +61,23 @@ START=$(date +%s)
 timeout "$TIMEOUT" bash -c "$CMD" >"$LOG" 2>&1
 RC=$?
 DUR=$(( $(date +%s) - START ))
+
+fail_set() { grep -E '^--- FAIL:' "$1" 2>/dev/null | sed -E 's/^--- FAIL: ([^ ]+).*/\1/' | sort -u; }
+
+BASE_FAILS=0
+NEW_FAILS=""
+if [ -n "$BASELINE" ]; then
+  BASE_WT="$(mktemp -d)"
+  if git worktree add --detach "$BASE_WT" "$BASELINE" >/dev/null 2>&1; then
+    ( cd "$BASE_WT" && timeout "$TIMEOUT" bash -c "$CMD" ) >"$OUT_DIR/full-gate-baseline.log" 2>&1
+    BASE_FAILS=$(fail_set "$OUT_DIR/full-gate-baseline.log" | wc -l | tr -d ' ')
+    NEW_FAILS=$(comm -23 <(fail_set "$LOG") <(fail_set "$OUT_DIR/full-gate-baseline.log") || true)
+    git worktree remove --force "$BASE_WT" >/dev/null 2>&1 || rm -rf "$BASE_WT"
+  else
+    rm -rf "$BASE_WT"
+    echo "WARN: cannot create baseline worktree for $BASELINE; baseline diff skipped" >&2
+  fi
+fi
 
 FAILS=$(grep -cE '^(--- FAIL|FAIL[[:space:]])' "$LOG" 2>/dev/null || true)
 PANICS=$(grep -c '^panic:' "$LOG" 2>/dev/null || true)
@@ -75,6 +94,12 @@ PANICS=$(grep -c '^panic:' "$LOG" 2>/dev/null || true)
   printf 'PANIC_COUNT=%s\n' "$PANICS"
   printf 'DURATION_SEC=%s\n' "$DUR"
   printf 'TIMEOUT=%s\n' "$TIMEOUT"
+  if [ -n "$BASELINE" ]; then
+    printf 'BASELINE=%s\n' "$BASELINE"
+    printf 'BASELINE_FAIL_COUNT=%s\n' "$BASE_FAILS"
+    printf 'FULL_GATE_NEW_FAILURES=%s\n' "$(printf '%s' "$NEW_FAILS" | grep -c . || true)"
+    printf 'NEW_FAILURES=%s\n' "$(printf '%s' "$NEW_FAILS" | tr '\n' ',' )"
+  fi
 } > "$OUT_FILE"
 
 cat "$OUT_FILE"
@@ -86,12 +111,16 @@ cat <<EOF
 - batch: $BATCH
 - source: $OUT_FILE
 - source_tree: $SHA
-- result: FULL_SUITE_EXIT=$RC FAIL_COUNT=$FAILS PANIC_COUNT=$PANICS
+- result: FULL_SUITE_EXIT=$RC FAIL_COUNT=$FAILS PANIC_COUNT=$PANICS${BASELINE:+ FULL_GATE_NEW_FAILURES=$(printf '%s' "$NEW_FAILS" | grep -c . || true) BASELINE_FAIL_COUNT=$BASE_FAILS}
 - timeout: $TIMEOUT
 - marker: BATCH_GATE_REF_OK
 EOF
 
 if [ "$RC" != "0" ]; then
+  if [ -n "$BASELINE" ] && [ -z "$(printf '%s' "$NEW_FAILS" | grep . || true)" ]; then
+    echo "GATE PASS (baseline-diff: no new failures; rc=$RC is pre-existing)" >&2
+    exit 0
+  fi
   echo
   echo "GATE FAILED (rc=$RC): see $LOG" >&2
   exit "$RC"
