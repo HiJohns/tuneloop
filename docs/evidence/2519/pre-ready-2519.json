@@ -1,16 +1,16 @@
 {
   "issue": 2519,
-  "overall": "FAIL",
-  "plan": "/tmp/opencode/tuneloop/wt-2519/tmp/pre-ready-2519.sPPEYN/plan.md",
+  "overall": "PASS",
+  "plan": "/tmp/opencode/tuneloop/wt-2519/tmp/pre-ready-2519.N6mSrw/plan.md",
   "plan_sha256": "6d4f1941acc98064809a7964680df3f337bfe7f4ce95ed631a322d2ff0e1b347",
   "config_sha": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
   "provenance": {
-    "build": "1.0.5007901a3",
-    "commit": "5007901a345e77feaf9036ef2b07c5f91b4a7948",
+    "build": "1.0.c841a9e82",
+    "commit": "c841a9e82bc86dec130d6308b6b4992028fee2f6",
     "dirty": false
   },
   "summary": "tmp/work-summary-2519.md",
-  "timestamp": "20261126-153927",
+  "timestamp": "20261126-154739",
   "checks": [
     {
       "id": "P1",
@@ -64,8 +64,8 @@
     },
     {
       "id": "P5",
-      "status": "FAIL",
-      "detail": "full gate failed at HEAD (rc=1) without parseable failures; tail: ARTIFACT=/tmp/opencode/tuneloop/wt-2519/tmp/pre-ready-2519.sPPEYN/wt-head/docs/evidence/2519/R12-build.txt RESULT: FAIL (r12) [heavy-lock] released scope=host slot=0 rc=1 at_ms=1795707825863 hold_ms=209099 "
+      "status": "WARN",
+      "detail": "baseline gate also failed (rc=127); no parseable baseline failures, cannot prove subset"
     },
     {
       "id": "P6",
