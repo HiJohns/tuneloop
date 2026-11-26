@@ -1,22 +1,22 @@
-# build=1.0.9390b3de9 # commit=9390b3de9a658d8c8877652e5673aee506ccde44 # dirty=false
+# build=1.0.12f7e2009 # commit=12f7e2009ba71485d96ab07cb03f86299661b116 # dirty=false
 # CMD go test -count=1 -v -run '^TestInstrumentLoss2515_MultiSiteStaff$' ./handlers/
-[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s44-p44-bd1999 at_ms=1795691335910 wait_ms=231
-[heavy-lock] acquired scope=host slot=0 node=node-opencode-s44-p44-bd1999 wait_ms=231
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s44-p44-bd1999 at_ms=1795691682038 wait_ms=234
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s44-p44-bd1999 wait_ms=234
 [DEBUG] Loaded .env from: ../.env
-2026/11/26 11:09:09 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e sslmode=disable
-2026/11/26 11:09:11 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e
-2026/11/26 11:09:11 [DB] Connected to database 'tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e'
+2026/11/26 11:14:53 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e sslmode=disable
+2026/11/26 11:14:54 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e
+2026/11/26 11:14:54 [DB] Connected to database 'tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e'
 === RUN   TestInstrumentLoss2515_MultiSiteStaff
-2026/11/26 11:09:11 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e sslmode=disable
-2026/11/26 11:09:11 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e
-2026/11/26 11:09:11 [DB] Connected to database 'tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e'
+2026/11/26 11:14:54 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e sslmode=disable
+2026/11/26 11:14:54 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e
+2026/11/26 11:14:54 [DB] Connected to database 'tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e'
 
-2026/11/26 11:09:12 [32m/tmp/opencode/tuneloop/wt-2515/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[629.187ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
-R3 MULTISITE_SEES=2 MULTISITE_IDS=e3daf2b8-d025-4c2b-966c-7fec8b00c6d0,21937d6b-6573-4d9e-93ca-98fd8b44f1a1
---- PASS: TestInstrumentLoss2515_MultiSiteStaff (1.09s)
+2026/11/26 11:14:55 [32m/tmp/opencode/tuneloop/wt-2515/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[652.132ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+R3 MULTISITE_SEES=2 MULTISITE_IDS=bf704c74-1337-4242-9d58-a8b8b4fdbeb6,b5f5d034-b201-4d4e-95a6-250a1edf524e
+--- PASS: TestInstrumentLoss2515_MultiSiteStaff (0.96s)
 PASS
-ok  	tuneloop-backend/handlers	3.783s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795691352966 hold_ms=17056
+ok  	tuneloop-backend/handlers	1.741s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795691695581 hold_ms=13543
 GO_TEST_RC=0
 R3_OK

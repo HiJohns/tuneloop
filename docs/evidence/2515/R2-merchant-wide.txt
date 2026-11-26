@@ -1,22 +1,22 @@
-# build=1.0.9390b3de9 # commit=9390b3de9a658d8c8877652e5673aee506ccde44 # dirty=false
+# build=1.0.12f7e2009 # commit=12f7e2009ba71485d96ab07cb03f86299661b116 # dirty=false
 # CMD go test -count=1 -v -run '^TestInstrumentLoss2515_MerchantAndPlatform$' ./handlers/
-[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s44-p44-bd1999 at_ms=1795691321110 wait_ms=106
-[heavy-lock] acquired scope=host slot=0 node=node-opencode-s44-p44-bd1999 wait_ms=106
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s44-p44-bd1999 at_ms=1795691650672 wait_ms=102
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s44-p44-bd1999 wait_ms=102
 [DEBUG] Loaded .env from: ../.env
-2026/11/26 11:08:53 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e sslmode=disable
-2026/11/26 11:08:53 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e
-2026/11/26 11:08:53 [DB] Connected to database 'tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e'
+2026/11/26 11:14:35 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e sslmode=disable
+2026/11/26 11:14:39 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e
+2026/11/26 11:14:39 [DB] Connected to database 'tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e'
 === RUN   TestInstrumentLoss2515_MerchantAndPlatform
-2026/11/26 11:08:54 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e sslmode=disable
-2026/11/26 11:08:54 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e
-2026/11/26 11:08:54 [DB] Connected to database 'tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e'
+2026/11/26 11:14:40 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e sslmode=disable
+2026/11/26 11:14:40 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e
+2026/11/26 11:14:40 [DB] Connected to database 'tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e'
 
-2026/11/26 11:08:55 [32m/tmp/opencode/tuneloop/wt-2515/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[567.634ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
-R2 MERCHANT_SEES=2 PLATFORM_SEES=2 MERCHANT_IDS=c8bc5c8d-6085-4a2b-bb01-f810286ac3ef,29f0888c-f8d5-49d3-88b0-880e21ccaa6a PLATFORM_IDS=c8bc5c8d-6085-4a2b-bb01-f810286ac3ef,29f0888c-f8d5-49d3-88b0-880e21ccaa6a
---- PASS: TestInstrumentLoss2515_MerchantAndPlatform (1.05s)
+2026/11/26 11:14:41 [32m/tmp/opencode/tuneloop/wt-2515/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[661.837ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+R2 MERCHANT_SEES=2 PLATFORM_SEES=2 MERCHANT_IDS=a04add10-730a-4592-981b-4de6667e5339,760e8daa-8c3b-4f9a-8220-c145b9bce033 PLATFORM_IDS=a04add10-730a-4592-981b-4de6667e5339,760e8daa-8c3b-4f9a-8220-c145b9bce033
+--- PASS: TestInstrumentLoss2515_MerchantAndPlatform (1.07s)
 PASS
-ok  	tuneloop-backend/handlers	2.252s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795691335473 hold_ms=14363
+ok  	tuneloop-backend/handlers	5.808s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795691681570 hold_ms=30898
 GO_TEST_RC=0
 R2_OK

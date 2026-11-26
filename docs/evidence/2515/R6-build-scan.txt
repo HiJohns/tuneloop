@@ -1,8 +1,8 @@
-# build=1.0.9390b3de9 # commit=9390b3de9a658d8c8877652e5673aee506ccde44 # dirty=false
+# build=1.0.12f7e2009 # commit=12f7e2009ba71485d96ab07cb03f86299661b116 # dirty=false
 # R6 go build ./... + List 同类扫描
-[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s44-p44-bd1999 at_ms=1795691400244 wait_ms=82
-[heavy-lock] acquired scope=host slot=0 node=node-opencode-s44-p44-bd1999 wait_ms=82
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795691414478 hold_ms=14234
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s44-p44-bd1999 at_ms=1795691733098 wait_ms=77
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s44-p44-bd1999 wait_ms=77
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795691743845 hold_ms=10747
 BUILD_RC=0
 LIST_TENANT_ONLY=0
 LIST_USES_SHARED_SCOPE=1

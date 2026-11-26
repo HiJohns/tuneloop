@@ -1,22 +1,22 @@
-# build=1.0.9390b3de9 # commit=9390b3de9a658d8c8877652e5673aee506ccde44 # dirty=false
+# build=1.0.12f7e2009 # commit=12f7e2009ba71485d96ab07cb03f86299661b116 # dirty=false
 # CMD go test -count=1 -v -run '^TestInstrumentLoss2515_NegativeCrossSiteInstrument$' ./handlers/
-[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s44-p44-bd1999 at_ms=1795691353318 wait_ms=154
-[heavy-lock] acquired scope=host slot=0 node=node-opencode-s44-p44-bd1999 wait_ms=154
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s44-p44-bd1999 at_ms=1795691695804 wait_ms=103
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s44-p44-bd1999 wait_ms=103
 [DEBUG] Loaded .env from: ../.env
-2026/11/26 11:09:23 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e sslmode=disable
-2026/11/26 11:09:23 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e
-2026/11/26 11:09:23 [DB] Connected to database 'tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e'
+2026/11/26 11:15:00 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e sslmode=disable
+2026/11/26 11:15:00 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e
+2026/11/26 11:15:00 [DB] Connected to database 'tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e'
 === RUN   TestInstrumentLoss2515_NegativeCrossSiteInstrument
-2026/11/26 11:09:24 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e sslmode=disable
-2026/11/26 11:09:24 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e
-2026/11/26 11:09:24 [DB] Connected to database 'tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e'
+2026/11/26 11:15:00 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e sslmode=disable
+2026/11/26 11:15:00 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e
+2026/11/26 11:15:00 [DB] Connected to database 'tuneloop_test_node_opencode_s44_p44_bd1999_7829b06e'
 
-2026/11/26 11:09:25 [32m/tmp/opencode/tuneloop/wt-2515/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[720.475ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/26 11:15:01 [32m/tmp/opencode/tuneloop/wt-2515/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[785.398ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
 R4 CROSS_INSTRUMENT_ROWS=0 SAME_SITE_ROWS=1 DRIFT_SCOPE=0 NO_DRIFT_PROOF=1
---- PASS: TestInstrumentLoss2515_NegativeCrossSiteInstrument (1.23s)
+--- PASS: TestInstrumentLoss2515_NegativeCrossSiteInstrument (1.26s)
 PASS
-ok  	tuneloop-backend/handlers	2.513s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795691366148 hold_ms=12830
+ok  	tuneloop-backend/handlers	2.211s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795691702291 hold_ms=6487
 GO_TEST_RC=0
 R4_OK

@@ -4,7 +4,7 @@
 - Worktree / branch: `/tmp/opencode/tuneloop/wt-2515` / `issue-2515`
 - Accepted Plan: `plan_sha256=c3d4ae2062fd45928e866898e1dfc00e06852853ee7a6125058c4738f86c812f`
 - Fix commit（Round 1）: `254dbaecf76bfc0b506ebf2c6a4f7af037b0b484`
-- Fix commit（Round 1 审计返工）: `9390b3de9a658d8c8877652e5673aee506ccde44`（审计 Bug 1–5；本轮证据锚此提交）
+- Fix commit（Round 1 审计返工）: `12f7e2009ba71485d96ab07cb03f86299661b116`（审计 Bug 1–5 + gate 干净树可执行性；本轮证据锚此提交）
 - Evidence commit: 见下方 Remote 行（`docs(evidence): issue-2515 …`）
 
 ### 修改内容
@@ -46,7 +46,7 @@
 - R5 → PASS → `docs/evidence/2515/R5-regression.txt`
 - R6 → PASS → `docs/evidence/2515/R6-build-scan.txt`
 - R7 → PASS → `docs/evidence/2515/pre-ready-2515.json`
-- Evidence index: `docs/evidence/2515/evidence.json`（schema_version=1，build=1.0.9390b3de9，commit=9390b3de9a658d8c8877652e5673aee506ccde44，dirty=false，7 行各 1 条）
+- Evidence index: `docs/evidence/2515/evidence.json`（schema_version=1，build=1.0.12f7e2009，commit=12f7e2009ba71485d96ab07cb03f86299661b116，dirty=false，7 行各 1 条）
 
 ### G0 Golden Acceptance
 
@@ -76,7 +76,7 @@
 
 | session | repo | build_version | fix commit | artifact |
 |---|---|---|---|---|
-| —（本机 worktree `/tmp/opencode/tuneloop/wt-2515`） | /home/coder/tuneloop | 1.0.9390b3de9 | 9390b3de9 | `docs/evidence/2515/R1-site-scope.txt` … `docs/evidence/2515/R6-build-scan.txt` |
+| —（本机 worktree `/tmp/opencode/tuneloop/wt-2515`） | /home/coder/tuneloop | 1.0.12f7e2009 | 12f7e2009 | `docs/evidence/2515/R1-site-scope.txt` … `docs/evidence/2515/R6-build-scan.txt` |
 
 ### 人工 / 部署侧
 
@@ -90,7 +90,7 @@
 
 Model: DeepSeek V4.1 Flash 1017
 
-### Round 1 审计返工（fix `9390b3de9`）
+### Round 1 审计返工（fix `12f7e2009`）
 
 | 审计项 | 矩阵行 | 修复后证据 |
 |---|---|---|
@@ -98,6 +98,7 @@ Model: DeepSeek V4.1 Flash 1017
 | Bug 2（Medium）`site_admin` 分支零覆盖 | R1（并入计划行，不新增矩阵行） | 新增 `TestInstrumentLoss2515_SiteAdminScope`（Role=ADMIN、oid≠tid、site_members=[aID]）；`docs/evidence/2515/R1-site-scope.txt` 断言 `SITE_ADMIN_ROWS=1`、`SITE_ADMIN_CROSS_SITE_LEAK=0` |
 | Bug 3（Medium）测试未镜像生产 `ExplicitTenantScope` | R1–R4 | 测试路由挂 `ExplicitTenantScope`（与生产 `backend/main.go` 第 442 行一致）；R1 增加反向断言 `assert_absent '[TenantScope][observe]'`；六份产物 `grep -c '[TenantScope][observe]'` 全为 0 |
 | Bug 4（Low）文档「全量」与 handler `tenant_id` 过滤不符 | 文档 | `docs/spec/api/api.md` §5.12 与 `docs/cases/instrument-loss.md`（LS-04 + 角色矩阵）改为「本租户全量」 |
+| 工具（自检发现）gate 行在 P5 干净 worktree 内因缺 `backend/.env` 退出 2 | R7 | `scripts/verify-2515.sh` 仅在 r1–r5 要求 `POSTGRES_PASSWORD`，r6/gate（仅构建+扫描）不再依赖 DB 凭据 |
 | Bug 5（Low）未提交 `docs/evidence/2515/summary.md` 与送审文本不一致 | 文档/证据 | 本段与 `### Pre-ready Gate` 已随证据提交（远端 `docs/evidence/2515/summary.md` = 送审文本） |
 
 - 根因分类：**执行**（未按计划断言语义对齐、测试缺分支与中间件），非计划/输入/工具 → 未改 Accepted Plan（`plan_sha256` 未变），未回 Architect。
