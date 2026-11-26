@@ -27,7 +27,7 @@
 }
 ```
 
-> **用户可见文案（#1675）**：后端 `message` 为机器可读标识（英文为主），前端统一由 `resolveErrorMessage` 解析（`frontend-mobile/src/services/errorMessages.js` / `frontend-pc/src/services/errorMessages.js`）翻译为用户友好中文。三层回退：L1 message 精确匹配（高频错误，如 `order not found` → 「未找到订单」）→ L2 code 家族映射（如 40400 → 「未找到相关数据」）→ L3 调用点业务 fallback。完整错误码分类见 [`docs/archive/reports/backend_api_error_codes_report.md`](../../archive/reports/backend_api_error_codes_report.md)。新增后端错误消息时，如属用户可见高频错误，请同步补充 `ERROR_MESSAGE_MAP`。
+> **用户可见文案（#1675 / #2480 / #2504）**：后端 `message` 为机器可读标识（英文为主，**不得原样展示给用户**），前端统一由 `resolveErrorMessage` 解析（`frontend-mobile/src/services/errorMessages.js` / `frontend-pc/src/services/errorMessages.js`，层序 owner 为 `errorMessageResolution.mjs`）翻译为用户友好中文。五层回退：L1 `message_map` 精确匹配（高频错误，如 `order not found` → 「未找到订单」）→ L2 `human_message` 可读中文透传（含 CJK，优先于 code 家族，#2480）→ L3 `code_map` code 家族映射（如 40400 → 「未找到相关数据」、40303 → 「暂无权限访问该页面」）→ L4 `raw_message`（**已不可达**：含 CJK 的文案在 L2 已返回，本层仅保留层名以兼容历史断言/日志；#2504 D8）→ L5 调用点业务 fallback（ASCII 机器串不外溢）。完整错误码分类见 [`docs/archive/reports/backend_api_error_codes_report.md`](../../archive/reports/backend_api_error_codes_report.md)。新增后端错误消息时，如属用户可见高频错误，请同步补充 `ERROR_MESSAGE_MAP`；新增错误码请同时补 `ERROR_CODE_MAP`（PC + mobile，文案逐字一致）。
 
 ### 1.4 时间戳契约（#1759）
 - 所有时间字段（`created_at` / `updated_at` / 各事件时间戳）为 **ISO8601 UTC**，JSON 序列化带 `Z` 后缀（如 `"2026-08-22T16:02:01Z"`）
@@ -1198,8 +1198,16 @@ GET /api/confirmation-sessions/:id
 
 - **`GET /api/instruments`**：`?status=` 取值 `available|rented|maintenance|lost|delisted|sold`（可多值/逗号分隔）；分页 `page`/`page_size`
 - **实际参数（#2140 校正）**：`page`/`pageSize`（服务端分页，pageSize ≤100）、`sn`（模糊）、`category_id`（含后代）、`level_id`、`stock_status`（等值）、**`exclude_status`（csv，`stock_status NOT IN`）**、`sort`（`sort_order`(默认) / `created_at` / `-created_at`）
-- **返回字段（关键）**：`sn`（**识别码**，前端「识别码」列）、`site_name`（所属网点）、`category_name`、`level_name`、`stock_status`(=`status`)、`images`/`thumbnail`、`base_daily_rate`（前端「估值」语义）
+- **返回字段（关键）**：`sn`（**识别码**，前端「识别码」列）、`site_name`（所属网点）、`category_name`、`level_name`、`stock_status`(=`status`)、`images`/`thumbnail`、`base_daily_rate`（原始配置，分）
+- **价格字段（#2528）**：
+  | 字段 | 类型 | 语义 |
+  |------|------|------|
+  | `resolved_daily_rate` | int64（分） | **标准日租金**（pricing-v2 生效值：`resolveDailyRateCents` → `CalculatePricing`，含 `pricing_overrides.daily_rent` 覆盖）。`0` = 无法解析（pricing-v2 对同一乐器返回 `40004`）。前端列名「标准日租金」，展示走 `formatCents`（分→元） |
+  | `deposit` | int64（分）或 `null` | 与 pricing-v2 **同一函数**产出（`pricingResponseWithInstrument`）：`instruments.deposit` 非 nil 即权威（**含显式 0**），NULL 才回落商户定价。`null` = 无法解析（不伪造 0） |
+  | `deposit_reduced` | int64（分）或 `null` | `instruments.deposit_reduced` 原值；`null` = 无差额档，`0` = 显式零差额 |
+- **图片取源（#2528）**：`thumbnail`（`instrument_media` 优先 `is_display=true`）→ `poster` → `images[0]`（旧 JSONB，仅兼容回落）。前端不得再用 `images` 作为首选源，也不得引用未入库的静态占位文件
 - ⚠️ 该接口**不返回 `name`**：列表「名称」列应显示**识别码(sn)**（#2043 合并页据此对齐）
+- ⚠️ 列表金额**一律为分**（`models.Cents`）：前端必须经 `frontend-pc/src/utils/money.js` 的 `formatCents` 换算，禁止裸 `toLocaleString()`（#2528：曾放大 100 倍）
 
 ### 5.4 乐器列表
 
@@ -1490,6 +1498,44 @@ GET /api/confirmation-sessions/:id
 > 3. 仅日租金时：`deposit = base_daily_rate × deposit_multiplier`（`deposit_multiplier` 默认 7，即 7 倍日租金）
 >
 > 两参数可在商户定价策略中分别配置。网点管理员可通过批零价覆盖手动修改押金金额。
+
+---
+
+### 5.6.2 批量设价
+
+**接口**: `PUT /api/instruments/batch-pricing`
+
+**权限**: `ADMIN` / `OWNER` / `site_admin`（服务端 `RequireRole(ADMIN, OWNER, site_admin)`；租户范围由 JWT 作用域限定，跨租户 id 会被跳过）
+
+**请求 Body**:
+```json
+{
+  "items": [
+    { "id": "instr-001", "base_daily_rate": 100 },
+    { "id": "instr-002", "base_daily_rate": 120, "overrides": { "deposit": 800 } }
+  ]
+}
+```
+- `items`: **必填**（非空数组），每项含 `id`（必填）、`base_daily_rate`（可选）、`overrides`（可选）。
+- `base_daily_rate` 单位为**元**（服务端 `models.ToCentsPtr` ×100 后存「分」）。
+- `overrides` 当前仅 `daily_rent` / `deposit` 两个键被消费（见 `backend/services/pricing.go`）。
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "message": "success",
+  "data": { "updated": 2 }
+}
+```
+
+> `data.updated` 为**实际更新条数**，可能小于请求条数。
+
+**已知边界（归 #2519）**:
+- 逐条失败（DB 错误 / 乐器不属于当前租户 / `base_daily_rate <= 0`）当前**只记服务端日志并跳过**，接口仍返回 20000；前端只能比对 `data.updated` 与请求条数，给出「部分更新」提示，无法得知失败原因。
+- 周租 / 月租 / 押金档位，以及 `increase` / `decrease` / `multiply` 运算**未实现**（后端无对应字段与读改写能力）；前端 UI 只暴露「日租金 + 设置为」。
+- 前端唯一实现为 `frontend-pc/src/utils/batchPricing.js`（`buildBatchPricingPayload` / `batchPricingFeedback`），库存监控页与乐器列表页共用，禁止各页自拼 payload。
+- 历史缺陷（#2514）：旧前端调用 `PUT /api/instruments/batch/price`（不存在）并发送 `{ids, price_type, amount, operator}` → 恒 404 且 payload 与后端的 `items` + 元 契约不同。本接口是唯一批量设价端点。
 
 ---
 
@@ -6210,18 +6256,20 @@ GET /api/admin/dashboard/near-transfers
 | businessRole | 可见范围 |
 |---|---|
 | merchant_admin | 本商户全员 = 各网点成员 ∪ **商户直属员工**（`merchant_members`）∪ **维修师傅**（`technician_profiles`）；直属/师傅行 site_name=「直属商户」、师傅 position=「维修师傅」。**归属锚定 membership**：由 `site_members→sites.tenant_id` / `merchant_members.tenant_id` / `technician_profiles.tenant_id` 决定，users 按 id 取回（**不按 `users.tenant_id` 过滤**——本地缓存该列不可靠） |
-| site_admin | **仅本网点成员**（`site_members.site_id = JWT oid`，不含维修师傅） |
+| site_admin | **本网点（组织域）全部成员**：`JOIN sites s ON s.id = sm.site_id WHERE s.org_id = JWT oid`；不含维修师傅。JWT `oid` 是**网点自身的 IAM 组织 ID**（`sites.org_id`），与 `site_members.site_id`（`sites.id`）**不是同一域**（#2508）。一个组织下有多个站点时返回**该组织全部站点**成员，**不递归**子网点（`sites.parent_id`） |
 | system_admin | **平台员工**（根组织 users，role∈staff/namespace_admin/sys_admin）∪ **中转网点成员**（`sites.type='transit'`）；平台员工无网点归属时 site_name=「平台」 |
 | 其他（customer 等） | `40303` |
 
-**Query**: `page`（默认 1）、`page_size`（默认 20，≤100）、`name`（姓名 ILIKE；页面搜索表单参数）、`site_id`（**merchant 视图**按网点过滤成员，师傅/直属员工不属网点故排除）、`direct`（**merchant 视图**：`true`=只看直属员工（`merchant_members`）+ 维修师傅；与 `site_id` 同传时 **direct 优先**）、`search`（name/phone/email ILIKE，通用口径；name 优先）
+**Query**: `page`（默认 1）、`page_size`（默认 20，≤100）、`name`（姓名 ILIKE；页面搜索表单参数）、`site_id`（**merchant 视图**按网点过滤成员，师傅/直属员工不属网点故排除；**site_admin 视图亦生效**，语义为「与本组织求交」——跨组织站点 ID 得到空集，不报错、不泄漏）、`direct`（**merchant 视图**：`true`=只看直属员工（`merchant_members`）+ 维修师傅；与 `site_id` 同传时 **direct 优先**）、`search`（name/phone/email ILIKE，通用口径；name 优先）
+
+**ID 域（#2508）**: `sites.org_id`（= JWT `oid`，组织 ID）与 `sites.id`（= `site_members.site_id`，本地主键）是两列不同域，生产上恒不相等。凡按组织隔离的查询必须 `JOIN sites` 用 `s.org_id`；把 `oid` 直接当 `site_id` 比较会恒返回 0 行且无报错（静默空列表）。
 
 **响应行**: `{id, user_id, name, phone, email, position, role, status, iam_sub, site_id, site_name, is_technician, bio, avatar}`（#2073 增 `bio`/`avatar`）
 （一行一人；多网点归属时 `site_name` 逗号聚合；`id`/`user_id` 同值，兼容既有行操作）
 
 **排序**（#2072）：按 `users.created_at DESC`（**新建用户置顶**；此前无 ORDER BY，行序不稳定致新建用户不在当前页）。
 
-**隔离**: 商户/网点视图均有 tenant/org WHERE 强制（#688 纪律）；跨商户/跨网点不可见。
+**隔离**: 商户/网点视图均有 tenant/org WHERE 强制（#688 纪律）；跨商户/跨网点不可见。site 视图解析出 0 名成员时返回空列表 **并记 `WARN` 日志**（含 org），使「恒空」可被巡检发现（#2427 D3 / #2508 B5）；查询失败返回 `50000`，不得以空列表代替。
 
 #### 10.18.1 创建用户
 
@@ -7185,6 +7233,7 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 | 40106 | 账户已禁用（IAM status ≠ active，#1735） |
 | 40107 | Token 已吊销（签发时间早于 token_version bump，#1735） |
 | 40300 | 权限不足 |
+| 40303 | 权限不足（角色/权限范围不匹配；`personnel` 等接口对非授权角色返回 `access denied` 机器码 → 前端映射「暂无权限访问该页面」，#2504） |
 | 40400 | 资源不存在 |
 | 40900 | 资源冲突 |
 | 40910 | IAM 创建冲突（未细分字段，#2243/#2290） |

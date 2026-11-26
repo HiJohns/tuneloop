@@ -1,0 +1,10 @@
+# build=1.0.719e6492 # commit=719e649291800235e48194c8ef10ad0420a3c70a # dirty=false
+CASE1=site_admin,repair_technician
+CASE2=repair_technician
+CASE3=repair_technician,site_admin
+CASE4=site_admin
+CASE5=repair_technician
+ORDER_STABLE=1
+EMPTY_NEW=repair_technician
+TESTS_EXIT=0
+

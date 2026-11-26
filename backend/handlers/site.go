@@ -359,9 +359,20 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	}
 
 	// Admin ID from IAM cascading bind response
-	adminID := orgResp.AdminID
+	adminID := strings.TrimSpace(orgResp.AdminID)
+	// #2479：未指定负责人时 IAM 返回 nil UUID（非空串，旧守卫只判空串），
+	// 空白/非法值同样不得作为 AssignRoleTemplate 的目标（不把非法值传给 IAM）。
+	// 判空口径与 merchant.go 的 nil UUID 判定保持一致。
+	hasAdmin := adminID != "" && adminID != uuid.Nil.String()
+	if hasAdmin {
+		if _, parseErr := uuid.Parse(adminID); parseErr != nil {
+			hasAdmin = false
+		}
+	}
 
-	if adminID != "" {
+	if !hasAdmin {
+		log.Printf("[CreateSite] skip role template assignment: no admin (site=%s org=%s)", req.Name, siteOrgID)
+	} else {
 		nsID := middleware.GetNamespaceID(c.Request.Context())
 		if templates, err := iamClient.ListRoleTemplates(nsID); err == nil {
 			for _, t := range templates {
@@ -395,9 +406,15 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	if managerUUID != nil {
 		var mgrUser models.User
 		if err := db.Where("id = ?", managerUUID.String()).First(&mgrUser).Error; err != nil {
+			// #2479：manager_id 由调用方给出、但 IAM 未返回有效负责人（nil UUID /
+			// 空白 / 非法值）时，users.iam_sub 不得落 nil UUID（D5 同一判定）。
+			iamSub := ""
+			if hasAdmin {
+				iamSub = adminID
+			}
 			localUser := models.User{
 				ID:       managerUUID.String(),
-				IAMSub:   adminID,
+				IAMSub:   iamSub,
 				TenantID: anchorOrgID,
 				OrgID:    siteOrgID,
 				Name:     req.ManagerName,
@@ -408,7 +425,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 				log.Printf("[CreateSite] Failed to create local user record for manager %s: %v", managerUUID.String(), err)
 			}
 		}
-	} else if adminID != "" && req.ManagerName != "" {
+	} else if hasAdmin && req.ManagerName != "" {
 		uuidVal, parseErr := uuid.Parse(adminID)
 		if parseErr == nil {
 			managerUUID = &uuidVal

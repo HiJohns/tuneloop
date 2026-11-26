@@ -1,13 +1,26 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Table, Button, Input, Space, Tag, Image, message, Popconfirm, Select, Modal, Form, InputNumber, Checkbox } from 'antd'
+import { Table, Button, Input, Space, Tag, Image, message, Popconfirm, Select, Modal, Form, InputNumber, Checkbox, Alert } from 'antd'
 import { Row, Col } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, DollarOutlined, ImportOutlined, ExportOutlined, CloseCircleFilled } from '@ant-design/icons'
-import { api, instrumentsApi, fetchBlob } from '../../../services/api'
+import { api, instrumentsApi, fetchBlob, pricingApi } from '../../../services/api'
 import { formatBeijingDate } from '../../../utils/date'
 import { resolveErrorMessage } from '../../../services/errorMessages'
+import {
+  BATCH_PRICE_OPERATOR_OPTIONS,
+  BATCH_PRICE_TYPE_OPTIONS,
+  batchPricingFeedback,
+  buildBatchPricingPayload,
+} from '../../../utils/batchPricing'
 import InstrumentForm from './Form'
 import PermissionGate from '../../../components/PermissionGate'
+import { usePermission } from '../../../hooks/usePermission'
+import {
+  INSTRUMENT_IMAGE_PLACEHOLDER,
+  formatDailyRate,
+  formatDeposit,
+  instrumentImageSrc,
+} from '../../../utils/instrumentDisplay'
 
 const { Option } = Select
 
@@ -152,14 +165,17 @@ export default function InstrumentList() {
 
   const businessRole = localStorage.getItem('user_business_role') || ''
   const isSiteLevelRole = businessRole === 'site_admin' || businessRole === 'site_member'
+  // #2528 D4：价格列沿用既有管理级代理（与库存监控页同一判定），不新增权限码。
+  const { hasCusPerm } = usePermission()
+  const isManagerLike = hasCusPerm('instrument:delete')
 
   const baseColumns = [
     {
       title: '图片',
-      dataIndex: 'images',
-      key: 'images',
+      dataIndex: 'thumbnail',
+      key: 'thumbnail',
       width: 80,
-      render: (images, record) => (
+      render: (_, record) => (
         <a 
           onClick={(e) => {
             e.preventDefault()
@@ -168,11 +184,13 @@ export default function InstrumentList() {
           className="cursor-pointer inline-block"
         >
           <Image
-            src={record.thumbnail || (images && images.length > 0 ? images[0] : '/images/default-instrument.jpg')}
+            src={instrumentImageSrc(record)}
             alt="instrument"
             width={50}
             height={50}
             className="object-cover rounded"
+            fallback={INSTRUMENT_IMAGE_PLACEHOLDER}
+            onError={(e) => { e.currentTarget.src = INSTRUMENT_IMAGE_PLACEHOLDER }}
           />
         </a>
       )
@@ -228,6 +246,22 @@ export default function InstrumentList() {
         return <Tag color={config.color}>{config.text}</Tag>
       }
     },
+    // #2528: 标准日租金 / 押金列（与库存监控页、详情页同源；分→元）
+    ...(isManagerLike ? [{
+      title: '标准日租金',
+      dataIndex: 'resolved_daily_rate',
+      key: 'resolved_daily_rate',
+      width: 130,
+      align: 'right',
+      render: (_, record) => formatDailyRate(record)
+    }, {
+      title: '押金',
+      dataIndex: 'deposit',
+      key: 'deposit',
+      width: 150,
+      align: 'right',
+      render: (_, record) => formatDeposit(record)
+    }] : []),
     {
       title: '操作',
       key: 'action',
@@ -396,25 +430,29 @@ export default function InstrumentList() {
     setBatchPriceModalVisible(true)
   }
 
+  // #2514：批量设价走共享构建器 + 后端真实端点（PUT /instruments/batch-pricing）。
+  // 原实现自拼 {ids, price_type, amount, operator} 打 /instruments/batch/price → 恒 404。
   const handleBatchPriceSubmit = async () => {
     try {
       const values = await batchPriceForm.validateFields()
-      
-      const result = await api.put('/instruments/batch/price', {
-        ids: selectedRowKeys,
-        price_type: values.price_type,
-        amount: values.amount,
-        operator: values.operator
-      })
-      
-      if (result.code === 20000) {
-        message.success(`已成功修改 ${selectedRowKeys.length} 个乐器价格`)
-        setBatchPriceModalVisible(false)
-        setSelectedRowKeys([])
-        fetchInstruments(pagination.page, pagination.pageSize)
-      } else {
-        throw new Error(result.message || '批量价格修改失败')
+
+      const built = buildBatchPricingPayload(selectedRowKeys, values)
+      if (built.error) {
+        message.error(built.error)
+        return
       }
+
+      const result = await pricingApi.batchSetPricing(built.payload)
+      if (result.code !== 20000) {
+        message.error(result.message || '批量价格修改失败')
+        return
+      }
+
+      const feedback = batchPricingFeedback(result, selectedRowKeys.length)
+      message[feedback.level](feedback.text)
+      setBatchPriceModalVisible(false)
+      setSelectedRowKeys([])
+      fetchInstruments(pagination.page, pagination.pageSize)
     } catch (error) {
       if (error.errorFields) {
         // Form validation error
@@ -648,16 +686,21 @@ export default function InstrumentList() {
           form={batchPriceForm}
           layout="vertical"
         >
+          <Alert
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+            message="当前仅支持按日租金批量设置为固定金额"
+          />
           <Form.Item
             name="price_type"
             label="价格类型"
             rules={[{ required: true, message: '请选择价格类型' }]}
           >
             <Select placeholder="请选择价格类型">
-              <Option value="daily_rate">日租金</Option>
-              <Option value="weekly_rate">周租金</Option>
-              <Option value="monthly_rate">月租金</Option>
-              <Option value="deposit">押金</Option>
+              {BATCH_PRICE_TYPE_OPTIONS.map((option) => (
+                <Option key={option.value} value={option.value}>{option.label}</Option>
+              ))}
             </Select>
           </Form.Item>
           
@@ -667,19 +710,18 @@ export default function InstrumentList() {
             rules={[{ required: true, message: '请选择操作' }]}
           >
             <Select placeholder="请选择操作">
-              <Option value="set">设置为</Option>
-              <Option value="increase">增加</Option>
-              <Option value="decrease">减少</Option>
-              <Option value="multiply">乘以</Option>
+              {BATCH_PRICE_OPERATOR_OPTIONS.map((option) => (
+                <Option key={option.value} value={option.value}>{option.label}</Option>
+              ))}
             </Select>
           </Form.Item>
           
           <Form.Item
             name="amount"
-            label="金额/比例"
-            rules={[{ required: true, message: '请输入金额或比例' }]}
+            label="金额（元）"
+            rules={[{ required: true, message: '请输入金额' }]}
           >
-            <InputNumber min={0} style={{ width: '100%' }} placeholder="输入数值" />
+            <InputNumber min={0} style={{ width: '100%' }} placeholder="输入金额" />
           </Form.Item>
         </Form>
       </Modal>

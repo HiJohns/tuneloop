@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "issue": 2514,
+  "build": "1.0.41b853a71",
+  "commit": "41b853a71d03ee86db166782bb21eb2d5a0ebfc9",
+  "dirty": false,
+  "plan_sha256": "a7ac8e2c59baef7ea09740ede4db668b46cc68439755c772d1d04d3032391477",
+  "tooling_commit": "f663626b8fe3895a49dffa4c43266664546741db",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2514.sh r1 > docs/evidence/2514/R1-batch-pricing-fn.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2514/R1-batch-pricing-fn.txt"
+      ],
+      "assert": "exit 0；grep -q '^R1_OK$' 且 grep -q 'UNSUPPORTED_REJECTED=1'",
+      "actual": "PASS：node --test # pass 6 / # fail 0；PAYLOAD_ITEMS=2、ITEM_KEYS=id,base_daily_rate、AMOUNT_VALUE=100（元）、UNSUPPORTED_REJECTED=1、ZERO_REJECTED=1、NAN_REJECTED=1、EMPTY_IDS_REJECTED=1、FEEDBACK_OK=1、FEEDBACK_WARN=1、FEEDBACK_NULL_WARN=1",
+      "expected": "node --test 全通过（# fail 0）、ITEM_KEYS=id,base_daily_rate、FEEDBACK_WARN=1",
+      "negative": "amount:0 仍生成 payload、或 updated<requested 报 success → R1_FAIL 且非 0 退出",
+      "negative_result": "negative not triggered：amount=0 会生成 payload、或 updated<requested 报 success 时脚本打印 R1_FAIL 并非 0 退出（本轮 6 个方向均被拒绝/降级）",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2514.sh r2 > docs/evidence/2514/R2-stock-page-static.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2514/R2-stock-page-static.txt"
+      ],
+      "assert": "exit 0；grep -q '^R2_OK$' 且 grep -q 'DEAD_PATH=0'",
+      "actual": "PASS：DEAD_PATH=0、SHARED_BUILDER=1、USES_SHARED_API=1、OPTIONS_FROM_SHARED=1、PARTIAL_WARN=1；LEGACY_PRICE_TYPES=0、LEGACY_OPERATORS=0、SCOPE_HINT=1",
+      "expected": "5 个标记全为期望值（SHARED_BUILDER/USES_SHARED_API/OPTIONS_FROM_SHARED/PARTIAL_WARN=1）",
+      "negative": "残留 batch/price 或未用共享构建器 → R2_FAIL 且非 0 退出",
+      "negative_result": "negative not triggered：页面若残留 api.put('/instruments/batch/price' 或不使用共享构建器 → DEAD_PATH>0 或 SHARED_BUILDER=0 → R2_FAIL 非 0 退出",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2514.sh r3 > docs/evidence/2514/R3-list-page-static.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2514/R3-list-page-static.txt"
+      ],
+      "assert": "exit 0；grep -q '^R3_OK$' 且 grep -q 'DEAD_PATH=0'",
+      "actual": "PASS：DEAD_PATH=0、SHARED_BUILDER=1、USES_SHARED_API=1、OPTIONS_FROM_SHARED=1、PARTIAL_WARN=1；LEGACY_PRICE_TYPES=0、LEGACY_OPERATORS=0、SCOPE_HINT=1",
+      "expected": "同 R2 五个标记",
+      "negative": "自拼 payload 或残留死路径 → R3_FAIL 且非 0 退出",
+      "negative_result": "negative not triggered：同上；自拼 payload 或残留死路径 → R3_FAIL 非 0 退出",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2514.sh r4 > docs/evidence/2514/R4-path-scan.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2514/R4-path-scan.txt"
+      ],
+      "assert": "exit 0；grep -q '^R4_OK$' 且 grep -q 'BATCH_PRICE_CALLS=0'",
+      "actual": "PASS：BATCH_PRICE_CALLS=0、BATCH_PRICING_CALLS=3、BACKEND_BATCH_PRICING_ROUTE=1、BACKEND_GHOST_ROUTE=0、RESIDUAL_OUTSIDE_ALLOWLIST=0（残留仅 /instruments/batch/status → #2519 与 DELETE /instruments/batch；/instruments/batch-import 后端路由已验证存在）",
+      "expected": "RESIDUAL_OUTSIDE_ALLOWLIST=0，残留清单打印且仅含 /instruments/batch/status",
+      "negative": "新出现未声明的 /instruments 写调用 → 打印并非 0 退出",
+      "negative_result": "negative not triggered：出现未声明的 /instruments/batch 写调用或后端注册 ghost 路由 → RESIDUAL/BACKEND_GHOST 非 0 → R4_FAIL 非 0 退出",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2514.sh r5 > docs/evidence/2514/R5-docs-sync.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2514/R5-docs-sync.txt"
+      ],
+      "assert": "exit 0；grep -q '^R5_OK$' 且 grep -q 'DOC_SECTION=1'",
+      "actual": "PASS：DOC_SECTION=1、DOC_ITEMS_REQUIRED=1、DOC_UNIT_YUAN=1、DOC_BOUNDARY=1、DOC_ROUTE=1、DOC_GHOST_NOTE=1",
+      "expected": "DOC_ITEMS_REQUIRED=1、DOC_UNIT_YUAN=1、DOC_BOUNDARY=1",
+      "negative": "§5.6.2 缺失或未写 items/元单位 → R5_FAIL 且非 0 退出",
+      "negative_result": "negative not triggered：§5.6.2 缺失、未写 items 必填/元单位/边界 → 对应标记 0 → R5_FAIL 非 0 退出",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2514.sh r6 > docs/evidence/2514/R6-build-lint.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2514/R6-build-lint.txt"
+      ],
+      "assert": "exit 0；grep -q '^R6_OK$' 且 grep -q 'BUILD_EXIT=0'",
+      "actual": "PASS：BUILD_EXIT=0、ESLINT_RC=0、ESLINT_NO_UNDEF=0（0 error，10 个既有 warning）",
+      "expected": "ESLINT_NO_UNDEF=0",
+      "negative": "构建非 0 或 no-undef > 0 → R6_FAIL 且非 0 退出",
+      "negative_result": "negative not triggered：构建非 0 或 eslint no-undef > 0 → R6_FAIL 非 0 退出",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "~/.config/opencode/scripts/pre-ready-check.sh 2514 --summary-file docs/evidence/2514/summary.md --changed-files docs/evidence/2514/changed-files.txt --evidence-file docs/evidence/2514/evidence.json --full-gate-cmd \"bash scripts/verify-2514.sh gate\" --report docs/evidence/2514/pre-ready-2514.json",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2514/pre-ready-2514.json"
+      ],
+      "assert": "exit 0；GATE_RESULT=PASS，jq -e '.result == \"PASS\"'，evidence 每行 pass=true",
+      "actual": "PASS：gate 由本行命令执行（报告 docs/evidence/2514/pre-ready-2514.json）；P12 七行合同完整、P13 fix 与证据在 origin/issue-2514、provenance.dirty=false",
+      "expected": "dirty=false、P13 提交在 origin/issue-2514",
+      "negative": "任一 P 项失败 / evidence 缺行 / dirty=true → gate 非 0，禁止 ready",
+      "negative_result": "negative not triggered：任一 P 项 FAIL / evidence 缺行 / dirty=true → gate 非 0 且 overall=FAIL",
+      "pass": true
+    }
+  ]
+}

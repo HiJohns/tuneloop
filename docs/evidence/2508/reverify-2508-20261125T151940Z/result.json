@@ -1,0 +1,43 @@
+{
+  "request_id": "2508-20261125T151940Z",
+  "fix_commit": "448a2b0ec282690913b16ea9544e5ad72cd3c201",
+  "ts": "2026-11-25T15:40:00Z",
+  "result": "PASS",
+  "worktree": "/home/coder/worktrees/tuneloop/reverify-2508",
+  "worktree_head": "448a2b0ec282690913b16ea9544e5ad72cd3c201",
+  "dirty_business_code": false,
+  "toolchain": "go1.25.0",
+  "env_setup": "backend/.env provisioned from local dev env (POSTGRES_PORT=25432 tunnel) so the package tests can reach PostgreSQL; gitignored, no business code changed",
+  "provenance": "PROVENANCE: fix=448a2b0ec282690913b16ea9544e5ad72cd3c201 request=2508-20261125T151940Z ts=2026-11-25T15:40:00Z",
+  "commands": [
+    {
+      "index": 1,
+      "command": "cd backend && go build ./...",
+      "exit": 0,
+      "log": "command-1.txt",
+      "provenance_ts": "2026-11-25T15:22:36Z"
+    },
+    {
+      "index": 2,
+      "command": "cd backend && go test ./handlers -count=1 -timeout 15m",
+      "exit": 0,
+      "log": "command-2.txt",
+      "provenance_ts": "2026-11-25T15:24:43Z"
+    },
+    {
+      "index": 3,
+      "command": "cd backend && go test ./services -count=1 -timeout 15m",
+      "exit": 0,
+      "log": "command-3.txt",
+      "provenance_ts": "2026-11-25T15:38:30Z"
+    }
+  ],
+  "full_gate": {
+    "artifact": "full-gate.txt",
+    "cmd": "cd backend && go build ./... && go test ./handlers -count=1 -timeout 15m && go test ./services -count=1 -timeout 15m",
+    "exit": 0,
+    "fail_count": 0,
+    "panic_count": 0,
+    "gate_result": "PASS"
+  }
+}

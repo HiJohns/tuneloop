@@ -1,0 +1,7 @@
+# build=1.0.c58d75df # commit=c58d75df6249d562023296fd8f52f436369e5669 # dirty=false
+FLIPPED_ASSERT=1
+DIRECT_WINS_GONE=1
+BACKEND_UNCHANGED=1
+--- flipped test line ---
+27:test('dual identity resolves to site (site wins, #2483)', () => {
+
