@@ -31,10 +31,16 @@ export POSTGRES_PORT="${POSTGRES_PORT:-5432}"
 export POSTGRES_USER="${POSTGRES_USER:-tuneloop_user}"
 export TUNELOOP_DB="${TUNELOOP_DB:-tuneloop_debug}"
 
-if [ -z "${POSTGRES_PASSWORD:-}" ]; then
-  echo "ERROR: POSTGRES_PASSWORD is empty (backend/.env missing?)" >&2
-  exit 2
-fi
+# r1–r5 需要 Postgres 测试库；r6 / gate 只做构建与静态扫描（P5 在干净 worktree 内调用
+# gate，那里没有被 gitignore 的 backend/.env，不能要求 DB 凭据）。
+case "$ROW" in
+  r1|r2|r3|r4|r5)
+    if [ -z "${POSTGRES_PASSWORD:-}" ]; then
+      echo "ERROR: POSTGRES_PASSWORD is empty (backend/.env missing?)" >&2
+      exit 2
+    fi
+    ;;
+esac
 
 # 证据锚定本单 fix commit（plan Artifact Provenance：证据收尾提交不改变锚点）。
 COMMIT="$(git log --format=%H --grep='^fix(issue-2515)' -1)"
