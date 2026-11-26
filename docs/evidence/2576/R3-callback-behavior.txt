@@ -1,0 +1,24 @@
+# build=1.0.1b90f7969 # commit=1b90f79692d2a27dd7ceeb06f79b9c8b62a30161 # dirty=false
+GENERATED_AT_HEAD=1b90f79692d2a27dd7ceeb06f79b9c8b62a30161
+== R3 IAM callback classification + legacy regressions ==
+CB_WAITING=success
+CB_WAITING_STATUS=confirmed
+CB_FAILED_STATUS=confirmed
+CB_CONFIRMED=already_confirmed
+CB_CONFIRMED_STATUS=confirmed
+CB_CONFIRMED_NO_DUP=1
+CB_REJECTED=not_confirmable
+CB_REJECTED_STATUS=rejected
+CB_REJECTED_IAM_CALLS=0
+CB_EXPIRED_FLAG=not_confirmable
+CB_EXPIRED_FLAG_STATUS=expired
+--- PASS: TestConfirmSessionCallback2576 (0.19s)
+ok  	tuneloop-backend/handlers	0.758s
+TEST_EXIT=0
+--- PASS: TestConfirmationSessionHandler_Confirm (0.17s)
+--- PASS: TestIAMIntegration_ConfirmationCallback (0.10s)
+--- PASS: TestIAMIntegration_ConfirmationCallback_Reject (0.02s)
+--- PASS: TestIAMMock_ConfirmationCallback_Failed (1.23s)
+ok  	tuneloop-backend/handlers	2.330s
+LEGACY_EXIT=0
+R3_OK
