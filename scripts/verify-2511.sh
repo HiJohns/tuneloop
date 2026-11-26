@@ -30,8 +30,14 @@ if ! command -v go >/dev/null 2>&1 && [ -x /usr/local/go/bin/go ]; then
   export PATH="/usr/local/go/bin:$PATH"
 fi
 
-HEAD_SHA="$(git rev-parse HEAD)"
-SHORT_SHA="$(git rev-parse --short HEAD)"
+# Provenance anchors the issue's fix commit, not HEAD: the evidence bundle is
+# committed after the fix, and the plan requires the artifacts to keep pointing
+# at the fix commit so a later re-run (e.g. /fixreview) does not silently move
+# the anchor. Override with FIX_COMMIT=<sha> if needed.
+FIX_SHA="${FIX_COMMIT:-$(git log --format=%H --grep='^fix(issue-2511)' -1 2>/dev/null)}"
+ANCHOR_SHA="${FIX_SHA:-$(git rev-parse HEAD)}"
+HEAD_SHA="$ANCHOR_SHA"
+SHORT_SHA="$(git rev-parse --short "$ANCHOR_SHA")"
 BUILD="1.0.${SHORT_SHA}"
 DIRTY=false
 if [ -n "$(git status --porcelain --untracked-files=no -- . ':!docs/evidence')" ]; then
