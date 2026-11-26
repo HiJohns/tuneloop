@@ -5,6 +5,8 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { api, categoriesApi } from '../../../services/api'
+import FormConflictAlert from '../../../components/FormConflictAlert'
+import { isBusinessCorrectableConflict, conflictText } from '../../../utils/formConflict'
 import { isHidden, bySort, visibleOrdered, assignPayload } from './categoryLogic'
 
 const { Option } = Select
@@ -61,6 +63,9 @@ export default function CategoryList() {
   const [formMode, setFormMode] = useState('create')
   const [form] = Form.useForm()
   const [saving, setSaving] = useState(false)
+  // #2564（承接 #2485 D3）：重名等「业务可纠正冲突」用表单内持久提示，
+  // 避免 3 秒 toast 在用户改名时已经消失（#2480 D7/D8 共享件）。
+  const [formConflict, setFormConflict] = useState('')
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -185,6 +190,7 @@ export default function CategoryList() {
     setFormMode('create')
     form.resetFields()
     form.setFieldsValue({ visible: true })
+    setFormConflict('')
     setModalVisible(true)
   }
 
@@ -204,6 +210,7 @@ export default function CategoryList() {
       visible: true,
       icon: parentIcon
     })
+    setFormConflict('')
     setModalVisible(true)
   }
 
@@ -215,6 +222,7 @@ export default function CategoryList() {
       ...category,
       visible: category.visible !== false,
     })
+    setFormConflict('')
     setModalVisible(true)
   }
 
@@ -230,6 +238,7 @@ export default function CategoryList() {
 
   const handleFormSubmit = async () => {
     setSaving(true)
+    setFormConflict('')
     try {
       const values = await form.validateFields()
 
@@ -249,35 +258,48 @@ export default function CategoryList() {
 
       if (formMode === 'edit' && editingCategory?.id) {
         const updated = await categoriesApi.update(editingCategory.id, formData)
-        // #2485 D3：UpdateCategory 以 HTTP 400 返回 40002（分类重名），而 PC api 客户端
-        // 对非 404/409 的非 2xx 直接 throw（code 丢失，services/api.js:331-352）→
-        // 「先判 code 再持久提示」在本页不可达，按 D3 判 defer:tier2（跟进 #2563）。
-        // 保留响应码检查（404/409 以对象返回），避免把失败当成功。
+        // #2564：UpdateCategory 成功码 20000；重名返回 40002，若非 404/409 由
+        // services/apiError.js 抛出带 code 的 Error（#2563），此处对象分支只兜底。
         if (updated.code !== 20000) {
-          message.error(updated.message || '更新失败')
+          if (isBusinessCorrectableConflict(updated)) {
+            setFormConflict(conflictText(updated, '请修改后重新提交'))
+          } else {
+            message.error(updated.message || '更新失败')
+          }
           return
         }
         message.success('更新成功')
       } else {
         const response = await categoriesApi.create(formData)
-        // #2485 D3：CreateCategory 以 HTTP 400 返回 40002（分类重名）→ 同上，defer:tier2（#2563）。
-        if (response.code === 20000) {
+        // #2564：CreateCategory 以 HTTP 201 + code 20100 返回，只判 20000 会让
+        // 成功提示与 setSelectedParentId 成为死分支（D1）。
+        if (response.code === 20000 || response.code === 20100) {
           message.success('创建成功')
           if (response.data?.id) {
             setSelectedParentId(response.data.id)
           }
         } else {
-          message.error(response.message || '创建失败')
+          if (isBusinessCorrectableConflict(response)) {
+            setFormConflict(conflictText(response, '请修改后重新提交'))
+          } else {
+            message.error(response.message || '创建失败')
+          }
           return
         }
       }
 
+      setFormConflict('')
       setModalVisible(false)
       await fetchCategories()
     } catch (error) {
-      if (!error.errorFields) {
-        message.error(error.message || 'Failed to submit')
+      // 表单校验错误保持原有行为（表单自身已展示，不发 toast）。
+      if (error?.errorFields) return
+      // #2564 D1：业务可纠正冲突（40002 重名等）→ 表单内持久提示。
+      if (isBusinessCorrectableConflict(error)) {
+        setFormConflict(conflictText(error, '请修改后重新提交'))
+        return
       }
+      message.error(error.message || 'Failed to submit')
     } finally {
       setSaving(false)
     }
@@ -394,7 +416,9 @@ export default function CategoryList() {
         okText="提交"
         cancelText="取消"
       >
-        <Form form={form} layout="vertical">
+        <Form form={form} layout="vertical" onValuesChange={() => setFormConflict('')}>
+          {/* #2564：业务可纠正冲突（重名等）在表单内持久显示；改输入即清空（#2480 D8）。 */}
+          <FormConflictAlert text={formConflict} testId="category-form-conflict" />
           <Form.Item name="name" label="Category Name" rules={[{ required: true, message: 'Please enter category name' }, { min: 2, message: 'At least 2 characters' }, { max: 50, message: 'Max 50 characters' }]}>
             <Input placeholder="输入分类名称" />
           </Form.Item>
