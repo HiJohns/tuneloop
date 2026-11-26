@@ -1,0 +1,49 @@
+# build=1.0.a18849559 # commit=a188495591a7c3eb1506f093deebb6ceef137c2f # dirty=false
+# tree=a188495591a7c3eb1506f093deebb6ceef137c2f
+# scanner=verify-2487.sh r1  READONLY=1  strategy=branch-block-key(file|fn|nth)
+# baseline=docs/evidence/2480/R11-scan.txt
+frontend-pc/src/pages/System/UserManagement.jsx:80	fn=fetchList	occurrence=1	code=none	tier=keep:instant	reason=GET /admin/user-management 仅 40100/50000/网络，无可由用户改输入纠正的冲突
+frontend-pc/src/pages/System/UserManagement.jsx:98	fn=handleExport	occurrence=1	code=none	tier=keep:instant	reason=导出走 fetchBlob（非 2xx 直接抛「导出失败」，无 code），属瞬时失败
+frontend-pc/src/pages/System/UserManagement.jsx:152	fn=handleSave	occurrence=1	code=40002	tier=keep:instant	reason=PUT /admin/user-management/:id 的 40002 仅 status 枚举/no editable fields（表单不可产生），其余 40400/50000
+frontend-pc/src/pages/System/UserManagement.jsx:155	fn=handleSave	occurrence=2	code=40002	tier=keep:instant	reason=同上（catch 兜底：400 族带 code，但可达码集合无用户可改冲突）
+frontend-pc/src/pages/System/UserManagement.jsx:174	fn=handleGrant	occurrence=1	code=40002	tier=keep:instant	reason=points-grant 的 40002 = amount/reason 必填或非正数，前端 Form required + InputNumber min 已拦（不可达）
+frontend-pc/src/pages/System/UserManagement.jsx:177	fn=handleGrant	occurrence=2	code=40002	tier=keep:instant	reason=同上（catch 兜底）
+frontend-pc/src/pages/System/UserManagement.jsx:195	fn=fetchOrphans	occurrence=1	code=none	tier=keep:instant	reason=GET /admin/iam-orphans 仅 40100/50200
+frontend-pc/src/pages/System/UserManagement.jsx:199	fn=fetchOrphans	occurrence=2	code=none	tier=keep:instant	reason=网络异常兜底：孤儿列表请求本身失败（无 code），仅瞬时提示
+frontend-pc/src/pages/System/UserManagement.jsx:231	fn=purgeOrphans	occurrence=1	code=none	tier=keep:instant	reason=POST /admin/iam-orphans/purge 仅 40001/40100/50200（均非 rubric 码）
+frontend-pc/src/pages/System/UserManagement.jsx:234	fn=purgeOrphans	occurrence=2	code=none	tier=keep:instant	reason=网络异常兜底：清理请求本身失败（无 code），仅瞬时提示
+frontend-pc/src/pages/System/UserManagement.jsx:300	fn=handleMarkDeleted	occurrence=1	code=none	tier=keep:instant	reason=mark-deleted 仅 40400/40000/50000
+frontend-pc/src/pages/System/UserManagement.jsx:325	fn=handleSaveIdCard	occurrence=1	code=40002	tier=keep:instant	reason=非 rubric 残差：rubric 分支已在同函数前部 setFormConflict 拦下（此处仅 40400/50000/网络）
+frontend-pc/src/pages/System/UserManagement.jsx:332	fn=handleSaveIdCard	occurrence=2	code=40002	tier=keep:instant	reason=同上（catch 中的非 rubric 残差）
+frontend-pc/src/pages/System/UserManagement.jsx:351	fn=handleRejectIdPhotos	occurrence=1	code=none	tier=keep:instant	reason=id-photo/reject 仅 40400/50000
+frontend-pc/src/pages/System/UserManagement.jsx:354	fn=handleRejectIdPhotos	occurrence=2	code=none	tier=keep:instant	reason=网络异常兜底：拒绝采用请求本身失败（无 code），仅瞬时提示
+frontend-pc/src/pages/admin/platform-staff/index.jsx:32	fn=fetchList	occurrence=1	code=none	tier=keep:instant	reason=GET /admin/platform-staff 仅 40100/40300/50000
+frontend-pc/src/pages/admin/platform-staff/index.jsx:35	fn=fetchList	occurrence=2	code=none	tier=keep:instant	reason=网络异常兜底：平台员工列表请求本身失败（无 code），仅瞬时提示
+frontend-pc/src/pages/admin/platform-staff/index.jsx:78	fn=handleCreate	occurrence=1	code=40002	tier=keep:instant	reason=非 rubric 残差：40900 重复已在同函数前部拦下；此处只剩 40001（IAM 创建失败）/40002（手动密码空，前端 required 已拦）/50000
+frontend-pc/src/pages/admin/platform-staff/index.jsx:85	fn=handleCreate	occurrence=2	code=40002	tier=keep:instant	reason=同上（catch 中的非 rubric 残差）
+frontend-pc/src/pages/admin/platform-staff/index.jsx:99	fn=handleDisable	occurrence=1	code=40900	tier=keep:instant	reason=Disable 的 40900 来自 IAM 解绑失败（platform_staff.go:270，服务端事实），非用户改输入可纠正
+frontend-pc/src/pages/admin/platform-staff/index.jsx:102	fn=handleDisable	occurrence=2	code=40900	tier=keep:instant	reason=同上（catch 兜底）
+frontend-pc/src/pages/System/TechnicianProfiles.jsx:46	fn=fetchList	occurrence=1	code=none	tier=keep:instant	reason=GET /technician-profiles 仅 40300/50000
+frontend-pc/src/pages/System/TechnicianProfiles.jsx:100	fn=submit	occurrence=1	code=40002	tier=keep:instant	reason=照片上传分支：40002 仅「file required」（PhotoUploader 必带文件，不可达），其余 50000
+frontend-pc/src/pages/System/TechnicianProfiles.jsx:122	fn=submit	occurrence=2	code=40003	tier=keep:instant	reason=非 rubric 残差：40900 重复已在同函数前部拦下；此处剩 40003（账号不可用/不在本商户）/40300/40400/50000
+frontend-pc/src/pages/System/TechnicianProfiles.jsx:129	fn=submit	occurrence=3	code=40002	tier=keep:instant	reason=同上（catch 中的非 rubric 残差）
+frontend-pc/src/pages/System/TechnicianProfiles.jsx:139	fn=toggleStatus	occurrence=1	code=40002	tier=keep:instant	reason=setStatus 的 40002 = status 枚举（前端固定 active/inactive，不可达），另有 40400/50000
+frontend-pc/src/pages/System/UserManagement.jsx:321	fn=handleSaveIdCard	branch=conflict	endpoint=PUT /admin/user-management/:id/id-card	code=40002	tier=business-correctable	testid=user-idcard-conflict	reason=40002「身份证号格式不正确」用户改输入即可重试（user_management_idcard.go:46）
+frontend-pc/src/pages/admin/platform-staff/index.jsx:74	fn=handleCreate	branch=conflict	endpoint=POST /admin/platform-staff	code=40900	tier=business-correctable	testid=platform-staff-form-conflict	reason=40900 用户名/手机号重复（platform_staff.go:185/189）
+frontend-pc/src/pages/System/TechnicianProfiles.jsx:117	fn=submit	branch=conflict	endpoint=POST /technician-profiles	code=40900	tier=business-correctable	testid=technician-form-conflict	reason=40900 同一商户下该员工已是维修师（technician_profile.go:171）
+FILE_COVERAGE|frontend-pc/src/pages/System/UserManagement.jsx|baseline=15|scanned=15
+FILE_COVERAGE|frontend-pc/src/pages/admin/platform-staff/index.jsx|baseline=6|scanned=6
+FILE_COVERAGE|frontend-pc/src/pages/System/TechnicianProfiles.jsx|baseline=5|scanned=5
+SCAN_ROWS=26
+CLASSIFIED_ROWS=26
+CONVERTED_ROWS=3
+KEEP_ROWS=26
+UNCLASSIFIED_ROWS=0
+FILES_SCANNED=3
+BASELINE_ROWS=26
+DEFER_ROWS=0
+PLAN_FILE_COUNT_NOTE=plan-table-says-6;rev2-scope=3;reason=#2518 deleted ClientManagement.jsx
+REVISIT_2465=1 reason=TechnicianProfiles may be folded into staff management by #2465 (holdon)
+READONLY=1
+RUN_HEURISTIC=0
+RESULT: PASS

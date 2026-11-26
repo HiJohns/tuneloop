@@ -1,0 +1,11 @@
+# build=1.0.a18849559 # commit=a188495591a7c3eb1506f093deebb6ceef137c2f # dirty=false
+# tree=a188495591a7c3eb1506f093deebb6ceef137c2f
+# scanner=verify-2487.sh r4
+PERSISTED|frontend-pc/src/pages/System/UserManagement.jsx|fn=handleSaveIdCard|rubric_precedes_terminal_toast=1|last_rubric=329|last_toast=332
+PERSISTED|frontend-pc/src/pages/admin/platform-staff/index.jsx|fn=handleCreate|rubric_precedes_terminal_toast=1|last_rubric=82|last_toast=85
+PERSISTED|frontend-pc/src/pages/System/TechnicianProfiles.jsx|fn=submit|rubric_precedes_terminal_toast=1|last_rubric=126|last_toast=129
+PERSISTED_FUNCTIONS=3
+BUSINESS_TOAST_RESIDUAL=0
+KEEP_ROWS=26
+KEEP_WITH_REASON=26
+RESULT: PASS

@@ -1,0 +1,16 @@
+# build=1.0.a18849559 # commit=a188495591a7c3eb1506f093deebb6ceef137c2f # dirty=false
+# tree=a188495591a7c3eb1506f093deebb6ceef137c2f
+# scanner=verify-2487.sh r5
+# build_cmd=cd frontend-pc && npm run build
+# lint_cmd=cd frontend-pc && npx eslint src/pages/System/UserManagement.jsx src/pages/admin/platform-staff/index.jsx src/pages/System/TechnicianProfiles.jsx
+✓ 4100 modules transformed.
+dist/index.html                     0.53 kB │ gzip:   0.34 kB
+✓ built in 18.89s
+  50:36  warning  React Hook useEffect has a missing dependency: 'fetchList'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  85:37  warning  React Hook useEffect has a missing dependency: 'fetchList'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+✖ 2 problems (0 errors, 2 warnings)
+PC_BUILD=1
+BUILD_OK=1
+ESLINT_OK=1
+LINT_ERRORS=0
+RESULT: PASS

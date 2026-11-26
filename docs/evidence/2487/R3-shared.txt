@@ -1,0 +1,11 @@
+# build=1.0.a18849559 # commit=a188495591a7c3eb1506f093deebb6ceef137c2f # dirty=false
+# tree=a188495591a7c3eb1506f093deebb6ceef137c2f
+# scanner=verify-2487.sh r3
+REUSE|frontend-pc/src/pages/System/UserManagement.jsx
+REUSE|frontend-pc/src/pages/admin/platform-staff/index.jsx
+REUSE|frontend-pc/src/pages/System/TechnicianProfiles.jsx
+SHARED_COMPONENT=frontend-pc/src/components/FormConflictAlert.jsx
+SHARED_REUSE=3
+LOCAL_ALERT_DUP=0
+RUBRIC_OWNER=frontend-pc/src/utils/formConflict.js
+RESULT: PASS

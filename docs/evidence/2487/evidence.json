@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "issue": "2487",
+  "build": "1.0.a18849559",
+  "commit": "a188495591a7c3eb1506f093deebb6ceef137c2f",
+  "dirty": false,
+  "plan_sha256": "a4c585e8fbf7f168538392ff53dd7255407162d3e601b5863d34d83fea8d2bde",
+  "tooling_commit": "acab7d27d28832d1ad366dd4c944ffb3e2ff9ca8",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2487.sh r1",
+      "artifacts": [
+        "docs/evidence/2487/R1-classify.txt"
+      ],
+      "assert": "exit 0；含 UNCLASSIFIED=0",
+      "actual": "exit=0；UNCLASSIFIED_ROWS=0；SCAN_ROWS=26；CONVERTED_ROWS=3；FILES_SCANNED=3；RESULT=PASS",
+      "expected": "PASS",
+      "negative": "出现无结论行 → FAIL",
+      "negative_result": "RED 实证：删掉 platform-staff handleCreate 的「先拿回 code」分支后 r1 仍列全行但 r2 CODE_FIRST=0、r4 BUSINESS_TOAST_RESIDUAL=1 → RESULT: FAIL；恢复后 PASS",
+      "pass": true,
+      "exit": 0
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2487.sh r2",
+      "artifacts": [
+        "docs/evidence/2487/R2-converted.txt"
+      ],
+      "assert": "exit 0；含 CONVERTED_ROWS>=1 与 CODE_FIRST=1",
+      "actual": "exit=0；CONVERTED_ROWS=3；CODE_FIRST=1；PERSIST_ALERT=1；RESULT=PASS",
+      "expected": "PASS",
+      "negative": "缺 code 判定 → FAIL",
+      "negative_result": "RED 实证：移除 handleCreate 的 rubric 分支后 rubric_checks=0、CODE_FIRST=0、CONVERT_FAILURES=1 → FAIL；恢复后 CODE_FIRST=1 PASS",
+      "pass": true,
+      "exit": 0
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2487.sh r3",
+      "artifacts": [
+        "docs/evidence/2487/R3-shared.txt"
+      ],
+      "assert": "exit 0；含 SHARED_REUSE>=1 与 LOCAL_ALERT_DUP=0",
+      "actual": "exit=0；SHARED_REUSE=3；LOCAL_ALERT_DUP=0；RESULT=PASS",
+      "expected": "PASS",
+      "negative": "自建 Alert → FAIL",
+      "negative_result": "全量扫描 frontend-pc/src 的 .jsx：除 components/FormConflictAlert.jsx 外无其他 *ConflictAlert 定义（LOCAL_ALERT_DUP=0）",
+      "pass": true,
+      "exit": 0
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2487.sh r4",
+      "artifacts": [
+        "docs/evidence/2487/R4-residual.txt"
+      ],
+      "assert": "exit 0；含 BUSINESS_TOAST_RESIDUAL=0",
+      "actual": "exit=0；BUSINESS_TOAST_RESIDUAL=0；KEEP_WITH_REASON=26/26；RESULT=PASS",
+      "expected": "PASS",
+      "negative": "残留 >0 → FAIL",
+      "negative_result": "RED 实证：移除 rubric 分支后 BUSINESS_TOAST_RESIDUAL=1（handleCreate）→ FAIL；恢复后 0",
+      "pass": true,
+      "exit": 0
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2487.sh r5",
+      "artifacts": [
+        "docs/evidence/2487/R5-build.txt"
+      ],
+      "assert": "exit 0；含 BUILD_OK 与 ESLINT_OK",
+      "actual": "exit=0；BUILD_OK=1；ESLINT_OK=1；LINT_ERRORS=0；PC_BUILD=1；RESULT=PASS",
+      "expected": "PASS",
+      "negative": "构建失败 → FAIL",
+      "negative_result": "npm run build 或 eslint 非 0 时脚本写出 BUILD_OK=0 / ESLINT_OK=0 并 RESULT: FAIL（本次 0 error / 2 个既有 react-hooks warning）",
+      "pass": true,
+      "exit": 0
+    }
+  ]
+}

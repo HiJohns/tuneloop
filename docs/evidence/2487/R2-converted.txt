@@ -1,0 +1,12 @@
+# build=1.0.a18849559 # commit=a188495591a7c3eb1506f093deebb6ceef137c2f # dirty=false
+# tree=a188495591a7c3eb1506f093deebb6ceef137c2f
+# scanner=verify-2487.sh r2  (converted branches only)
+CONVERT|frontend-pc/src/pages/System/UserManagement.jsx|fn=handleSaveIdCard|endpoint=PUT /admin/user-management/:id/id-card|rubric_code=40002|alert_testid=user-idcard-conflict|import=1|render=1|rubric_checks=2|last_rubric=329|last_toast=332|code_first=1|reason=40002「身份证号格式不正确」用户改输入即可重试（user_management_idcard.go:46）
+CONVERT|frontend-pc/src/pages/admin/platform-staff/index.jsx|fn=handleCreate|endpoint=POST /admin/platform-staff|rubric_code=40900|alert_testid=platform-staff-form-conflict|import=1|render=1|rubric_checks=2|last_rubric=82|last_toast=85|code_first=1|reason=40900 用户名/手机号重复（platform_staff.go:185/189）
+CONVERT|frontend-pc/src/pages/System/TechnicianProfiles.jsx|fn=submit|endpoint=POST /technician-profiles|rubric_code=40900|alert_testid=technician-form-conflict|import=1|render=1|rubric_checks=2|last_rubric=126|last_toast=129|code_first=1|reason=40900 同一商户下该员工已是维修师（technician_profile.go:171）
+CONVERTED_ROWS=3
+PERSIST_ALERT=1
+CODE_FIRST=1
+CODE_FIRST_DEF=rubric_check_precedes_terminal_fallback_toast
+CONVERT_FAILURES=0
+RESULT: PASS
