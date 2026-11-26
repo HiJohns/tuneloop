@@ -128,18 +128,25 @@ case "$ROW" in
         | awk -F: '$1 >= 600 && $1 <= 760' \
         | wc -l | tr -d ' '
     )
+    # 关系角色赋值不得来自 GetBusinessRole（业务展示角色），只能经 ToIAMRole/Normalize。
+    GETBUSINESSROLE_AS_IAMROLE=$(
+      grep -hE -c 'iamRole := (services\.)?GetBusinessRole\(' "$STAFF_SRC" "$BULK_SRC" \
+        | awk '{s+=$1} END {print s+0}'
+    )
     # 映射下沉：services 必须有唯一实现，handlers.toIAMRole 必须是薄封装。
     SERVICE_MAPPING="$(grep -c '^func ToIAMRole(' backend/services/role_templates.go || true)"
     HANDLER_THIN="$(grep -c 'return services.ToIAMRole(tuneloopCode)' backend/handlers/permission_manage.go || true)"
     NORMALIZE="$(grep -c '^func NormalizeIAMRelationRole(' backend/services/role_templates.go || true)"
 
     echo "BIND_WITH_BUSINESS_ROLE=${BIND_WITH_BUSINESS_ROLE}"
+    echo "GETBUSINESSROLE_AS_IAMROLE=${GETBUSINESSROLE_AS_IAMROLE}"
     echo "HARDCODED_SITE_MEMBER=${HARDCODED_SITE_MEMBER}"
     echo "SERVICE_TOIAMROLE=${SERVICE_MAPPING}"
     echo "HANDLER_THIN_WRAPPER=${HANDLER_THIN}"
     echo "NORMALIZE_WHITELIST=${NORMALIZE}"
 
     [ "$BIND_WITH_BUSINESS_ROLE" = "0" ] || fail "BindUserToOrganization 第三参数仍来自 GetBusinessRole"
+    [ "$GETBUSINESSROLE_AS_IAMROLE" = "0" ] || fail "iamRole 仍直接取自 GetBusinessRole（业务角色当 IAM 角色）"
     [ "$HARDCODED_SITE_MEMBER" = "0" ] || fail "ActivateUser 仍硬编码 AllRoleTemplates[\"site_member\"]"
     [ "$SERVICE_MAPPING" = "1" ] || fail "services.ToIAMRole 必须恰好一个实现"
     [ "$HANDLER_THIN" = "1" ] || fail "handlers.toIAMRole 必须是 services.ToIAMRole 的薄封装"
