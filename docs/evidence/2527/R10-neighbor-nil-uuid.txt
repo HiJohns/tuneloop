@@ -1,0 +1,27 @@
+# build=1.0.5752ce388 # commit=5752ce388a40bca68d5c4bb6f998eb77386833e3 # dirty=false
+# CMD go test -count=1 -run '^TestNeighborPathsNoNilUUID_2527$' ./handlers/
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed at_ms=1795697459571 wait_ms=309
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed wait_ms=309
+[DEBUG] Loaded .env from: ../.env
+2026/11/26 12:51:05 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21 sslmode=disable
+2026/11/26 12:51:05 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21
+2026/11/26 12:51:05 [DB] Connected to database 'tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21'
+=== RUN   TestNeighborPathsNoNilUUID_2527
+2026/11/26 12:51:06 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21 sslmode=disable
+2026/11/26 12:51:06 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21
+2026/11/26 12:51:06 [DB] Connected to database 'tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21'
+
+2026/11/26 12:51:07 [32m/home/coder/worktrees/tuneloop/wt-2527/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[659.159ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/26 12:51:07 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/26 12:51:07 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:34419, clientID=test-ns, namespace=test-ns
+2026/11/26 12:51:07 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/26 12:51:07 [IAMClient] Deleted user: user_id=8ffcca83-f0ff-4854-9e41-854ab97e2464
+2026/11/26 12:51:07 [BatchDeleteUsers] WARN: skip IAM unbind user=8ffcca83-f0ff-4854-9e41-854ab97e2464 actor=bfe53405-5322-42d9-8bc9-278f3c718168: attribution missing (users.org_id="00000000-0000-0000-0000-000000000000")
+2026/11/26 12:51:07 [ActivateUser] WARN: activation blocked user=876e24b6-b428-48c3-bcf6-0ae4eaea511b actor=8041893e-129e-4181-82ae-94462d1038e7: attribution missing (users.org_id is nil UUID, no active site membership)
+R10 BATCH_STATUS=20000 BATCH_HTTP=200 BATCH_UNBIND_CALLS=0 BATCH_SKIPPED_NO_ATTRIBUTION=1 BATCH_NIL_UUID_CALLS=0 ACTIVATE_STATUS=40002 ACTIVATE_HTTP=400 ACTIVATE_IAM_CREATE_CALLS=0 NIL_UUID_CALLS=0
+--- PASS: TestNeighborPathsNoNilUUID_2527 (1.41s)
+PASS
+ok  	tuneloop-backend/handlers	2.331s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795697467719 hold_ms=8148
+GO_TEST_RC=0

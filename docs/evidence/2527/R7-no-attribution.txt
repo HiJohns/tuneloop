@@ -1,26 +1,26 @@
-# build=1.0.8c0c80ee2 # commit=8c0c80ee2722bdffea396c148f6e452357e7f115 # dirty=false
+# build=1.0.5752ce388 # commit=5752ce388a40bca68d5c4bb6f998eb77386833e3 # dirty=false
 # CMD go test -count=1 -run '^TestNoAttributionRejectedExplicitly_2527$' ./handlers/
-[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795688647365 wait_ms=121
-[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=121
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed at_ms=1795697443472 wait_ms=172
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed wait_ms=172
 [DEBUG] Loaded .env from: ../.env
-2026/11/26 10:24:12 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c sslmode=disable
-2026/11/26 10:24:12 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c
-2026/11/26 10:24:12 [DB] Connected to database 'tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c'
+2026/11/26 12:50:48 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21 sslmode=disable
+2026/11/26 12:50:48 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21
+2026/11/26 12:50:48 [DB] Connected to database 'tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21'
 === RUN   TestNoAttributionRejectedExplicitly_2527
-2026/11/26 10:24:12 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c sslmode=disable
-2026/11/26 10:24:12 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c
-2026/11/26 10:24:12 [DB] Connected to database 'tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c'
+2026/11/26 12:50:49 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21 sslmode=disable
+2026/11/26 12:50:49 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21
+2026/11/26 12:50:49 [DB] Connected to database 'tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21'
 
-2026/11/26 10:24:13 [32m/tmp/opencode/tuneloop/wt-2527/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[559.915ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
-2026/11/26 10:24:13 [TenantScope][observe] auto-scope injected for table=sites (add explicit scope, then set ExplicitTenantScopeOnly)
-2026/11/26 10:24:13 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:41415, clientID=test-ns, namespace=test-ns
-2026/11/26 10:24:13 [IAMClient] Obtained client credentials token, expires in 3600s
-2026/11/26 10:24:13 [IAMClient] Unbound user f05df6d3-e432-4dbb-8904-71325a404c46 from org 77e46937-9394-4d94-8e8a-bb86dea703d3
-2026/11/26 10:24:13 [IAMClient] Incremented perm_version
+2026/11/26 12:50:50 [32m/home/coder/worktrees/tuneloop/wt-2527/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[580.183ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/26 12:50:50 [TenantScope][observe] auto-scope injected for table=sites (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/26 12:50:50 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:33249, clientID=test-ns, namespace=test-ns
+2026/11/26 12:50:50 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/26 12:50:50 [IAMClient] Unbound user f440338f-721e-44ff-91a7-401f3806efe4 from org 8cc84a5a-1489-4569-9b24-0e13367019c9
+2026/11/26 12:50:50 [IAMClient] Incremented perm_version
 R7 TRANSFER_STATUS=40002 TRANSFER_HTTP=400 ROLE_STATUS=200 ROLE_ERRORS_ATTRIBUTION=1 NIL_UUID_CALLS=0 CLEAR_STATUS=200 CLEAR_UNBIND_ORG_MATCHES=1
---- PASS: TestNoAttributionRejectedExplicitly_2527 (0.84s)
+--- PASS: TestNoAttributionRejectedExplicitly_2527 (1.25s)
 PASS
-ok  	tuneloop-backend/handlers	1.580s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795688653810 hold_ms=6445
+ok  	tuneloop-backend/handlers	1.965s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795697450526 hold_ms=7054
 GO_TEST_RC=0

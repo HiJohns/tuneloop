@@ -1,21 +1,21 @@
-# build=1.0.8c0c80ee2 # commit=8c0c80ee2722bdffea396c148f6e452357e7f115 # dirty=false
+# build=1.0.5752ce388 # commit=5752ce388a40bca68d5c4bb6f998eb77386833e3 # dirty=false
 # CMD go test -count=1 -run '^TestResetPasswordAllInvisible_2527$' ./handlers/
-[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795688628071 wait_ms=74
-[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=74
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed at_ms=1795697418263 wait_ms=-288
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed wait_ms=-288
 [DEBUG] Loaded .env from: ../.env
-2026/11/26 10:23:53 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c sslmode=disable
-2026/11/26 10:23:53 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c
-2026/11/26 10:23:53 [DB] Connected to database 'tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c'
+2026/11/26 12:50:23 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21 sslmode=disable
+2026/11/26 12:50:23 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21
+2026/11/26 12:50:24 [DB] Connected to database 'tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21'
 === RUN   TestResetPasswordAllInvisible_2527
-2026/11/26 10:23:53 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c sslmode=disable
-2026/11/26 10:23:53 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c
-2026/11/26 10:23:53 [DB] Connected to database 'tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c'
+2026/11/26 12:50:24 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21 sslmode=disable
+2026/11/26 12:50:24 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21
+2026/11/26 12:50:24 [DB] Connected to database 'tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21'
 
-2026/11/26 10:23:54 [32m/tmp/opencode/tuneloop/wt-2527/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[567.736ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/26 12:50:26 [32m/home/coder/worktrees/tuneloop/wt-2527/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[1834.340ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
 R3 STATUS=200 SENT=0 SKIPPED_INVISIBLE=1 IAM_CALLS=0
---- PASS: TestResetPasswordAllInvisible_2527 (0.85s)
+--- PASS: TestResetPasswordAllInvisible_2527 (2.46s)
 PASS
-ok  	tuneloop-backend/handlers	1.595s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795688634911 hold_ms=6840
+ok  	tuneloop-backend/handlers	3.866s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795697427172 hold_ms=8909
 GO_TEST_RC=0

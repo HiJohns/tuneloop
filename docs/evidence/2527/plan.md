@@ -1,4 +1,4 @@
-## Accepted Plan — #2527 归属缺失行的批量重置密码与 IAM 归属推导（#2526 后续）｜Rev.2
+## Accepted Plan — #2527 归属缺失行的批量重置密码与 IAM 归属推导（#2526 后续）｜Rev.2｜Rev.3
 
 > Tags: bug, code:go, api-contract, scope:pc
 > 前置（硬依赖）：#2526（可见性判定 `personnelUserVisible` / `loadVisibleStaffUser`、`attribution_missing`）
@@ -30,7 +30,9 @@
    - 角色变更：以 `effectiveOrgID` 作 IAM org；推导为空 → **不调 IAM**，把「account attribution missing」写进既有 `role_errors`（沿用 #2375 D3 非阻断语义，但必须可见）；
    - 网点调动：`performSiteTransfer` 的 `oldOrg` 同样取 `effectiveOrgID`（只用于 IAM 参数，**不回写** `users.org_id`）；推导为空 → `40002`「账号归属缺失，请先补全成员关系」并中止，禁止把 nil UUID 发给 IAM。
 3. **PC 提示（`frontend-pc/src/pages/StaffManagement.jsx` 的 `handleResetPassword`）**：按响应分类给出 `message.warning`（哪些被跳过、为什么跳过），判定抽成纯函数 `resetPasswordSummary(data)` 放 `frontend-pc/src/utils/resetPasswordSummary.js`（PC 无组件测试运行器，`node --test` 覆盖，D5）。
-4. **不做**：不改 `users.org_id` 落库（回填需 Owner 授权，见 #2527 T3）；不改 `personnelUserVisible`（#2526 单一判定源）。
+4. **清空归属网点（`site_id` 置空 / 0）**：派生为空时返回 `400 40002`「账号归属缺失，请先补全成员关系」，**不得** 200 静默跳过 IAM 解绑（审计 Bug 1 / A-1）。
+5. **邻居路径收敛（审计 Bug 2 / B-1）**：`BatchDeleteUsers`（批量删除）与 `ActivateUser`（激活）对 `users.org_id` 为 nil UUID 的行，禁止把该值作为 org 发给 IAM —— 前者跳过解绑并记 `skipped_no_attribution`，后者 `40002` 中止。
+6. **不做**：不改 `users.org_id` 落库（回填需 Owner 授权，见 #2527 T3）；不改 `personnelUserVisible`（#2526 单一判定源）。
 
 ### 语义变更（必须翻转的既有断言，强制清单）
 
@@ -54,6 +56,9 @@
 | R6 网点调动使用派生 org | `backend/handlers/user_staff.go` | `PUT /users/:id`（`site_id=B`，fake IAM） | 零租户成员在 A（orgA），目标 B（orgB） | backend | `STATUS=200`、`UNBIND_ORG=orgA`、`BIND_ORG=orgB`、`NIL_UUID_CALLS=0` | R6 |
 | R7 无法推导归属：显式拒绝，不发 nil UUID | `backend/handlers/user_staff.go` | 同上两条路径 | 归属缺失且**无任何 membership** 的用户 | backend | 调动 `STATUS=40002`；角色变更 `STATUS=200` 且 `ROLE_ERRORS_ATTRIBUTION=1`；两者 `NIL_UUID_CALLS=0` | R7 |
 | R8 回归 + 构建 | `backend/handlers/user_staff.go`、`backend/handlers/reset_password_no_email_2389_test.go` | `go build ./...` + `ResetPassword`/`UpdateUser`/调动 既有用例（含改写后的 2389 用例） | 修后工作树 | backend | `BUILD_RC=0`、`REGRESSION_PASS=1`、`FAIL_COUNT=0`、`EXISTING_2389_PASS=1`、`INVISIBLE_CUSTOMER_SKIPPED=1`，含 `--- PASS: TestSiteTransfer_Readback_2466` | R8 |
+| R0 红绿实证（缺陷版 FAIL → 修复版 PASS） | `backend/handlers/reset_password_scope_2527_test.go` | 基线 `c37655eb0` 跑同批 `_2527$` 用例 | 修复前/后 | backend | `RED_RC!=0`（贴 FAIL 行）、`GREEN_RC=0` | R0 |
+| R9 清空归属网点 + 派生为空 → 阻断 | `backend/handlers/user_staff.go` | `PUT /api/users/:id`（`site_id` 清空） | 归属缺失行（`org_id` = nil UUID / 空） | backend | `CLEAR_SITE_STATUS=400`、`CLEAR_SITE_CODE=40002`、`IAM_UNBIND_CALLS=0` | R9 |
+| R10 邻居路径 nil UUID 收敛 | `backend/handlers/user_staff.go` | `POST /users/batch-delete`、`POST /users/:id/activate` | 归属缺失行 | backend | `BATCH_UNBIND_CALLS=0`、`BATCH_SKIPPED_NO_ATTRIBUTION=1`、`ACTIVATE_STATUS=40002`、`NIL_UUID_CALLS=0` | R10 |
 
 ### Evidence Types
 
@@ -73,6 +78,9 @@
 | R6 | 零租户成员在 A、目标网点 B（orgB） | `bash scripts/verify-2527.sh r6` | `docs/evidence/2527/R6-transfer-derived-org.txt` | `STATUS=200`、`UNBIND_ORG=orgA`、`BIND_ORG=orgB`、`NIL_UUID_CALLS=0` | `UNBIND_ORG` 为 nil UUID 或 `STATUS=502` → FAIL |
 | R7 | 归属缺失且无 membership | `bash scripts/verify-2527.sh r7` | `docs/evidence/2527/R7-no-attribution.txt` | `TRANSFER_STATUS=40002`、`ROLE_STATUS=200`、`ROLE_ERRORS_ATTRIBUTION=1`、`NIL_UUID_CALLS=0` | `TRANSFER_STATUS=502`（未显式拒绝）或 `NIL_UUID_CALLS>0` → FAIL |
 | R8 | 修后工作树 + 既有重置密码/调动/角色用例（含改写后的 `TestResetPasswordNoEmail_2389`） | `bash scripts/verify-2527.sh r8` | `docs/evidence/2527/R8-regression.txt` | `BUILD_RC=0`、`REGRESSION_PASS=1`、`FAIL_COUNT=0`、`EXISTING_2389_PASS=1`、`INVISIBLE_CUSTOMER_SKIPPED=1`、含 `--- PASS: TestSiteTransfer_Readback_2466` | 任一既有用例 FAIL 或 2389 用例未改写（仍按纯顾客断言 400）→ FAIL |
+| R0 | 基线 `c37655eb0` + 本轮 `_2527$` 用例；修复版同批用例 | `bash scripts/verify-2527.sh r0` | `docs/evidence/2527/R0-red.txt` | `RED_RC!=0`（含 FAIL 行）、`GREEN_RC=0` | 无红侧输出（两版都 PASS）→ FAIL（无法证明修复有效） |
+| R9 | 归属缺失用户（`org_id` = nil UUID），请求清空 `site_id` | `bash scripts/verify-2527.sh r9` | `docs/evidence/2527/R9-clear-site-no-attribution.txt` | `CLEAR_SITE_STATUS=400`、`CLEAR_SITE_CODE=40002`、`IAM_UNBIND_CALLS=0` | `CLEAR_SITE_STATUS=200` → FAIL |
+| R10 | 归属缺失用户：批量删除 + 激活各一次 | `bash scripts/verify-2527.sh r10` | `docs/evidence/2527/R10-neighbor-nil-uuid.txt` | `BATCH_UNBIND_CALLS=0`、`BATCH_SKIPPED_NO_ATTRIBUTION=1`、`ACTIVATE_STATUS=40002`、`NIL_UUID_CALLS=0` | 任一 nil UUID 发给 IAM → FAIL |
 
 ## Evidence Contract
 
@@ -86,6 +94,9 @@
 | R6 | `bash scripts/verify-2527.sh r6` | `docs/evidence/2527/R6-transfer-derived-org.txt` | exit 0；grep `STATUS=200`、`UNBIND_ORG=orgA`、`BIND_ORG=orgB`、`NIL_UUID_CALLS=0` | PASS | `STATUS=502` → 调动仍失败 → FAIL | dev |
 | R7 | `bash scripts/verify-2527.sh r7` | `docs/evidence/2527/R7-no-attribution.txt` | exit 0；grep `TRANSFER_STATUS=40002`、`ROLE_STATUS=200`、`ROLE_ERRORS_ATTRIBUTION=1`、`NIL_UUID_CALLS=0` | PASS | `TRANSFER_STATUS=502` → 未显式拒绝 → FAIL | dev |
 | R8 | `bash scripts/verify-2527.sh r8` | `docs/evidence/2527/R8-regression.txt` | exit 0；grep `BUILD_RC=0`、`REGRESSION_PASS=1`、`FAIL_COUNT=0`、`EXISTING_2389_PASS=1`、`INVISIBLE_CUSTOMER_SKIPPED=1`、`--- PASS: TestSiteTransfer_Readback_2466` | PASS | 任一既有用例 FAIL、`EXISTING_2389_PASS=0` 或 `BUILD_RC=1` → FAIL | dev |
+| R0 | `bash scripts/verify-2527.sh r0` | `docs/evidence/2527/R0-red.txt` | exit 0；含 `RED_RC=` 且 `RED_RC!=0`、`GREEN_RC=0` | PASS | 无红侧 → FAIL | dev |
+| R9 | `bash scripts/verify-2527.sh r9` | `docs/evidence/2527/R9-clear-site-no-attribution.txt` | exit 0；grep `CLEAR_SITE_CODE=40002`、`IAM_UNBIND_CALLS=0` | PASS | 200 静默 → FAIL | dev |
+| R10 | `bash scripts/verify-2527.sh r10` | `docs/evidence/2527/R10-neighbor-nil-uuid.txt` | exit 0；grep `NIL_UUID_CALLS=0`、`ACTIVATE_STATUS=40002` | PASS | 任一 nil UUID 请求 → FAIL | dev |
 
 ## Artifact Provenance
 
@@ -99,6 +110,9 @@
 | `docs/evidence/2527/R6-transfer-derived-org.txt` | `# build=1.0.<fix> # commit=<sha> # dirty=false` |
 | `docs/evidence/2527/R7-no-attribution.txt` | `# build=1.0.<fix> # commit=<sha> # dirty=false` |
 | `docs/evidence/2527/R8-regression.txt` | `# build=1.0.<fix> # commit=<sha> # dirty=false` |
+| `docs/evidence/2527/R0-red.txt` | `# build=1.0.<fix> # commit=<sha> # dirty=false` |
+| `docs/evidence/2527/R9-clear-site-no-attribution.txt` | `# build=1.0.<fix> # commit=<sha> # dirty=false` |
+| `docs/evidence/2527/R10-neighbor-nil-uuid.txt` | `# build=1.0.<fix> # commit=<sha> # dirty=false` |
 
 evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 
@@ -144,6 +158,9 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 - `docs/evidence/2527/R6-transfer-derived-org.txt`
 - `docs/evidence/2527/R7-no-attribution.txt`
 - `docs/evidence/2527/R8-regression.txt`
+- `docs/evidence/2527/R0-red.txt`
+- `docs/evidence/2527/R9-clear-site-no-attribution.txt`
+- `docs/evidence/2527/R10-neighbor-nil-uuid.txt`
 
 ## Input Truth & Tool Preflight
 
@@ -169,7 +186,8 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 | D3 | IAM org 由 membership 派生，仅在参数层使用 | Architect | 本计划锁定 | 若要求「无归属即拒绝所有写操作」→ 回 Architect（影响 #2375 非阻断语义） |
 | D4 | **不回写** `users.org_id/tenant_id`（回填需 Owner 授权，见 #2527 T3） | Owner / ops | 本计划锁定 | 未授权 → 保持 `attribution_missing=true` |
 | D5 | R4 UI 证据形态：纯函数 `node --test` + 源码结构断言（PC 无组件测试运行器） | Architect | Owner 豁免（沿用 #2480/#2483 惯例） | 若审计要求 render → 另立前端测试基建 Issue |
-| D6 | 无归属且需 IAM 时：调动 40002（阻断）、角色变更 `role_errors`（非阻断） | Architect | 本计划锁定 | 若要求角色变更也阻断 → 回 Architect（与 #2375 D3 冲突） |
+| D6 | 无归属且需 IAM 时：调动 / **清空归属网点** → `400 40002`（阻断）；角色变更 → `role_errors`（非阻断） | Architect | 本计划锁定（Rev.3：审计 Bug 1 补齐「清空归属网点」路径，与契约 `api.md §10.18.7` 一致） | 若要求角色变更也阻断 → 回 Architect（与 #2375 D3 冲突） |
+| D7 | 邻居路径收敛（审计 Bug 2 / B-1）：`BatchDeleteUsers` 与 `ActivateUser` 对「归属缺失（org_id = nil UUID）」的行，一律**不得**把 nil UUID 作为 org 发给 IAM；前者跳过解绑并显式记 `skipped_no_attribution`，后者 `40002` 中止 | Architect | 本计划锁定（B-2「留作 Out of Scope」会让同根因入口继续脏，不采纳） | 若要收窄范围 → 必须给出 Issue 编号回链并在契约里收窄措辞 |
 
 ## Out of Scope
 

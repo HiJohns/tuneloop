@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
   "issue": 2527,
-  "build": "1.0.8c0c80ee2",
-  "commit": "8c0c80ee2722bdffea396c148f6e452357e7f115",
+  "build": "1.0.5752ce388",
+  "commit": "5752ce388a40bca68d5c4bb6f998eb77386833e3",
   "dirty": false,
-  "plan_sha256": "d221f7fc3d4e275f584b00c46a16d4b17f818925e5fc0773c11e7e1edc9dddc4",
-  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2527 (branch issue-2527, base origin/develop c37655eb0); go1.27.4; node v24.13.0 (frontend-pc type=module); postgres 127.0.0.1:5432 via backend/.env (test template clone); fake IAM via httptest (records method/path/body, reset-password returns sent=len(user_ids)); scripts/verify-2527.sh r1-r8 under host heavy-lock",
+  "plan_sha256": "884a19402b9fbf80bf7e500be8c593eeb40894ce5f1254939a813f6e0f3b9127",
+  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2527 (branch issue-2527, base origin/develop 43b17b764 with issue-2526 + issue-2540 merged); go1.22.5; node v20.20.2 (frontend-pc type=module); postgres 127.0.0.1:25432 via backend/.env (test template clone); fake IAM via httptest (records method/path/body, reset-password returns sent=len(user_ids)); R0 red-green uses a detached worktree of pre-fix baseline c37655eb0 carrying only the _2527 test file; scripts/verify-2527.sh r0-r10 under host heavy-lock",
   "rows": [
     {
       "id": "R1",
@@ -18,7 +18,7 @@
       "actual": "PASS：STATUS=200 SENT=1 IAM_IDS=1 IAM_ID_MATCH=1 SKIPPED_INVISIBLE=0；IAM 收到的 user_ids 恰为归属缺失成员的 iam_sub（零租户行不再被 tenant_id 过滤掉）",
       "expected": "PASS",
       "negative": "IAM_IDS=0 → 行仍被过滤 → FAIL",
-      "negative_result": "修复前 users.tenant_id 过滤使该行不可见：IAM_IDS=0 且响应只给 20000 sent=0（R1 断言 IAM 实际收到的 id 集合而非仅状态码）",
+      "negative_result": "基线 c37655eb0 同一用例实测 R1 STATUS=200 SENT=0 IAM_IDS=0（见 R0 artifact）；修复版 IAM_IDS=1",
       "pass": true
     },
     {
@@ -32,7 +32,7 @@
       "actual": "PASS：STATUS=200 IAM_IDS=1 SKIPPED_INVISIBLE=1 IAM_INCLUDES_CROSS_TENANT=0；跨租户成员被显式分类，未进入 IAM 批量重置",
       "expected": "PASS",
       "negative": "IAM_INCLUDES_CROSS_TENANT=1 → 越权 → FAIL",
-      "negative_result": "跨租户成员不在 IAM user_ids 中（IAM_INCLUDES_CROSS_TENANT=0），且响应显式列出 skipped_invisible",
+      "negative_result": "基线同一用例 IAM_IDS=0 SKIPPED_INVISIBLE=0（缺陷版把两行都丢弃且无分类，见 R0 artifact）；修复版 1 可见 + 1 显式分类",
       "pass": true
     },
     {
@@ -46,7 +46,7 @@
       "actual": "PASS：STATUS=200 SENT=0 SKIPPED_INVISIBLE=1 IAM_CALLS=0；响应含 skipped_invisible，空操作对调用方可见",
       "expected": "PASS",
       "negative": "缺少 SKIPPED_INVISIBLE=1 → 仍静默 → FAIL",
-      "negative_result": "不调用 IAM（IAM_CALLS=0）但响应含 skipped_invisible=1，不存在「200 无解释」的空操作",
+      "negative_result": "基线同一用例 SKIPPED_INVISIBLE=0（静默空操作，见 R0 artifact）；修复版显式分类且不调用 IAM",
       "pass": true
     },
     {
@@ -57,7 +57,7 @@
         "docs/evidence/2527/R4-pc-wiring.txt"
       ],
       "assert": "exit 0；grep NODE_TEST_RC=0、RENDER_WIRED=1、FRONTEND_LINT_RC=0、FRONTEND_BUILD_RC=0",
-      "actual": "PASS：NODE_TEST_RC=0 RENDER_WIRED=1 FRONTEND_LINT_RC=0 FRONTEND_BUILD_RC=0；node --test 5/5 通过，StaffManagement.jsx 引用 resetPasswordSummary 并按 level 分支 message.warning/success，纯函数读取 skipped_invisible",
+      "actual": "PASS：NODE_TEST_RC=0 RENDER_WIRED=1 FRONTEND_LINT_RC=0 FRONTEND_BUILD_RC=0；node --test 全通过，StaffManagement.jsx 引用 resetPasswordSummary 并按 summary 分支提示，纯函数读取 skipped_invisible/skipped_missing/skipped_no_email",
       "expected": "PASS",
       "negative": "RENDER_WIRED=0 → 字段无消费方 → FAIL",
       "negative_result": "RENDER_WIRED 由源码断言计算（import + 调用 + message.warning(summary.text) + 纯函数读取 skipped_invisible），缺任一即 0",
@@ -74,7 +74,7 @@
       "actual": "PASS：STATUS=200 IAM_ORG=orgA NIL_UUID_CALLS=0 ROLE_ERRORS=0；角色同步的 IAM org 来自 site_members→sites.org_id（orgA），未使用 nil UUID",
       "expected": "PASS",
       "negative": "NIL_UUID_CALLS=1 → 仍发 nil UUID → FAIL",
-      "negative_result": "NIL_UUID_CALLS 统计所有含 /organizations/00000000-0000-0000-0000-000000000000/ 的 IAM 调用，为 0",
+      "negative_result": "基线同一用例 IAM_ORG=mismatch NIL_UUID_CALLS=1（见 R0 artifact）；修复版 NIL_UUID_CALLS=0",
       "pass": true
     },
     {
@@ -88,7 +88,7 @@
       "actual": "PASS：STATUS=200 UNBIND_ORG=orgA BIND_ORG=orgB NIL_UUID_CALLS=0；跨 org 调动 unbind 旧派生 org、bind 目标网点 org",
       "expected": "PASS",
       "negative": "STATUS=502 → 调动仍失败 → FAIL",
-      "negative_result": "同 R5；且 UNBIND_ORG/BIND_ORG 断言具体 org 值，nil UUID 会使两个 token 变成 mismatch",
+      "negative_result": "基线同一用例 UNBIND_ORG=mismatch NIL_UUID_CALLS=1（见 R0 artifact）；修复版两个 org 值均断言为具体 org",
       "pass": true
     },
     {
@@ -102,7 +102,7 @@
       "actual": "PASS：TRANSFER_STATUS=40002（HTTP 400）ROLE_STATUS=200 ROLE_ERRORS_ATTRIBUTION=1 NIL_UUID_CALLS=0；无法派生归属时调动显式拒绝、角色变更写 role_errors（非阻断），清空归属网点亦用派生 org 解绑",
       "expected": "PASS",
       "negative": "TRANSFER_STATUS=502 → 未显式拒绝 → FAIL",
-      "negative_result": "TRANSFER_STATUS 取业务码 40002（HTTP 400 单独记 TRANSFER_HTTP）；若走 502 则 token 不匹配；两个分支的 IAM 调用都不含 nil UUID",
+      "negative_result": "基线同一用例 TRANSFER_STATUS=20000 NIL_UUID_CALLS=2（见 R0 artifact）；修复版业务码 40002 且 nil UUID 调用为 0",
       "pass": true
     },
     {
@@ -117,6 +117,48 @@
       "expected": "PASS",
       "negative": "任一既有用例 FAIL、EXISTING_2389_PASS=0 或 BUILD_RC=1 → FAIL",
       "negative_result": "回归集合含重置密码/调动/角色/可见性既有用例；FAIL_COUNT 由 --- FAIL 计数得出，改写后的 2389 用例与纯顾客负例分别给出 EXISTING_2389_PASS / INVISIBLE_CUSTOMER_SKIPPED",
+      "pass": true
+    },
+    {
+      "id": "R9",
+      "command": "bash scripts/verify-2527.sh r9",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2527/R9-clear-site-no-attribution.txt"
+      ],
+      "assert": "exit 0；grep CLEAR_SITE_STATUS=400、CLEAR_SITE_CODE=40002、IAM_UNBIND_CALLS=0、NIL_UUID_CALLS=0",
+      "actual": "PASS：CLEAR_SITE_STATUS=400 CLEAR_SITE_CODE=40002 IAM_UNBIND_CALLS=0 NIL_UUID_CALLS=0 ORG_UNCHANGED=1；清空归属网点在派生为空时显式拒绝且不写库、不调 IAM",
+      "expected": "PASS",
+      "negative": "CLEAR_SITE_STATUS=200（静默跳过 IAM 解绑）→ FAIL",
+      "negative_result": "基线同一用例 CLEAR_SITE_STATUS=200 CLEAR_SITE_CODE=20000 IAM_UNBIND_CALLS=1 NIL_UUID_CALLS=1（见 R0 artifact：200 成功但把 nil UUID 当组织解绑、本地 org 被清空）",
+      "pass": true
+    },
+    {
+      "id": "R10",
+      "command": "bash scripts/verify-2527.sh r10",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2527/R10-neighbor-nil-uuid.txt"
+      ],
+      "assert": "exit 0；grep BATCH_UNBIND_CALLS=0、BATCH_SKIPPED_NO_ATTRIBUTION=1、ACTIVATE_STATUS=40002、NIL_UUID_CALLS=0",
+      "actual": "PASS：BATCH_STATUS=20000 BATCH_UNBIND_CALLS=0 BATCH_SKIPPED_NO_ATTRIBUTION=1 BATCH_NIL_UUID_CALLS=0 ACTIVATE_STATUS=40002（HTTP 400）ACTIVATE_IAM_CREATE_CALLS=0 NIL_UUID_CALLS=0；批量删除跳过解绑并显式分类，激活在创建 IAM 用户前中止",
+      "expected": "PASS",
+      "negative": "任一 nil UUID 当组织发给 IAM → FAIL",
+      "negative_result": "基线同一用例 BATCH_UNBIND_CALLS=1 BATCH_SKIPPED_NO_ATTRIBUTION=0 BATCH_NIL_UUID_CALLS=1 ACTIVATE_STATUS=50000 ACTIVATE_IAM_CREATE_CALLS=1（见 R0 artifact：先建 IAM 用户再以 nil UUID 绑定失败）",
+      "pass": true
+    },
+    {
+      "id": "R0",
+      "command": "bash scripts/verify-2527.sh r0",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2527/R0-red.txt"
+      ],
+      "assert": "exit 0；RED_RC_NONZERO=1（RED_RC!=0 且 RED_FAIL_LINES>=1）、GREEN_RC=0",
+      "actual": "PASS：R0_BASELINE=c37655eb0237a63571bbe95156a2336c2d6810a0 RED_RC=1 RED_FAIL_LINES=8 GREEN_RC=0；基线 8 个 _2527 用例全红（R1/R2/R3/R5/R6/R7/R9/R10），修复版同批全绿",
+      "expected": "PASS",
+      "negative": "无红侧输出（两版都 PASS）→ FAIL（无法证明修复有效）",
+      "negative_result": "红侧由同一个测试文件在未含修复的产品代码上运行得出：R1 SENT=0、R5 IAM_ORG=mismatch、R9 CLEAR_SITE_STATUS=200、R10 ACTIVATE_STATUS=50000，均为缺陷版真实行为",
       "pass": true
     }
   ],
