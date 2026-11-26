@@ -1,5 +1,5 @@
-# build=1.0.b67d95af # commit=b67d95af40c50eca38a8d95f6531367a7710aadb # dirty=false
-GENERATED_AT_HEAD=b67d95af40c50eca38a8d95f6531367a7710aadb
+# build=1.0.670597f7 # commit=670597f731453d620bba57034eef33d38bdc368e # dirty=false
+GENERATED_AT_HEAD=670597f731453d620bba57034eef33d38bdc368e
 TEST_CMD=cd backend && go test ./handlers -run '^TestCreateOrder2512_GuestOrgFromSite$' -count=1 -v
 TEST_EXIT=0
 SENTINEL_R1_OK=1
@@ -7,13 +7,13 @@ OLD_FALLBACK_IS_SITE_ID=1
 RED_CONFIRMED=1
 ORDER_ORG_MATCHES_SITE_ORG=1
 --- go test tail ---
---- PASS: TestCreateOrder2512_GuestOrgFromSite (1.89s)
+--- PASS: TestCreateOrder2512_GuestOrgFromSite (1.06s)
 PASS
-ok  	tuneloop-backend/handlers	3.403s
+ok  	tuneloop-backend/handlers	2.044s
 --- go test kv ---
-user_rental_2512_test.go:154: ORDER_ORG=e21f506e-9beb-4003-b480-eeca7902ed11
-user_rental_2512_test.go:155: SITE_ORG=e21f506e-9beb-4003-b480-eeca7902ed11
-user_rental_2512_test.go:156: SITE_ID_IS=125e89e1-464d-43eb-8810-9f267c733545
+user_rental_2512_test.go:154: ORDER_ORG=06a72a0d-0190-4c92-9527-2e341426d95e
+user_rental_2512_test.go:155: SITE_ORG=06a72a0d-0190-4c92-9527-2e341426d95e
+user_rental_2512_test.go:156: SITE_ID_IS=6ac465ca-f8be-47c0-879f-738f67f278be
 PRE_FIX_REF=origin/develop
 PRE_FIX_SITE_ID_AS_ORG_LINES=4
 --- pre-fix code ---

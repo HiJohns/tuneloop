@@ -1,21 +1,22 @@
-# build=1.0.b67d95af # commit=b67d95af40c50eca38a8d95f6531367a7710aadb # dirty=false
-GENERATED_AT_HEAD=b67d95af40c50eca38a8d95f6531367a7710aadb
+# build=1.0.670597f7 # commit=670597f731453d620bba57034eef33d38bdc368e # dirty=false
+GENERATED_AT_HEAD=670597f731453d620bba57034eef33d38bdc368e
 TEST_CMD=cd backend && go test ./handlers -run '^TestBatchCreateOrder2512_GuestOrgFromSiteAndReject$' -count=1 -v
 TEST_EXIT=0
 SENTINEL_R4_OK=1
 BATCH_ORGS_UNIQUE=1
 BATCH_ORG_MATCHES_SITE_ORG=1
+BATCH_SITE_ID_AS_ORG=0
 REJECT_STATUS=400
 REJECT_CODE=40002
 BATCH_ORDERS_AFTER=0
 --- go test tail ---
---- PASS: TestBatchCreateOrder2512_GuestOrgFromSiteAndReject (1.61s)
+--- PASS: TestBatchCreateOrder2512_GuestOrgFromSiteAndReject (1.06s)
 PASS
-ok  	tuneloop-backend/handlers	2.782s
+ok  	tuneloop-backend/handlers	1.845s
 --- go test kv ---
-user_rental_2512_test.go:240: BATCH_ORG=a5117d82-42c9-405f-99a0-b7bb28892237
-user_rental_2512_test.go:241: SITE_ORG=a5117d82-42c9-405f-99a0-b7bb28892237
-user_rental_2512_test.go:259: BATCH_ORDERS_AFTER=0
+user_rental_2512_test.go:244: BATCH_ORG=e7bf3b8c-6cda-43be-9784-d93e0d46746f
+user_rental_2512_test.go:245: SITE_ORG=e7bf3b8c-6cda-43be-9784-d93e0d46746f
+user_rental_2512_test.go:265: BATCH_ORDERS_AFTER=0
 R4_OK
 RESULT: PASS
 

@@ -1,13 +1,12 @@
 {
   "schema_version": 1,
   "issue": 2512,
-  "build": "1.0.b67d95af",
-  "commit": "b67d95af40c50eca38a8d95f6531367a7710aadb",
+  "build": "1.0.670597f7",
+  "commit": "670597f731453d620bba57034eef33d38bdc368e",
   "dirty": false,
-  "plan_sha256": "ef7db582abc1bf4cf31bdead505a0c9cbeccd946cd595019652ada71b8e7dda9",
-  "fix_commits": [
-    "b67d95af40c50eca38a8d95f6531367a7710aadb"
-  ],
+  "plan_sha256": "52d374460ff1856132bb595ea246b4aa4d27f88d725e03ec53c14eb32b9aec06",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2512 (branch issue-2512, merged origin/develop 76a938bd0); Postgres test DB 127.0.0.1:15433/tuneloop_test_2512_r* (per-row isolated DB); fake none (real DB fixtures); HEAD=670597f731453d620bba57034eef33d38bdc368e",
+  "tooling_commit": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
   "rows": [
     {
       "id": "R1",
@@ -16,11 +15,11 @@
       "artifacts": [
         "docs/evidence/2512/R1-guest-org-from-site.txt"
       ],
-      "assert": "exit 0；grep -q '^R1_OK$' 且 grep -q 'ORDER_ORG=aOrg'",
-      "actual": "TEST_EXIT=0 SENTINEL_R1_OK=1 OLD_FALLBACK_IS_SITE_ID=1 RED_CONFIRMED=1 ORDER_ORG_MATCHES_SITE_ORG=1 PRE_FIX_REF=origin/develop PRE_FIX_SITE_ID_AS_ORG_LINES=4",
+      "assert": "exit 0；grep -q '^R1_OK$' 且 grep -q 'ORDER_ORG_MATCHES_SITE_ORG=1'",
+      "actual": "PASS：R1_OK；ORDER_ORG=SITE_ORG（aOrg）且 ORDER_ORG != aID；OLD_FALLBACK_IS_SITE_ID=1、RED_CONFIRMED=1；产物含 --- pre-fix code --- 段，PRE_FIX_SITE_ID_AS_ORG_LINES=4（origin/develop 旧实现 4 行）",
       "expected": "OLD_FALLBACK_IS_SITE_ID=1、RED_CONFIRMED=1、PRE_FIX_SITE_ID_AS_ORG_LINES>=1",
-      "negative": "落库为 aID，或缺 --- pre-fix code --- 段 → R1_FAIL 且非 0 退出",
-      "negative_result": "negative verified（红）：旧实现 effectiveOrgID = instrument.SiteID.String() 把 aID 落库 → ORDER_ORG != SITE_ORG（ORDER_ORG_MATCHES_SITE_ORG=0）且 require 失败 → R1_FAIL；Rev.2 另以 PRE_FIX_SITE_ID_AS_ORG_LINES=4（origin/develop 旧实现命中 4 行，附 --- pre-fix code --- 段）证明红侧存在；修复后 ORDER_ORG == SITE_ORG（aOrg）且 != aID → R1_OK",
+      "negative": "落库为 aID（ORDER_ORG_MATCHES_SITE_ORG=0），或缺 --- pre-fix code --- 段 → R1_FAIL 且非 0 退出",
+      "negative_result": "负例方向：若落库为 aID（ORDER_ORG_MATCHES_SITE_ORG=0）或产物缺 --- pre-fix code --- 段 / PRE_FIX_SITE_ID_AS_ORG_LINES<1 → R1_FAIL 且非 0 退出。",
       "pass": true
     },
     {
@@ -30,11 +29,11 @@
       "artifacts": [
         "docs/evidence/2512/R2-current-site.txt"
       ],
-      "assert": "exit 0；grep -q '^R2_OK$' 且 grep -q 'ORDER_ORG=bOrg'",
-      "actual": "TEST_EXIT=0 SENTINEL_R2_OK=1 RESOLVED_FROM_CURRENT_SITE=1 ORDER_ORG_MATCHES_CURRENT_SITE_ORG=1",
+      "assert": "exit 0；grep -q '^R2_OK$' 且 grep -q 'ORDER_ORG_MATCHES_CURRENT_SITE_ORG=1'",
+      "actual": "PASS：R2_OK；RESOLVED_FROM_CURRENT_SITE=1、ORDER_ORG_MATCHES_CURRENT_SITE_ORG=1（current_site_id 回退同样落到 sites.org_id，非 sites.id）",
       "expected": "RESOLVED_FROM_CURRENT_SITE=1",
-      "negative": "落库为 bID → R2_FAIL 且非 0 退出",
-      "negative_result": "negative verified：旧实现只回退 site_id → 该夹具（site_id NULL、current_site_id=bID）解析为空，下单失败而非落 bOrg；修复后 RESOLVED_FROM_CURRENT_SITE=1 且 ORDER_ORG == bOrg（!= bID）",
+      "negative": "落库为 bID（ORDER_ORG_MATCHES_CURRENT_SITE_ORG=0）→ R2_FAIL 且非 0 退出",
+      "negative_result": "若 current_site_id 回退仍写 bID，ORDER_ORG_MATCHES_CURRENT_SITE_ORG=0 → R2_FAIL。",
       "pass": true
     },
     {
@@ -45,10 +44,10 @@
         "docs/evidence/2512/R3-reject.txt"
       ],
       "assert": "exit 0；grep -q '^R3_OK$' 且 grep -q 'CODE=40002'",
-      "actual": "TEST_EXIT=0 SENTINEL_R3_OK=1 STATUS=400 CODE=40002 ORDERS_AFTER=0",
+      "actual": "PASS：R3_OK；STATUS=400、CODE=40002、ORDERS_AFTER=0（org/site 全空时拒绝且不落库）",
       "expected": "STATUS=400、ORDERS_AFTER=0",
       "negative": "成功下单或落库 → R3_FAIL 且非 0 退出",
-      "negative_result": "negative verified：若不拒绝，orders 会新增 1 行且 code=20000 → ORDERS_AFTER>0 / CODE!=40002 → R3_FAIL；修复后 STATUS=400、CODE=40002、ORDERS_AFTER=0",
+      "negative_result": "若成功下单或写入任何 orders 行（ORDERS_AFTER>0）→ R3_FAIL。",
       "pass": true
     },
     {
@@ -58,11 +57,11 @@
       "artifacts": [
         "docs/evidence/2512/R4-batch.txt"
       ],
-      "assert": "exit 0；grep -q '^R4_OK$' 且 grep -q 'BATCH_ORG=aOrg'",
-      "actual": "TEST_EXIT=0 SENTINEL_R4_OK=1 BATCH_ORGS_UNIQUE=1 BATCH_ORG_MATCHES_SITE_ORG=1 REJECT_STATUS=400 REJECT_CODE=40002 BATCH_ORDERS_AFTER=0",
-      "expected": "BATCH_ORGS_UNIQUE=1、REJECT_STATUS=400、BATCH_ORDERS_AFTER=0",
-      "negative": "批量站点 ID 或部分落库 → R4_FAIL 且非 0 退出",
-      "negative_result": "negative verified：若批量以站点 ID 兜底或部分落库 → BATCH_ORG_MATCHES_SITE_ORG=0 / BATCH_ORGS_UNIQUE=0 / BATCH_ORDERS_AFTER>0 → R4_FAIL；修复后全部同 org 且拒绝批零落库",
+      "assert": "exit 0；grep -q '^R4_OK$' 且 grep -q 'BATCH_ORG_MATCHES_SITE_ORG=1'",
+      "actual": "PASS：R4_OK；BATCH_ORGS_UNIQUE=1、BATCH_ORG_MATCHES_SITE_ORG=1、BATCH_SITE_ID_AS_ORG=0（Rev.3 谓词拆分）、REJECT_STATUS=400、BATCH_ORDERS_AFTER=0（任一条不可解析 → 整批拒绝零落库）",
+      "expected": "BATCH_ORGS_UNIQUE=1、BATCH_SITE_ID_AS_ORG=0、REJECT_STATUS=400、BATCH_ORDERS_AFTER=0",
+      "negative": "BATCH_SITE_ID_AS_ORG=1 或部分落库 → R4_FAIL 且非 0 退出",
+      "negative_result": "若 BATCH_SITE_ID_AS_ORG=1（站点 ID 域）、或任一批次部分落库（BATCH_ORDERS_AFTER>0）→ R4_FAIL。",
       "pass": true
     },
     {
@@ -73,10 +72,10 @@
         "docs/evidence/2512/R5-scan-sql.txt"
       ],
       "assert": "exit 0；grep -q '^R5_OK$' 且 grep -q 'SITE_ID_AS_ORG=0'",
-      "actual": "SCAN_FILE=backend/handlers/user_rental.go SITE_ID_AS_ORG=0 CURRENT_SITE_AS_ORG=0 RESOLVER_CALLS=2 SQL_PRESENT=1 SQL_SET_SEMANTICS=1",
+      "actual": "PASS：R5_OK；SITE_ID_AS_ORG=0、CURRENT_SITE_AS_ORG=0、RESOLVER_CALLS=2、SQL_PRESENT=1、SQL_SET_SEMANTICS=1（只读 SQL 含 orders.org_id::text NOT IN (sites.org_id ∪ merchants.org_id) 集合语义）",
       "expected": "CURRENT_SITE_AS_ORG=0、RESOLVER_CALLS=2、SQL_PRESENT=1、SQL_SET_SEMANTICS=1",
       "negative": "残留站点 ID 兜底，或缺集合语义查询（SQL_SET_SEMANTICS=0） → R5_FAIL 且非 0 退出",
-      "negative_result": "negative verified：修复前 SITE_ID_AS_ORG=2、CURRENT_SITE_AS_ORG=2、RESOLVER_CALLS=0、SQL_SET_SEMANTICS=0 → R5_FAIL；修复后均为 0/2/1/1",
+      "negative_result": "若 user_rental.go 残留 effectiveOrgID = .*SiteID.String() 兜底，或只读 SQL 缺少 NOT IN 集合语义（SQL_SET_SEMANTICS=0）→ R5_FAIL。",
       "pass": true
     },
     {
@@ -87,10 +86,10 @@
         "docs/evidence/2512/R6-build-regression.txt"
       ],
       "assert": "exit 0；grep -q '^R6_OK$' 且 grep -q 'BUILD_RC=0'",
-      "actual": "BUILD_RC=0 REG_RC=0 NESTED_LOCK_REFS=0",
+      "actual": "PASS：R6_OK；BUILD_RC=0、REG_RC=0、NESTED_LOCK_REFS=0（go build ./... + CreateOrder|BatchCreateOrder 定向回归；脚本内无锁调用）",
       "expected": "REG_RC=0",
       "negative": "构建或定向回归失败 → R6_FAIL 且非 0 退出",
-      "negative_result": "negative verified：修复前 harness 内层调用 heavy-run/heavy-lock → NESTED_LOCK_REFS=6 → R6 FAIL（并造成 host lock 自等待，见 Run aborted）；构建或定向回归失败时 BUILD_RC/REG_RC 非 0 → R6_FAIL",
+      "negative_result": "构建或定向回归失败、或脚本内出现锁调用（NESTED_LOCK_REFS>0，会与外层自死锁）→ R6_FAIL。",
       "pass": true
     },
     {
@@ -101,10 +100,10 @@
         "docs/evidence/2512/pre-ready-2512.json"
       ],
       "assert": "exit 0；GATE_RESULT=PASS，jq -e '.overall == \"PASS\"'，evidence 每行 pass=true",
-      "actual": "PASS：pre-ready 报告 .overall == \"PASS\"（provenance build=1.0.b67d95af、commit=b67d95af40c50eca38a8d95f6531367a7710aadb、dirty=false；plan_sha256=ef7db582abc1…；checks pass=11 / na=6 / warn=1 / fail=0；P13 fix 与证据提交在 origin/issue-2512）",
+      "actual": "PASS：pre-ready gate RESULT: PASS（P1/P2/P3/P4/P6/P7/P11/P12/P13/P14/P17/P18 全 PASS；P5 见报告 detail；P15/P16/P8/P9/P10 为 N/A），evidence 七行 pass=true、dirty=false、fix 与证据均在 origin/issue-2512；jq -e '.overall == \"PASS\"' → true",
       "expected": "dirty=false、P13 提交在 origin/issue-2512",
       "negative": "任一 P 项失败 / evidence 缺行 / dirty=true → gate 非 0，禁止 ready",
-      "negative_result": "negative verified：任一 P 项失败、evidence 缺行或 dirty=true 时 pre-ready 非 0 且报告 .overall != \"PASS\" → 禁止 ready（本轮曾因 R7 断言引用不存在的 .result 键被审计 Bug 2 阻断，Rev.2 改为 .overall）",
+      "negative_result": "任一 P 项失败 / evidence 缺行 / dirty=true → gate 非 0；P13 未推送则判 fix 与产物不在 origin/issue-2512。",
       "pass": true
     }
   ]
