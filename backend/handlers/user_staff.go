@@ -819,6 +819,42 @@ func compensateSiteTransfer(iam *services.IAMClient, sub, oldOrg, newOrg, oldPri
 	return nil
 }
 
+// effectiveOrgID 返回 IAM 调用应使用的组织 ID（#2527 D3）。
+//
+// 归属权威是 membership（#2067/#2249），`users.org_id` 只是缓存：归属缺失的存量行
+// 该列为 nil UUID，直接当组织发给 IAM 会让调动/改角色必然失败。这里只做参数层派生，
+// **不回写** users.org_id/tenant_id（回填需 Owner 授权，见 #2527 T3 / D4）。
+//
+// 派生顺序：`site_members → sites.org_id`（#2508：sites.id ≠ sites.org_id），按
+// created_at 取最早一条有 org 的 membership；派不出来返回空串，由调用方显式拒绝。
+func effectiveOrgID(db *gorm.DB, ctx context.Context, user *models.User) (string, error) {
+	if user == nil {
+		return "", nil
+	}
+	if org := strings.TrimSpace(user.OrgID); !isNilAttribution(org) {
+		return org, nil
+	}
+	type orgRow struct {
+		OrgID string
+	}
+	var rows []orgRow
+	if err := db.WithContext(database.ExplicitTenantScopeOnly(ctx)).
+		Raw(`SELECT s.org_id AS org_id
+		     FROM site_members sm
+		     JOIN sites s ON s.id = sm.site_id
+		     WHERE sm.user_id = ?
+		       AND (sm.status = 'active' OR sm.status = '' OR sm.status IS NULL)
+		     ORDER BY sm.created_at ASC`, user.ID).Scan(&rows).Error; err != nil {
+		return "", fmt.Errorf("derive attribution org for user %s: %w", user.ID, err)
+	}
+	for _, row := range rows {
+		if org := strings.TrimSpace(row.OrgID); !isNilAttribution(org) {
+			return org, nil
+		}
+	}
+	return "", nil
+}
+
 // performSiteTransfer 执行 #2466 的网点迁移：IAM 先行（仅跨 org），本地单事务，
 // 失败按 D6 补偿并返回明确的 HTTP 状态（禁止半态）。
 func performSiteTransfer(c *gin.Context, db *gorm.DB, tenantID, userID string, user *models.User, target models.Site) (int, gin.H) {
@@ -826,8 +862,17 @@ func performSiteTransfer(c *gin.Context, db *gorm.DB, tenantID, userID string, u
 	if targetOrg == "" {
 		targetOrg = tenantID
 	}
-	oldOrg := user.OrgID
+	// #2527 R6/R7：oldOrg 必须来自归属权威（membership 派生），不能再直接消费
+	// users.org_id —— 归属缺失行的该列是 nil UUID，发给 IAM unbind 必然失败。
+	oldOrg, orgErr := effectiveOrgID(db, c.Request.Context(), user)
+	if orgErr != nil {
+		return http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to derive current organization: " + orgErr.Error()}
+	}
 	if oldOrg == "" {
+		// 无归属且确实需要 IAM 调用 → 显式拒绝（禁止把 nil UUID 当组织发出去）。
+		if user.IAMSub != "" {
+			return http.StatusBadRequest, gin.H{"code": 40002, "message": "账号归属缺失，请先补全成员关系"}
+		}
 		oldOrg = tenantID
 	}
 	orgChanged := targetOrg != oldOrg
@@ -1197,7 +1242,12 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 			updates["org_id"] = nil
 
 			if existingUser.IAMSub != "" {
-				oldOrgID := existingUser.OrgID
+				// #2527：解绑同样走归属派生，nil UUID 不得当组织发给 IAM。
+				oldOrgID, orgErr := effectiveOrgID(db, ctx, existingUser)
+				if orgErr != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to derive current organization: " + orgErr.Error()})
+					return
+				}
 				if oldOrgID != "" {
 					iamClient := services.NewIAMClient()
 					if err := iamClient.UnbindUserFromOrganization(existingUser.IAMSub, oldOrgID, ""); err != nil {
@@ -1234,17 +1284,22 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 		updates["role"] = newRole
 		// IAM 同步：失败进 role_errors（不阻断本地更新，D3/#2375）。
 		if existingUser.IAMSub != "" {
-			orgID := existingUser.OrgID
-			if orgID == "" {
-				orgID = tenantID
-			}
-			userToken := services.ExtractUserToken(c)
-			iamClient := services.NewIAMClient()
-			if err := iamClient.UpdateUserRoleInOrgWithToken(userToken, orgID, existingUser.IAMSub, toIAMRole(newRole)); err != nil {
-				roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "update IAM role: " + err.Error()})
-			}
-			if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, existingUser.IAMSub, orgID, newRole); err != nil {
-				roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "assign role template: " + err.Error()})
+			// #2527 R5/R7：IAM org 由 membership 派生（users.org_id 缺失时为 nil UUID）。
+			orgID, orgErr := effectiveOrgID(db, ctx, existingUser)
+			if orgErr != nil {
+				roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "derive IAM org: " + orgErr.Error()})
+			} else if orgID == "" {
+				// 无归属：仍按 #2375 D3 非阻断，但必须可见，且不得把 nil UUID 发给 IAM。
+				roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "account attribution missing: IAM role not synced"})
+			} else {
+				userToken := services.ExtractUserToken(c)
+				iamClient := services.NewIAMClient()
+				if err := iamClient.UpdateUserRoleInOrgWithToken(userToken, orgID, existingUser.IAMSub, toIAMRole(newRole)); err != nil {
+					roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "update IAM role: " + err.Error()})
+				}
+				if err := iamClient.AssignRoleTemplateToUserWithToken(userToken, existingUser.IAMSub, orgID, newRole); err != nil {
+					roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "assign role template: " + err.Error()})
+				}
 			}
 		}
 	}
@@ -1952,18 +2007,54 @@ func (h *UserStaffHandler) ResetPassword(c *gin.Context) {
 		return
 	}
 
-	// Map local user IDs to IAM subs
-	db := database.GetDB().WithContext(c.Request.Context())
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+
+	// #2527 R1/R2/R3：取行不再用 users.tenant_id 过滤（归属缺失行的 tenant_id 是
+	// nil UUID，会被静默丢弃），可见性交给 #2526 的唯一判定 personnelUserVisible，
+	// 并把每一行显式分类——空操作必须是可见的（禁止静默吞错）。
 	var users []models.User
-	if err := db.Where("id IN ? AND tenant_id = ? AND deleted_at IS NULL", req.UserIDs, middleware.GetTenantID(c.Request.Context())).Find(&users).Error; err != nil {
+	if err := db.WithContext(database.ExplicitTenantScopeOnly(ctx)).
+		Where("id IN ? AND deleted_at IS NULL", req.UserIDs).Find(&users).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query users: " + err.Error()})
 		return
 	}
 
-	// #2389：全部目标用户都没有邮箱 → 邮件重置必然“假成功”，显式 400（D2）。
-	if len(users) > 0 {
+	found := make(map[string]struct{}, len(users))
+	for _, user := range users {
+		found[user.ID] = struct{}{}
+	}
+
+	visibleUsers := make([]models.User, 0, len(users))
+	skippedInvisible := make([]string, 0)
+	skippedMissing := make([]string, 0)
+	for i := range users {
+		visible, err := personnelUserVisible(db, ctx, &users[i])
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to check user visibility: " + err.Error()})
+			return
+		}
+		if !visible {
+			skippedInvisible = append(skippedInvisible, users[i].ID)
+			continue
+		}
+		if strings.TrimSpace(users[i].IAMSub) == "" {
+			skippedMissing = append(skippedMissing, users[i].ID)
+			continue
+		}
+		visibleUsers = append(visibleUsers, users[i])
+	}
+	// 请求里不存在/已软删的 id 同样必须显式分类，不得静默丢弃。
+	for _, id := range req.UserIDs {
+		if _, ok := found[id]; !ok {
+			skippedMissing = append(skippedMissing, id)
+		}
+	}
+
+	// #2389：可见目标全部没有邮箱 → 邮件重置必然“假成功”，显式 400（D2）。
+	if len(visibleUsers) > 0 {
 		allWithoutEmail := true
-		for _, user := range users {
+		for _, user := range visibleUsers {
 			if strings.TrimSpace(user.Email) != "" {
 				allWithoutEmail = false
 				break
@@ -1973,6 +2064,10 @@ func (h *UserStaffHandler) ResetPassword(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"code":    40002,
 				"message": "该账号未配置邮箱，无法通过邮件重置，请使用管理员直设密码",
+				"data": gin.H{
+					"skipped_invisible": skippedInvisible,
+					"skipped_missing":   skippedMissing,
+				},
 			})
 			return
 		}
@@ -1981,20 +2076,24 @@ func (h *UserStaffHandler) ResetPassword(c *gin.Context) {
 	// #2389 Rev.3：混合批量只对有邮箱的用户发邮件；无邮箱的进入 skipped_no_email。
 	var iamSubs []string
 	skippedNoEmail := make([]string, 0)
-	for _, user := range users {
+	for _, user := range visibleUsers {
 		if strings.TrimSpace(user.Email) == "" {
 			skippedNoEmail = append(skippedNoEmail, user.ID)
 			continue
 		}
-		if user.IAMSub != "" {
-			iamSubs = append(iamSubs, user.IAMSub)
-		}
+		iamSubs = append(iamSubs, user.IAMSub)
 	}
 	if len(iamSubs) == 0 {
 		c.JSON(http.StatusOK, gin.H{
 			"code":    20000,
 			"message": "success",
-			"data":    gin.H{"sent": 0, "skipped": len(req.UserIDs), "skipped_no_email": skippedNoEmail},
+			"data": gin.H{
+				"sent":              0,
+				"skipped":           len(req.UserIDs),
+				"skipped_no_email":  skippedNoEmail,
+				"skipped_invisible": skippedInvisible,
+				"skipped_missing":   skippedMissing,
+			},
 		})
 		return
 	}
@@ -2021,8 +2120,11 @@ func (h *UserStaffHandler) ResetPassword(c *gin.Context) {
 		"code":    20000,
 		"message": "success",
 		"data": gin.H{
-			"sent":    result.Sent,
-			"skipped": result.Skipped,
+			"sent":              result.Sent,
+			"skipped":           result.Skipped,
+			"skipped_no_email":  skippedNoEmail,
+			"skipped_invisible": skippedInvisible,
+			"skipped_missing":   skippedMissing,
 		},
 	})
 }

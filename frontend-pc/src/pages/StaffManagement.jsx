@@ -8,6 +8,7 @@ import { isBusinessCorrectableConflict } from '../utils/formConflict'
 import PasswordSettingFields from '../components/PasswordSettingFields'
 import InitialPasswordModal from '../components/InitialPasswordModal'
 import { resolveCreateFeedback } from '../utils/createFeedback'
+import { resetPasswordSummary } from '../utils/resetPasswordSummary'
 import { buildPersonnelQuery, attributionMissingBadge } from '../utils/personnelQuery'
 import { isCreateIntent } from '../utils/staffCreateIntent'
 import { checkPermission, isSystemLevelRole, SysPermBits } from '../config/menuPermissions'
@@ -418,8 +419,19 @@ export default function StaffManagement() {
     try {
       const res = await staffApi.resetPassword(withEmail)
       if (res.code === 20000) {
-        const skipped = res.data?.skipped_no_email?.length || noEmail.length
-        message.success(skipped > 0 ? `已发送 ${withEmail.length} 封；${skipped} 个账号因未配置邮箱未发送` : `已发送重设密码邮件（${withEmail.length} 个用户）`)
+        // #2527：响应新增 skipped_invisible / skipped_missing / skipped_no_email，
+        // 必须消费（否则归属缺失行被跳过后界面仍是「已发送」= 静默）。
+        const summary = resetPasswordSummary({
+          ...res.data,
+          skipped_no_email: (res.data?.skipped_no_email?.length
+            ? res.data.skipped_no_email
+            : noEmail.map(u => u.id)),
+        })
+        if (summary.level === 'success') {
+          message.success(summary.text)
+        } else {
+          message.warning(summary.text)
+        }
         setSelectedRowKeys([])
       } else {
         message.error(res.message || '重设密码失败')

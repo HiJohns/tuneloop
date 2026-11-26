@@ -6515,6 +6515,52 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 
 ---
 
+#### 10.18.7 批量重置密码分类与 IAM 归属推导（#2527）
+
+**接口**: `POST /api/users/reset-password`、`PUT /api/users/:id`
+
+**批量重置密码（分类不再静默）**
+
+- 取行口径：`id IN ? AND deleted_at IS NULL`（显式作用域，**不**按 `users.tenant_id` 过滤——归属缺失行的该列是 nil UUID）
+- 可见性：逐行复用 §10.18.6 的唯一判定；不可见行、请求里不存在的 id、缺少 `iam_sub` 的可见行都必须显式分类
+- 无邮箱（#2389）：**可见集合**全部无邮箱 → `400 40002`；部分无邮箱 → 计入 `skipped_no_email`
+- 响应示例：
+
+```json
+{
+  "code": 20000,
+  "message": "success",
+  "data": {
+    "sent": 1,
+    "skipped": 0,
+    "skipped_no_email": [],
+    "skipped_invisible": ["<uuid>"],
+    "skipped_missing": []
+  }
+}
+```
+
+| 字段 | 语义 |
+|---|---|
+| `sent` | IAM 实际发送数（既有语义不变） |
+| `skipped` | IAM 跳过数（既有语义不变） |
+| `skipped_invisible` | 不在调用者可管理范围（§10.18.6 判定为不可见） |
+| `skipped_missing` | 请求 id 不存在/已删除，或可见行缺少 `iam_sub` |
+| `skipped_no_email` | 可见但未配置邮箱（#2389） |
+
+任一分类非空时调用方必须向用户提示（PC 端 `resetPasswordSummary`），禁止以 `20000` 掩盖空操作。
+
+**IAM 归属推导（`PUT /api/users/:id`）**
+
+- IAM 组织参数取值：`users.org_id` 非空且非 nil UUID → 原样使用；否则按 membership 派生 `site_members → sites.org_id`（`status='active'`，按 `created_at` 取最早一条有 org 的行）
+- 派生结果**只用于 IAM 参数**，不回写 `users.org_id` / `users.tenant_id`（回填需 Owner 授权）
+- 派生为空时：
+  - 网点调动 / 清空归属网点 → `400 40002`「账号归属缺失，请先补全成员关系」并中止
+  - 角色变更 → 本地更新照常成功，错误写入 `data.role_errors`（`account attribution missing`，非阻断，#2375 D3）
+- 任何情况下不得把 nil UUID 当作组织 ID 发给 IAM
+
+---
+
 
 ### 10.19 平台员工管理（#1795 T6）
 
