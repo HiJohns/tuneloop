@@ -1569,13 +1569,30 @@ API 来源：
 
 > **#2212 撤销 #2043/#2101 的错误菜单合并**，恢复两个独立页：「**乐器列表**」`/instruments/list`（渲染 `List.jsx`，乐器档案新增/编辑/导入/导出/设价/排序）与「**库存监控**」`/site/stock`（渲染 `InstrumentStock.jsx`，**透传 `?status=`**，Dashboard 链接不得破坏；工具栏含 导出/批量导入/批量设价/批量删除，按 cusPerm 门控）。
 
-- **列表列**：图片 / 识别码 / 分类 / 分级 / 网点 / 状态 / 估值（按权限显示）/ 加入时间 / 操作
+- **列表列（#2537 两页列口径区分）**：
+  - **乐器列表** `/instruments/list`（`List.jsx`）：图片 / 识别码 / 分类 / 乐器分级 / 加入时间 / 网点 / 状态 / 操作（**无**标准日租金、**无**押金列；价格口径归库存监控页）
+  - **库存监控** `/site/stock`（`InstrumentStock.jsx`）：图片 / 识别码 / 分类 / 所属网点 / 标准日租金 / **逾期租金** / **全额押金** / **差额押金** / 操作（**无**级别、**无**状态列）
+  - **识别码即详情入口**（D6）：两页「识别码」为可点击链接（乐器列表 → `/instruments/detail/:id`，库存监控 → `/site/stock/:id`），不再提供独立的「查看」/「详情」按钮
+- **价格列（#2528，2026-11-26 起按 #2537 拆分）**：
+  - 「标准日租金」= API `resolved_daily_rate`（pricing-v2 生效值，**分**）> 0 优先，回落 `base_daily_rate`；两者皆无/≤0 显示 `-`。展示必须经 `formatCents`（分→元），**禁止**裸 `toLocaleString()`（旧实现「估值」把分当元 → 放大 100 倍）
+  - 「逾期租金」= API `overdue_daily_fee`（**分**，与 pricing-v2 同链）；`null`/≤0 → `-`
+  - 「全额押金」= API `deposit`（分）：`null` → `-`（不伪造 0），显式 `0` → `¥0.00`
+  - 「差额押金」= API `deposit_reduced`（分）：`null` → `未配置`，显式 `0` → `¥0.00`（与详情页同文案）
+  - 旧列名「估值」与合并式「押金（差额 ¥X）」均已废弃
+  - 取源/换算/兜底统一走 `frontend-pc/src/utils/instrumentDisplay.js`（`instrumentImageSrc` / `formatDailyRate` / `formatOverdueDailyFee` / `formatDepositFull` / `formatDepositReduced`）
+- **图片列取源（#2528）**：`thumbnail` → `poster` → `images[0]`（兼容 JSON 字符串）→ **内置 data-URI 占位**；`onError` 回落同一占位。禁止引用未入库静态资源（旧 `/images/default-instrument.jpg` 即为 404 → 二次空图），也禁止新增二进制占位文件
 - **操作门控**：按 cusPerm **不渲染**无权限按钮
   - `update`：编辑 / 丢失 / 恢复；`delete`：删除 / 批量删除；`RequireRole`：批量设价
 - **状态范围按角色（服务端）**：员工默认 可用/在租/维护；管理员增量 下架/已出售/丢失——实现为服务端 `exclude_status=lost,archived,sold`（非管理员），客户端不再过滤
 - **服务端分页（#2140）**：Table 改服务端 `page`/`pageSize`，`total` 取后端 `data.total`；状态筛选服务端化（`?status=` → 查询 `stock_status`）；移除 `pageSize:200` 硬编码与客户端 `filteredAssets` 过滤
-- **字段可见性**：估值 → 管理员/商户管理员可见，员工隐藏
+- **字段可见性**：标准日租金 / 押金 → 管理员/商户管理员可见（代理 `hasCusPerm('instrument:delete')`），员工隐藏
 - **详情/编辑**：统一「资产卡片」组件（两旧详情路径收敛，兼容重定向）
+- **资产详情页（`/site/stock/:id` → `AssetDetail.jsx`，#2529）**：
+  - **取数**：`GET /api/instruments/:id` 单条（`GetInstrumentByID`）。**禁止**拉列表首页再内存查找（旧实现 `inventoryApi.list()` 无参 = 服务端第 1 页 20 条 → 第 2 页之后的乐器一律「资产不存在」）
+  - **三态**（`frontend-pc/src/utils/assetDetail.js` 的 `assetDetailState`）：`code=20000` 且有 data → 正常渲染；`code=40400` 或 data 为空 → 「**资产不存在或已删除**」+ 返回按钮；其它 code / 请求异常 → 「**加载失败：<message>**」+ 重试按钮（不得把三种情况都显示成「资产不存在」）
+  - **页头图片**：`assetHeroImage` = `media.display[0].url` → `poster` → `images[0]` → 内置占位；`onError` 回落同一占位（与列表同源，禁止引用未入库静态资源）
+  - **字段**：资产ID / 类别 / 级别 / 状态 / 所属网点 / **标准日租金**（API `base_daily_rate` 为**分**，必须经 `formatDailyRate` 显示元；未配置显示 `-`）
+  - **其它 PC 占位图**：`InstrumentListUser.jsx`、`IdPhotoDisplay.jsx` 的 `fallback` 统一为 `IMAGE_PLACEHOLDER`（`frontend-pc/src/utils/instrumentDisplay.js` 导出的同一 data-URI 常量），不得引用 `/placeholder-instrument.png` / `/placeholder.png`（均未入库 → 404）
 - **排序语义（#2241 方案 A）**：分类内排序——默认列表按分类分组、组内按 `sort_order`；行内上移/下移在组内换位并重排序号（不再出现记录被甩到列表尾部/跨页）。组内首/末：后端返回 `already first` / `already last`，前端以 **warning** 提示「已在最前 / 已在最后」并禁用该方向按钮；移动成功后自动回到默认组内视图（避免表头 created_at 排序下“看起来没反应”）。
 
 ### 2.24.1 成员角色多选（#2035）
@@ -2514,6 +2531,17 @@ const handleSyncUsersFromIAM = async () => {
 - 字段仅用于**平台代建**；商户管理员传入他人商户会被后端 **403** 拒绝。
 - 后端以该商户 `org_id` 作为 `sites.tenant_id` 与 IAM 新组织父级（锚模型见 #2266 / #2245）。
 
+**网点类型（2026-11-26 组织模型）**：
+
+| 类型 | 表单表现 | IAM 组织 |
+|---|---|---|
+| 直营店（默认） | 管理员**可选**（允许零成员） | `parent_id = 商户 org_id`（branch，无 OWNER） |
+| 加盟店 | **所有人（OWNER）必填** + 管理员可选 | 命名空间下独立组织（franchise，有 OWNER）+ `org_link` 关联当前商户 |
+| 合作店 | **不提供**（暂不做） | — |
+
+- 角色模板定义权归**组织 OWNER**（直营店 = 商户 OWNER；加盟店 = 自身 OWNER），网点管理员只能分配。
+- 中转网点（平台直属直营）在系统管理端创建，`parent_id = 命名空间组织`，无 OWNER（见 `docs/cases/transit.md`）。
+
 ---
 
 ### 3.10.3 权限管理页面设计（#660）
@@ -2600,6 +2628,8 @@ const handleSyncUsersFromIAM = async () => {
 | system_admin | 平台员工 + 中转网点成员 | 同商户管理员；平台员工显示「平台」、中转网点成员显示网点名 |
 
 职位列取 `position`（缺失时回退 role 映射；师傅显示「维修师傅」）。
+
+**#2526 归属缺失标记**：`attribution_missing=true` 的行（本地 `users.tenant_id`/`org_id` 为空或 nil UUID 的存量数据）在「所属网点」列网点名后追加 `归属缺失`（`Tag color="gold"`，`title` 说明为本地归属缺失、数据按成员关系展示、不影响编辑）。判定抽为纯函数 `frontend-pc/src/utils/personnelQuery.js` 的 `attributionMissingBadge(record)`（接受 `true` 与字符串 `'true'`），三视图一致；商户/网点/系统行均由后端同一来源填充。
 
 **#2462 角色列与编辑页预填口径**：
 - 角色列对直属员工（无 `site_members` 行 / 无 `site_name`）显示 `商户直属员工`（`merchant_staff`），不再显示「成员」；

@@ -442,3 +442,21 @@
 - 2026-11-25: 批量处理完成，包含任务: Resolved Issues: #2514
 - 2026-11-25: 批量处理完成，包含任务: Resolved Issues: #2513
 - 2026-11-25: 批量处理完成，包含任务: Resolved Issues: #2502
+- 2026-11-25: 批量处理完成，包含任务: Resolved Issues: #2518
+- 2026-11-25: 批量处理完成，包含任务: Resolved Issues: #2528
+- 2026-11-25: 批量处理完成，包含任务: Resolved Issues: #2529 (Ops Follow-ups #2533 #2534)
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2511
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2537
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2532
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2538
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2526
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2555
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2540
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2515
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2506
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2552
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2527（审计 PASS；Ops Follow-ups #2561 #2562）｜REJECT: #2488（D8 字段编辑清空 / catch 文案 / R1 判定表口径未闭环）
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2485
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2565
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2563
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: (none)｜REJECT: #2519（审计：Detail.jsx 仍用废弃 overrides 致逾期日费静默失效 / 批量上架取值 active|inactive 与状态白名单不符且按钮被 {false &&} 隐藏 / 独立 Issue 缺全量 gate；已退回 status:analysis 待 Architect Rev.7）

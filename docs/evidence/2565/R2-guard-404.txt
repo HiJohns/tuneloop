@@ -1,0 +1,6 @@
+# build=1.0.5a9d550c8 # commit=5a9d550c8230756ed92537700adc5d8d154e1e5c # dirty=false
+# tree=5a9d550c8230756ed92537700adc5d8d154e1e5c
+    user_activate_visibility_2565_test.go:78: GUARD_STATUS=404
+    user_activate_visibility_2565_test.go:79: GUARD_CODE=40400
+    user_activate_visibility_2565_test.go:80: GUARD_IAM_CALLS=0
+GO_TEST_EXIT=0

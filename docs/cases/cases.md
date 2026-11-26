@@ -189,9 +189,9 @@
 - `bind`: 完成用户与组织绑定
 
 **本地确认会话（状态跟踪）**:
-- Tuneloop 本地 `confirmation_sessions` 表仅用于状态跟踪
-- 新增 `iam_session_id` 字段关联 IAM 会话
-- 新增 `callback_url` 字段记录回调地址
+- Tuneloop 本地 `confirmation_sessions` 表仅用于状态跟踪（**2026-11-26 起该表通过迁移正式创建**，此前从未建表、特性不可用；见 #2543）
+- 列：`tenant_id/org_id/user_id/confirm_type/confirm_target/merchant_id/action_type/action_target_id/iam_session_id/callback_url/status/message/token(唯一)/expires_at/confirmed_at/created_at/updated_at`
+- **IAM 主体必须以 `users.iam_sub` 为准**：确认执行（如 `merchant_admin` 绑定组织）使用 `iam_sub`，`iam_sub` 为空时确认失败、**不得**发 IAM 请求（更不得发送本地 `users.id`）
 - 回调时同步更新本地会话状态
 
 **失败处理**:
@@ -287,6 +287,7 @@
 
 **数据模型**:
 - `sites.org_id` 语义变更：网点自身的 IAM 组织 ID（非商户的组织 ID）
+- **ID 域（#2511）**：`sites.id` 是站点主键、`sites.org_id` 是组织 ID，两者不可互换。`instruments.current_site_id` 只能由「操作者 `site_members.site_id`」或「`order.OrgID` → `sites.id` 反查（`resolveSiteIDByOrg`：单站点直取；多站点优先锚点 `sites.org_id == sites.tenant_id`，否则 `created_at` 最早；0 个不写入 + WARN）」得到，**任何路径不得直接写入组织 ID**（写入即触发 `instruments_current_site_id_fkey` 23503 / 验收门查不到站点）
 - `confirmation_sessions` 新增 `iam_session_id`、`callback_url` 字段
 
 ### 通用 IAM 绑定三步骤
@@ -1119,32 +1120,48 @@ due = 340 + 75 + 100 = 515；应退原价 = 340 − 515 = −175 → 补缴 ¥17
 可点击展开查看子网点
 右上角有『创建顶级网点』按钮
 
-### 4.1.2 新建网点
+### 4.1.2 新建网点（2026-11-26 组织模型）
 
 点击『创建顶级网点』
 URL切换到/sites/new
 右侧显示新建网点表单
-填写网点名称、类型（加盟/直营/合作店）、地址、联系电话
-**指定网点管理员**: 表单内嵌用户搜索框 + 「创建新用户」虚线按钮（见 §0.2），单选模式
-- 选中后显示管理员姓名和邮箱，可点击「更换」重新选择
-- 初始角色默认为 `site_admin`
+填写网点名称、**类型（直营店 / 加盟店）**、地址、联系电话
+
+> **类型语义**：合作店暂不提供（无选项、无入口）。存量网点全部按**直营店**处理。
+
+**直营店**（默认）
+- IAM 建 `parent_id = 所属商户 org_id` 的**分支组织**（`kind=branch`），**没有 OWNER**
+- 管理员**可选**：可零成员建店；指定时内嵌用户搜索（§0.2）+「创建新用户」，初始角色 `site_admin`
+- 角色模板由商户 **OWNER** 定义，直营店管理员只能分配、不能定义
+
+**加盟店**
+- 法律上独立：在**命名空间下建独立组织**（`kind=franchise`），**必须同步指定所有人（OWNER）**——不允许无 owner 建店
+- 建店后由商户代建 `org_link(kind=franchise)` 关联当前商户（默认继承角色模板）
+- 所有人选择器：本商户/命名空间内 active 用户，单选，必填
+
 提交前检查网点名是否重复
-**后端动作**:
-1. 调用 IAM `POST /api/v1/namespaces/:id/organizations` 创建下级组织（parent_id = 所属商户的 org_id）
+**后端动作（直营店）**:
+1. 调用 IAM `POST /api/v1/organizations` 创建子组织（`parent_id = 所属商户 org_id`，`kind=branch`；ADMIN 即可创建子组织）
 2. 存储返回的 org_id 到 site 记录（网点自身的 IAM 组织 ID）
-3. 执行 IAM 三步绑定（管理员角色 = site_admin）：
-   a. PUT /organizations/:oid/users/:uid/bind (action=bind, role=ADMIN)
-   b. PUT /organizations/:oid/users/:uid/customer-permissions (raw_bits=true, cus_perm=site_admin 模板值)
-   c. POST /users/:uid/roles (role_ids=[site_admin_template_id]) — 分配角色模板
-4. 本地 `site_members` 表同步创建成员记录
+3. 若指定了管理员：IAM `bind`（role=ADMIN）+ `customer-permissions`（按 site_admin 模板）+ `PUT /organizations/:oid/users/:uid/functional-roles`（集合语义，body `{"roles":["site_admin"]}`）
+4. 本地 `site_members` 表同步创建成员记录（零成员时不写）
+
+**后端动作（加盟店）**:
+1. IAM 建**独立组织**（`parent_id = null`，`kind=franchise`，namespace = 当前命名空间）→ 需 OWNER/命名空间管理员权限
+2. 绑定所选所有人：IAM `bind`（role=OWNER，首次绑定允许）+ `merchant`/`franchise` 模板
+3. 建 `org_link(kind=franchise, from=新建组织, to=当前商户)`（由 beaconiam#509 提供）
+4. 本地 `sites` + `site_members` 同步
+
 提交成功后左侧网点树自动更新并选中新建网点
 
 ### 4.1.3 查看网点详情
 
 点击网点树节点
 URL切换到/sites/:id
-右侧显示网点详情（名称、类型、地址、电话、负责人）
-负责人作为链接可点击跳转至/staff/:id
+右侧显示网点详情（名称、类型、地址、电话、管理员列表）
+- **直营店**：显示「管理员（可多个）」，不显示所有人
+- **加盟店**：显示「所有人（唯一，OWNER）」+ 管理员列表；所有人可链接跳转 `/staff/:id`
+- 网点没有 OWNER 时不得显示「负责人」字样（避免与 OWNER 混淆）
 
 ### 4.1.4 编辑网点
 
@@ -1169,17 +1186,18 @@ URL切换到/sites/:id/edit
 - **规则保护**: 若该用户是当前网点**最后一名管理员**，禁止将其切换为成员或删除
 - IAM 侧同步（升级/降级均需）：
   a. PUT /organizations/:oid/users/:uid/role — 更新 org role（ADMIN↔STAFF）
-  b. POST /users/:uid/roles — 重新分配角色模板（site_admin↔site_member）
+  b. PUT /organizations/:oid/users/:uid/functional-roles — **集合覆盖**（body `{"roles":[...]}`），不是 ADD；非受管码（customer/namespace_admin/自定义）必须保留（#2506）
+- 角色模板定义权：由**该组织 OWNER**（直营店 = 所属商户 OWNER；加盟店 = 自身 OWNER）定义，网点管理员只能分配
 - 本地 `site_members` 表同步更新角色字段
 
 #### 4.1.5.3 增加成员
 
 - 成员列表上方内嵌用户搜索框 + 「创建新用户」虚线按钮（见 §0.2），多选模式
 - 选中用户后显示在已选列表中，可继续搜索添加
-- 点击「确认添加」后，执行 IAM 三步绑定：
+- 点击「确认添加」后，执行 IAM 同步：
   1. PUT /organizations/:oid/users/:uid/bind — 绑定用户到网点，设置 org role（ADMIN|STAFF|WORKER）
-  2. PUT /organizations/:oid/users/:uid/customer-permissions (raw_bits=true) — 按角色模板写个人 cus_perm 位图
-  3. POST /users/:uid/roles — 分配功能角色模板（决定 JWT roles / sys_perm / cus_perm）
+  2. PUT /organizations/:oid/users/:uid/customer-permissions (raw_bits=true) — 按角色模板写个人 cus_perm 位图（直授权限）
+  3. PUT /organizations/:oid/users/:uid/functional-roles — **集合覆盖**写入功能角色集合（替代旧的 ADD 式 `POST /users/:uid/roles`，见 #2506）
 - 角色名映射规则：site_admin→ADMIN, site_member→STAFF, worker→WORKER（兼容旧格式 Manager/Staff）
 - 下级组织绑定仅需邮件通知，**无需用户确认**，即时生效
 - 本地 `site_members` 表同步创建记录
@@ -1214,7 +1232,9 @@ URL切换到/sites/:id/edit
 
 中转网点是受控商户与顾客之间的物流和信息隔离层。受控商户的货物通过中转网点转发，双方信息相互不可见。
 
-**创建**：中转网点由系统管理员在顶层组织下创建，复用标准网点管理界面。在网点表单中选择类型为"中转网点"。
+**创建**：中转网点由系统管理员创建，是**平台直属直营分支**——IAM `parent_id = 命名空间组织`（`kind=branch`，**没有 OWNER**），复用标准网点管理界面。在网点表单中选择类型为"中转网点"。
+
+> ⚠️ 2026-11-26 模型：中转网点**必须有自己的一级组织**（见 #2547）。现状实现只写本地 `sites` 行、成员直绑平台租户组织，属于待修复偏差；成员应绑定到 `sites.org_id` 指向的中转网点组织，角色模板继承命名空间级（系统管理员定义）。
 
 **路由配置**：系统管理员在路由配置界面（PC端）为每个受控商户网点指定对应的中转网点。一个受控网点只能对应一个中转网点，一个中转网点可服务多个受控网点。
 

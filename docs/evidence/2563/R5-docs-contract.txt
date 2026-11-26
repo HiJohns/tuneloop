@@ -1,0 +1,12 @@
+# build=1.0.16faa351d # commit=16faa351de3842a750f8f09c4bb0fe6f063d32a0 # dirty=false
+# docs/spec/api/api.md §1.3：PC 客户端非 2xx 契约段落
+DOC_SECTION_LINES=13
+DOC_HAS[PC 客户端非 2xx 契约]=1
+DOC_HAS[error.code]=1
+DOC_HAS[error.status]=1
+DOC_HAS[40002]=1
+DOC_HAS[catch]=1
+DOC_HAS[本域行为不变]=1
+DOC_HAS[40900]=1
+DOC_CONTRACT_OK=1
+R5_OK

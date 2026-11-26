@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Table, Button, Input, Space, Tag, Image, message, Popconfirm, Select, Modal, Form, InputNumber, Checkbox, Alert } from 'antd'
 import { Row, Col } from 'antd'
-import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, DollarOutlined, ImportOutlined, ExportOutlined, CloseCircleFilled } from '@ant-design/icons'
+import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined, DollarOutlined, ImportOutlined, ExportOutlined, CloseCircleFilled } from '@ant-design/icons'
 import { api, instrumentsApi, fetchBlob, pricingApi } from '../../../services/api'
 import { formatBeijingDate } from '../../../utils/date'
 import { resolveErrorMessage } from '../../../services/errorMessages'
@@ -14,6 +14,10 @@ import {
 } from '../../../utils/batchPricing'
 import InstrumentForm from './Form'
 import PermissionGate from '../../../components/PermissionGate'
+import {
+  INSTRUMENT_IMAGE_PLACEHOLDER,
+  instrumentImageSrc,
+} from '../../../utils/instrumentDisplay'
 
 const { Option } = Select
 
@@ -162,10 +166,10 @@ export default function InstrumentList() {
   const baseColumns = [
     {
       title: '图片',
-      dataIndex: 'images',
-      key: 'images',
+      dataIndex: 'thumbnail',
+      key: 'thumbnail',
       width: 80,
-      render: (images, record) => (
+      render: (_, record) => (
         <a 
           onClick={(e) => {
             e.preventDefault()
@@ -174,11 +178,13 @@ export default function InstrumentList() {
           className="cursor-pointer inline-block"
         >
           <Image
-            src={record.thumbnail || (images && images.length > 0 ? images[0] : '/images/default-instrument.jpg')}
+            src={instrumentImageSrc(record)}
             alt="instrument"
             width={50}
             height={50}
             className="object-cover rounded"
+            fallback={INSTRUMENT_IMAGE_PLACEHOLDER}
+            onError={(e) => { e.currentTarget.src = INSTRUMENT_IMAGE_PLACEHOLDER }}
           />
         </a>
       )
@@ -188,7 +194,20 @@ export default function InstrumentList() {
       dataIndex: 'sn',
       key: 'sn',
       width: 140,
-      render: (text, record) => <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{(text || record.sn) || '-'}</span>
+      // #2537 D6: 识别码即详情入口（不再有独立「查看」按钮）。
+      render: (text, record) => (
+        <Button
+          type="link"
+          size="small"
+          style={{ padding: 0, fontFamily: 'monospace', fontSize: 12 }}
+          onClick={(e) => {
+            e.stopPropagation()
+            navigate(`/instruments/detail/${record.id}`)
+          }}
+        >
+          {(text || record.sn) || '-'}
+        </Button>
+      )
     },
     {
       title: '分类',
@@ -234,6 +253,7 @@ export default function InstrumentList() {
         return <Tag color={config.color}>{config.text}</Tag>
       }
     },
+    // #2537 D2: 乐器列表不再显示标准日租金 / 押金（列口径归库存监控页）。
     {
       title: '操作',
       key: 'action',
@@ -264,9 +284,6 @@ export default function InstrumentList() {
               }}
             />
           </PermissionGate>
-          <Button type="link" icon={<EyeOutlined />} onClick={() => navigate(`/instruments/detail/${record.id}`)}>
-            查看
-          </Button>
           <PermissionGate code="instrument:delete">
             <Popconfirm
               title="确定要删除这个乐器吗？"

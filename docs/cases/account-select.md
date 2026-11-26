@@ -303,7 +303,12 @@ steps:
 - 用户名/密码登录后绑定微信时，若该微信**已绑定另一账户 Y**：
   - **拒绝** → 放弃绑定（当前账户不变）
   - **同意** → 合并：当前账户 X 的**组织绑定改挂到 Y** + X 标记 **`obsolete`** + **密码随迁** + **自动登出**；重新登录后可见「**切换身份**」（＝现有身份切换，`login_contexts`）
-- **扫码绑定二维码（#2445，Bind 页）**：管理员预建账户 X 的二维码被员工个人微信（已绑 Y）扫描时，Bind 页直接确认合并，无需 X 的用户名/密码；方向同上（X→obsolete、组织关系→Y），但**不迁移 X 密码**（保留员工个人账户密码），并同步 tuneloop 本地员工表（site_members / merchant_members / technician_profiles）。合并后清理会话，重新登录进入身份选择页，个人中心显示「切换身份」。
+- **扫码绑定二维码（#2445 / #2567，Bind 页）**：管理员预建账户 C 的绑定二维码发给顾客 A 扫描 → BIND 页提示「将绑定到 {组织}（原员工 {C}），原员工账户将**废止**」→ A 确认后：
+  - **C 置 `obsolete`（废止）**：保留可追溯、不可登录、不再出现在成员列表；
+  - **A 绑定到组织**，成员列表显示 **A**；`users.role/tenant_id/org_id` 经 `reconcileUserCache` 镜像；
+  - **密码**：A 尚无密码 → 合并确认后提示「设置登录密码 + 确认密码」；A 已有密码 → 跳过（**不迁移 C 的密码**）；
+  - 本地 `staff_invites(pending)`→`rejected(reason=account_merged)`、`confirmation_sessions(waiting)`→`cancelled`；IAM 队列归运维侧；
+  - 写审计 `ACCOUNT_MERGE`（from/to `iam_sub`、组织、来源 `qr_bind`）。
 - 与本文档既有「一微信多账户**分流/切换**」的关系：**新模型收敛为「一微信一账户」**，冲突走**合并**而非并存；存量"一 openid 多账户"需迁移/清理（生产当前为 0）
 
 ---

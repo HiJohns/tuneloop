@@ -1,0 +1,34 @@
+# build=1.0.0275ebc84 # commit=0275ebc843ea3087dcf9a9f316adb33619baadf2 # dirty=false
+== R4 same-class scan + build + targeted regression ==
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s31-p31-5e90ff at_ms=1795661216443 wait_ms=176
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s31-p31-5e90ff wait_ms=176
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795661224252 hold_ms=7809
+--- PASS: TestInspectReturn_NoShortfallCompletesOrder (0.69s)
+--- PASS: TestInspectReturn_Damaged_NotificationActionType (0.78s)
+--- PASS: TestInspectReturn_Good_RefundReceiptNotification (0.76s)
+--- PASS: TestAssessDamage_StatePreserved (0.84s)
+--- PASS: TestResolveOperatorSiteID (0.77s)
+--- PASS: TestInspectReturn_Damaged_SetsCurrentSiteID (0.66s)
+--- PASS: TestAssessDamage_SetsCurrentSiteID (0.75s)
+--- PASS: TestSubmitAssessment_Damaged_SetsCurrentSiteID (0.69s)
+--- PASS: TestInspectReturn_OverdueDays_CaMinusC (0.66s)
+--- PASS: TestInspectReturn_OverdueFee (0.80s)
+--- PASS: TestInspectReturn_NoOverdue (0.80s)
+--- PASS: TestInspectReturn_Good_ExecutesRefund (0.80s)
+--- PASS: TestInspectReturn2511_FallbackWritesSiteNotOrg (0.79s)
+--- PASS: TestAssessDamage2511_FallbackWritesSiteNotOrg (0.73s)
+--- PASS: TestInspectReturn2511_UnresolvableKeepsValue (0.70s)
+--- PASS: TestResolveSiteIDByOrg2511_Deterministic (1.37s)
+PASS
+ok  	tuneloop-backend/handlers	18.250s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795661249906 hold_ms=25406
+ASSESSMENT_ORG_ASSIGN=0
+TREE_ORG_ASSIGN=0
+RESOLVER_CALL=1
+LOCAL_RESOLVER_DEF=0
+WARN_LINE_PRESENT=1
+BUILD_RC=0
+REG_RC=0
+REG_PASS_COUNT=22
+REG_FAIL=0
+R4_OK
