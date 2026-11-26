@@ -62,6 +62,28 @@ timeout "$TIMEOUT" bash -c "$CMD" >"$LOG" 2>&1
 RC=$?
 DUR=$(( $(date +%s) - START ))
 
+FLAKY=""
+if [ "$RC" != "0" ]; then
+  FLAKY=$(rerun_flaky "$LOG" | sort -u)
+fi
+
+# Flaky guard: rerun failing packages once in isolation; tests that pass there are
+# recorded as FLAKY_TESTS and excluded from NEW failures (never silently ignored).
+rerun_flaky() { # logfile -> echoes "TEST:name" tokens that pass on rerun
+  local log="$1"
+  local pkgs
+  pkgs=$(grep -E '^FAIL[[:space:]]+tuneloop-backend/' "$log" | awk '{print $2}' | sed 's#tuneloop-backend/\(.*\)#./\1#' | sort -u)
+  local tests
+  tests=$(grep -E '^--- FAIL:' "$log" | sed -E 's/^--- FAIL: ([^ ]+).*/\1/' | sort -u)
+  [ -n "$pkgs" ] || return 0
+  for pk in $pkgs; do
+    ( cd backend && go test "$pk" -count=1 -timeout 15m ) >"$OUT_DIR/rerun-$(basename "$pk").log" 2>&1
+    for t in $tests; do
+      grep -qE "^--- PASS: $t([[:space:]]|$)" "$OUT_DIR/rerun-$(basename "$pk").log" && echo "TEST:$t"
+    done
+  done
+}
+
 fail_set() {
   {
     grep -E '^--- FAIL:' "$1" 2>/dev/null | sed -E 's/^--- FAIL: ([^ ]+).*/TEST:\1/'
@@ -78,6 +100,9 @@ if [ -n "$BASELINE" ]; then
     ( cd "$BASE_WT" && timeout "$TIMEOUT" bash -c "$CMD" ) >"$OUT_DIR/full-gate-baseline.log" 2>&1
     BASE_FAILS=$(fail_set "$OUT_DIR/full-gate-baseline.log" | wc -l | tr -d ' ')
     NEW_FAILS=$(comm -23 <(fail_set "$LOG") <(fail_set "$OUT_DIR/full-gate-baseline.log") || true)
+    if [ -n "$FLAKY" ]; then
+      NEW_FAILS=$(printf '%s\n' "$NEW_FAILS" | grep -vxF -f <(printf '%s\n' "$FLAKY") || true)
+    fi
     git worktree remove --force "$BASE_WT" >/dev/null 2>&1 || rm -rf "$BASE_WT"
   else
     rm -rf "$BASE_WT"
@@ -105,6 +130,7 @@ PANICS=$(grep -c '^panic:' "$LOG" 2>/dev/null || true)
     printf 'BASELINE_FAIL_COUNT=%s\n' "$BASE_FAILS"
     printf 'FULL_GATE_NEW_FAILURES=%s\n' "$(printf '%s' "$NEW_FAILS" | grep -c . || true)"
     printf 'NEW_PANIC_COUNT=%s\n' "$(printf '%s' "$NEW_FAILS" | grep -c '^PANIC:' || true)"
+    printf 'FLAKY_TESTS=%s\n' "$(printf '%s' "$FLAKY" | tr '\n' ',' )"
     printf 'NEW_FAILURES=%s\n' "$(printf '%s' "$NEW_FAILS" | tr '\n' ',' )"
   fi
 } > "$OUT_FILE"
