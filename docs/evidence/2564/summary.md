@@ -4,9 +4,9 @@
 
 - `frontend-pc/src/pages/admin/category/List.jsx`
   - 新增 `formConflict` state，import 共享件 `frontend-pc/src/utils/formConflict.js`（`isBusinessCorrectableConflict` / `conflictText`）与 `frontend-pc/src/components/FormConflictAlert.jsx`，**未自写 Alert / 未复制白名单**（D3）。
-  - `handleFormSubmit` 的 `catch`：`errorFields` 保持原行为（表单自身展示，不发 toast）；命中 `isBusinessCorrectableConflict(error)` → `setFormConflict(conflictText(error, '请修改后重新提交'))` 并 `return`；其余仍走 `message.error` 瞬时兜底。
+  - `handleFormSubmit` 的 `catch`：`errorFields` 保持原行为（表单自身展示，不发 toast）；命中 `isBusinessCorrectableConflict(error)` → `setFormConflict(conflictText(error, '请修改后重新提交'))` 并 `return`；其余仍走 message.error 瞬时兜底。
   - **更新分支**：`updated.code !== 20000` 时先判业务可纠正冲突（对象返回的 404/409 兜底）→ 置持久提示；否则 `message.error`；两种情况都 `return`，**不再报「更新成功」/不关闭弹窗**。
-  - **创建分支**：成功判定改为 `response.code === 20000 || response.code === 20100`（D1：`CreateCategory` 实际返回 20100），使既有 `message.success('创建成功')` 与 `setSelectedParentId` 死分支恢复；失败时同样先判冲突置持久提示，否则 `message.error` 并 `return`。
+  - **创建分支**：成功判定改为 `response.code === 20000 || response.code === 20100`（D1：`CreateCategory` 实际返回 20100），使既有 message.success('创建成功') 与 `setSelectedParentId` 死分支恢复；失败时同样先判冲突置持久提示，否则 `message.error` 并 `return`。
   - Modal 表单上方渲染 `<FormConflictAlert text={formConflict} testId="category-form-conflict" />`；`onValuesChange` 清空陈旧提示（#2480 D8），打开弹窗/提交开始/成功亦清空。
 - `scripts/verify-2564.sh`（新增）：r1–r3 证据生成器，artifact 首行写 provenance（build/commit/dirty）。
 
@@ -85,7 +85,7 @@
 
 ### 依赖 / 边界
 
-- 前置 #2563 已 `status:done` 且合入 `origin/develop`（本 worktree 基线 `76a938bd0` 已含 `services/apiError.js` 的 code 透传；D5 满足）。
+- 前置 #2563 已 `status:done` 且合入 `origin/develop`（本 worktree 基线 `76a938bd0` 已含 `frontend-pc/src/services/apiError.js` 的 code 透传；D5 满足）。
 - 本 Issue 未修改验收工具/规则；Out of Scope（传输层、Batch 2 其余页面 `#2486`、`handleDelete` 40003、后端错误码重构、PC 测试基建）保持未触碰。
 
 ### 人工/部署侧
