@@ -1,9 +1,10 @@
-# build=1.0.1b85f9acd # commit=1b85f9acded29232036e78f8416f0c069bbfdcef # dirty=false
-# tree=e07a235a083e0691a0ddd32c42bf99a7734ad924
+# build=1.0.a98106a26 # commit=a98106a2600b8cc72a35a404769eb358624bcd35 # dirty=false
+# tree=a98106a2600b8cc72a35a404769eb358624bcd35
 SHARED_IMPORT=1
 PERSIST_ALERT=1
 CODE_FIRST=1
 CONFLICT_TEXT=1
 CLEAR_CALLS=6
 LOCAL_CODE_LIST=0
+API_ERROR_CODE=1
 PAGE=frontend-pc/src/pages/System/MallImageManageCard.jsx
