@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "issue": 2564,
+  "build": "1.0.869bd336c",
+  "commit": "869bd336caad7b3889984fe1c8ff4c72358d1dc6",
+  "dirty": false,
+  "plan_sha256": "b0d4e3be3b99e40fb1eeb020b61191473dfc7e5a0b8c6ee672ab506617af692e",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2564 (branch issue-2564, base origin/develop 76a938bd0); PC-only static/structural evidence (Owner UI static exemption D4); node --test not re-run (shared unit tests unchanged, owned by #2563); HEAD=869bd336caad7b3889984fe1c8ff4c72358d1dc6",
+  "tooling_commit": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2564.sh r1 > docs/evidence/2564/R1-consumer-wiring.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2564/R1-consumer-wiring.txt"
+      ],
+      "assert": "exit 0；grep -q '^R1_OK$'；grep -q 'CONFLICT_BRANCH_IN_CATCH=1'",
+      "actual": "PASS：CONFLICT_BRANCH_IN_CATCH=1、CONFLICT_TEXT_FALLBACK=1、ALERT_RENDERED=1、CLEAR_ON_CHANGE=1、SHARED_REUSE=1、LOCAL_ALERT_DUP=0、FALLBACK_TOAST=1、R1_OK（页面 catch 命中 40002/40004/40005/40900 时置表单内持久提示，非冲突错误保留 toast 兜底）",
+      "expected": "7 个标记全部为期望值（含 LOCAL_ALERT_DUP=0、CLEAR_ON_CHANGE=1）",
+      "negative": "catch 无 code 判定、自写 Alert、或删掉兜底 toast → R1_FAIL 并非 0 退出",
+      "negative_result": "负例方向：若 catch 不判 `isBusinessCorrectableConflict`（回到只 toast）、自写 `<Alert>`（LOCAL_ALERT_DUP>0）、或删掉兜底 `message.error`（FALLBACK_TOAST=0）→ 对应标记失败、R1_FAIL 且非 0 退出。",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2564.sh r2 > docs/evidence/2564/R2-code-first.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2564/R2-code-first.txt"
+      ],
+      "assert": "exit 0；grep -q '^R2_OK$'；grep -q 'CREATE_ACCEPTS_20100=1'",
+      "actual": "PASS：CREATE_ACCEPTS_20100=1、UPDATE_CODE_GUARD=1、NONOK_RETURN_BEFORE_CLOSE=2、GREEN_CODE_FIRST=1、RED_SINGLE_CODE_CHECK=1、RED_NO_CATCH_BRANCH=1、R2_OK（创建接受 20000/20100；更新失败不报成功也不关弹窗；红样取自该文件最近变更提交的父提交）",
+      "expected": "UPDATE_CODE_GUARD=1、NONOK_RETURN_BEFORE_CLOSE=2、RED_SINGLE_CODE_CHECK=1、RED_NO_CATCH_BRANCH=1",
+      "negative": "仍只判 20000、失败分支仍 setModalVisible(false) 或仍报「更新成功」→ R2_FAIL 并非 0 退出",
+      "negative_result": "红样实测：修复前页面只有 `response.code === 20000`（无 20100）且 catch 无 code 判定 → RED_SINGLE_CODE_CHECK=1、RED_NO_CATCH_BRANCH=1；若修后仍只判 20000 或失败分支落到 `setModalVisible(false)`，NONOK_RETURN_BEFORE_CLOSE≠2 → R2_FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2564.sh r3 > docs/evidence/2564/R3-build-lint.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2564/R3-build-lint.txt"
+      ],
+      "assert": "exit 0；grep -q '^R3_OK$'；grep -q 'BUILD_EXIT=0'；grep -q 'ESLINT_NO_UNDEF=0'",
+      "actual": "PASS：BUILD_EXIT=0、ESLINT_EXIT=0、ESLINT_NO_UNDEF=0、R3_OK（frontend-pc npm run build 成功；改动文件 eslint 0 error / 2 个既有 warning）",
+      "expected": "构建 0 退出、no-undef 计数 0",
+      "negative": "构建非 0 或 no-undef > 0 → R3_FAIL 并非 0 退出",
+      "negative_result": "构建非 0 或 eslint 出现 `no-undef` → BUILD_EXIT≠0 / ESLINT_NO_UNDEF>0 → R3_FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "/home/coder/.config/opencode/scripts/pre-ready-check.sh 2564 --summary-file docs/evidence/2564/summary.md --changed-files docs/evidence/2564/changed-files.txt --evidence-file docs/evidence/2564/evidence.json --full-gate-cmd \"cd frontend-pc && npm run build\" --report docs/evidence/2564/pre-ready-2564.json",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2564/pre-ready-2564.json"
+      ],
+      "assert": "exit 0；GATE_RESULT=PASS；jq -e '.result == \"PASS\"'",
+      "actual": "PASS：pre-ready gate `RESULT: PASS`（P1/P2/P3/P4/P6/P7/P11/P12/P13/P14/P17/P18 全 PASS；P15/P16/P8/P9/P10 为 N/A），evidence 四行 pass=true、dirty=false、fix commit 与证据均在 origin/issue-2564",
+      "expected": "每条合同行 pass=true、dirty=false、P13 提交在 origin/issue-2564",
+      "negative": "任一 P 项失败 / evidence.json 缺行 / dirty=true → gate 非 0，禁止 ready",
+      "negative_result": "任一 P 项失败、evidence.json 缺行或 `dirty=true` → gate 非 0；P13 未推送则判 fix/artifacts 不在 origin/issue-2564。",
+      "pass": true
+    }
+  ]
+}

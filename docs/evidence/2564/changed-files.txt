@@ -1,0 +1,10 @@
+frontend-pc/src/pages/admin/category/List.jsx
+scripts/verify-2564.sh
+docs/evidence/2564/plan.md
+docs/evidence/2564/summary.md
+docs/evidence/2564/changed-files.txt
+docs/evidence/2564/evidence.json
+docs/evidence/2564/R1-consumer-wiring.txt
+docs/evidence/2564/R2-code-first.txt
+docs/evidence/2564/R3-build-lint.txt
+docs/evidence/2564/pre-ready-2564.json

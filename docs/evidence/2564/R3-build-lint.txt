@@ -1,0 +1,16 @@
+# build=1.0.869bd336c # commit=869bd336caad7b3889984fe1c8ff4c72358d1dc6 # dirty=false
+# generated_at=2026-11-26T15:59:40Z HEAD=869bd336caad7b3889984fe1c8ff4c72358d1dc6
+BUILD_EXIT=0
+ESLINT_EXIT=0
+ESLINT_NO_UNDEF=0
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 23.75s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795708777397 hold_ms=24608
+  77:6  warning  React Hook useEffect has a missing dependency: 'fetchCategories'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+✖ 2 problems (0 errors, 2 warnings)
+
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795708780219 hold_ms=2695
+BUILD_EXIT=0
+ESLINT_NO_UNDEF=0
+R3_OK
