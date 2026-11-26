@@ -459,3 +459,4 @@
 - 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2485
 - 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2565
 - 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2563
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: (none)｜REJECT: #2519（审计：Detail.jsx 仍用废弃 overrides 致逾期日费静默失效 / 批量上架取值 active|inactive 与状态白名单不符且按钮被 {false &&} 隐藏 / 独立 Issue 缺全量 gate；已退回 status:analysis 待 Architect Rev.7）
