@@ -1,7 +1,7 @@
 {
   "issue": 2532,
-  "overall": "FAIL",
-  "plan": "/home/coder/worktrees/tuneloop/wt-2532/tmp/pre-ready-2532.VLjRF6/plan.md",
+  "overall": "PASS",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2532/tmp/pre-ready-2532.juKs04/plan.md",
   "plan_sha256": "4add6ab58b866c52d0a84d49b2c98e7d4fe4052ef6f3b4166774969400abd24f",
   "config_sha": "8a98b9aae65c6ac3cd894919a9cea280167e2e11",
   "provenance": {
@@ -10,7 +10,7 @@
     "dirty": false
   },
   "summary": "docs/evidence/2532/summary.md",
-  "timestamp": "20261126-021924",
+  "timestamp": "20261126-022036",
   "checks": [
     {
       "id": "P1",
@@ -24,8 +24,8 @@
     },
     {
       "id": "P3",
-      "status": "FAIL",
-      "detail": "evidence paths do not exist: .overall=PASS assessment.go assessment.go:132-140 build=1.0.0275ebc84 changed-files.txt docs/evidence/2532/pre-ready-2532.json instruments.current_site_id inventory.go order.OrgID sites.id"
+      "status": "PASS",
+      "detail": "all referenced evidence paths exist and are durable"
     },
     {
       "id": "P4",
@@ -34,13 +34,13 @@
     },
     {
       "id": "P12",
-      "status": "FAIL",
-      "detail": "R5: artifact not found: docs/evidence/2532/pre-ready-2532.json"
+      "status": "PASS",
+      "detail": "Evidence Contract complete: 5 row(s) match the plan and have durable artifacts"
     },
     {
       "id": "P14",
-      "status": "FAIL",
-      "detail": "artifact missing: docs/evidence/2532/pre-ready-2532.json"
+      "status": "PASS",
+      "detail": "artifact provenance matches evidence (5 artifacts)"
     },
     {
       "id": "P18",
@@ -64,8 +64,8 @@
     },
     {
       "id": "P5",
-      "status": "N/A",
-      "detail": "skipped: P12/P14/P15/P16 static checks failed (static checks run first)"
+      "status": "WARN",
+      "detail": "baseline gate also failed (rc=127); no parseable baseline failures, cannot prove subset"
     },
     {
       "id": "P6",
@@ -99,8 +99,8 @@
     },
     {
       "id": "P13",
-      "status": "FAIL",
-      "detail": "artifacts not on origin/issue-2532: docs/evidence/2532/pre-ready-2532.json"
+      "status": "PASS",
+      "detail": "fix commit and evidence artifacts are on origin/issue-2532"
     }
   ]
 }
