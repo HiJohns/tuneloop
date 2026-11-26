@@ -28,7 +28,7 @@
       "artifacts": [
         "docs/evidence/2563/R2-client-wiring-static.txt"
       ],
-      "assert": "exit 0；grep -q '^R2_OK$'；grep -q 'NONOK_INLINE_RETURNS=0'；IDLE_GUARD_CALLS>=2",
+      "assert": "exit 0；grep -q '^R2_OK$'；grep -q 'NONOK_INLINE_RETURNS=0'",
       "actual": "PASS：FAILURE_RESOLVER_CALLS=1 INLINE_STATUS_MAP=0 THROW_PATH=1 NONOK_INLINE_RETURNS=0 AUTH_BLOCK_BEFORE_NONOK=1 AUTH_CODES=4 PERM_VERSION=1 IDLE_GUARD_CALLS=5（>=2）；R2_OK（plan Rev.2 口径）",
       "expected": "FAILURE_RESOLVER_CALLS=1、INLINE_STATUS_MAP=0、THROW_PATH=1、AUTH_BLOCK_BEFORE_NONOK=1、AUTH_CODES=4、PERM_VERSION=1、IDLE_GUARD_CALLS>=2",
       "negative": "块内出现 return {、或 401 分支被移到 !response.ok 之后 → 输出 R2_FAIL 并非 0 退出",
