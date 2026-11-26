@@ -1,0 +1,12 @@
+# build=1.0.b67d95af # commit=b67d95af40c50eca38a8d95f6531367a7710aadb # dirty=false
+GENERATED_AT_HEAD=b67d95af40c50eca38a8d95f6531367a7710aadb
+PROVENANCE: fix=b67d95af40c50eca38a8d95f6531367a7710aadb request=2512-20261126T111600Z ts=2026-11-26T11:17:20Z
+CMD: go build ./...
+PWD: /tmp/opencode/tuneloop/reverify-2512
+GO_VERSION: go version go1.22.5 linux/amd64
+--- output ---
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s46-p46-f8e110 at_ms=1795691933520 wait_ms=92023
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s46-p46-f8e110 wait_ms=92023
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795691964468 hold_ms=30948
+EXIT=0
+TOOLCHAIN=bootstrap go1.22.5, module go 1.25.0 resolved via GOTOOLCHAIN=auto (cached toolchain go1.25.0)

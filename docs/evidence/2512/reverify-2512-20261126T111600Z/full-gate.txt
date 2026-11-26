@@ -1,0 +1,59 @@
+# build=1.0.b67d95af # commit=b67d95af40c50eca38a8d95f6531367a7710aadb # dirty=false
+GENERATED_AT_HEAD=b67d95af40c50eca38a8d95f6531367a7710aadb
+PROVENANCE: fix=b67d95af40c50eca38a8d95f6531367a7710aadb request=2512-20261126T111600Z ts=2026-11-26T11:19:25Z
+CMD: cd backend && go test ./... -count=1 -timeout 30m
+PWD: /tmp/opencode/tuneloop/reverify-2512
+GO_VERSION: go version go1.22.5 linux/amd64
+BUILD_RC=0
+--- output ---
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s46-p46-f8e110 at_ms=1795692096358 wait_ms=130668
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s46-p46-f8e110 wait_ms=130668
+?   	tuneloop-backend	[no test files]
+?   	tuneloop-backend/cmd/migrate	[no test files]
+ok  	tuneloop-backend/database	3.030s
+# github.com/mattn/go-sqlite3
+sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
+sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+123133 |   zTail = strrchr(zName, '_');
+       |         ^
+ok  	tuneloop-backend/handlers	887.201s
+?   	tuneloop-backend/handlers/testfixtures	[no test files]
+?   	tuneloop-backend/internal/engine	[no test files]
+?   	tuneloop-backend/internal/service	[no test files]
+?   	tuneloop-backend/internal/tasks	[no test files]
+ok  	tuneloop-backend/middleware	0.030s
+ok  	tuneloop-backend/models	0.011s
+ok  	tuneloop-backend/service	0.015s
+ok  	tuneloop-backend/services	13.491s
+ok  	tuneloop-backend/services/tencentcloud	0.006s
+ok  	tuneloop-backend/services/wechatpay	0.066s
+?   	tuneloop-backend/testutil	[no test files]
+?   	tuneloop-backend/tools/merge_duplicate_accounts	[no test files]
+?   	tuneloop-backend/tools/oss_smoke	[no test files]
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795693023515 hold_ms=927157
+FULL_GATE_EXIT=0
+DURATION_SECONDS=1059
+FAIL_COUNT=0
+PANIC_COUNT=0
+PACKAGE_OK_COUNT=8
+TOOLCHAIN=bootstrap go1.22.5, module go 1.25.0 resolved via GOTOOLCHAIN=auto (cached toolchain go1.25.0)
+GATE_TAIL_BEGIN
+--- output ---
+?   	tuneloop-backend	[no test files]
+?   	tuneloop-backend/cmd/migrate	[no test files]
+ok  	tuneloop-backend/database	3.030s
+ok  	tuneloop-backend/handlers	887.201s
+?   	tuneloop-backend/handlers/testfixtures	[no test files]
+?   	tuneloop-backend/internal/engine	[no test files]
+?   	tuneloop-backend/internal/service	[no test files]
+?   	tuneloop-backend/internal/tasks	[no test files]
+ok  	tuneloop-backend/middleware	0.030s
+ok  	tuneloop-backend/models	0.011s
+ok  	tuneloop-backend/service	0.015s
+ok  	tuneloop-backend/services	13.491s
+ok  	tuneloop-backend/services/tencentcloud	0.006s
+ok  	tuneloop-backend/services/wechatpay	0.066s
+?   	tuneloop-backend/testutil	[no test files]
+?   	tuneloop-backend/tools/merge_duplicate_accounts	[no test files]
+?   	tuneloop-backend/tools/oss_smoke	[no test files]
+GATE_TAIL_END

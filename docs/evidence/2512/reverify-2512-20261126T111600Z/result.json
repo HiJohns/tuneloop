@@ -1,0 +1,43 @@
+PROVENANCE: fix=b67d95af40c50eca38a8d95f6531367a7710aadb request=2512-20261126T111600Z ts=2026-11-26T11:40:00Z
+{
+  "request_id": "2512-20261126T111600Z",
+  "fix_commit": "b67d95af40c50eca38a8d95f6531367a7710aadb",
+  "ts": "2026-11-26T11:40:00Z",
+  "result": "PASS",
+  "source_tree": "origin/issue-2512 @ b67d95af40c50eca38a8d95f6531367a7710aadb (isolated fix-commit tree; NOT a develop+siblings merge tree)",
+  "worktree": "/tmp/opencode/tuneloop/reverify-2512",
+  "worktree_head": "b67d95af40c50eca38a8d95f6531367a7710aadb",
+  "dirty_business_code": false,
+  "toolchain": "bootstrap go1.22.5; module go 1.25.0 resolved via GOTOOLCHAIN=auto (cached toolchain go1.25.0)",
+  "env_setup": "backend/.env provisioned from local dev env (gitignored) so package tests can reach PostgreSQL; no business code changed",
+  "commands": [
+    {
+      "index": 1,
+      "command": "cd backend && go build ./...",
+      "exit": 0,
+      "log": "command-1.txt",
+      "lock_wait_ms": 92023,
+      "hold_ms": 30948
+    },
+    {
+      "index": 2,
+      "command": "cd backend && go test ./... -count=1 -timeout 30m",
+      "exit": 0,
+      "log": "full-gate.txt",
+      "lock_wait_ms": 130668,
+      "hold_ms": 927157,
+      "duration_seconds": 1059
+    }
+  ],
+  "full_gate": {
+    "artifact": "full-gate.txt",
+    "cmd": "cd backend && go build ./... && go test ./... -count=1 -timeout 30m",
+    "build_rc": 0,
+    "exit": 0,
+    "fail_count": 0,
+    "panic_count": 0,
+    "package_ok_count": 8,
+    "packages_without_tests": 9,
+    "duration_seconds": 1059
+  }
+}
