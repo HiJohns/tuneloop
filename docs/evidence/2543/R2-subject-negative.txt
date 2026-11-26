@@ -1,0 +1,27 @@
+# build=1.0.31045aed2 # commit=31045aed2ba7226629346cc1df6f61e1403df743 # dirty=false
+# R2 负例：不得出现以本地 users.id 为主体的 IAM 请求（源码 + 运行时 0 调用）
+# CMD go test -count=1 -run 'TestExecuteAction_MerchantAdmin_NoIAMWrite_2543' ./handlers/
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 at_ms=1795704998752 wait_ms=170
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s73-p73-e3f2d4 wait_ms=170
+[DEBUG] Loaded .env from: ../.env
+2026/11/26 14:56:43 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d sslmode=disable
+2026/11/26 14:56:43 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d
+2026/11/26 14:56:43 [DB] Connected to database 'tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d'
+=== RUN   TestExecuteAction_MerchantAdmin_NoIAMWrite_2543
+2026/11/26 14:56:44 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d sslmode=disable
+2026/11/26 14:56:44 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d
+2026/11/26 14:56:44 [DB] Connected to database 'tuneloop_test_node_ip_172_31_5__s73_p73_e3f2d4_d9501f3d'
+
+2026/11/26 14:56:44 [32m/home/coder/worktrees/tuneloop/wt-2543/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[551.319ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/26 14:56:45 [TenantScope][observe] auto-scope injected for table=confirmation_sessions (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/26 14:56:45 [Confirm] merchant_admin action is local-only (no IAM write) merchant=d0dcc253-bc00-43df-93da-1f7e1be499cc user=92c337e8-065d-48fc-90c6-787f7f0e9acc
+    confirmation_session_iam_subject_2543_test.go:146: CONFIRM_STATUS=200 SESSION_STATUS=confirmed USER_STATUS=active IAM_CALLS=0
+--- PASS: TestExecuteAction_MerchantAdmin_NoIAMWrite_2543 (1.06s)
+PASS
+ok  	tuneloop-backend/handlers	1.777s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795705005309 hold_ms=6557
+GO_TEST_RC=0
+IAM_CLIENT_REFS=0
+BIND_SESSION_USERID_HITS=0
+LOCAL_ID_AS_IAM_SUBJECT=0

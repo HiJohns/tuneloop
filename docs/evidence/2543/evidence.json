@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "issue": 2543,
+  "build": "1.0.31045aed2",
+  "commit": "31045aed2ba7226629346cc1df6f61e1403df743",
+  "dirty": false,
+  "plan_sha256": "8a7934a3e1cf119528e63ef66622f2fac536850cce1f7a0b7f5a8b9f8e9d0a31",
+  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2543 (branch issue-2543, base origin/develop 758e447ed); go1.27.4; postgres via backend/.env (test template clone tuneloop_test_*); IAM spy server via httptest (services.SetIAMInternalURLForTesting) counting every request; scripts/verify-2543.sh r1-r5 under host heavy-lock",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2543.sh r1",
+      "artifacts": [
+        "docs/evidence/2543/R1-no-iam-write.txt"
+      ],
+      "assert": "exit 0；grep CONFIRM_STATUS=200、SESSION_STATUS=confirmed、USER_STATUS=active、IAM_CALLS=0",
+      "actual": "PASS：CONFIRM_STATUS=200 SESSION_STATUS=confirmed USER_STATUS=active IAM_CALLS=0（经 POST /confirmation-sessions/:id/confirm，用户由 pending 激活为 active）",
+      "negative": "IAM_CALLS>0 或 CONFIRM_STATUS≠200 → FAIL",
+      "negative_result": "IAM 替身（httptest）在整条确认链路记录 0 次请求；若分支残留 bind/set-perm，计数将 >0 并直接 FAIL",
+      "exit": 0,
+      "expected": "PASS",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2543.sh r2",
+      "artifacts": [
+        "docs/evidence/2543/R2-subject-negative.txt"
+      ],
+      "assert": "exit 0；grep LOCAL_ID_AS_IAM_SUBJECT=0、BIND_SESSION_USERID_HITS=0、IAM_CLIENT_REFS=0、IAM_CALLS=0",
+      "actual": "PASS：IAM_CLIENT_REFS=0 BIND_SESSION_USERID_HITS=0 LOCAL_ID_AS_IAM_SUBJECT=0 IAM_CALLS=0（confirmation_session.go 已无 iamClient./BindUserToOrganization/SetUserCustomerPermissions/UpdateUserRoleInOrg）",
+      "negative": "任一 =1（出现本地 id 作 IAM 主体或分支仍持 IAM 客户端）→ FAIL",
+      "negative_result": "源码 grep 计数全 0；运行时替身计数 0，与源码一致",
+      "exit": 0,
+      "expected": "PASS",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2543.sh r3",
+      "artifacts": [
+        "docs/evidence/2543/R3-site-branch-regression.txt"
+      ],
+      "assert": "exit 0；grep SITE_MEMBER_CREATED=1、SITE_MEMBER_ROLE=Staff、IAM_CALLS=0",
+      "actual": "PASS：SITE_MEMBER_CREATED=1 SITE_MEMBER_ROLE=Staff IAM_CALLS=0（site_staff 仍只写本地 site_members）",
+      "negative": "SITE_MEMBER_CREATED=0（回归破坏）→ FAIL",
+      "negative_result": "site_members 行读回存在且 Role=Staff；0 次 IAM 调用，证明本单未波及 site_* 分支",
+      "exit": 0,
+      "expected": "PASS",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2543.sh r4",
+      "artifacts": [
+        "docs/evidence/2543/R4-build-regression.txt"
+      ],
+      "assert": "exit 0；grep BUILD_RC=0、REGRESSION_RC=0、REGRESSION_PASS=1",
+      "actual": "PASS：BUILD_RC=0 REGRESSION_RC=0 REGRESSION_PASS=1（go build ./... + go test ./handlers/ -run ConfirmationSession）",
+      "negative": "BUILD_RC≠0 或既有 ConfirmationSession 用例 FAIL → FAIL",
+      "negative_result": "既有确认会话用例（Create/Get/Confirm/Reject/Callback）全部通过，未翻转任何既有断言",
+      "exit": 0,
+      "expected": "PASS",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2543.sh r5",
+      "artifacts": [
+        "docs/evidence/2543/R5-doc-comment.txt"
+      ],
+      "assert": "exit 0；grep DOC_API_NO_IAM_ON_CONFIRM=1、DOC_API_OWNER_PATHS=1、MODEL_COMMENT_NONPERSISTED=1、FORBIDDEN_IAM_COMMENT=1",
+      "actual": "PASS：DOC_API_NO_IAM_ON_CONFIRM=1 DOC_API_OWNER_PATHS=1 MODEL_COMMENT_NONPERSISTED=1 FORBIDDEN_IAM_COMMENT=1",
+      "negative": "任一 =0（文档仍写「同样绑定 OWNER」或注释缺失）→ FAIL",
+      "negative_result": "api.md 原「同样绑定 OWNER」句已改写并声明不写 IAM；模型/代码注释含非持久化与禁令措辞",
+      "exit": 0,
+      "expected": "PASS",
+      "pass": true
+    }
+  ],
+  "tooling_commit": "a017a25d46fec75ebb30fd9e19eb220c51fb166a"
+}
