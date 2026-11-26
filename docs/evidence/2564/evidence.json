@@ -4,8 +4,8 @@
   "build": "1.0.a30c6e250",
   "commit": "a30c6e250f793678cedd79d54b8d8a41facda5d6",
   "dirty": false,
-  "plan_sha256": "b0d4e3be3b99e40fb1eeb020b61191473dfc7e5a0b8c6ee672ab506617af692e",
-  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2564 (branch issue-2564, base origin/issue-2564 d1771ce80); PC-only static/structural evidence (Owner UI static exemption D4); node --test not re-run (shared unit tests unchanged, owned by #2563); HEAD=a30c6e250f793678cedd79d54b8d8a41facda5d6",
+  "plan_sha256": "e85e6ecca2d4cc865e3d7fa76041d97a92d3b52340b3ee67bb2226a35101a3db",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2564 (branch issue-2564); PC-only static/structural evidence (Owner UI static exemption D4); Fix commit a30c6e250; artifacts generated at that commit (dirty=false); rev.2 plan refresh by /work resume",
   "tooling_commit": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
   "rows": [
     {
@@ -57,8 +57,8 @@
       "artifacts": [
         "docs/evidence/2564/pre-ready-2564.json"
       ],
-      "assert": "exit 0；GATE_RESULT=PASS；jq -e '.result == \"PASS\"'",
-      "actual": "PASS：pre-ready gate `RESULT: PASS`（P1/P2/P3/P4/P6/P7/P11/P12/P13/P14/P17/P18 全 PASS；P15/P16/P8/P9/P10 为 N/A），evidence 四行 pass=true、dirty=false、fix commit 与证据均在 origin/issue-2564",
+      "assert": "exit 0；GATE_RESULT=PASS；jq -e '.overall == \"PASS\"'",
+      "actual": "PASS：pre-ready gate `RESULT: PASS`（P1/P2/P3/P4/P6/P7/P11/P12/P13/P14/P17/P18 全 PASS；P15/P16/P8/P9/P10 为 N/A），报告根键 overall=\"PASS\"、evidence 四行 pass=true、dirty=false、fix commit 与证据均在 origin/issue-2564",
       "expected": "每条合同行 pass=true、dirty=false、P13 提交在 origin/issue-2564",
       "negative": "任一 P 项失败 / evidence.json 缺行 / dirty=true → gate 非 0，禁止 ready",
       "negative_result": "任一 P 项失败、evidence.json 缺行或 `dirty=true` → gate 非 0；P13 未推送则判 fix/artifacts 不在 origin/issue-2564。",

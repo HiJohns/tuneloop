@@ -1,4 +1,4 @@
-## Accepted Plan — #2564（分类页 40002 重名恢复表单内持久提示 + 提交路径判码去假成功）
+## Accepted Plan — #2564（分类页 40002 重名恢复表单内持久提示 + 提交路径判码去假成功）｜Rev.2
 
 ### 背景与现状核对（仓库 HEAD 只读核对）
 
@@ -49,9 +49,9 @@
 | 变更点 | 文件/组件 | 入口/路由 | 触发状态 | 目标平台 | 期望结果 | 证据（命令/日志/截图） |
 |---|---|---|---|---|---|---|
 | R1 持久提示接线（catch code-first + 共享件 + 改输入清空） | `frontend-pc/src/pages/admin/category/List.jsx` | 分类新建/改名弹窗提交 → `handleFormSubmit` 的 catch | catch 收到 40002/40004/40005 或 40900 | PC | `CONFLICT_BRANCH_IN_CATCH=1`、`CONFLICT_TEXT_FALLBACK=1`、`ALERT_RENDERED=1`、`CLEAR_ON_CHANGE=1`、`SHARED_REUSE=1`、`LOCAL_ALERT_DUP=0`、`FALLBACK_TOAST=1`；负例：catch 无 code 判定、自写 Alert、或删掉兜底 toast → FAIL | R1 |
-| R2 提交路径判码（create 接 20100 + update 失败不假成功）与红绿对照 | `frontend-pc/src/pages/admin/category/List.jsx` | 分类新建（`POST /api/categories`）、改名（`PUT /api/categories/:id`） | 成功 20100 / 20000；失败 400/404 | PC | `CREATE_ACCEPTS_20100=1`、`UPDATE_CODE_GUARD=1`、`NONOK_RETURN_BEFORE_CLOSE=2`、`RED_SINGLE_CODE_CHECK=1`、`RED_NO_CATCH_BRANCH=1`、`GREEN_CODE_FIRST=1`；负例：仍只判 20000、或失败分支落到 `setModalVisible(false)` → FAIL | R2 |
+| R2 提交路径判码（create 接 20100 + update 失败不假成功）与红绿对照 | `frontend-pc/src/pages/admin/category/List.jsx` | 分类新建（`POST /api/categories`）、改名（`PUT /api/categories/:id`） | 成功 20100 / 20000；失败 400/404 | PC | `CREATE_ACCEPTS_20100=1`、`UPDATE_CODE_GUARD=1`、`NONOK_RETURN_BEFORE_CLOSE=2`、`RED_SINGLE_CODE_CHECK=1`、`RED_NO_CATCH_BRANCH=1`、`GREEN_CODE_FIRST=1`、`AUTOSELECT_TOPLEVEL_ONLY=1`、`CREATED_SUBCATEGORY_KEEPS_PARENT=1`、`GUARD_MUTATION_DETECTED=1`、`RED_NO_AUTOSELECT_GUARD=1`；负例：仍只判 20000、失败分支落到 `setModalVisible(false)`、或新建子分类后父级被改成顶级 → FAIL | R2 |
 | R3 构建 + ESLint | `frontend-pc` | `npm run build`、`npx eslint` | 修后干净树 | PC | `BUILD_EXIT=0`、`ESLINT_NO_UNDEF=0`；负例：任一非 0 或 `no-undef` 计数 > 0 → FAIL | R3 |
-| R4 pre-ready gate（四源一致 + 证据完整 + P13 已推送） | `docs/evidence/2564/pre-ready-2564.json` | `pre-ready-check.sh 2564` | 修后树 + 最新 Accepted Plan | PC | `GATE_RESULT=PASS`、`jq -e '.result == "PASS"'`、evidence 每行 `pass=true`、`dirty=false`；负例：任一 P 项失败或 evidence 缺行 → FAIL | R4 |
+| R4 pre-ready gate（四源一致 + 证据完整 + P13 已推送） | `docs/evidence/2564/pre-ready-2564.json` | `pre-ready-check.sh 2564` | 修后树 + 最新 Accepted Plan | PC | `GATE_RESULT=PASS`、`jq -e '.overall == "PASS"'`、evidence 每行 `pass=true`、`dirty=false`；负例：任一 P 项失败或 evidence 缺行 → FAIL | R4 |
 
 ## Input Truth & Tool Preflight
 
@@ -102,9 +102,9 @@
 | 行 ID | fixture（输入/seed） | entry（生产入口） | artifact（路径/类型） | assertions（含负例） |
 |---|---|---|---|---|
 | R1 | 修后 `List.jsx` 的 `handleFormSubmit` 与 Modal 段 | 分类新建/改名弹窗提交 | `docs/evidence/2564/R1-consumer-wiring.txt` | `CONFLICT_BRANCH_IN_CATCH=1`、`CONFLICT_TEXT_FALLBACK=1`、`ALERT_RENDERED=1`、`CLEAR_ON_CHANGE=1`、`SHARED_REUSE=1`、`LOCAL_ALERT_DUP=0`、`FALLBACK_TOAST=1`；负例：自写 `Alert` 或 catch 无 `isBusinessCorrectableConflict` → FAIL |
-| R2 | 修前 `List.jsx`（`git log -1 -- ...List.jsx` 的父提交）+ 修后同文件 | 提交路径判码 | `docs/evidence/2564/R2-code-first.txt` | `RED_SINGLE_CODE_CHECK=1`、`RED_NO_CATCH_BRANCH=1`、`GREEN_CODE_FIRST=1`、`CREATE_ACCEPTS_20100=1`、`UPDATE_CODE_GUARD=1`、`NONOK_RETURN_BEFORE_CLOSE=2`；负例：仍只判 `20000`、或失败分支仍关闭弹窗 → FAIL |
+| R2 | 修前 `List.jsx`（`git log -1 -- ...List.jsx` 的父提交）+ 修后同文件；**夹具锚点：分类新建弹窗的上层分类选择器默认值**（父分类为空时不得自动选中「顶级分类」） | 提交路径判码 + 分类选择器结构 | `docs/evidence/2564/R2-code-first.txt` | `RED_SINGLE_CODE_CHECK=1`、`RED_NO_CATCH_BRANCH=1`、`GREEN_CODE_FIRST=1`、`CREATE_ACCEPTS_20100=1`、`UPDATE_CODE_GUARD=1`、`NONOK_RETURN_BEFORE_CLOSE=2`、**`AUTOSELECT_TOPLEVEL_ONLY=1`**、**`CREATED_SUBCATEGORY_KEEPS_PARENT=1`**、**`GUARD_MUTATION_DETECTED=1`**、**`RED_NO_AUTOSELECT_GUARD=1`**；负例：仍只判 `20000`、失败分支仍关闭弹窗、或父分类被静默改成顶级 → FAIL |
 | R3 | 修后干净树 | `cd frontend-pc` | `docs/evidence/2564/R3-build-lint.txt` | `BUILD_EXIT=0`、`ESLINT_NO_UNDEF=0`；负例：构建非 0 或 `no-undef` > 0 → FAIL |
-| R4 | 修后树 + 最新 Accepted Plan + evidence.json | `pre-ready-check.sh 2564` | `docs/evidence/2564/pre-ready-2564.json` | `GATE_RESULT=PASS`、`jq -e '.result == "PASS"'`、每行 `pass=true`、`dirty=false`；负例：任一 P 失败 / evidence 缺行 → FAIL |
+| R4 | 修后树 + 最新 Accepted Plan + evidence.json | `pre-ready-check.sh 2564` | `docs/evidence/2564/pre-ready-2564.json` | `GATE_RESULT=PASS`、`jq -e '.overall == "PASS"'`、每行 `pass=true`、`dirty=false`；负例：任一 P 失败 / evidence 缺行 → FAIL |
 
 ### Evidence Contract
 
@@ -113,7 +113,7 @@
 | R1 | `bash scripts/verify-2564.sh r1 > docs/evidence/2564/R1-consumer-wiring.txt` | `docs/evidence/2564/R1-consumer-wiring.txt` | exit 0；`grep -q '^R1_OK$'`；`grep -q 'CONFLICT_BRANCH_IN_CATCH=1'` | 7 个标记全部为期望值（含 `LOCAL_ALERT_DUP=0`、`CLEAR_ON_CHANGE=1`） | catch 无 code 判定、自写 Alert、或删掉兜底 toast → `R1_FAIL` 并非 0 退出 | dev |
 | R2 | `bash scripts/verify-2564.sh r2 > docs/evidence/2564/R2-code-first.txt` | `docs/evidence/2564/R2-code-first.txt` | exit 0；`grep -q '^R2_OK$'`；`grep -q 'CREATE_ACCEPTS_20100=1'` | `UPDATE_CODE_GUARD=1`、`NONOK_RETURN_BEFORE_CLOSE=2`、`RED_SINGLE_CODE_CHECK=1`、`RED_NO_CATCH_BRANCH=1` | 仍只判 `20000`、失败分支仍 `setModalVisible(false)` 或仍报「更新成功」→ `R2_FAIL` 并非 0 退出 | dev |
 | R3 | `bash scripts/verify-2564.sh r3 > docs/evidence/2564/R3-build-lint.txt` | `docs/evidence/2564/R3-build-lint.txt` | exit 0；`grep -q '^R3_OK$'`；`grep -q 'BUILD_EXIT=0'`；`grep -q 'ESLINT_NO_UNDEF=0'` | 构建 0 退出、`no-undef` 计数 0 | 构建非 0 或 `no-undef` > 0 → `R3_FAIL` 并非 0 退出 | dev |
-| R4 | `/home/coder/.config/opencode/scripts/pre-ready-check.sh 2564 --summary-file docs/evidence/2564/summary.md --changed-files docs/evidence/2564/changed-files.txt --evidence-file docs/evidence/2564/evidence.json --full-gate-cmd "cd frontend-pc && npm run build" --report docs/evidence/2564/pre-ready-2564.json` | `docs/evidence/2564/pre-ready-2564.json` | exit 0；`GATE_RESULT=PASS`；`jq -e '.result == "PASS"'` | 每条合同行 `pass=true`、`dirty=false`、P13 提交在 `origin/issue-2564` | 任一 P 项失败 / evidence.json 缺行 / `dirty=true` → gate 非 0，禁止 ready | dev |
+| R4 | `/home/coder/.config/opencode/scripts/pre-ready-check.sh 2564 --summary-file docs/evidence/2564/summary.md --changed-files docs/evidence/2564/changed-files.txt --evidence-file docs/evidence/2564/evidence.json --full-gate-cmd "cd frontend-pc && npm run build" --report docs/evidence/2564/pre-ready-2564.json` | `docs/evidence/2564/pre-ready-2564.json` | exit 0；`GATE_RESULT=PASS`；`jq -e '.overall == "PASS"'` | 每条合同行 `pass=true`、`dirty=false`、P13 提交在 `origin/issue-2564` | 任一 P 项失败 / evidence.json 缺行 / `dirty=true` → gate 非 0，禁止 ready | dev |
 
 ### Files（变更文件清单）
 
@@ -159,4 +159,5 @@
 - Confidence: high
 
 *Model: DeepSeek V4.1 Flash 1017*
+
 

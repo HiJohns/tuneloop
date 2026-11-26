@@ -45,6 +45,12 @@
 - fix（Round 1 Bug 1 子分类选中语义 + r2 守卫断言）：`a30c6e250`
 - evidence：见 Remote 行（`docs(evidence): issue-2564`）
 
+### Rev.2 复跑（本次 /work 恢复）
+
+- Accepted Plan 已更新为 **Rev.2**（`sha256 e85e6ecca2d4…`）：R2 矩阵/G0 登记 4 个判定键、R4 断言键由 `.result` 改为报告根键 `.overall`。
+- 处理：刷新 `docs/evidence/2564/plan.md` 快照到 Rev.2 → evidence.json 的 `plan_sha256` 与 R4 断言对齐 → 重跑 r1/r2/r3 证据 → 重跑 pre-ready gate。
+- 产品代码未改（Round 2 审计已确认正确），本轮只做计划/证据对齐与复验。
+
 ### 验证层级
 
 - 独立 Issue（body 无 `Parent:`，但为 #2563 的子任务 Issue —— 本单按计划 R4 执行自己的 gate）：`node --test` 纯函数由 #2563 提供且未改；本单为 PC 页面层，证据为**静态结构断言**（D4 Owner 豁免）+ `npm run build` + 改动文件 eslint。
@@ -52,7 +58,10 @@
 
 ### Remote
 
-- remote: `origin/issue-2564`；fix `5cd3c900a` / `5463d3d98` / `869bd336c` pushed=yes；evidence `docs(evidence): issue-2564` pushed=yes（gate 前完成 push）。
+- remote: `origin/issue-2564`
+- fix: `5cd3c900a` / `5463d3d98` / `869bd336c` / `a30c6e250`（pushed=yes）
+- evidence（含本次 Rev.2 快照刷新与 R4 断言对齐）: 见本文件所在提交（pushed=yes）
+- gate 报告: `docs/evidence/2564/pre-ready-2564.json`（本批次提交，pushed=yes）
 
 ### 红绿实证
 
