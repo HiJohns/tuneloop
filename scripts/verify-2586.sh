@@ -28,6 +28,12 @@ case "$MODE" in
     ;;
 esac
 
+# 本机 Go 位于 /usr/local/go/bin（不在默认 PATH）→ 脚本自带兜底，避免 GO_TEST_EXIT=127 的假失败。
+case ":$PATH:" in
+  *":/usr/local/go/bin:"*) ;;
+  *) [ -d /usr/local/go/bin ] && PATH="/usr/local/go/bin:$PATH" && export PATH ;;
+esac
+
 REPO="$(git rev-parse --show-toplevel)"; cd "$REPO" || exit 2
 ISSUE=2586
 OUT_DIR="${OUT_DIR:-$REPO/docs/evidence/$ISSUE}"; mkdir -p "$OUT_DIR"
@@ -128,8 +134,12 @@ case "$MODE" in
     NAME="R3-route-wiring.txt"
     go_test_2586 . 'TestInstrumentPermRoutes2586' "$WORK/r3.test.log"; TEST_RC=$?
     # 红样：fix 前 main.go 的未守卫数量（绿样由上面的结构断言给出）
-    git show "$FIX_SHA^:$MAIN_GO" > "$WORK/main.before.go" 2>/dev/null || {
-      echo "FATAL: cannot read pre-fix main.go" >&2; exit 3; }
+    if [ -z "${RED_REF:-}" ]; then
+      FIRST_FIX="$(git log --format=%H --grep="^fix(issue-$ISSUE)" --reverse | head -1 2>/dev/null || true)"
+      RED_REF="${FIRST_FIX:-$FIX_SHA}^"
+    fi
+    git show "$RED_REF:$MAIN_GO" > "$WORK/main.before.go" 2>/dev/null || {
+      echo "FATAL: cannot read pre-fix main.go ($RED_REF)" >&2; exit 3; }
     RED_EXPORT=0
     [ -z "$(route_line "$WORK/main.before.go" /instruments/export GET | grep -F 'RequireCusPerm')" ] && RED_EXPORT=1
     RED_IMPORT=0
@@ -142,9 +152,10 @@ case "$MODE" in
     {
       printf '%s\n' "$PROV"
       printf 'GENERATED_AT_HEAD=%s\n' "$HEAD_SHA"
-      echo "# 路由注册行结构断言（backend/instrument_route_guard_2586_test.go）+ fix^ 红样"
+      echo "# 路由注册行结构断言（backend/instrument_route_guard_2586_test.go）+ 首个 fix 的父提交红样"
       printf 'GO_TEST_EXIT=%s\n' "$TEST_RC"
       grep -E 'ROUTE_[A-Z_]+=' "$WORK/r3.test.log" | sed 's/^ *//'
+      printf 'RED_SOURCE=%s:%s\n' "$RED_REF" "$MAIN_GO"
       printf 'RED_PRE_FIX_UNGUARDED_EXPORT=%s\n' "$RED_EXPORT"
       printf 'RED_PRE_FIX_UNGUARDED_IMPORT=%s\n' "$RED_IMPORT"
       [ "$TEST_RC" = "0" ] && echo "R3_OK" || echo "R3_FAIL"
@@ -253,23 +264,55 @@ case "$MODE" in
     API_EXPORT=0; grep -A 6 '^#### 5\.8\.2 导出乐器列表' "$REPO/$API_DOC" | grep -Fq '`instrument:read`' && API_EXPORT=1
     API_IMPORT=0; grep -A 6 '^#### 5\.8\.1 导入乐器信息' "$REPO/$API_DOC" | grep -Fq '`instrument:create`' && API_IMPORT=1
     API_TEMPLATE=0; grep -A 8 '^#### 5\.8\.3 下载导入模板' "$REPO/$API_DOC" | grep -Fq '`instrument:create`' && API_TEMPLATE=1
-    PERM_ROWS="$(grep -cE '^\| `?/api/instruments' "$REPO/$PERM_DOC" || true)"
+    # Rev.3（Owner 2026-11-27）：一行一端点 = 8 行，逐端点首列必须是端点路径
+    PERM_ROWS="$(grep -cE '^\| `/api/instruments' "$REPO/$PERM_DOC" || true)"
+    has_perm_row() { grep -Fq -- "$1" "$REPO/$PERM_DOC" && echo 1 || echo 0; }
+    PERM_HAS_LIST="$(has_perm_row '| `/api/instruments`（列表） | GET |')"
+    PERM_HAS_EXPORT="$(has_perm_row '| `/api/instruments/export` | GET |')"
+    PERM_HAS_IMPORT="$(has_perm_row '| `/api/instruments/import` | POST |')"
+    PERM_HAS_IMPORT_TEMPLATE="$(has_perm_row '| `/api/instruments/import/template` | GET |')"
+    PERM_HAS_BATCH="$(has_perm_row '| `/api/instruments/batch-import` | POST |')"
+    PERM_HAS_BATCH_TEMPLATE="$(has_perm_row '| `/api/instruments/batch-import/template` | GET |')"
+    PERM_HAS_BATCH_PREVIEW="$(has_perm_row '| `/api/instruments/batch-import/preview` | POST |')"
+    PERM_HAS_BATCH_MEDIA="$(has_perm_row '| `/api/instruments/batch-import/media` | POST |')"
+    # §3.2.1 原有「操作-权限矩阵」必须完整（8 行），不得被端点数插入切断
+    PERM_321_ROWS="$(awk '/^### 3\.2\.1 /{f=1} f && /^\*\*乐器数据进\/出/{exit} f && /^\| [^|-]/ && !/^\| 操作 \|/{c++} END{print c+0}' "$REPO/$PERM_DOC")"
+    PERM_321_TABLE_INTACT=0
+    if [ "$PERM_321_ROWS" = "8" ]; then PERM_321_TABLE_INTACT=1; fi
     {
       printf '%s\n' "$PROV"
       printf 'GENERATED_AT_HEAD=%s\n' "$HEAD_SHA"
-      echo "# 文档：api.md 三段权限口径 + permissions.md 端点-权限对照表"
+      echo "# 文档：api.md 三段权限口径 + permissions.md 端点-权限对照表（8 行，一行一端点）"
       printf 'API_EXPORT_PERM=%s\n' "$API_EXPORT"
       printf 'API_IMPORT_PERM=%s\n' "$API_IMPORT"
       printf 'API_TEMPLATE_PERM=%s\n' "$API_TEMPLATE"
       printf 'PERM_ENDPOINT_ROWS=%s\n' "$PERM_ROWS"
-      if [ "$API_EXPORT" = "1" ] && [ "$API_IMPORT" = "1" ] && [ "$API_TEMPLATE" = "1" ] && [ "$PERM_ROWS" = "7" ]; then
-        echo "R6_OK"
-      else
-        echo "R6_FAIL"
-      fi
+      printf 'PERM_HAS_LIST=%s\n' "$PERM_HAS_LIST"
+      printf 'PERM_HAS_EXPORT=%s\n' "$PERM_HAS_EXPORT"
+      printf 'PERM_HAS_IMPORT=%s\n' "$PERM_HAS_IMPORT"
+      printf 'PERM_HAS_IMPORT_TEMPLATE=%s\n' "$PERM_HAS_IMPORT_TEMPLATE"
+      printf 'PERM_HAS_BATCH=%s\n' "$PERM_HAS_BATCH"
+      printf 'PERM_HAS_BATCH_TEMPLATE=%s\n' "$PERM_HAS_BATCH_TEMPLATE"
+      printf 'PERM_HAS_BATCH_PREVIEW=%s\n' "$PERM_HAS_BATCH_PREVIEW"
+      printf 'PERM_HAS_BATCH_MEDIA=%s\n' "$PERM_HAS_BATCH_MEDIA"
+      printf 'PERM_321_ROWS=%s\n' "$PERM_321_ROWS"
+      printf 'PERM_321_TABLE_INTACT=%s\n' "$PERM_321_TABLE_INTACT"
+      ALL_OK=1
+      for v in "$API_EXPORT" "$API_IMPORT" "$API_TEMPLATE" "$PERM_HAS_LIST" "$PERM_HAS_EXPORT" \
+               "$PERM_HAS_IMPORT" "$PERM_HAS_IMPORT_TEMPLATE" "$PERM_HAS_BATCH" \
+               "$PERM_HAS_BATCH_TEMPLATE" "$PERM_HAS_BATCH_PREVIEW" "$PERM_HAS_BATCH_MEDIA" \
+               "$PERM_321_TABLE_INTACT"; do
+        [ "$v" = "1" ] || ALL_OK=0
+      done
+      [ "$PERM_ROWS" = "8" ] || ALL_OK=0
+      if [ "$ALL_OK" = "1" ]; then echo "R6_OK"; else echo "R6_FAIL"; fi
     } > "$LOG" 2>&1
     grep -q '^R6_OK$' "$LOG" || RC=1
-    require_tokens "$LOG" 'API_EXPORT_PERM=1' 'API_IMPORT_PERM=1' 'API_TEMPLATE_PERM=1' 'PERM_ENDPOINT_ROWS=7' || RC=1
+    require_tokens "$LOG" 'API_EXPORT_PERM=1' 'API_IMPORT_PERM=1' 'API_TEMPLATE_PERM=1' \
+      'PERM_ENDPOINT_ROWS=8' 'PERM_321_TABLE_INTACT=1' \
+      'PERM_HAS_LIST=1' 'PERM_HAS_EXPORT=1' 'PERM_HAS_IMPORT=1' 'PERM_HAS_BATCH=1' \
+      'PERM_HAS_BATCH_MEDIA=1' 'PERM_HAS_BATCH_PREVIEW=1' 'PERM_HAS_BATCH_TEMPLATE=1' \
+      'PERM_HAS_IMPORT_TEMPLATE=1' || RC=1
     ;;
 esac
 
