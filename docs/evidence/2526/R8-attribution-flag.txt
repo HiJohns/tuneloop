@@ -1,0 +1,7 @@
+# build=1.0.44f9368c7 # commit=44f9368c757143396bcaf0dabe3db2d3f2741441 # dirty=false
+== R8 归属缺失标记（三视图一致） ==
+FLAG_ZERO_TENANT=1
+FLAG_NORMAL_MEMBER=0
+FLAG_SITE_VIEW_ZERO=1
+--- PASS: TestPersonnelAttributionFlag2526 (0.85s)
+R8_OK
