@@ -1,0 +1,68 @@
+# build=1.0.ad53b408f # commit=ad53b408f44a3a5ed01666ffeeb1125294c3f17b # dirty=false
+# R6 PUT /merchants/:id admin_uid 变化走转让端点（翻转 #2461 bind+demote 断言）；置空 400/40002
+# build=1.0.ad53b408f # commit=ad53b408f44a3a5ed01666ffeeb1125294c3f17b # dirty=false
+# CMD go test -count=1 -run 'TestUpdateMerchantOwnershipTransfer_2546' ./handlers/
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795684821501 wait_ms=93
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=93
+[DEBUG] Loaded .env from: ../.env
+2026/11/26 09:20:26 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c sslmode=disable
+2026/11/26 09:20:28 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c
+2026/11/26 09:20:28 [DB] Connected to database 'tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c'
+=== RUN   TestUpdateMerchantOwnershipTransfer_2546
+=== RUN   TestUpdateMerchantOwnershipTransfer_2546/transfer
+2026/11/26 09:20:28 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c sslmode=disable
+2026/11/26 09:20:28 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c
+2026/11/26 09:20:28 [DB] Connected to database 'tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c'
+
+2026/11/26 09:20:30 [32m/tmp/opencode/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[1657.156ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/26 09:20:30 [TenantScope][observe] auto-scope injected for table=merchants (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/26 09:20:30 [TenantScope][observe] auto-scope injected for table=merchant_members (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/26 09:20:30 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/26 09:20:30 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:40469, clientID=test-ns, namespace=test-ns
+2026/11/26 09:20:30 [IAMClient] Transferred org e525c1ab-6c6c-43d8-ba95-b08f7b276159 ownership to user e65697b0-09f8-489c-bf4e-da2b540cb3de (user token)
+2026/11/26 09:20:30 [UpdateMerchant] ownership transferred merchant=374d9160-8236-40fd-9c16-211b1fc5aba0 previous_owner=501d4a6f-7891-4d09-afef-1ae9db5409c8 new_owner=f5ecc91d-238e-482b-8328-2e0a60962d3a
+    merchant_ownership_2546_test.go:599: UPD_ADMIN_STATUS=200 UPD_ADMIN_IAM_PATH_SUFFIX=/transfer-ownership UPD_ADMIN_LOCAL=1 UPD_ADMIN_IS_OWNER_FLIP=1
+=== RUN   TestUpdateMerchantOwnershipTransfer_2546/clear-rejected
+
+2026/11/26 09:20:31 [32m/tmp/opencode/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[1212.531ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchant_members", "merchants", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
+    merchant_ownership_2546_test.go:623: CLEAR_OWNER_STATUS=400 CLEAR_OWNER_CODE=40002
+--- PASS: TestUpdateMerchantOwnershipTransfer_2546 (3.63s)
+    --- PASS: TestUpdateMerchantOwnershipTransfer_2546/transfer (2.18s)
+    --- PASS: TestUpdateMerchantOwnershipTransfer_2546/clear-rejected (1.44s)
+PASS
+ok  	tuneloop-backend/handlers	5.350s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795684832339 hold_ms=10838
+GO_TEST_RC=0
+# build=1.0.ad53b408f # commit=ad53b408f44a3a5ed01666ffeeb1125294c3f17b # dirty=false
+# CMD go test -count=1 -run 'TestUpdateMerchantAdmin' ./handlers/
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795684832550 wait_ms=110
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=110
+[DEBUG] Loaded .env from: ../.env
+2026/11/26 09:20:41 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c sslmode=disable
+2026/11/26 09:20:42 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c
+2026/11/26 09:20:42 [DB] Connected to database 'tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c'
+=== RUN   TestUpdateMerchantAdminTransferReplacesBindDemote_2461
+2026/11/26 09:20:42 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c sslmode=disable
+2026/11/26 09:20:42 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c
+2026/11/26 09:20:42 [DB] Connected to database 'tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c'
+
+2026/11/26 09:20:44 [32m/tmp/opencode/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[1146.028ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/26 09:20:44 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:42043, clientID=test-ns, namespace=test-ns
+2026/11/26 09:20:44 [IAMClient] Transferred org 2629ba3e-a440-4e29-89cf-49847debce82 ownership to user 40e04781-6042-45da-856d-ef16d0b2f87a (user token)
+2026/11/26 09:20:44 [UpdateMerchant] ownership transferred merchant=53971bca-1aa4-40f2-80d9-b821cdf30a8b previous_owner=5f21f79d-507a-48d4-a961-b446b647d793 new_owner=bedb1aef-c728-4e00-8bf9-74ac46bc17ca
+    member_role_iam_fail_2461_test.go:352: STATUS=200 IAM_TRANSFER_CALLS=1 IAM_BIND_CALLS=0 IAM_ROLE_CALLS=0 IAM_UNBIND_CALLS=0 ADMIN_UID_SWITCHED=1
+--- PASS: TestUpdateMerchantAdminTransferReplacesBindDemote_2461 (1.52s)
+=== RUN   TestUpdateMerchantAdminTransferFailureVisible_2461
+
+2026/11/26 09:20:45 [32m/tmp/opencode/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[780.266ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchant_members", "merchants", "pricing_templates", "tenants", "users" RESTART IDENTITY CASCADE[0m
+2026/11/26 09:20:45 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:35627, clientID=test-ns, namespace=test-ns
+    member_role_iam_fail_2461_test.go:387: STATUS=502 CODE=50200 ADMIN_UID_UNCHANGED=1 ADMIN_PENDING_UNCHANGED=0
+--- PASS: TestUpdateMerchantAdminTransferFailureVisible_2461 (0.97s)
+PASS
+ok  	tuneloop-backend/handlers	4.497s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795684845579 hold_ms=13029
+GO_TEST_RC=0

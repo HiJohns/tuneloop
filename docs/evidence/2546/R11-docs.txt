@@ -1,0 +1,7 @@
+# build=1.0.ad53b408f # commit=ad53b408f44a3a5ed01666ffeeb1125294c3f17b # dirty=false
+# R11 契约文档落字（api/ui/database/cases）
+DOC_API_TRANSFER=1
+DOC_API_MEMBERS_OWNER=1
+DOC_UI_OWNER_TAB=1
+DOC_DB_ADMIN_UID=1
+DOC_CASE_PATH_ALIGNED=1

@@ -1,0 +1,59 @@
+# build=1.0.ad53b408f # commit=ad53b408f44a3a5ed01666ffeeb1125294c3f17b # dirty=false
+# R8 PC「所有人」Tab 接线：纯函数 node --test + 源码结构断言 + eslint + build
+✔ pickOwnerRow 返回唯一的 is_owner 行 (2.267447ms)
+✔ pickOwnerRow 在未锚定所有人时返回 null（不得猜测） (0.187864ms)
+✔ transferCandidates 排除当前所有人（含 is_owner 与 owner_uid 两种标记） (1.716306ms)
+✔ transferCandidates 在只有所有人时为空（禁用转让入口） (0.218825ms)
+✔ canRemoveMember 禁止移除所有人，允许移除其他成员 (1.774627ms)
+✔ transferConfirmText 固定声明「转让后你将成为管理员」 (0.4621ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 147.587393
+
+/tmp/opencode/tuneloop/wt-2546/frontend-pc/src/components/MerchantMemberManagement.jsx
+   72:7   warning  'fetchMembers' was used before it was defined                                                                    no-use-before-define
+   74:6   warning  React Hook useEffect has a missing dependency: 'fetchMembers'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  320:27  warning  'bindExistingUser' was used before it was defined                                                                no-use-before-define
+
+/tmp/opencode/tuneloop/wt-2546/frontend-pc/src/pages/MerchantManagement.jsx
+  31:5  warning  'fetchMerchants' was used before it was defined                                                                    no-use-before-define
+  32:6  warning  React Hook useEffect has a missing dependency: 'fetchMerchants'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+✖ 5 problems (0 errors, 5 warnings)
+
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795684860610 wait_ms=79
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=79
+
+> frontend-pc@1.0.0 build
+> vite build
+
+vite v5.4.21 building for production...
+transforming...
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 5429 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                     0.53 kB │ gzip:   0.34 kB
+dist/assets/index-B9174E9n.css     38.39 kB │ gzip:   7.13 kB
+dist/assets/index-BbdEe9c4.js   2,630.63 kB │ gzip: 810.06 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 22.77s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795684884581 hold_ms=23971
+NODE_TEST_RC=0
+TAB_RENAMED=1
+TRANSFER_UI_WIRED=1
+OWNER_REMOVE_DISABLED=1
+OWNER_CARD_RENDERED=1
+FRONTEND_LINT_RC=0
+FRONTEND_BUILD_RC=0

@@ -1,0 +1,166 @@
+{
+  "schema_version": 1,
+  "issue": 2546,
+  "build": "1.0.ad53b408f",
+  "commit": "ad53b408f44a3a5ed01666ffeeb1125294c3f17b",
+  "dirty": false,
+  "plan_sha256": "1b1d4f602dfb98c941aa7ffd29da25d0a8db7f787d3a4e5c7e5f65da13bd957e",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2546 (branch issue-2546, base origin/develop c37655eb0); go1.27.4; node v24.13.0 (frontend-pc type=module); postgres 127.0.0.1:5432 via backend/.env (test template clone tuneloop_test_*); fake IAM via httptest (method/path/body + status matrix); scripts/verify-2546.sh r1-r11 under host heavy-lock",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2546.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2546/R1-transfer-success.txt"
+      ],
+      "assert": "exit 0；grep TRANSFER_STATUS=200、IAM_METHOD=POST、IAM_PATH_SUFFIX=/transfer-ownership、IAM_BODY_USER_ID=1、LOCAL_OWNER_UPDATED=1、OLD_OWNER_LOCAL_ROLE=merchant_admin、TARGET_LOCAL_ROLE=merchant_admin、ADMIN_PENDING_CLEARED=1、OWNER_FIELD_PRESENT=1",
+      "actual": "PASS：TRANSFER_STATUS=200 IAM_METHOD=POST IAM_PATH_SUFFIX=/transfer-ownership IAM_BODY_USER_ID=1 LOCAL_OWNER_UPDATED=1 OLD_OWNER_LOCAL_ROLE=merchant_admin TARGET_LOCAL_ROLE=merchant_admin ADMIN_PENDING_CLEARED=1 OWNER_FIELD_PRESENT=1；services 契约 IAM_PATH=/api/v1/organizations/org-2546/transfer-ownership（IAM sub 而非本地 id）",
+      "expected": "PASS",
+      "negative": "IAM_PATH_SUFFIX ≠ /transfer-ownership 或 LOCAL_OWNER_UPDATED=0 → FAIL",
+      "negative_result": "转让路径下 IAM_BIND_CALLS=0 / IAM_ROLE_CALLS=0（R6 同时断言），不存在 bind 写 OWNER 的旁路；本地指针与 IAM 调用一一对应（LOCAL_OWNER_UPDATED=1）",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2546.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2546/R2-iam-errors.txt"
+      ],
+      "assert": "exit 0；grep IAM403_STATUS=403、IAM403_CODE=40303、IAM404_STATUS=404、IAM404_CODE=40400、IAM409_STATUS=409、IAM409_CODE=40900、IAM400_CODE=40002、IAM500_STATUS=502、IAM500_CODE=50200、LOCAL_OWNER_UNCHANGED=1",
+      "actual": "PASS：IAM403_STATUS=403 IAM403_CODE=40303 IAM404_STATUS=404 IAM404_CODE=40400 IAM409_STATUS=409 IAM409_CODE=40900 IAM400_CODE=40002 IAM500_STATUS=502 IAM500_CODE=50200 LOCAL_OWNER_UNCHANGED=1；services 侧类型化错误逐码复现（only the current owner… / target user is not an active member… / organization has no active owner / user is already the owner）",
+      "expected": "PASS",
+      "negative": "任一 IAM 错误返回 200，或 LOCAL_OWNER_UNCHANGED=0 → FAIL",
+      "negative_result": "5 个状态码全部非 200（4xx 保原状态、5xx→502）；每次失败后 merchants.admin_uid 仍为原 owner（LOCAL_OWNER_UNCHANGED=1）",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2546.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2546/R3-preflight-negatives.txt"
+      ],
+      "assert": "exit 0；grep NONMEMBER_STATUS=404、NONMEMBER_CODE=40400、NONMEMBER_IAM_CALLS=0、SAME_OWNER_STATUS=400、SAME_OWNER_CODE=40002、SAME_OWNER_IAM_CALLS=0、EMPTY_UID_STATUS=400、EMPTY_UID_CODE=40001",
+      "actual": "PASS：NONMEMBER_STATUS=404 NONMEMBER_CODE=40400 NONMEMBER_IAM_CALLS=0 SAME_OWNER_STATUS=400 SAME_OWNER_CODE=40002 SAME_OWNER_IAM_CALLS=0 EMPTY_UID_STATUS=400 EMPTY_UID_CODE=40001",
+      "expected": "PASS",
+      "negative": "NONMEMBER_IAM_CALLS=1 或 SAME_OWNER_STATUS=200 → FAIL",
+      "negative_result": "三个前置分支均 transferCalls=0（NONMEMBER/SAME_OWNER/EMPTY_UID 全为 0），且本地指针不变",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2546.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2546/R4-admin-bind.txt"
+      ],
+      "assert": "exit 0；grep ADD_BIND_ROLE=ADMIN、UPDATE_BIND_ROLE=ADMIN、OWNER_BINDS=0、OWNER_REQUEST_STATUS=400、OWNER_REQUEST_CODE=40002",
+      "actual": "PASS：ADD_BIND_ROLE=ADMIN UPDATE_BIND_ROLE=ADMIN OWNER_BINDS=0 OWNER_REQUEST_STATUS=400 OWNER_REQUEST_CODE=40002（显式 OWNER 请求未产生额外 IAM bind）",
+      "expected": "PASS",
+      "negative": "ADD_BIND_ROLE=OWNER 或 OWNER_BINDS=1 → FAIL",
+      "negative_result": "捕获到的两次 bind role 均为 ADMIN，OWNER 请求在 handler 前置拒绝且 bindCalls 不变",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2546.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2546/R5-owner-protection.txt"
+      ],
+      "assert": "exit 0；grep REMOVE_OWNER_STATUS=403、REMOVE_OWNER_CODE=40303、REMOVE_OWNER_IAM_CALLS=0、OWNER_ROW_KEPT=1、DEMOTE_OWNER_STATUS=400、DEMOTE_OWNER_CODE=40002、REMOVE_ADMIN_STATUS=200",
+      "actual": "PASS：REMOVE_OWNER_STATUS=403 REMOVE_OWNER_CODE=40303 REMOVE_OWNER_IAM_CALLS=0 OWNER_ROW_KEPT=1 DEMOTE_OWNER_STATUS=400 DEMOTE_OWNER_CODE=40002 REMOVE_ADMIN_STATUS=200",
+      "expected": "PASS",
+      "negative": "REMOVE_OWNER_STATUS=200 或 OWNER_ROW_KEPT=0 → FAIL",
+      "negative_result": "移除 owner 后 merchant_members 行仍在且 role=merchant_admin；非 owner 管理员移除仍 200（既有 40009 兜底路径不变）",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2546.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2546/R6-update-merchant-transfer.txt"
+      ],
+      "assert": "exit 0；grep UPD_ADMIN_STATUS=200、UPD_ADMIN_IAM_PATH_SUFFIX=/transfer-ownership、UPD_ADMIN_LOCAL=1、UPD_ADMIN_IS_OWNER_FLIP=1、CLEAR_OWNER_STATUS=400、CLEAR_OWNER_CODE=40002",
+      "actual": "PASS：UPD_ADMIN_STATUS=200 UPD_ADMIN_IAM_PATH_SUFFIX=/transfer-ownership UPD_ADMIN_LOCAL=1 UPD_ADMIN_IS_OWNER_FLIP=1 CLEAR_OWNER_STATUS=400 CLEAR_OWNER_CODE=40002；翻转后的 #2461 用例 IAM_TRANSFER_CALLS=1 IAM_BIND_CALLS=0 IAM_ROLE_CALLS=0 IAM_UNBIND_CALLS=0 ADMIN_UID_SWITCHED=1",
+      "expected": "PASS",
+      "negative": "UPD_ADMIN_IAM_PATH_SUFFIX 非转让端，或 CLEAR_OWNER_STATUS=200 → FAIL",
+      "negative_result": "旧 bind+demote 语义已不再发生：#2461 R6/R7 两条断言翻转为「只调 transfer-ownership / 失败 502 且本地不变」，IAM_ROLE_CALLS=0、IAM_BIND_CALLS=0、IAM_UNBIND_CALLS=0；置空 admin_uid 被拒（40002）且未调 IAM",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2546.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2546/R7-list-owner-flag.txt"
+      ],
+      "assert": "exit 0；grep OWNER_FLAG_HITS=1、OWNER_UID_MATCH=1、DEFAULT_ROWS=2、ALL_ROWS=3、OWNER_FIELD_PRESENT=1",
+      "actual": "PASS：OWNER_FLAG_HITS=1 OWNER_UID_MATCH=1 DEFAULT_ROWS=2 ALL_ROWS=3 OWNER_FIELD_PRESENT=1（响应含 is_owner 与 owner_uid）",
+      "expected": "PASS",
+      "negative": "OWNER_FLAG_HITS ≠ 1，或 DEFAULT_ROWS ≠ 2 → FAIL",
+      "negative_result": "默认口径仍只返回 role=merchant_admin（2 行）；include=all 才返回 3 行（含直属员工）；owner 标记恰好 1 行",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash scripts/verify-2546.sh r8",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2546/R8-pc-owner-tab.txt"
+      ],
+      "assert": "exit 0；grep NODE_TEST_RC=0、TAB_RENAMED=1、TRANSFER_UI_WIRED=1、OWNER_REMOVE_DISABLED=1、FRONTEND_LINT_RC=0、FRONTEND_BUILD_RC=0",
+      "actual": "PASS：NODE_TEST_RC=0（6/6 pass）TAB_RENAMED=1 TRANSFER_UI_WIRED=1 OWNER_REMOVE_DISABLED=1 OWNER_CARD_RENDERED=1 FRONTEND_LINT_RC=0（0 error）FRONTEND_BUILD_RC=0（vite build ✓ built）",
+      "expected": "PASS",
+      "negative": "TAB_RENAMED=0 或 TRANSFER_UI_WIRED=0 → FAIL",
+      "negative_result": "node --test 覆盖负例：未锚定所有人 → pickOwnerRow=null；候选为空 → transferCandidates=[]；owner 行 → canRemoveMember=false；页面 grep「负责人管理」为 0 命中",
+      "pass": true
+    },
+    {
+      "id": "R9",
+      "command": "bash scripts/verify-2546.sh r9",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2546/R9-audit-route.txt"
+      ],
+      "assert": "exit 0；grep AUDIT_ROUTE_FOUND=1、AUDIT_ACTION=TRANSFER_OWNERSHIP、AUDIT_RESOURCE=merchant、AUDIT_PRIORITY=CRITICAL",
+      "actual": "PASS：AUDIT_ROUTE_FOUND=1 AUDIT_ACTION=TRANSFER_OWNERSHIP AUDIT_RESOURCE=merchant AUDIT_PRIORITY=CRITICAL",
+      "expected": "PASS",
+      "negative": "路由键缺失或 action 不符 → FAIL",
+      "negative_result": "auditRouteMap 精确匹配 `POST /api/merchants/:id/transfer-ownership`；handler 未手写 audit_logs（D6），亦未额外调用 IncrementPermVersion",
+      "pass": true
+    },
+    {
+      "id": "R10",
+      "command": "bash scripts/verify-2546.sh r10",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2546/R10-regression.txt"
+      ],
+      "assert": "exit 0；grep BUILD_RC=0、REGRESSION_RC=0、REGRESSION_PASS=1",
+      "actual": "PASS：BUILD_RC=0（go build ./...）REGRESSION_RC=0 REGRESSION_PASS=1（handlers/services/middleware 定向回归：AddMember/RemoveMember/UpdateMemberRole/UpdateMerchant/MerchantMember/TransferOwnership/ListMembers/audit-route）",
+      "expected": "PASS",
+      "negative": "BUILD_RC ≠ 0 或回归用例 FAIL → FAIL",
+      "negative_result": "此前的失败被留在此行验证：UpdateMerchant 在「字段缺省」时若沿用旧比较会误清所有人（已改为 *string 区分缺省/置空），回归用例覆盖 200 转让与 400 置空两条路径",
+      "pass": true
+    },
+    {
+      "id": "R11",
+      "command": "bash scripts/verify-2546.sh r11",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2546/R11-docs.txt"
+      ],
+      "assert": "exit 0；grep DOC_API_TRANSFER=1、DOC_API_MEMBERS_OWNER=1、DOC_UI_OWNER_TAB=1、DOC_DB_ADMIN_UID=1、DOC_CASE_PATH_ALIGNED=1",
+      "actual": "PASS：DOC_API_TRANSFER=1 DOC_API_MEMBERS_OWNER=1 DOC_UI_OWNER_TAB=1 DOC_DB_ADMIN_UID=1 DOC_CASE_PATH_ALIGNED=1",
+      "expected": "PASS",
+      "negative": "任一 =0 → FAIL",
+      "negative_result": "cases/organization.md 已无旧路径 /admin/merchants/:id/transfer-ownership，也无未决注释「ADMIN 语义？见下」；api.md 新增 §12.3.5 全端点契约",
+      "pass": true
+    }
+  ],
+  "tooling_commit": "a017a25d46fec75ebb30fd9e19eb220c51fb166a"
+}

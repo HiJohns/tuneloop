@@ -1,0 +1,27 @@
+# build=1.0.ad53b408f # commit=ad53b408f44a3a5ed01666ffeeb1125294c3f17b # dirty=false
+# R3 前置拒绝（非成员 / 目标已是 owner / user_id 空）均不调 IAM
+# build=1.0.ad53b408f # commit=ad53b408f44a3a5ed01666ffeeb1125294c3f17b # dirty=false
+# CMD go test -count=1 -run 'TestTransferOwnershipPreflightNegatives_2546' ./handlers/
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795684798081 wait_ms=69
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=69
+[DEBUG] Loaded .env from: ../.env
+2026/11/26 09:20:03 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c sslmode=disable
+2026/11/26 09:20:03 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c
+2026/11/26 09:20:03 [DB] Connected to database 'tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c'
+=== RUN   TestTransferOwnershipPreflightNegatives_2546
+2026/11/26 09:20:03 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c sslmode=disable
+2026/11/26 09:20:03 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c
+2026/11/26 09:20:03 [DB] Connected to database 'tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c'
+
+2026/11/26 09:20:04 [32m/tmp/opencode/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[649.907ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/26 09:20:04 [TenantScope][observe] auto-scope injected for table=merchant_members (add explicit scope, then set ExplicitTenantScopeOnly)
+
+2026/11/26 09:20:04 [31;1m/tmp/opencode/tuneloop/wt-2546/backend/handlers/merchant_member.go:750 [35;1mrecord not found
+[0m[33m[0.705ms] [34;1m[rows:0][0m SELECT * FROM "merchant_members" WHERE (tenant_id = '49d53831-be62-4706-9e7a-c804fd9bfd41' AND merchant_id = '3ab752f7-64a2-496e-8c32-44f27c011929' AND user_id = 'a0741ab4-0eef-47f9-863e-fd2e284085bd' AND (status = 'active' OR status = '' OR status IS NULL)) AND "merchant_members"."tenant_id" = '49d53831-be62-4706-9e7a-c804fd9bfd41' ORDER BY "merchant_members"."id" LIMIT 1
+    merchant_ownership_2546_test.go:458: NONMEMBER_STATUS=404 NONMEMBER_CODE=40400 NONMEMBER_IAM_CALLS=0 SAME_OWNER_STATUS=400 SAME_OWNER_CODE=40002 SAME_OWNER_IAM_CALLS=0 EMPTY_UID_STATUS=400 EMPTY_UID_CODE=40001
+--- PASS: TestTransferOwnershipPreflightNegatives_2546 (0.96s)
+PASS
+ok  	tuneloop-backend/handlers	1.849s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795684805004 hold_ms=6923
+GO_TEST_RC=0

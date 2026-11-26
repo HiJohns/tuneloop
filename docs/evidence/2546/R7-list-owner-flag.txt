@@ -1,0 +1,23 @@
+# build=1.0.ad53b408f # commit=ad53b408f44a3a5ed01666ffeeb1125294c3f17b # dirty=false
+# R7 列表 is_owner/status/owner_uid + include=all（默认口径不变）
+# build=1.0.ad53b408f # commit=ad53b408f44a3a5ed01666ffeeb1125294c3f17b # dirty=false
+# CMD go test -count=1 -run 'TestListMembersOwnerFlag_2546' ./handlers/
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795684845738 wait_ms=77
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=77
+[DEBUG] Loaded .env from: ../.env
+2026/11/26 09:20:51 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c sslmode=disable
+2026/11/26 09:20:52 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c
+2026/11/26 09:20:52 [DB] Connected to database 'tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c'
+=== RUN   TestListMembersOwnerFlag_2546
+2026/11/26 09:20:52 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c sslmode=disable
+2026/11/26 09:20:52 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c
+2026/11/26 09:20:52 [DB] Connected to database 'tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c'
+
+2026/11/26 09:20:53 [32m/tmp/opencode/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[629.351ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+    merchant_ownership_2546_test.go:654: OWNER_FLAG_HITS=1 OWNER_UID_MATCH=1 DEFAULT_ROWS=2 ALL_ROWS=3 OWNER_FIELD_PRESENT=1
+--- PASS: TestListMembersOwnerFlag_2546 (0.91s)
+PASS
+ok  	tuneloop-backend/handlers	1.649s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795684853657 hold_ms=7919
+GO_TEST_RC=0

@@ -1,0 +1,14 @@
+# build=1.0.ad53b408f # commit=ad53b408f44a3a5ed01666ffeeb1125294c3f17b # dirty=false
+# R9 审计路由接线（auditRouteMap 表项驱动，handler 不手写审计）
+# build=1.0.ad53b408f # commit=ad53b408f44a3a5ed01666ffeeb1125294c3f17b # dirty=false
+# CMD go test -count=1 -run 'TestAuditRouteTransferOwnership_2546' ./middleware/
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795684884833 wait_ms=84
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=84
+[DEBUG] Loaded .env from: ../.env
+=== RUN   TestAuditRouteTransferOwnership_2546
+    audit_route_2546_test.go:20: AUDIT_ROUTE_FOUND=1 AUDIT_ACTION=TRANSFER_OWNERSHIP AUDIT_RESOURCE=merchant AUDIT_PRIORITY=CRITICAL
+--- PASS: TestAuditRouteTransferOwnership_2546 (0.00s)
+PASS
+ok  	tuneloop-backend/middleware	0.012s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795684892108 hold_ms=7275
+GO_TEST_RC=0

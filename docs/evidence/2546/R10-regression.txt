@@ -1,0 +1,14 @@
+# build=1.0.ad53b408f # commit=ad53b408f44a3a5ed01666ffeeb1125294c3f17b # dirty=false
+# R10 go build ./... + 成员/商户用例定向回归
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795684892247 wait_ms=71
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=71
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795684899217 hold_ms=6970
+BUILD_RC=0
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795684899327 wait_ms=71
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=71
+ok  	tuneloop-backend/handlers	26.624s
+ok  	tuneloop-backend/services	0.026s
+ok  	tuneloop-backend/middleware	0.014s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795684931460 hold_ms=32133
+REGRESSION_RC=0
+REGRESSION_PASS=1

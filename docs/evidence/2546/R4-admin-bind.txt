@@ -1,0 +1,34 @@
+# build=1.0.ad53b408f # commit=ad53b408f44a3a5ed01666ffeeb1125294c3f17b # dirty=false
+# R4 添加/改角色只 bind ADMIN；显式 OWNER 请求 400/40002 且不写 IAM
+# build=1.0.ad53b408f # commit=ad53b408f44a3a5ed01666ffeeb1125294c3f17b # dirty=false
+# CMD go test -count=1 -run 'TestMerchantMemberRoleBindsAdmin_2546' ./handlers/
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795684805168 wait_ms=71
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=71
+[DEBUG] Loaded .env from: ../.env
+2026/11/26 09:20:11 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c sslmode=disable
+2026/11/26 09:20:12 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c
+2026/11/26 09:20:12 [DB] Connected to database 'tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c'
+=== RUN   TestMerchantMemberRoleBindsAdmin_2546
+2026/11/26 09:20:12 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c sslmode=disable
+2026/11/26 09:20:12 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c
+2026/11/26 09:20:12 [DB] Connected to database 'tuneloop_test_node_opencode_s35_p35_1ece3e_796da79c'
+
+2026/11/26 09:20:13 [32m/tmp/opencode/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[665.187ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/26 09:20:13 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:35541, clientID=test-ns, namespace=test-ns
+2026/11/26 09:20:13 [TenantScope][observe] auto-scope injected for table=merchant_members (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/26 09:20:13 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/26 09:20:13 [IAMClient] Bound user d71a7339-202d-4439-ac8e-cb0b81b926d3 to org e14ece7c-f4e7-4a7e-9a68-388cd7d6986b with role ADMIN (user token)
+2026/11/26 09:20:13 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/26 09:20:13 [IAMClient] Assigned role template merchant_admin to user d71a7339-202d-4439-ac8e-cb0b81b926d3 (via user token)
+2026/11/26 09:20:13 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:35541, clientID=test-ns, namespace=test-ns
+2026/11/26 09:20:13 [IAMClient] Bound user 49e8f315-de75-466b-9457-a4096fb4edf0 to org e14ece7c-f4e7-4a7e-9a68-388cd7d6986b with role ADMIN (user token)
+2026/11/26 09:20:13 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/26 09:20:13 [IAMClient] Assigned role template merchant_admin to user 49e8f315-de75-466b-9457-a4096fb4edf0 (via user token)
+2026/11/26 09:20:13 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:35541, clientID=test-ns, namespace=test-ns
+    merchant_ownership_2546_test.go:515: ADD_BIND_ROLE=ADMIN UPDATE_BIND_ROLE=ADMIN OWNER_BINDS=0 OWNER_REQUEST_STATUS=400 OWNER_REQUEST_CODE=40002
+--- PASS: TestMerchantMemberRoleBindsAdmin_2546 (1.03s)
+PASS
+ok  	tuneloop-backend/handlers	1.875s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795684813883 hold_ms=8715
+GO_TEST_RC=0
