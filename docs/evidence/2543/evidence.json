@@ -15,7 +15,7 @@
       "artifacts": [
         "docs/evidence/2543/R1-schema.txt"
       ],
-      "assert": "exit 0；含 `TABLE_EXISTS=1`、`EXEMPT_REMOVED=1`",
+      "assert": "exit 0；含 TABLE_EXISTS=1、EXEMPT_REMOVED=1",
       "actual": "PASS：TABLE_EXISTS=1 / EXEMPT_REMOVED=1（另附 COLUMN_COUNT=18、TOKEN_UNIQUE=1、DOWN_TABLE_EXISTS=0、MIGRATION_PAIR=ok）；up→down→up 往返在同一用例内完成，18 列与 models.ConfirmationSession 一一对应",
       "expected": "PASS",
       "negative": "表缺失 → FAIL",
@@ -29,7 +29,7 @@
       "artifacts": [
         "docs/evidence/2543/R2-iam-subject.txt"
       ],
-      "assert": "exit 0；含 `IAM_LOCAL_ID_SENT=0`、`ROLE=OWNER`",
+      "assert": "exit 0；含 IAM_LOCAL_ID_SENT=0、ROLE=OWNER",
       "actual": "PASS：IAM_LOCAL_ID_SENT=0 / ROLE=OWNER（另附 BIND_USER_ARG=sub-2543-cfcc3f2a、PERM_USER_ARG=sub-2543-cfcc3f2a、CONFIRM_STATUS=confirmed）；IAM 替身记录到恰好两次业务写入（PUT /organizations/{org}/users/{iam_sub}/bind 与 PUT .../customer-permissions），perm-version 通知不计入主体断言",
       "expected": "PASS",
       "negative": "发本地 id → FAIL",
@@ -43,7 +43,7 @@
       "artifacts": [
         "docs/evidence/2543/R3-empty-sub-guard.txt"
       ],
-      "assert": "exit 0；含 `IAM_CALLS=0`、`MESSAGE_HAS_ACTIVATE=1`",
+      "assert": "exit 0；含 IAM_CALLS=0、MESSAGE_HAS_ACTIVATE=1",
       "actual": "PASS：IAM_CALLS=0 / MESSAGE_HAS_ACTIVATE=1（另附 CONFIRM_STATUS=failed）；确认接口返回 500/50000，message 含「账号尚未激活，无法绑定组织」，会话由 confirmed 回落 failed（不留在成功态）",
       "expected": "PASS",
       "negative": "仍请求 IAM → FAIL",
@@ -57,7 +57,7 @@
       "artifacts": [
         "docs/evidence/2543/R4-docs.txt"
       ],
-      "assert": "exit 0；含 `DOC_FACT_SOURCE=1`",
+      "assert": "exit 0；含 DOC_FACT_SOURCE=1",
       "actual": "PASS：DOC_FACT_SOURCE=1（另附 DOC_DELETE_SYSADMIN_ONLY=1、DOC_IAM_READY=1、DOC_OWNER_INVARIANT=1）——iam-notes.md「事实来源」章节（IAM 唯一事实源 / 先 IAM 后本地 / iam_sub 主体 / iam_sub 为空显式失败）、组织所有人不变量表（branch 必须 0）、permissions.md 删除边界、api.md `iam_ready` 契约",
       "expected": "PASS",
       "negative": "缺文档 → FAIL",
@@ -71,7 +71,7 @@
       "artifacts": [
         "docs/evidence/2543/R5-build.txt"
       ],
-      "assert": "exit 0；含 `GO_TEST_OK=1`、`MIGRATION_ROUNDTRIP=1`",
+      "assert": "exit 0；含 GO_TEST_OK=1、MIGRATION_ROUNDTRIP=1",
       "actual": "PASS：GO_TEST_OK=1 / MIGRATION_ROUNDTRIP=1（另附 GO_BUILD_OK=1、GO_ARTIFACT_TESTS_OK=1）；go test ./handlers -run 2543 五个用例全绿，go test ./database -run Artifact 覆盖新增 20261126002 → confirmation_sessions 工件断言，迁移 up/down 往返复跑通过",
       "expected": "PASS",
       "negative": "任一失败 → FAIL",
