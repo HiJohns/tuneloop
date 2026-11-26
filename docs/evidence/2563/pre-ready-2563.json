@@ -1,7 +1,7 @@
 {
   "issue": 2563,
   "overall": "PASS",
-  "plan": "/tmp/opencode/tuneloop/wt-2563/tmp/pre-ready-2563.yUkDCr/plan.md",
+  "plan": "/tmp/opencode/tuneloop/wt-2563/tmp/pre-ready-2563.ea5wsN/plan.md",
   "plan_sha256": "829f87e5ef2cd3c53d4c70539fa72787a9ab02bcd897b2f2708efebb734deb66",
   "config_sha": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
   "provenance": {
@@ -10,7 +10,7 @@
     "dirty": false
   },
   "summary": "docs/evidence/2563/summary.md",
-  "timestamp": "20261126-150543",
+  "timestamp": "20261126-153136",
   "checks": [
     {
       "id": "P1",
