@@ -3,14 +3,14 @@
   "overall": "PASS",
   "plan": "docs/evidence/2543/plan.md",
   "plan_sha256": "b7892888961821b3b58de4b577392b78985a79cefe8d9e1fa33c981a5a5fe891",
-  "config_sha": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
+  "config_sha": "b8e05b8eb3f11d4da244573d9ec1a0a702a0aa6a",
   "provenance": {
-    "build": "1.0.690c61722",
-    "commit": "690c61722ae9a52e4e0099f8f198a84bea4d8369",
+    "build": "1.0.489d3580a",
+    "commit": "489d3580a91f0a3668e2a816729353c636a6c606",
     "dirty": false
   },
   "summary": "tmp/fix-summary-2543.md",
-  "timestamp": "20261126-164410",
+  "timestamp": "20261126-172859",
   "checks": [
     {
       "id": "P1",
@@ -45,7 +45,7 @@
     {
       "id": "P18",
       "status": "PASS",
-      "detail": "tooling_commit matches the running scripts (a017a25d46fec75ebb30fd9e19eb220c51fb166a)"
+      "detail": "tooling_commit matches the running scripts (b8e05b8eb3f11d4da244573d9ec1a0a702a0aa6a)"
     },
     {
       "id": "P15",
@@ -65,7 +65,7 @@
     {
       "id": "P5",
       "status": "PASS",
-      "detail": "full gate clean worktree; HEAD failures are a subset of baseline (758e447ed62c6438bf437a4dd9659271a2494797); source head=cache(reused:non-input) baseline=cache"
+      "detail": "full gate clean worktree; HEAD failures are a subset of baseline (758e447ed62c6438bf437a4dd9659271a2494797); source head=run baseline=run"
     },
     {
       "id": "P6",
@@ -95,7 +95,7 @@
     {
       "id": "P11",
       "status": "PASS",
-      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /home/coder/worktrees/tuneloop/wt-2543; worktree guard: PASS isolated worktree=/home/coder/worktrees/tuneloop/wt-2543"
+      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /tmp/opencode/tuneloop/wt-2543; worktree guard: PASS isolated worktree=/tmp/opencode/tuneloop/wt-2543"
     },
     {
       "id": "P13",
