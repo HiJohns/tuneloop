@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "issue": 2540,
-  "build": "1.0.150ff8d",
+  "build": "1.0.150ff8d85",
   "commit": "150ff8d853d3941287e457f2bcaf72d320181ac3",
   "dirty": false,
   "plan_sha256": "c89ea38fd0eaa1f206dcbecc47ff01bbf59787ca22070ca085035b7cf2acc64e",
@@ -16,7 +16,7 @@
       "artifacts": [
         "docs/evidence/2540/R1-activate-role.txt"
       ],
-      "assert": "exit 0；含 `ADMIN_BIND_ROLE=ADMIN`、`LEGACY_BIND_ROLE=STAFF`、`PLATFORM_ROLE_TEMPLATE=site_member`、`ILLEGAL_TEMPLATE_COUNT=0`",
+      "assert": "exit 0；含 ADMIN_BIND_ROLE=ADMIN、LEGACY_BIND_ROLE=STAFF、PLATFORM_ROLE_TEMPLATE=site_member、ILLEGAL_TEMPLATE_COUNT=0",
       "actual": "MEMBER_BIND_ROLE=STAFF MEMBER_ROLE_TEMPLATE=site_member ADMIN_BIND_ROLE=ADMIN ADMIN_ROLE_TEMPLATE=site_admin LEGACY_BIND_ROLE=STAFF LEGACY_ROLE_TEMPLATE=site_member CUSTOMER_BIND_ROLE=STAFF CUSTOMER_ROLE_TEMPLATE=site_member UNKNOWN_BIND_ROLE=STAFF UNKNOWN_ROLE_TEMPLATE=site_member PLATFORM_BIND_ROLE=STAFF PLATFORM_ROLE_TEMPLATE=site_member ILLEGAL_ROLE_COUNT=0 ILLEGAL_TEMPLATE_COUNT=0 ADMIN_PERM_TEMPLATE=site_admin PERM_TEMPLATE=site_member CUS_PERM_MATCH=1 ROLE_TEMPLATE_MISMATCH=0",
       "expected": "PASS",
       "negative": "非法角色/平台模板进入 → FAIL",
@@ -30,7 +30,7 @@
       "artifacts": [
         "docs/evidence/2540/R2-bulk-import-role.txt"
       ],
-      "assert": "exit 0；含 `BIND_ROLES=STAFF,ADMIN`、`BUSINESS_ROLE_AS_IAM=0`",
+      "assert": "exit 0；含 BIND_ROLES=STAFF,ADMIN、BUSINESS_ROLE_AS_IAM=0",
       "actual": "BIND_ROLES=STAFF,ADMIN LEGACY_BIND_ROLE=STAFF BUSINESS_ROLE_AS_IAM=0",
       "expected": "PASS",
       "negative": "业务角色入 payload → FAIL",
@@ -44,7 +44,7 @@
       "artifacts": [
         "docs/evidence/2540/R3-no-business-role-static.txt"
       ],
-      "assert": "exit 0；含 `BIND_WITH_BUSINESS_ROLE=0`、`HARDCODED_SITE_MEMBER=0`",
+      "assert": "exit 0；含 BIND_WITH_BUSINESS_ROLE=0、HARDCODED_SITE_MEMBER=0",
       "actual": "BIND_WITH_BUSINESS_ROLE=0 GETBUSINESSROLE_AS_IAMROLE=0 HARDCODED_SITE_MEMBER=0 SERVICE_TOIAMROLE=1 HANDLER_THIN_WRAPPER=1 NORMALIZE_WHITELIST=1",
       "expected": "PASS",
       "negative": "残留 → FAIL",
@@ -58,7 +58,7 @@
       "artifacts": [
         "docs/evidence/2540/R6-merchant-owner.txt"
       ],
-      "assert": "exit 0；含 `BIND_ROLE=OWNER`",
+      "assert": "exit 0；含 BIND_ROLE=OWNER",
       "actual": "BIND_ROLE=OWNER PERM_TEMPLATE=merchant_admin CUS_PERM_MATCH=1 NON_OWNER_ROLE_COUNT=0 MERCHANT_LITERAL_ADMIN=0",
       "expected": "PASS",
       "negative": "仍为 ADMIN/admin → FAIL",
@@ -72,7 +72,7 @@
       "artifacts": [
         "docs/evidence/2540/R4-docs.txt"
       ],
-      "assert": "exit 0；含 `DOC_TOIAMROLE=1`、`DOC_ROLE_TEMPLATE=1`",
+      "assert": "exit 0；含 DOC_TOIAMROLE=1、DOC_ROLE_TEMPLATE=1",
       "actual": "DOC_TOIAMROLE=2 DOC_STAFF_FALLBACK=2 DOC_ACTIVATE_SECTION=1 DOC_MERCHANT_OWNER=1 DOC_ROLE_TEMPLATE=1",
       "expected": "PASS",
       "negative": "缺文档 → FAIL",
@@ -86,7 +86,7 @@
       "artifacts": [
         "docs/evidence/2540/R5-build.txt"
       ],
-      "assert": "exit 0；含 `GO_TEST_OK=1`、`BUILD_OK=1`、`FULL_GATE_EXIT=1`、`FULL_GATE_NEW_FAILURES=0`",
+      "assert": "exit 0；含 GO_TEST_OK=1、BUILD_OK=1、FULL_GATE_EXIT=1、FULL_GATE_NEW_FAILURES=0",
       "actual": "GO_TEST_OK=1 BUILD_OK=1 BASELINE_REF=origin/develop BASELINE_SHA=c37655eb0237a63571bbe95156a2336c2d6810a0 BASELINE_GATE_EXIT=1 FULL_GATE_EXIT=1 FULL_GATE_CURRENT_FAILURES=12 FULL_GATE_BASELINE_FAILURES=12 FULL_GATE_NEW_FAILURES=0",
       "expected": "PASS",
       "negative": "新增失败 → FAIL",
