@@ -7,5 +7,5 @@ CURRENT_IS_SITE=1
 CURRENT_NOT_ORG=1
 OLD_VALUE_IS_ORG=1
 RED_CONFIRMED=1
---- PASS: TestSubmitAssessment2532_FallbackWritesSiteNotOrg (0.87s)
+--- PASS: TestSubmitAssessment2532_FallbackWritesSiteNotOrg (1.68s)
 R1_OK

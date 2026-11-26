@@ -3,5 +3,5 @@
 STATUS=200
 PRIMARY_EQUALS_OPERATOR_SITE=1
 PRIMARY_NOT_ORG=1
---- PASS: TestSubmitAssessment2532_PrimaryBranchUnchanged (0.90s)
+--- PASS: TestSubmitAssessment2532_PrimaryBranchUnchanged (0.81s)
 R3_OK

@@ -71,7 +71,7 @@
         "docs/evidence/2532/pre-ready-2532.json"
       ],
       "assert": "exit 0；jq -e '.overall == \"PASS\"' docs/evidence/2532/pre-ready-2532.json 且 evidence 每行 pass=true",
-      "actual": "PENDING:first-gate-run",
+      "actual": "PASS：overall=PASS / plan_sha256=4add6ab58b866c52d0a84d49b2c98e7d4fe4052ef6f3b4166774969400abd24f / provenance.build=1.0.0275ebc84 / provenance.commit=0275ebc843ea3087dcf9a9f316adb33619baadf2 / dirty=false / P12=PASS / P13=PASS（source: docs/evidence/2532/pre-ready-2532.json，ledger 派生）",
       "expected": "overall=PASS、dirty=false、P13 提交在 origin/issue-2532",
       "negative": "任一 P 项失败 / evidence 缺行 / dirty=true → gate 非 0，禁止 ready",
       "negative_result": "首轮 gate 以 R5 记录缺失运行（P12 报 R5 缺行）并落盘报告，补齐后二轮 gate 判定 overall=PASS",
