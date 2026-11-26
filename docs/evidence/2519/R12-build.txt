@@ -1,5 +1,5 @@
-# build=1.0.5007901a3 # commit=5007901a345e77feaf9036ef2b07c5f91b4a7948 # dirty=false
-# generated_at=2026-11-26T15:36:37Z HEAD=5007901a345e77feaf9036ef2b07c5f91b4a7948
+# build=1.0.c841a9e82 # commit=c841a9e82bc86dec130d6308b6b4992028fee2f6 # dirty=false
+# generated_at=2026-11-26T15:47:30Z HEAD=c841a9e82bc86dec130d6308b6b4992028fee2f6
 BUILD_EXIT=0
 GO_TEST_EXIT=0
 NPM_BUILD_EXIT=0
@@ -9,14 +9,14 @@ BUILD_OK=1
 GO_TEST_OK=1
 NPM_BUILD_OK=1
 ESLINT_OK=1
-[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=98
-ok  	tuneloop-backend/handlers	6.946s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795707370655 hold_ms=14756
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=197
+ok  	tuneloop-backend/handlers	6.835s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795708028520 hold_ms=14460
 - Using dynamic import() to code-split the application
 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-✓ built in 21.98s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795707394444 hold_ms=23655
+✓ built in 17.91s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795708047522 hold_ms=18881
    59:5   warning  'fetchCategories' was used before it was defined                                                                                                                     no-use-before-define
    68:5   warning  'fetchInstruments' was used before it was defined                                                                                                                    no-use-before-define
    69:6   warning  React Hook useEffect has missing dependencies: 'fetchInstruments', 'pagination.page', and 'pagination.pageSize'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
@@ -26,4 +26,4 @@ ok  	tuneloop-backend/handlers	6.946s
 
 ✖ 10 problems (0 errors, 10 warnings)
 
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795707397815 hold_ms=3173
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795708050496 hold_ms=2851
