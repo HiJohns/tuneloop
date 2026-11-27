@@ -45,7 +45,7 @@
       "assert": "exit 0 且含 TEST_EXIT=0 RESTORED_ROWS=6 ROLLBACK_AUDIT_ROWS=6 POST_ROLLBACK_TENANT_MATCH=6 CONCURRENT_ABORT=1 DB_WRITES=0 ROWS_CHANGED_AFTER_ABORT=0",
       "actual": "PASS：回滚执行 exit 0 / RESTORED_ROWS=6 / ROLLBACK_AUDIT_ROWS=6 / POST_ROLLBACK_TENANT_MATCH=6；改值型并发例 CONCURRENT_SQL_EXIT_NONZERO=1 / CONCURRENT_ABORT=1（psql: reconcile: concurrent change detected for aaaa0000-0000-4000-8000-000000000001 (row missing/soft-deleted/not at target)）/ DB_WRITES=0 / ROWS_CHANGED_AFTER_ABORT=0 / NO_PARTIAL_WRITE=0 / FULL_TABLE_UNCHANGED_BY_ABORT=1；Round 1 追加负例（R4 删除目标行）：DELETE_ROW_GEN_EXIT=0 / DELETE_ROW_GEN_DB_WRITES=0 / DELETE_ROW_SQL_EXIT_NONZERO=1 / DELETE_ROW_ABORT=1（psql: reconcile: concurrent change detected for aaaa…0006）/ DELETE_ROW_NO_PASS=0 / ROWS_CHANGED_AFTER_DELETE_ABORT=0 / DELETE_ROW_DB_WRITES=0 / DELETE_ROW_AUDIT_ROWS=0",
       "expected": "PASS（7 项 token 全为期望值）",
-      "negative": "回滚后任一行未还原、部分写入残留（半修）、并发场景非整体中止 → 任一即 FAIL",
+      "negative": "回滚未还原、半修残留、并发非整体中止 → FAIL",
       "negative_result": "负例已实测：改值型并发（快照后把 1 行改成第三值）CAS 命中 0 行 → 后置校验 RAISE → 整表 hash 不变（ROWS_CHANGED_AFTER_ABORT=0）、审计行数不变（NO_PARTIAL_WRITE=0 表示「无新增」）；回滚后 6 行全部还原到旧值且产生 6 条 ROLLBACK 审计。Round 1 新增删除型并发（快照后 DELETE 掉 a-nil-1）：修复 SQL 非 0 退出、日志含 concurrent change detected、整表 hash 与审计行数均不变（DELETE_ROW_DB_WRITES=0 / DELETE_ROW_AUDIT_ROWS=0），不再出现「6 行里只更新 5 行却报 DB_WRITES=6 + 伪审计」。红样：缺陷版 bc543314a 同场景 DELETE_ROW_SQL_EXIT_NONZERO=MISMATCH(expected=1 actual=0)、ROWS_CHANGED_AFTER_DELETE_ABORT=MISMATCH(expected=0 actual=1)、DELETE_ROW_AUDIT_ROWS=MISMATCH(expected=0 actual=6)。",
       "pass": true
     }
