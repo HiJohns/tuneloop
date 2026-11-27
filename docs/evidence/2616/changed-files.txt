@@ -1,0 +1,5 @@
+docs/spec/ui/ui.md
+frontend-mobile/scripts/page-smoke/cart-checkbox-2616.test.jsx
+frontend-mobile/scripts/page-smoke/cart-header-2616.test.jsx
+frontend-mobile/src/pages/Cart.jsx
+scripts/verify-2616.sh

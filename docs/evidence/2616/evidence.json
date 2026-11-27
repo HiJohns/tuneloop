@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "issue": 2616,
+  "build": "1.0.eba2d0da",
+  "commit": "eba2d0daf55a5d648cf920d2b4fdc524951260fe",
+  "dirty": false,
+  "plan_sha256": "6e33aa43f4541409c85be07ad56d9f8a7d372a5a159dcb36eaa6144c41224e64",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2616 (branch issue-2616, base origin/develop bdd14b69d, node v22.22.3); jsdom render via vitest page-smoke (@testing-library/react) + taro build weapp/h5 + eslint; no backend/production calls; real-device recheck is deployment-side (waitForConfirm)",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2616.sh r1 > docs/evidence/2616/R1-cart-checkbox.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2616/R1-cart-checkbox.txt"
+      ],
+      "assert": "exit 0 且含 CART_CHECKBOX_SELECTED_FILL=1、CART_CHECKBOX_UNSELECTED_CONTRAST=1、CART_CHECKBOX_UNSELECTED_WHITE_BG=1、CART_CHECKBOX_DISABLED_DISTINCT=1、CART_CHECKBOX_DISABLED_NOT_SELECTABLE=1、CART_CHECKBOX_TAP_SIZE=36、CART_CHECKBOX_RENDER_FAIL=0",
+      "actual": "PASS：VITEST_EXIT=0；CART_CHECKBOX_SELECTED_FILL=1 / CART_CHECKBOX_UNSELECTED_CONTRAST=1 / CART_CHECKBOX_UNSELECTED_WHITE_BG=1 / CART_CHECKBOX_DISABLED_DISTINCT=1 / CART_CHECKBOX_DISABLED_NOT_SELECTABLE=1 / CART_CHECKBOX_TAP_SIZE=36 / CART_CHECKBOX_RENDER_FAIL=0 / CART_CHECKBOX_OLD_GRAY_PRESENT=0",
+      "expected": "七项 token 全为期望值",
+      "negative": "未选中仍为 #d1d5db、无白底填充、热区 <32、禁用项可被选中、渲染抛错 → FAIL",
+      "negative_result": "红线实证：同一命令在未修基线上 exit 1，R1 五个用例全部失败（expected +0 to be 2 / expected null to be truthy）；修复后全部 PASS。负例未触发：未选中已非 #d1d5db（OLD_GRAY_PRESENT=0）、白底填充生效、热区 36≥32、rentedOut 项点击不出 ✓。",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2616.sh r2 > docs/evidence/2616/R2-cart-header.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2616/R2-cart-header.txt"
+      ],
+      "assert": "exit 0 且含 CART_HEADER_WEAPP_PADDING_RIGHT=83、CART_HEADER_WEAPP_PADDING_TOP=28、CART_HEADER_H5_PADDING_RIGHT=16、CART_HEADER_H5_PADDING_TOP=12、CART_HEADER_FALLBACK_PADDING_RIGHT=96、CART_HEADER_DELETE_TEXT_FULL=1、CART_HEADER_DELETE_NO_SHRINK=1、CART_HEADER_TITLE_YIELDS=1、CART_HEADER_RENDER_FAIL=0",
+      "actual": "PASS：VITEST_EXIT=0；CART_HEADER_WEAPP_PADDING_RIGHT=83 / CART_HEADER_WEAPP_PADDING_TOP=28 / CART_HEADER_H5_PADDING_RIGHT=16 / CART_HEADER_H5_PADDING_TOP=12 / CART_HEADER_FALLBACK_PADDING_RIGHT=96 / CART_HEADER_DELETE_TEXT_FULL=1 / CART_HEADER_DELETE_NO_SHRINK=1 / CART_HEADER_TITLE_YIELDS=1 / CART_HEADER_RENDER_FAIL=0",
+      "expected": "九项 token 全为期望值",
+      "negative": "胶囊失效兜底为 0、H5 误套胶囊内边距、长文案被裁/被压缩、标题不让位 → FAIL",
+      "negative_result": "红线实证：同一命令在未修基线上 exit 1（[data-testid=cart-header] 不存在，expected null to be truthy）；修复后全部 PASS。负例未触发：胶囊 API 抛错时兜底 96（非 0）、H5 仍 16/12、删除所选(12) 文本完整且 flexShrink=0、标题 flex 含 1 1 0% 且 minWidth=0。",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2616.sh r3 > docs/evidence/2616/R3-build-lint.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2616/R3-build-lint.txt"
+      ],
+      "assert": "exit 0 且含 WEAPP_BUILD_OK=1、H5_BUILD_OK=1、WXML_CART_NATIVE_TAG=0、WEAPP_BUNDLE_MARKER=1、ESLINT_NOUNDEF=0",
+      "actual": "PASS：NODE_VERSION=v22.22.3；WEAPP_BUILD_EXIT=0 / WEAPP_BUILD_OK=1 / H5_BUILD_EXIT=0 / H5_BUILD_OK=1 / WXML_CART_NATIVE_TAG=0 / WEAPP_BUNDLE_MARKER=1 / ESLINT_NOUNDEF=0",
+      "expected": "五项 token 全为期望值",
+      "negative": "weapp/h5 构建非 0、cart 页 wxml 含原生 HTML 标签、产物无新样式标记、ESLint no-undef → FAIL",
+      "negative_result": "负例未触发：两个构建均 exit 0；dist-weapp/pages-weapp/cart 的 wxml 无原生 HTML 交互标签（探针计数 0）；weapp 产物含新样式标记 #71717A；定向 eslint 无 no-undef。",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "~/.config/opencode/scripts/pre-ready-check.sh 2616 --summary-file docs/evidence/2616/summary.md --changed-files docs/evidence/2616/changed-files.txt --evidence-file docs/evidence/2616/evidence.json --affected-cmd \"bash scripts/verify-2616.sh gate\" --report docs/evidence/2616/pre-ready-2616.json",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2616/pre-ready-2616.json"
+      ],
+      "assert": "exit 0 且 jq -e '.overall == \"PASS\"' docs/evidence/2616/pre-ready-2616.json 成立；P12 对 docs/evidence/2616/evidence.json 每行 pass=true",
+      "actual": "PASS：pre-ready-check.sh 2616 exit 0、overall=PASS、evidence 4 行全部 pass=true、dirty=false、P13 显示 fix commit 与全部 artifact 在 origin/issue-2616",
+      "expected": "overall=PASS 且证据行全 pass=true",
+      "negative": "任一 P 项失败 / evidence 缺行 / dirty=true / plan 快照与 Accepted Plan 评论不一致 → gate 非 0，禁止 ready",
+      "negative_result": "负例未触发：P1–P18 无 FAIL（P12 合同四行齐备 pass=true、P13 远端可达、P17 plan 快照与 Accepted Plan 评论一致、P2 矩阵四行均 PASS）。",
+      "pass": true
+    }
+  ]
+}

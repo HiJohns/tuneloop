@@ -1,0 +1,14 @@
+# build=1.0.eba2d0da # commit=eba2d0daf55a5d648cf920d2b4fdc524951260fe # dirty=false
+GENERATED_AT_HEAD=eba2d0daf55a5d648cf920d2b4fdc524951260fe
+NODE_VERSION=v22.22.3
+WEAPP_BUILD_CMD=cd frontend-mobile && npm run build:weapp
+WEAPP_BUILD_EXIT=0
+WEAPP_BUILD_OK=1
+H5_BUILD_CMD=cd frontend-mobile && npm run build:h5
+H5_BUILD_EXIT=0
+H5_BUILD_OK=1
+WXML_CART_DIR=/tmp/opencode/tuneloop/wt-2616/frontend-mobile/dist-weapp/pages-weapp/cart
+WXML_CART_NATIVE_TAG=0
+WEAPP_BUNDLE_MARKER=1
+ESLINT_CMD=cd frontend-mobile && eslint src/pages/Cart.jsx scripts/page-smoke/cart-*-2616.test.jsx
+ESLINT_NOUNDEF=0
