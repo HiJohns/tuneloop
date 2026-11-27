@@ -1,4 +1,4 @@
-## Accepted Plan — #2564（分类页 40002 重名恢复表单内持久提示 + 提交路径判码去假成功）｜Rev.2
+## Accepted Plan — #2564（分类页 40002 重名恢复表单内持久提示 + 提交路径判码去假成功）｜Rev.3
 
 ### 背景与现状核对（仓库 HEAD 只读核对）
 
@@ -102,7 +102,7 @@
 | 行 ID | fixture（输入/seed） | entry（生产入口） | artifact（路径/类型） | assertions（含负例） |
 |---|---|---|---|---|
 | R1 | 修后 `List.jsx` 的 `handleFormSubmit` 与 Modal 段 | 分类新建/改名弹窗提交 | `docs/evidence/2564/R1-consumer-wiring.txt` | `CONFLICT_BRANCH_IN_CATCH=1`、`CONFLICT_TEXT_FALLBACK=1`、`ALERT_RENDERED=1`、`CLEAR_ON_CHANGE=1`、`SHARED_REUSE=1`、`LOCAL_ALERT_DUP=0`、`FALLBACK_TOAST=1`；负例：自写 `Alert` 或 catch 无 `isBusinessCorrectableConflict` → FAIL |
-| R2 | 修前 `List.jsx`（`git log -1 -- ...List.jsx` 的父提交）+ 修后同文件；**夹具锚点：分类新建弹窗的上层分类选择器默认值**（父分类为空时不得自动选中「顶级分类」） | 提交路径判码 + 分类选择器结构 | `docs/evidence/2564/R2-code-first.txt` | `RED_SINGLE_CODE_CHECK=1`、`RED_NO_CATCH_BRANCH=1`、`GREEN_CODE_FIRST=1`、`CREATE_ACCEPTS_20100=1`、`UPDATE_CODE_GUARD=1`、`NONOK_RETURN_BEFORE_CLOSE=2`、**`AUTOSELECT_TOPLEVEL_ONLY=1`**、**`CREATED_SUBCATEGORY_KEEPS_PARENT=1`**、**`GUARD_MUTATION_DETECTED=1`**、**`RED_NO_AUTOSELECT_GUARD=1`**；负例：仍只判 `20000`、失败分支仍关闭弹窗、或父分类被静默改成顶级 → FAIL |
+| R2 | 修前 `List.jsx`（`git log -1 -- ...List.jsx` 的父提交）+ 修后同文件；**夹具锚点（可执行）**：`frontend-pc/src/pages/admin/category/List.jsx` 的 `finalParentId` 计算块 + `if (response.data?.id && !finalParentId)` 守卫（脚本按正则定位并把实际行号写入 artifact，不写死行号） | 提交路径判码 + 分类选择器结构 | `docs/evidence/2564/R2-code-first.txt` | `RED_SINGLE_CODE_CHECK=1`、`RED_NO_CATCH_BRANCH=1`、`GREEN_CODE_FIRST=1`、`CREATE_ACCEPTS_20100=1`、`UPDATE_CODE_GUARD=1`、`NONOK_RETURN_BEFORE_CLOSE=2`、**`AUTOSELECT_TOPLEVEL_ONLY=1`**、**`CREATED_SUBCATEGORY_KEEPS_PARENT=1`**、**`GUARD_MUTATION_DETECTED=1`**、**`RED_NO_AUTOSELECT_GUARD=1`**；负例：仍只判 `20000`、失败分支仍关闭弹窗、或父分类被静默改成顶级 → FAIL |
 | R3 | 修后干净树 | `cd frontend-pc` | `docs/evidence/2564/R3-build-lint.txt` | `BUILD_EXIT=0`、`ESLINT_NO_UNDEF=0`；负例：构建非 0 或 `no-undef` > 0 → FAIL |
 | R4 | 修后树 + 最新 Accepted Plan + evidence.json | `pre-ready-check.sh 2564` | `docs/evidence/2564/pre-ready-2564.json` | `GATE_RESULT=PASS`、`jq -e '.overall == "PASS"'`、每行 `pass=true`、`dirty=false`；负例：任一 P 失败 / evidence 缺行 → FAIL |
 
@@ -159,5 +159,6 @@
 - Confidence: high
 
 *Model: DeepSeek V4.1 Flash 1017*
+
 
 
