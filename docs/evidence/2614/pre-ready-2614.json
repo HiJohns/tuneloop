@@ -1,7 +1,7 @@
 {
   "issue": 2614,
-  "overall": "FAIL",
-  "plan": "/tmp/opencode/tuneloop/wt-2614/tmp/pre-ready-2614.Gal0TT/plan.md",
+  "overall": "PASS",
+  "plan": "/tmp/opencode/tuneloop/wt-2614/tmp/pre-ready-2614.7lILia/plan.md",
   "plan_sha256": "5ac6dd0dee94cf4a00373cf17e490406c5df3c275985348051382e20d36d9ccf",
   "config_sha": "a29b2b35530c77f2bae31c509207199e6572ad9c",
   "provenance": {
@@ -10,7 +10,7 @@
     "dirty": false
   },
   "summary": "docs/evidence/2614/summary.md",
-  "timestamp": "20261127-203437",
+  "timestamp": "20261127-203749",
   "checks": [
     {
       "id": "P1",
@@ -99,8 +99,8 @@
     },
     {
       "id": "P13",
-      "status": "FAIL",
-      "detail": "artifacts not on origin/issue-2614: docs/evidence/2614/pre-ready-2614.json"
+      "status": "PASS",
+      "detail": "fix commit and evidence artifacts are on origin/issue-2614"
     }
   ]
 }
