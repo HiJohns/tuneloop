@@ -96,6 +96,12 @@ export const ERROR_MESSAGE_MAP = {
   'order does not belong to your site': '订单不属于您所在的网点',
   'no permission to refund orders': '无退款权限',
   'order is not in refunding status': '订单当前状态不允许退款',
+  // #2601 Rev.2 D6b：扫码绑定/合并的「过期/失效」分支仍是机器串（后端保留 ASCII，
+  // 文案 owner 在前端码表）。不登记会落到 ERROR_CODE_MAP 的 40004/40002 通用语义
+  // （「数据已存在」「信息不完整」），把「二维码过期」误陈述成别的失败。
+  'invalid or expired token': '绑定二维码已失效，请让管理员重新生成二维码后重试',
+  'invalid or expired merge ticket': '绑定二维码已失效，请让管理员重新生成二维码后重试',
+  'merge ticket does not match binding token': '绑定二维码已失效，请让管理员重新生成二维码后重试',
 }
 
 // 解析器（唯一出口）

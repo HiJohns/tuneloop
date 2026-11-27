@@ -7,6 +7,7 @@
 #   bash scripts/verify-2601.sh r4   # Bind 页失败态渲染（jsdom + @testing-library/react）
 #   bash scripts/verify-2601.sh r5   # 契约文档同步（端点清单 + 失败三元组 + Bind 页失败提示）
 #   bash scripts/verify-2601.sh r6   # 构建 / gofmt / eslint（no-undef）
+#   bash scripts/verify-2601.sh r8   # Bind 页过期/失效分支文案（ASCII 过期串 → 可行动中文）
 #   bash scripts/verify-2601.sh gate # 供 pre-ready --affected-cmd 复用（build + 三条定向测试）
 #
 # Capture a row into its artifact:
@@ -22,8 +23,8 @@ set -uo pipefail
 
 ROW="${1:-}"
 case "$ROW" in
-  r1|r2|r3|r4|r5|r6|gate) ;;
-  *) echo "usage: $0 r1|r2|r3|r4|r5|r6|gate" >&2; exit 2 ;;
+  r1|r2|r3|r4|r5|r6|r8|gate) ;;
+  *) echo "usage: $0 r1|r2|r3|r4|r5|r6|r8|gate" >&2; exit 2 ;;
 esac
 
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "not a git repository" >&2; exit 2; }
@@ -184,6 +185,29 @@ case "$ROW" in
     done
     rm -f "$OUT"
     echo "R4_OK"
+    ;;
+
+  r8)
+    echo "== R8 Bind 页过期/失效分支文案（render + waitFor，ASCII 过期串） =="
+    ensure_node22
+    OUT="$(mktemp)"
+    ( cd frontend-mobile && heavy npx vitest run --config vitest.config.js \
+        scripts/page-smoke/bind-failure-2601.test.jsx ) > "$OUT" 2>&1
+    RC=$?
+    grep -E "$TOKEN_RE" "$OUT" || true
+    if [ "$RC" -ne 0 ]; then
+      tail -40 "$OUT"
+      rm -f "$OUT"
+      fail "vitest bind-failure-2601 (expired rows) exit=${RC}"
+    fi
+    for tok in \
+      "BIND_UI_EXPIRED_TOKEN_TEXT=1" \
+      "BIND_UI_EXPIRED_NO_CODE_MAP_MISMATCH=1" \
+      "BIND_UI_EXPIRED_RENDER_FAIL=0"; do
+      grep -qx -- "$tok" "$OUT" || { rm -f "$OUT"; fail "missing expected token '$tok'"; }
+    done
+    rm -f "$OUT"
+    echo "R8_OK"
     ;;
 
   r5)

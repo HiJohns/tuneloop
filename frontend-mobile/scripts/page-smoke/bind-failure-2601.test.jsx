@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, waitFor, cleanup } from '@testing-library/react'
+import { render, waitFor, fireEvent, cleanup } from '@testing-library/react'
 
 // #2601 R4：Bind 页失败态文案必须来自解析层（services/errorMessages.js），
 // 不得把持久失败（500/50015 配置异常）表达成可重试的「请重试」。
@@ -117,5 +117,112 @@ describe('Bind page failure texts (#2601)', () => {
   it('never crashes while rendering a failure state', () => {
     expect(renderFailed).toBe(0)
     console.info('BIND_UI_RENDER_FAIL=0')
+  })
+})
+
+// #2601 Rev.2 R8（Round 1 audit Bug 1）：扫码确认/合并的 ASCII「过期/失效」分支必须
+// 渲染出真实且可行动的文案，不得落到 ERROR_CODE_MAP 的通用语义
+// （40004「数据已存在」/ 40002「信息不完整」）。
+const EXPIRED_TEXT = '绑定二维码已失效，请让管理员重新生成二维码后重试'
+
+function expectExpiredText() {
+  const body = document.body.textContent
+  expect(body).toContain('已失效')
+  expect(body).toContain('重新生成二维码')
+  expect(body).not.toContain('数据已存在')
+  expect(body).not.toContain('信息不完整')
+  return EXPIRED_TEXT
+}
+
+describe('Bind page expired-ticket texts (#2601 R8)', () => {
+  it('renders an actionable expired text for confirm 400/40004 + ASCII token message', async () => {
+    await renderWith({ code: 40004, message: 'invalid or expired token' })
+    await waitFor(() => expect(document.body.textContent).toContain('绑定失败'))
+    expectExpiredText()
+    console.info('BIND_UI_EXPIRED_TOKEN_TEXT=1')
+    console.info('BIND_UI_EXPIRED_NO_CODE_MAP_MISMATCH=1')
+  })
+
+  it('renders the same actionable text when merge fails with an expired merge ticket', async () => {
+    platform.request.mockImplementation(async (url) => {
+      const target = String(url)
+      if (target.includes('/auth/wx-accounts')) {
+        return jsonResponse({ code: 20000, data: { openid: 'o-2601', exchange_token: 'ex-2601' } })
+      }
+      if (target.includes('/wechat-bind/confirm')) {
+        return jsonResponse({
+          code: 40900,
+          message: '该微信已绑定其他账户，需要合并',
+          data: {
+            needs_merge: true,
+            existing_user_id: 'u-y-2601',
+            target_user_id: 'u-x-2601',
+            openid: 'o-2601',
+            merge_ticket: 'ticket-2601',
+          },
+        })
+      }
+      if (target.includes('/wechat-bind/merge')) {
+        return jsonResponse({ code: 40002, message: 'invalid or expired merge ticket' })
+      }
+      throw new Error(`unexpected request: ${target}`)
+    })
+    window.history.replaceState({}, '', `/?token=${TOKEN}`)
+    render(<Bind />)
+    const mergeBtn = await waitFor(() => {
+      const el = Array.from(document.querySelectorAll('button, [role="button"]'))
+        .find((node) => node.textContent.includes('合并到我的个人账户'))
+      expect(el).toBeTruthy()
+      return el
+    })
+    fireEvent.click(mergeBtn)
+    await waitFor(() => expect(document.body.textContent).toContain('合并失败'))
+    expectExpiredText()
+    console.info('BIND_UI_EXPIRED_TOKEN_TEXT=1')
+    console.info('BIND_UI_EXPIRED_NO_CODE_MAP_MISMATCH=1')
+  })
+
+  it('renders the same actionable text when the merge ticket does not match', async () => {
+    platform.request.mockImplementation(async (url) => {
+      const target = String(url)
+      if (target.includes('/auth/wx-accounts')) {
+        return jsonResponse({ code: 20000, data: { openid: 'o-2601', exchange_token: 'ex-2601' } })
+      }
+      if (target.includes('/wechat-bind/confirm')) {
+        return jsonResponse({
+          code: 40900,
+          message: '该微信已绑定其他账户，需要合并',
+          data: {
+            needs_merge: true,
+            existing_user_id: 'u-y-2601',
+            target_user_id: 'u-x-2601',
+            openid: 'o-2601',
+            merge_ticket: 'ticket-2601',
+          },
+        })
+      }
+      if (target.includes('/wechat-bind/merge')) {
+        return jsonResponse({ code: 40002, message: 'merge ticket does not match binding token' })
+      }
+      throw new Error(`unexpected request: ${target}`)
+    })
+    window.history.replaceState({}, '', `/?token=${TOKEN}`)
+    render(<Bind />)
+    const mergeBtn = await waitFor(() => {
+      const el = Array.from(document.querySelectorAll('button, [role="button"]'))
+        .find((node) => node.textContent.includes('合并到我的个人账户'))
+      expect(el).toBeTruthy()
+      return el
+    })
+    fireEvent.click(mergeBtn)
+    await waitFor(() => expect(document.body.textContent).toContain('合并失败'))
+    expectExpiredText()
+    console.info('BIND_UI_EXPIRED_TOKEN_TEXT=1')
+    console.info('BIND_UI_EXPIRED_NO_CODE_MAP_MISMATCH=1')
+  })
+
+  it('never crashes while rendering an expired state', () => {
+    expect(renderFailed).toBe(0)
+    console.info('BIND_UI_EXPIRED_RENDER_FAIL=0')
   })
 })

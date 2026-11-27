@@ -1,4 +1,6 @@
-## Accepted Plan — #2601 [Bug] wechat_bind.go ConfirmBind/Unbind 持久 IAM 失败仍表达为 500/50000「稍后再试」
+## Accepted Plan — #2601 [Bug] wechat_bind.go ConfirmBind/Unbind 持久 IAM 失败仍表达为 500/50000「稍后再试」｜Rev.2
+
+> **Rev.2 说明（修 Round 1 audit Bug 1）**：按 Investigation Packet 的 `plan_delta` 补齐 ① 矩阵 R8、② 合同 R8、③ G0 R8、④ `Files` 增 `frontend-mobile/src/services/errorMessages.js` 与 `docs/evidence/2601/R8-bind-expired.txt`、⑤ **D6b** 裁定 ASCII 过期分支归属（采用 L1：`ERROR_MESSAGE_MAP` +3 条，`ERROR_CODE_MAP` 的 40004/40002 一律不动）、⑥ 计数 7 行 → 8 行。
 
 ### 背景与现状核对（代码为据）
 
@@ -147,7 +149,7 @@ if entry.Status != "needs_merge" {
 ### Workload
 
 - Size: L
-- Basis: 后端 2 个实现文件（`wechat_bind.go` 三处、`iam_client.go` 一段）+ 1 个新测试文件；前端 1 个页面改造 + 1 个渲染测试；2 份核心文档；1 个证据 harness（7 行合同）+ 9 个证据产物；无 migration、无跨仓改动
+- Basis: 后端 2 个实现文件（`wechat_bind.go` 三处、`iam_client.go` 一段）+ 1 个新测试文件；前端 1 个页面改造 + 1 个渲染测试；2 份核心文档；1 个证据 harness（8 行合同）+ 10 个证据产物；无 migration、无跨仓改动
 - Confidence: high
 
 ### Bug Reflection Matrix
@@ -176,6 +178,7 @@ if entry.Status != "needs_merge" {
 | R5 契约文档同步（端点清单 + 失败三元组） | `docs/spec/api/api.md`、`docs/spec/ui/ui.md` | 文档结构断言 | 修后文档 | 文档 | `API_CONFIRM_ENDPOINT=1`、`API_UNBIND_ENDPOINT=1`、`API_CONFIRM_FAILURE_ROWS=1`、`API_MERGE_STATE_ROW=1`、`DOC_BIND_FAILURE_TEXT=1` | R5 |
 | R6 构建 / gofmt / ESLint（no-undef） | `scripts/verify-2601.sh`、`backend/handlers/wechat_bind.go`、`backend/services/iam_client.go`、`frontend-mobile/src/pages-weapp/bind/Bind.jsx` | `cd backend && go build ./...`、`gofmt -l`、`npx eslint` | 修后工作树 | backend + weapp | `GO_BUILD_OK=1`、`GOFMT_DIFF=0`、`ESLINT_NOUNDEF=0` | R6 |
 | R7 pre-ready gate（四源 + 合同完整性 + 远端可达） | `docs/evidence/2601/pre-ready-2601.json` | `pre-ready-check.sh 2601` | 修后干净树 + 最新 Accepted Plan | backend + weapp | exit 0、`overall=PASS`、P12 每行 `pass=true`、P13 在 `origin/issue-2601` | R7 |
+| R8 Bind 页过期/失效分支文案（渲染） | `frontend-mobile/src/pages-weapp/bind/Bind.jsx`、`frontend-mobile/src/services/errorMessages.js`、`frontend-mobile/scripts/page-smoke/bind-failure-2601.test.jsx` | weapp `pages-weapp/bind`（`render(Bind)` + `waitFor`） | confirm 返回 `400+40004`+`invalid or expired token`；merge 返回 `400+40002`+`invalid or expired merge ticket`；merge 返回 `400+40002`+`merge ticket does not match binding token` | weapp（jsdom + `@testing-library/react`） | `BIND_UI_EXPIRED_TOKEN_TEXT=1`、`BIND_UI_EXPIRED_NO_CODE_MAP_MISMATCH=1`、`BIND_UI_EXPIRED_RENDER_FAIL=0` | R8 |
 
 ### Evidence Types
 
@@ -188,6 +191,7 @@ if entry.Status != "needs_merge" {
 | R5 | static | 文档结构断言 |
 | R6 | build | `go build ./...` + `gofmt -l` + `eslint`（`no-undef`） |
 | R7 | gate | `pre-ready-check.sh` 报告（P1–P15） |
+| R8 | render | `@testing-library/react` 渲染 Bind 页的三种过期/失效响应，断言正文文案与不误落码表 |
 
 ### Input Truth & Tool Preflight
 
@@ -226,6 +230,7 @@ if entry.Status != "needs_merge" {
 | D4 | `MergeBind` token 状态前置选 `400 / 40002`（不选 `409/40902`）：与相邻「invalid or expired merge ticket → `400/40002`」同族；`40902` 在 §14.4 无定义且被「一人一号」占用 | 本计划锁定 |
 | D5 | `IAMClient.UpdateUser` 非 2xx 类型化（`IAMClientHTTPError`）：403 文本逐字保持；404 文本改携带上游 body（旧串 `user not found: <id>`），仅影响日志与 ASCII message（前端走码表），不影响用户可见中文文案 | 本计划锁定 |
 | D6 | Bind 页两个失败态（`error` / `merge_error`）文案改为 `resolveErrorMessage` 输出，**显式取代 #2598 D6**「`merge_error` 静态文案保持」：同类路径对称（confirm/merge 都会返回 50015/50200），静态文案会把持久失败表达成可重试；页面仅保留 fallback（「绑定失败，请稍后重试」/「合并失败，请稍后重试」）与既有引导句 | 本计划锁定 |
+| **D6b** | **ASCII 过期/失效文案的归属（Round 1 audit Bug 1）**：采用 **L1** —— 在 `frontend-mobile/src/services/errorMessages.js` 的 `ERROR_MESSAGE_MAP` 补 3 条 ASCII → 中文（`invalid or expired token` / `invalid or expired merge ticket` / `merge ticket does not match binding token` → 「绑定二维码已失效，请让管理员重新生成二维码后重试」）；**`ERROR_CODE_MAP` 的 `40004`/`40002` 一律不动**（避免把「数据已存在」「信息不完整」的通用语义改坏）。理由：文案唯一 owner 保持在前端码表（#2504 D1），后端 message 仍是机器码；未被登记的 ASCII 串继续走 code_map 兜底（可接受）。负例：若改 `ERROR_CODE_MAP` → R8 的 `BIND_UI_EXPIRED_NO_CODE_MAP_MISMATCH=0` FAIL。 | 本计划锁定（Rev.2） |
 | D7 | 不改变任何成功/幂等/本地回滚语义：`ConfirmBind` 成功置 `bound`、`MergeBind` 的 `migrateMergedAccountLocal` + `local_sync=false` 警告、`Unbind` 成功 `20000`、本地 `user not found → 404/40004` | 本计划锁定 |
 | D8 | 重命令（`go build`/`go test`/`vitest`/`eslint`）经 `scripts/heavy-run.sh` 取锁；合同行禁止把全量 `go test ./...` 当 exit 0 合同（P5 baseline 差分承担） | 本计划锁定 |
 | D9 | 证据形态：R4 用 `@testing-library/react` 真实渲染（非 `evidence_type: static` 豁免）；R5 为文档结构断言（`static`） | 本计划锁定 |
@@ -254,6 +259,7 @@ if entry.Status != "needs_merge" {
 | R5 | 修后 `api.md` / `ui.md` | `bash scripts/verify-2601.sh r5` | `docs/evidence/2601/R5-docs.txt` | `API_CONFIRM_ENDPOINT=1`、`API_UNBIND_ENDPOINT=1`、`API_CONFIRM_FAILURE_ROWS=1`、`API_MERGE_STATE_ROW=1`、`DOC_BIND_FAILURE_TEXT=1` | 端点清单缺一、confirm 失败行缺失、merge 状态行缺失、ui.md 未写 Bind 页失败提示 → FAIL |
 | R6 | 修后工作树 | `bash scripts/verify-2601.sh r6` | `docs/evidence/2601/R6-build-lint.txt` | `GO_BUILD_OK=1`、`GOFMT_DIFF=0`、`ESLINT_NOUNDEF=0` | 构建失败、gofmt 差异、eslint `no-undef` → FAIL |
 | R7 | 修后干净树 + 最新 Accepted Plan + `evidence.json`（`dirty=false`） | `pre-ready-check.sh 2601` | `docs/evidence/2601/pre-ready-2601.json` | exit 0、`overall=PASS`、P12 每行 `pass=true`、P13 提交在 `origin/issue-2601` | 任一 P 项失败 / evidence 缺行 / `dirty=true` → gate 非 0，禁止 ready |
+| R8 | mock `platform.request`：confirm → `400/40004` + `invalid or expired token`；merge → `400/40002` + `invalid or expired merge ticket`；merge → `400/40002` + `merge ticket does not match binding token` | weapp `pages-weapp/bind`（`render(Bind)` + `waitFor`） | `docs/evidence/2601/R8-bind-expired.txt` | `BIND_UI_EXPIRED_TOKEN_TEXT=1`、`BIND_UI_EXPIRED_NO_CODE_MAP_MISMATCH=1`、`BIND_UI_EXPIRED_RENDER_FAIL=0` | 正文落成「数据已存在」/「信息不完整」等码表通用文案、未出现「已失效」+「重新生成二维码」、渲染抛错 → FAIL |
 
 ### Evidence Contract
 
@@ -266,6 +272,7 @@ if entry.Status != "needs_merge" {
 | R5 | `bash scripts/verify-2601.sh r5 > docs/evidence/2601/R5-docs.txt` | `docs/evidence/2601/R5-docs.txt` | exit 0 且含 `API_CONFIRM_ENDPOINT=1`、`API_UNBIND_ENDPOINT=1`、`API_CONFIRM_FAILURE_ROWS=1`、`API_MERGE_STATE_ROW=1`、`DOC_BIND_FAILURE_TEXT=1` | 五项 token 全为期望值 | 端点清单/失败行/Bind 页文档任一缺失 → FAIL | dev |
 | R6 | `bash scripts/verify-2601.sh r6 > docs/evidence/2601/R6-build-lint.txt` | `docs/evidence/2601/R6-build-lint.txt` | exit 0 且含 `GO_BUILD_OK=1`、`GOFMT_DIFF=0`、`ESLINT_NOUNDEF=0` | 三项 token 全为期望值 | 构建失败、gofmt 差异、eslint no-undef → FAIL | dev |
 | R7 | `~/.config/opencode/scripts/pre-ready-check.sh 2601 --summary-file docs/evidence/2601/summary.md --changed-files docs/evidence/2601/changed-files.txt --evidence-file docs/evidence/2601/evidence.json --affected-cmd "bash scripts/verify-2601.sh gate" --report docs/evidence/2601/pre-ready-2601.json` | `docs/evidence/2601/pre-ready-2601.json` | exit 0 且 `jq -e '.overall == "PASS"' docs/evidence/2601/pre-ready-2601.json` 成立，P12 对 `docs/evidence/2601/evidence.json` 每行判定 `pass=true` | `overall=PASS` 且证据行全 `pass=true` | 任一 P 项失败、evidence 缺行、`dirty=true` → gate 非 0，禁止 ready | dev |
+| R8 | `bash scripts/verify-2601.sh r8 > docs/evidence/2601/R8-bind-expired.txt` | `docs/evidence/2601/R8-bind-expired.txt` | exit 0 且含 `BIND_UI_EXPIRED_TOKEN_TEXT=1`、`BIND_UI_EXPIRED_NO_CODE_MAP_MISMATCH=1`、`BIND_UI_EXPIRED_RENDER_FAIL=0` | 三项 token 全为期望值 | 正文出现「数据已存在」/「信息不完整」、未出现「已失效」+「重新生成二维码」、渲染抛错 → FAIL | dev |
 
 ### Artifact Provenance
 
@@ -278,6 +285,7 @@ if entry.Status != "needs_merge" {
   - `docs/evidence/2601/R4-bind-ui.txt`
   - `docs/evidence/2601/R5-docs.txt`
   - `docs/evidence/2601/R6-build-lint.txt`
+- `docs/evidence/2601/R8-bind-expired.txt`
   - `docs/evidence/2601/evidence.json`
   - `docs/evidence/2601/pre-ready-2601.json`
   - `docs/evidence/2601/summary.md`
@@ -290,6 +298,7 @@ if entry.Status != "needs_merge" {
 - `backend/services/iam_client.go`
 - `backend/handlers/wechat_bind_failure_2601_test.go`
 - `frontend-mobile/src/pages-weapp/bind/Bind.jsx`
+- `frontend-mobile/src/services/errorMessages.js`（ASCII 过期/失效文案映射 owner = `ERROR_MESSAGE_MAP`）
 - `frontend-mobile/scripts/page-smoke/bind-failure-2601.test.jsx`
 - `docs/spec/api/api.md`
 - `docs/spec/ui/ui.md`
@@ -301,10 +310,12 @@ if entry.Status != "needs_merge" {
 - `docs/evidence/2601/R4-bind-ui.txt`
 - `docs/evidence/2601/R5-docs.txt`
 - `docs/evidence/2601/R6-build-lint.txt`
+- `docs/evidence/2601/R8-bind-expired.txt`
 - `docs/evidence/2601/evidence.json`
 - `docs/evidence/2601/pre-ready-2601.json`
 - `docs/evidence/2601/summary.md`
 - `docs/evidence/2601/changed-files.txt`
 
 *Model: deepseek/deepseek-flash*
+
 
