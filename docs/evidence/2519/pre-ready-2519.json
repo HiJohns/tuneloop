@@ -1,16 +1,16 @@
 {
   "issue": 2519,
   "overall": "PASS",
-  "plan": "/tmp/opencode/tuneloop/wt-2519/tmp/pre-ready-2519.N6mSrw/plan.md",
-  "plan_sha256": "6d4f1941acc98064809a7964680df3f337bfe7f4ce95ed631a322d2ff0e1b347",
-  "config_sha": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2519/tmp/pre-ready-2519.l0wcfj/plan.md",
+  "plan_sha256": "771641e926afdde64da577b8e0b3b580dfeae59032ba4a9ad2d49598742286b3",
+  "config_sha": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
   "provenance": {
-    "build": "1.0.c841a9e82",
-    "commit": "c841a9e82bc86dec130d6308b6b4992028fee2f6",
+    "build": "1.0.bbcdcfb55",
+    "commit": "bbcdcfb55165aa5f2729dd312ffaea2d4d10b166",
     "dirty": false
   },
   "summary": "tmp/work-summary-2519.md",
-  "timestamp": "20261126-154739",
+  "timestamp": "20261127-185802",
   "checks": [
     {
       "id": "P1",
@@ -20,7 +20,7 @@
     {
       "id": "P2",
       "status": "PASS",
-      "detail": "Work Summary covers all 13 matrix rows with PASS/N/A"
+      "detail": "Work Summary covers all 16 matrix rows with PASS/N/A"
     },
     {
       "id": "P3",
@@ -35,17 +35,17 @@
     {
       "id": "P12",
       "status": "PASS",
-      "detail": "Evidence Contract complete: 13 row(s) match the plan and have durable artifacts"
+      "detail": "Evidence Contract complete: 16 row(s) match the plan and have durable artifacts"
     },
     {
       "id": "P14",
       "status": "PASS",
-      "detail": "artifact provenance matches evidence (13 artifacts)"
+      "detail": "artifact provenance matches evidence (16 artifacts)"
     },
     {
       "id": "P18",
       "status": "PASS",
-      "detail": "tooling_commit matches the running scripts (a017a25d46fec75ebb30fd9e19eb220c51fb166a)"
+      "detail": "tooling_commit matches the running scripts (be61a790605b0b65759d0fd2be9b258bc6c41b49)"
     },
     {
       "id": "P15",
@@ -64,8 +64,8 @@
     },
     {
       "id": "P5",
-      "status": "WARN",
-      "detail": "baseline gate also failed (rc=127); no parseable baseline failures, cannot prove subset"
+      "status": "N/A",
+      "detail": "full gate explicitly skipped with recorded reason"
     },
     {
       "id": "P6",
@@ -95,7 +95,7 @@
     {
       "id": "P11",
       "status": "PASS",
-      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /tmp/opencode/tuneloop/wt-2519; worktree guard: PASS isolated worktree=/tmp/opencode/tuneloop/wt-2519"
+      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /home/coder/worktrees/tuneloop/wt-2519; worktree guard: PASS isolated worktree=/home/coder/worktrees/tuneloop/wt-2519"
     },
     {
       "id": "P13",
