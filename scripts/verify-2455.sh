@@ -257,12 +257,82 @@ row_r9() {
   return 0
 }
 
+# dbprov — provision/drop a throwaway database (no psql client in this image).
+# services 测试走 database.LoadConfig()（TUNELOOP_DB，默认 "tuneloop"），而本机 tuneloop
+# 库不完整（18/99 表）且这些用例会 DROP 表。改为从测试模板克隆一次性库，跑完即删——
+# 与 handlers 测试库生命周期同口径（#2341：CREATE DATABASE ... TEMPLATE + DROP）。
+SERVICES_DB="${SERVICES_DB:-tuneloop_services_2455_run}"
+SERVICES_TEMPLATE="${SERVICES_TEMPLATE:-tuneloop_test_template}"
+
+dbprov() { # <create|drop> <name> [template]
+  local dir="$ROOT/backend/tmp/dbprov"
+  mkdir -p "$dir"
+  cat > "$dir/main.go" <<'GO'
+package main
+
+import (
+	"fmt"
+	"os"
+
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+)
+
+func main() {
+	if len(os.Args) < 3 {
+		fmt.Fprintln(os.Stderr, "usage: dbprov <create|drop> <name> [template]")
+		os.Exit(2)
+	}
+	op, name := os.Args[1], os.Args[2]
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=postgres sslmode=disable",
+		os.Getenv("POSTGRES_HOST"), os.Getenv("POSTGRES_PORT"), os.Getenv("POSTGRES_USER"), os.Getenv("POSTGRES_PASSWORD"))
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "ERROR:", err)
+		os.Exit(1)
+	}
+	switch op {
+	case "create":
+		stmt := fmt.Sprintf(`CREATE DATABASE "%s"`, name)
+		if len(os.Args) > 3 && os.Args[3] != "" {
+			stmt += fmt.Sprintf(` TEMPLATE "%s"`, os.Args[3])
+		}
+		if err := db.Exec(stmt).Error; err != nil {
+			fmt.Fprintln(os.Stderr, "ERROR:", err)
+			os.Exit(1)
+		}
+		fmt.Println("CREATED=" + name)
+	case "drop":
+		if err := db.Exec(fmt.Sprintf(`DROP DATABASE IF EXISTS "%s" WITH (FORCE)`, name)).Error; err != nil {
+			fmt.Fprintln(os.Stderr, "ERROR:", err)
+			os.Exit(1)
+		}
+		fmt.Println("DROPPED=" + name)
+	}
+}
+GO
+  ( cd "$ROOT/backend" && go run ./tmp/dbprov "$@" )
+}
+
 row_r10() {
-  local artifact="$EDIR/R10-gate.txt" log="$ROOT/tmp/evidence-$ISSUE/r10.log"
+  local artifact="$EDIR/R10-gate.txt" services_db="$SERVICES_DB" rc=0
+  dbprov create "$services_db" "$SERVICES_TEMPLATE" || {
+    echo "FATAL: could not provision $services_db from $SERVICES_TEMPLATE" >&2
+    return 1
+  }
+  _row_r10_body "$artifact" "$services_db" || rc=$?
+  dbprov drop "$services_db" >/dev/null 2>&1 || true
+  return "$rc"
+}
+
+_row_r10_body() { # <artifact> <services-db>
+  local artifact="$1"
+  local services_db="$2" log="$ROOT/tmp/evidence-$ISSUE/r10.log"
   local report="$EDIR/pre-ready-$ISSUE.json"
   local summary="$ROOT/tmp/work-summary-$ISSUE.md"
   local changed="$ROOT/tmp/changed-$ISSUE.txt"
-  local full_cmd="cd backend && go test ./handlers -count=1 -timeout 20m && go test ./services -count=1 -timeout 15m"
+  local full_cmd=""
+  full_cmd="cd backend && go test ./handlers -count=1 -timeout 20m && TUNELOOP_DB='$services_db' go test ./services -count=1 -timeout 15m"
   local prov
   prov="$(provenance)"
   mkdir -p "$EDIR"
@@ -272,7 +342,8 @@ row_r10() {
   ( cd backend && run_heavy go test ./handlers -count=1 -timeout 20m ) >> "$log" 2>&1
   local suite_exit=$?
   echo "--- go test ./handlers exit=$suite_exit" >> "$log"
-  ( cd backend && run_heavy go test ./services -count=1 -timeout 15m ) >> "$log" 2>&1
+  # services 指向一次性克隆库（不碰现有 tuneloop 库；用例会 DROP 表）。
+  ( cd backend && export TUNELOOP_DB="$services_db" && run_heavy go test ./services -count=1 -timeout 15m ) >> "$log" 2>&1
   local services_exit=$?
   echo "--- go test ./services exit=$services_exit" >> "$log"
 
