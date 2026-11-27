@@ -204,6 +204,24 @@ r2)
     mark RED_NO_CATCH_BRANCH 1 0
   fi
 
+  # ---- 夹具锚点（Accepted Plan Rev.4 G0 R2）----
+  # `finalParentId` 计算块 + `if (response.data?.id && !finalParentId)` 守卫：
+  # 按正则定位并把**实际行号**写入 artifact（禁止写死行号，随文件改动自动跟随）。
+  FINAL_PARENT_LINE="$(grep -n '^[[:space:]]*let finalParentId = null' "$GREEN_FILE" | head -1 | cut -d: -f1)"
+  GUARD_LINE="$(grep -n 'if (response\.data?\.id && !finalParentId)' "$GREEN_FILE" | head -1 | cut -d: -f1)"
+  PARENT_ID_LINE="$(grep -n '^[[:space:]]*parent_id: finalParentId,' "$GREEN_FILE" | head -1 | cut -d: -f1)"
+  final_parent_ok=0
+  if [ -n "${FINAL_PARENT_LINE:-}" ] && [ -n "${PARENT_ID_LINE:-}" ] && \
+     [ "$FINAL_PARENT_LINE" -le "$PARENT_ID_LINE" ] 2>/dev/null; then
+    final_parent_ok=1
+  fi
+  guard_ok=0
+  [ -n "${GUARD_LINE:-}" ] && guard_ok=1
+  echo "ANCHOR_FINAL_PARENT_BLOCK=${FINAL_PARENT_LINE:-0}-${PARENT_ID_LINE:-0}" | tee -a "$LOG"
+  echo "ANCHOR_CREATE_GUARD_LINE=${GUARD_LINE:-0}" | tee -a "$LOG"
+  mark ANCHOR_FINAL_PARENT_PRESENT 1 "$final_parent_ok"
+  mark ANCHOR_CREATE_GUARD_PRESENT 1 "$guard_ok"
+
   # ---- R1 复查（#2564 Round 1 Bug 1）：创建成功后的选中语义 ----
   # 只对「顶级创建」自动选中新分类；子分类创建必须保持父分类选中。
   GREEN_BLOCK="$WORK/green-create-block.jsx"
