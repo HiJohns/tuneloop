@@ -12,12 +12,12 @@ SCRIPT="$ROOT/scripts/report-merchant-direct-role-drift-2462.sh"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/drift-2462-test.XXXXXX")" || exit 1
 trap 'rm -rf "$WORK"' EXIT
 
-# 3 行 fixture：2 行漂移（mm=site_member 且无 site_members / mm=site_member 无网点行）
+# 3 行 fixture（`|` 分隔，#2484）：2 行漂移（mm=site_member 且无 site_members / mm=site_member 无网点行）
 # + 1 行正常（mm=merchant_staff）。
 cat > "$WORK/fixture.tsv" <<'EOF'
-11111111-1111-4111-8111-111111111111	site_member	site_member	aaaaaaaa-1111-4111-8111-111111111111	0
-22222222-2222-4222-8222-222222222222	site_member	site_member	aaaaaaaa-1111-4111-8111-111111111111	0
-33333333-3333-4333-8333-333333333333	merchant_staff	merchant_staff	aaaaaaaa-1111-4111-8111-111111111111	0
+11111111-1111-4111-8111-111111111111|site_member|site_member|aaaaaaaa-1111-4111-8111-111111111111|0
+22222222-2222-4222-8222-222222222222|site_member|site_member|aaaaaaaa-1111-4111-8111-111111111111|0
+33333333-3333-4333-8333-333333333333|merchant_staff|merchant_staff|aaaaaaaa-1111-4111-8111-111111111111|0
 EOF
 
 FAIL=0

@@ -1,0 +1,9 @@
+# build=1.0.7bbdca8a0 # commit=7bbdca8a026c4ae39c8aaf1b13cddb6815555cb1 # dirty=false
+GENERATED_AT_HEAD=a22a180ffcb2c25109de183a857b08d63a688e75
+# docs/spec/api/api.md §1.3：绑定失败口径 / 禁原文 / 引用唯一出口
+API_BIND_RULE=1
+API_FORBID_RAW=1
+API_BINDMSG_REF=1
+API_SECTION_LINES=36
+--- §1.3 binding note ---
+> **请求体绑定失败（#2603）**：`c.ShouldBindJSON` 校验/解析失败时，`message` **必须**由唯一出口 `backend/bindmsg` 的 `bindmsg.Message(err)` 生成——中文点名「哪一项不能为空 / 格式不对 / 类型不正确」，或整体不可解析时给出「请求体格式不正确，请检查后重试」。**禁止**把 `err.Error()` 的 Go/JSON 原文（`invalid character '\x17' in string`、`invalid parameters: …`、`cannot unmarshal …`、`Field validation for …`）拼进 `message`：前端 L2 只透传含 CJK 的可读文案，英文技术串会被判「无具体原因」并降级为 L3/L5 通用兜底，用户因此看不到**哪个字段**错了。绑定失败沿用原 `code`（`40002`，`instrument` 状态更新分支为 `40001`）与 HTTP 400，不得改为其它 code 或 HTTP 200；`40002` 属业务可纠正冲突白名单（见 `frontend-pc/src/utils/formConflict.js`），可落表单内常驻提示（#2569 口径）。字段称呼表与文案模板的唯一 owner 为 `backend/bindmsg/bindmsg.go`，新增请求体字段须同步登记称呼（称呼不得含 ASCII 字母）。

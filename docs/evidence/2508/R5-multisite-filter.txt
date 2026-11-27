@@ -1,0 +1,19 @@
+# build=1.0.448a2b0ec # commit=448a2b0ec282690913b16ea9544e5ad72cd3c201 # dirty=false
+== R5 multi-site org (sites.org_id has 2 sites) + site_id intersection ==
+[WARNING] No .env file found in common paths
+2026/11/25 14:38:00 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21 sslmode=disable
+2026/11/25 14:38:01 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21
+2026/11/25 14:38:01 [DB] Connected to database 'tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21'
+=== RUN   TestPersonnel2508_MultiSiteFilter
+2026/11/25 14:38:01 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21 sslmode=disable
+2026/11/25 14:38:01 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21
+2026/11/25 14:38:01 [DB] Connected to database 'tuneloop_test_node_ip_172_31_5__s35_p35_913aed_d60eed21'
+
+2026/11/25 14:38:02 [32m/home/coder/worktrees/tuneloop/wt-2508/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[851.314ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_levels", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/25 14:38:02 [Personnel] WARN: site view resolved 0 active members for org=6b38dae4-1a8f-4686-b28a-e08214e96998 (site_id="14703e5d-88fe-477a-95a2-500cd3572767", keyword="")
+2026/11/25 14:38:02 [Personnel] WARN: invalid site_id="null" from user=117b0f03-e2b3-46c2-80ec-b3a1bd92ade3: invalid UUID length: 4
+    personnel_site_org_2508_test.go:195: R5 MULTI_ROWS=3 FILTER_A_ROWS=2 FILTER_B_ROWS=0 INVALID_SITE_CODE=40002
+--- PASS: TestPersonnel2508_MultiSiteFilter (1.37s)
+PASS
+ok  	tuneloop-backend/handlers	2.636s

@@ -1,0 +1,28 @@
+# build=1.0.f6174f7ee # commit=f6174f7ee7b852e9873a5eb7737b781217d41ee1 # dirty=false
+BUILD_CMD=cd backend && go build ./...
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s107-p107-350703 at_ms=1795726821868 wait_ms=75
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s107-p107-350703 wait_ms=75
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795726840685 hold_ms=18817
+BUILD_EXIT=0
+ESLINT_CMD=frontend-pc: npx eslint src/pages/SiteManagement.jsx tests/siteConflict2581.test.mjs
+   37:7   warning  'setViewMode' was used before it was defined                                                                                  no-use-before-define
+   39:7   warning  'setViewMode' was used before it was defined                                                                                  no-use-before-define
+   41:6   warning  React Hook useEffect has missing dependencies: 'form' and 'selectedSite'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+   86:5   warning  'fetchSiteTree' was used before it was defined                                                                                no-use-before-define
+   87:5   warning  'loadTransitSites' was used before it was defined                                                                             no-use-before-define
+   88:6   warning  React Hook useEffect has a missing dependency: 'fetchSiteTree'. Either include it or remove the dependency array              react-hooks/exhaustive-deps
+  109:39  warning  'convertToTreeNode' was used before it was defined                                                                            no-use-before-define
+
+✖ 19 problems (0 errors, 19 warnings)
+
+ESLINT_EXIT=0
+ESLINT_NOUNDEF=0
+UNIT_CMD=frontend-pc: node --test tests/siteConflict2581.test.mjs tests/formConflict.test.mjs tests/apiError.test.mjs tests/errorMessages.test.mjs
+# tests 24
+# pass 24
+# fail 0
+NODE_TEST_EXIT=0
+NODE_TEST_FAIL=0
+GO_BUILD_OK=1
+ESLINT_NOUNDEF=0
+R5_OK

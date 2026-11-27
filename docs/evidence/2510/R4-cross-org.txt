@@ -1,0 +1,7 @@
+# build=1.0.f11aedb5 # commit=f11aedb567ec2a6b57ea3cc17eaf25b2b0e7f030 # dirty=false
+# tree=f11aedb567ec2a6b57ea3cc17eaf25b2b0e7f030
+    instrument_loss_test.go:480: LOST_STATUS=403
+    instrument_loss_test.go:481: RESTORE_STATUS=403
+    instrument_loss_test.go:482: LEAK_RECORDS=0
+    instrument_loss_test.go:483: STOCK_STATUS_UNCHANGED=1
+GO_TEST_EXIT=0

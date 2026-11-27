@@ -417,3 +417,45 @@
 - 2026-11-25: Batch processing completed, including tasks: Resolved Issues: #2480
 - 2026-11-25: Batch processing completed, including tasks: Resolved Issues: #2490
 - 2026-11-25: Batch processing completed, including tasks: Resolved Issues: #2479（审计 PASS；Ops Follow-up #2499）
+- 2026-11-25: Batch processing completed, including tasks: Resolved: #2510（Ops #2520）｜REJECT: #2508（缺独立 Issue 全量 gate，已发 Verification Request）、#2470（UI 仅源码 grep + 缺全量 gate + 契约未文档化）、#2504（gate 报告 FAIL 却自证 PASS，pre-fix 证据）｜#2509 父任务待 #2511/#2512/#2513
+- 2026-11-25: Batch processing completed, including tasks: Resolved Issues: #2514
+- 2026-11-25: Batch processing completed, including tasks: Resolved Issues: #2513
+- 2026-11-25: Batch processing completed, including tasks: Resolved Issues: #2502
+- 2026-11-25: Batch processing completed, including tasks: Resolved Issues: #2518
+- 2026-11-25: Batch processing completed, including tasks: Resolved Issues: #2528
+- 2026-11-25: Batch processing completed, including tasks: Resolved Issues: #2529 (Ops Follow-ups #2533 #2534)
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2511
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2537
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2532
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2538
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2526
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2555
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2540
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2515
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2506
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2552
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2527（审计 PASS；Ops Follow-ups #2561 #2562）｜REJECT: #2488（D8 字段编辑清空 / catch 文案 / R1 判定表口径未闭环）
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2485
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2565
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2563
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: (none)｜REJECT: #2519（审计：Detail.jsx 仍用废弃 overrides 致逾期日费静默失效 / 批量上架取值 active|inactive 与状态白名单不符且按钮被 {false &&} 隐藏 / 独立 Issue 缺全量 gate；已退回 status:analysis 待 Architect Rev.7）
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2512
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2543
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2575 (PASS); #2567 rejected round 1 (audit attribution bug)
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2577
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2581
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2578
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: (none)｜REJECT: #2564（计划层：R2 红样锚点仍用 git log -1 口径与期望值自相矛盾、G0 夹具锚点指向不存在的上层分类选择器、Evidence Contract 漏登 4 个新判定键、R4 命令未登记 --affected-cmd → status:analysis 待 Architect Rev.3；产品代码已确认正确）
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2587, #2576｜REJECT: #2586（文档层：permissions.md §3.2.1 表被新子表切断 + 端点-权限对照缺 batch-import/media，R6 计数断言漏抓，退回 fixreview）、#2579（导出价格列越过「价格字段员工隐藏」口径 + ui.md 新旧口径自相矛盾 + api.md「已移除字段不再接收」与实现（200 + 无名空列）不符）
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2546
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2591
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2487
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2592
+- 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2590（审计 PASS；fix/evidence 在 origin/issue-2590，代码待集成至 develop）
+- 2026-11-27: Batch processing completed, including tasks: Resolved Issues: #2586
+- 2026-11-27: Batch processing completed, including tasks: Resolved Issues: #2567 (ready for audit; fix/evidence on origin/issue-2567, not yet integrated into develop); #2568/#2564/#2455 -> analysis (plan gaps: dependency integration / contradictory acceptance text); #2459/#2429 -> holdon (dependencies not ready)
+- 2026-11-27: Batch processing completed, including tasks: Resolved Issues: #2567
+- 2026-11-27: Batch processing completed, including tasks: Resolved Issues: #2564
+- 2026-11-27: Batch processing completed, including tasks: Resolved Issues: #2597
+- 2026-11-27: Batch processing completed, including tasks: Resolved Issues: #2598
+- 2026-11-27: Batch processing completed, including tasks: Resolved Issues: #2603

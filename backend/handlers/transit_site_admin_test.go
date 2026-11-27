@@ -71,6 +71,15 @@ func newTransitMockIAM(t *testing.T, failTemplates bool) *httptest.Server {
 			"token_type":   "Bearer",
 		})
 	})
+	mux.HandleFunc("/api/v1/organizations", func(w http.ResponseWriter, r *http.Request) {
+		// #2552: 建站需解析命名空间主组织（ListOrganizations 的 is_primary 恰好 1 个）。
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"organizations": []map[string]interface{}{
+				{"id": uuid.New().String(), "name": "平台根组织", "is_primary": true},
+			},
+		})
+	})
 	mux.HandleFunc("/api/v1/organizations/", func(w http.ResponseWriter, r *http.Request) {
 		// bind/unbind/role-update all return 200
 		w.Header().Set("Content-Type", "application/json")
@@ -86,6 +95,15 @@ func newTransitMockIAM(t *testing.T, failTemplates bool) *httptest.Server {
 			json.NewEncoder(w).Encode([]map[string]interface{}{
 				{"id": uuid.New().String(), "code": "site_member"},
 				{"id": uuid.New().String(), "code": "site_admin"},
+			})
+			return
+		}
+		// #2547: 创建中转网点会先建一个 IAM 子组织（POST .../organizations），需返回 org_id；
+		// 其它 namespaces 路径（namespace 解析）保持原响应。
+		if strings.HasSuffix(r.URL.Path, "/organizations") {
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"org_id":   uuid.New().String(),
+				"admin_id": uuid.New().String(),
 			})
 			return
 		}
@@ -198,6 +216,10 @@ func TestCreateAdminTransitSiteValidation(t *testing.T) {
 	data := resp["data"].(map[string]interface{})
 	assert.Equal(t, "transit", data["type"])
 	assert.Equal(t, "张三", data["contact_name"], "contact_name 必须持久化（audit Bug4）")
+	// #2547: 中转网点必须有自己的一级组织，不能复用平台租户组织。
+	orgID, _ := data["org_id"].(string)
+	assert.NotEmpty(t, orgID, "transit site must carry its own IAM org id")
+	assert.NotEqual(t, data["tenant_id"], data["org_id"], "org_id must not fall back to the platform tenant")
 }
 
 func TestDeleteTransitSiteRejectsWhenReferenced(t *testing.T) {

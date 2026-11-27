@@ -1,0 +1,10 @@
+# build=1.0.ccb0c8b8 # commit=ccb0c8b8e6a316ce2879374c9e6110347705e6c6 # dirty=false
+BUILD_CMD=cd frontend-pc && npm run build
+BUILD_EXIT=0
+ESLINT_CMD=cd frontend-pc && npx eslint src/App.jsx src/services/api.js
+ESLINT_EXIT=0
+NO_UNDEF=0
+BUILD_OK
+ESLINT_OK
+RESULT: PASS
+

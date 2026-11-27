@@ -1,26 +1,36 @@
 import { useState, useEffect } from 'react'
 import { formatCents, yuanToCents } from '../utils/money'
-import { Table, Tag, Button, Space, Spin, Modal, Form, Input, InputNumber, Select, Radio, Upload, Descriptions, Image, message, Popconfirm } from 'antd'
-import { EyeOutlined, EditOutlined, WarningOutlined, RollbackOutlined, FileTextOutlined, DeleteOutlined } from '@ant-design/icons'
+import { Table, Tag, Button, Space, Modal, Form, Input, InputNumber, Select, Radio, Upload, Descriptions, Image, message, Popconfirm, Alert } from 'antd'
+import { EditOutlined, WarningOutlined, RollbackOutlined, FileTextOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { inventoryApi, lossApi, api } from '../services/api'
+import { inventoryApi, lossApi, api, pricingApi, instrumentsApi, fetchBlob } from '../services/api'
 import PermissionGate from '../components/PermissionGate'
 import { usePermission } from '../hooks/usePermission'
-
-const statusColors = {
-  "在租": "green",
-  "待租": "blue",
-  "维修中": "orange",
-  "已熔断": "red",
-  "rented": "green",
-  "available": "blue",
-  "maintenance": "orange",
-  "lost": "red",
-}
+import {
+  BATCH_PRICE_OPERATOR_OPTIONS,
+  BATCH_PRICE_TYPE_OPTIONS,
+  batchPricingFeedback,
+  buildBatchPricingPayload,
+} from '../utils/batchPricing'
+import {
+  INSTRUMENT_IMAGE_PLACEHOLDER,
+  formatDailyRate,
+  formatDepositFull,
+  formatDepositReduced,
+  formatOverdueDailyFee,
+  instrumentImageSrc,
+} from '../utils/instrumentDisplay'
+import {
+  applyFilterPatch,
+  buildStockExportParams,
+  buildStockFilterQuery,
+  buildStockListParams,
+  readStockFilters,
+  stockStatusOptions,
+} from '../utils/instrumentStockFilters'
 
 export default function InstrumentStock() {
-  const [searchParams] = useSearchParams()
-  const statusParam = searchParams.get('status')
+  const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const [assets, setAssets] = useState([])
   const [loading, setLoading] = useState(true)
@@ -31,6 +41,13 @@ export default function InstrumentStock() {
   const [priceModalVisible, setPriceModalVisible] = useState(false) // #2043 批量设价
   const [priceForm] = Form.useForm()
 
+  // #2577: URL 即筛选唯一来源（D1）；page/pageSize 仍为本地 state（D6）。
+  const filters = readStockFilters(searchParams)
+  const filterKey = searchParams.toString()
+  // 识别码为 `Input.Search`（回车/点搜索/清空触发，D3）——输入过程不取数。
+  const [snInput, setSnInput] = useState(filters.sn)
+  const [filterOptions, setFilterOptions] = useState({ categories: [], statuses: [] })
+
   // #2043: 管理员级可见性代理（删除权限=管理级）
   const { hasCusPerm } = usePermission()
   const isManagerLike = hasCusPerm('instrument:delete')
@@ -38,11 +55,10 @@ export default function InstrumentStock() {
   const loadData = async () => {
     setLoading(true)
     try {
-      // #2140：真分页——服务端 page/pageSize + 状态筛选服务端化；
-      // 非管理级状态范围（隐藏 下架/已售出/丢失）转服务端 exclude_status
-      const params = { page, pageSize }
-      if (statusParam) params.stock_status = statusParam
-      if (!isManagerLike) params.exclude_status = 'lost,archived,sold'
+      // #2140/#2577：真分页 + 服务端筛选；参数与可见性口径统一由
+      // utils/instrumentStockFilters 生成（sn / category_id / stock_status /
+      // exclude_status），页面不再各自拼装。
+      const params = buildStockListParams({ filters, page, pageSize, isManagerLike })
       const response = await inventoryApi.list(params)
       setAssets(response?.data?.list || [])
       setTotal(response?.data?.total || 0)
@@ -53,29 +69,75 @@ export default function InstrumentStock() {
     }
   }
 
+  // #2577: 只有 URL 变化才触发取数（控件回调只写 URL，不重复请求）。
   useEffect(() => {
     loadData()
-  }, [page, pageSize, statusParam, isManagerLike])
+  }, [filterKey, page, pageSize, isManagerLike])
+
+  // URL 外部变化（深链 / 清空 / 浏览器前进后退）回填识别码输入框。
+  useEffect(() => {
+    setSnInput(filters.sn)
+  }, [filters.sn])
+
+  // #2577: 分类/状态选项与乐器列表同源（filter-options）。
+  useEffect(() => {
+    instrumentsApi.getFilterOptions().then((res) => {
+      if (res?.code === 20000) setFilterOptions(res.data || {})
+    }).catch((error) => {
+      // 下拉不可用时列表仍可用（不阻塞主流程，见 Input Truth 损坏输入约定）。
+      console.error('Failed to load filter options:', error)
+    })
+  }, [])
+
+  // 筛选变化的唯一入口：合并 patch → 回第 1 页 → 清空行选择 → 写回 URL。
+  const patchFilters = (patch) => {
+    const next = applyFilterPatch({ filters, page, selectedRowKeys }, patch)
+    setPage(next.page)
+    setSelectedRowKeys(next.selectedRowKeys)
+    setSearchParams(buildStockFilterQuery(next.filters), { replace: true })
+  }
+
+  const clearFilters = () => patchFilters({ sn: '', categoryId: '', status: '' })
+
+  const statusOptions = stockStatusOptions({
+    statuses: filterOptions.statuses,
+    isManagerLike,
+    current: filters.status,
+  })
   
   const columns = [
     {
       title: '图片',
-      dataIndex: 'images',
-      key: 'images',
+      dataIndex: 'thumbnail',
+      key: 'thumbnail',
       width: 80,
-      render: (images) => {
-        const imageList = Array.isArray(images) ? images : (images ? JSON.parse(images) : [])
-        const src = imageList && imageList.length > 0 ? imageList[0] : '/images/default-instrument.jpg'
-        return <img src={src} alt="" style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 4 }} />
-      }
+      render: (_, record) => (
+        <img
+          src={instrumentImageSrc(record)}
+          alt=""
+          style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 4 }}
+          onError={(e) => { e.currentTarget.src = INSTRUMENT_IMAGE_PLACEHOLDER }}
+        />
+      )
     },
     {
       title: '识别码',
       dataIndex: 'sn',
       key: 'sn',
       width: 160,
+      // #2537 D6: 识别码即详情入口（不再有独立「详情」按钮）。
       render: (sn, record) => (
-        <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{sn || record.id?.slice(0, 8) || '-'}</span>
+        <Button
+          type="link"
+          size="small"
+          style={{ padding: 0, fontFamily: 'monospace', fontSize: 12 }}
+          onClick={(e) => {
+            e.stopPropagation()
+            navigate(`/site/stock/${record.id}`)
+          }}
+        >
+          {sn || record.id?.slice(0, 8) || '-'}
+        </Button>
       )
     },
     {
@@ -85,51 +147,42 @@ export default function InstrumentStock() {
       width: 120,
     },
     {
-      title: '级别',
-      dataIndex: 'level_name',
-      key: 'level_name',
-      width: 80,
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      width: 100,
-      render: (status, record) => {
-        const getUnifiedStatus = (status) => {
-          const statusMap = {
-            "在租": { color: 'green', text: '在租' },
-            "rented": { color: 'green', text: '在租' },
-            "待租": { color: 'blue', text: '待租' },
-            "available": { color: 'blue', text: '待租' },
-            "维修中": { color: 'orange', text: '维修中' },
-            "maintenance": { color: 'orange', text: '维修中' },
-            "已熔断": { color: 'red', text: '已熔断' },
-            "lost": { color: 'red', text: '已丢失' },
-            "archived": { color: 'default', text: '已下架' },
-            "sold": { color: 'default', text: '已售出' }
-          }
-          return statusMap[status] || { color: 'default', text: status }
-        }
-        
-        const info = getUnifiedStatus(status)
-        return <Tag color={info.color}>{info.text}</Tag>
-      }
-    },
-    {
       title: '所属网点',
       dataIndex: 'site_name',
       key: 'site_name',
       width: 150,
     },
-    // #2043: 估值 = 敏感字段，仅管理员/商户管理员可见
+    // #2043: 价格字段 = 敏感字段，仅管理员/商户管理员可见
+    // #2528: 「估值」实为标准日租金（分），改名 + 分→元换算；新增押金列（与详情同源）
     ...(isManagerLike ? [{
-      title: '估值',
-      dataIndex: 'base_daily_rate',
-      key: 'base_daily_rate',
+      title: '标准日租金',
+      dataIndex: 'resolved_daily_rate',
+      key: 'resolved_daily_rate',
       width: 120,
       align: 'right',
-      render: (value) => value ? `¥${value.toLocaleString()}` : '-'
+      render: (_, record) => formatDailyRate(record)
+    }, {
+      // #2537: 逾期租金列（列表新字段，与 pricing-v2 同链）。
+      title: '逾期租金',
+      dataIndex: 'overdue_daily_fee',
+      key: 'overdue_daily_fee',
+      width: 120,
+      align: 'right',
+      render: (_, record) => formatOverdueDailyFee(record)
+    }, {
+      title: '全额押金',
+      dataIndex: 'deposit',
+      key: 'deposit',
+      width: 120,
+      align: 'right',
+      render: (_, record) => formatDepositFull(record)
+    }, {
+      title: '差额押金',
+      dataIndex: 'deposit_reduced',
+      key: 'deposit_reduced',
+      width: 120,
+      align: 'right',
+      render: (_, record) => formatDepositReduced(record)
     }] : []),
     {
       title: '操作',
@@ -137,8 +190,6 @@ export default function InstrumentStock() {
       width: 200,
       render: (_, record) => (
         <Space>
-          <Button type="link" size="small" icon={<EyeOutlined />}
-            onClick={(e) => { e.stopPropagation(); navigate(`/site/stock/${record.id}`) }}>详情</Button>
           {/* #2043: 编辑/丢失/恢复 需 instrument:update（无权限不渲染） */}
           <PermissionGate code="instrument:update">
             <Button type="link" size="small" icon={<EditOutlined />}
@@ -180,43 +231,44 @@ export default function InstrumentStock() {
     }
   }
 
-  // #2043: 批量设价（服务端 RequireRole(ADMIN/OWNER/site_admin) 兜底）
+  // #2043/#2514: 批量设价（服务端 RequireRole(ADMIN/OWNER/site_admin) 兜底）
+  // 路径与 payload 统一由 utils/batchPricing 生成，避免再次打到不存在的
+  // /instruments/batch/price 或发送后端不认识的 {ids, price_type, ...}。
   const handleBatchPrice = async () => {
     try {
       const values = await priceForm.validateFields()
-      const res = await api.put('/instruments/batch/price', {
-        ids: selectedRowKeys,
-        price_type: values.price_type,
-        amount: values.amount,
-        operator: values.operator,
-      })
-      if (res.code === 20000) {
-        message.success(`已修改 ${selectedRowKeys.length} 个乐器价格`)
-        setPriceModalVisible(false)
-        priceForm.resetFields()
-        setSelectedRowKeys([])
-        loadData()
-      } else {
-        message.error(res.message || '批量修改价格失败')
+      const built = buildBatchPricingPayload(selectedRowKeys, values)
+      if (built.error) {
+        message.error(built.error)
+        return
       }
+      const res = await pricingApi.batchSetPricing(built.payload)
+      if (res.code !== 20000) {
+        message.error(res.message || '批量修改价格失败')
+        return
+      }
+      const feedback = batchPricingFeedback(res, selectedRowKeys.length)
+      message[feedback.level](feedback.text)
+      setPriceModalVisible(false)
+      priceForm.resetFields()
+      setSelectedRowKeys([])
+      loadData()
     } catch (e) {
       if (!e?.errorFields) message.error(e?.message || '批量修改价格失败')
     }
   }
 
-  // #2043/#2101: 导出 CSV（档案管理页已并入本页；按当前状态过滤直接导出）
+  // #2578: 导出 Excel 跟随当前筛选（识别码/分类/状态/可见性），与列表同一套参数口径。
+  // D4：统一走 fetchBlob（带 Bearer + 空参剔除），产物为 xlsx，命名与乐器列表一致。
   const handleExport = async () => {
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
-      const params = new URLSearchParams()
-      if (statusParam) params.set('status', statusParam)
-      const resp = await fetch(`${API_BASE_URL}/instruments/export?${params.toString()}`)
-      if (!resp.ok) throw new Error('导出失败')
-      const blob = await resp.blob()
+      const blob = await fetchBlob('/instruments/export', {
+        params: buildStockExportParams({ filters, isManagerLike }),
+      })
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `instruments_export_${new Date().toISOString().split('T')[0]}.csv`
+      a.download = `instruments_export_${new Date().toISOString().split('T')[0]}.xlsx`
       a.click()
       window.URL.revokeObjectURL(url)
       message.success('导出成功')
@@ -356,14 +408,8 @@ export default function InstrumentStock() {
     { title: '操作', key: 'op', render: (_, r) => <Button type="link" size="small" onClick={() => setLossDetail(r)}>详情</Button> },
   ]
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
-        <Spin size="large" />
-      </div>
-    )
-  }
-
+  // #2577 D7: 首屏 loading 改为 `Table loading`——整页 early return 会在每次筛选时
+  // 卸载工具栏，导致输入框失焦、控件闪烁。
   return (
     <div className="p-6">
       {/* #2043: 批量设价模态 */}
@@ -375,20 +421,24 @@ export default function InstrumentStock() {
         width={500}
       >
         <Form form={priceForm} layout="vertical">
+          <Alert
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+            message="当前仅支持按日租金批量设置为固定金额"
+          />
           <Form.Item name="price_type" label="价格类型" rules={[{ required: true, message: '请选择价格类型' }]}>
             <Select placeholder="请选择价格类型">
-              <Select.Option value="daily_rate">日租金</Select.Option>
-              <Select.Option value="weekly_rate">周租金</Select.Option>
-              <Select.Option value="monthly_rate">月租金</Select.Option>
-              <Select.Option value="deposit">押金</Select.Option>
+              {BATCH_PRICE_TYPE_OPTIONS.map((option) => (
+                <Select.Option key={option.value} value={option.value}>{option.label}</Select.Option>
+              ))}
             </Select>
           </Form.Item>
           <Form.Item name="operator" label="操作" rules={[{ required: true, message: '请选择操作' }]}>
             <Select placeholder="请选择操作">
-              <Select.Option value="set">设置为</Select.Option>
-              <Select.Option value="increase">增加</Select.Option>
-              <Select.Option value="decrease">减少</Select.Option>
-              <Select.Option value="multiply">乘以</Select.Option>
+              {BATCH_PRICE_OPERATOR_OPTIONS.map((option) => (
+                <Select.Option key={option.value} value={option.value}>{option.label}</Select.Option>
+              ))}
             </Select>
           </Form.Item>
           <Form.Item name="amount" label="金额（元）" rules={[{ required: true, message: '请输入金额' }]}>
@@ -401,10 +451,10 @@ export default function InstrumentStock() {
         <Button icon={<WarningOutlined />} onClick={() => switchView(view === 'stock' ? 'loss' : 'stock')}>
           {view === 'stock' ? '丢失台账' : '返回库存'}
         </Button>
-        {/* #2043: 导出 CSV（需 instrument:read） */}
+        {/* #2043/#2578: 导出 Excel（跟随当前筛选；需 instrument:read） */}
         <PermissionGate code="instrument:read">
           {view === 'stock' && (
-            <Button onClick={handleExport}>导出 CSV</Button>
+            <Button onClick={handleExport}>导出 Excel</Button>
           )}
         </PermissionGate>
         {/* #2043: 批量导入（需 instrument:create） */}
@@ -433,19 +483,44 @@ export default function InstrumentStock() {
           按状态查看乐器（待租 / 在租 / 维修中 / 已丢失）；乐器档案的新增与编辑请用「乐器列表」。
         </div>
       )}
-      {statusParam && (
-        <div className="mb-4 p-3 bg-blue-50 rounded">
-          <Space>
-            <span>当前筛选: 状态 = {statusParam}</span>
-            <Button type="link" size="small" onClick={() => navigate('/site/stock', { replace: true })}>清除筛选</Button>
-          </Space>
-        </div>
+      {view === 'stock' && (
+        <Space style={{ marginBottom: 12, flexWrap: 'wrap' }} wrap>
+          <Input.Search
+            placeholder="搜索识别码..."
+            value={snInput}
+            allowClear
+            style={{ width: 250 }}
+            onChange={(e) => setSnInput(e.target.value)}
+            onSearch={(value) => patchFilters({ sn: (value || '').trim() })}
+          />
+          <Select
+            placeholder="选择分类"
+            style={{ width: 180 }}
+            allowClear
+            value={filters.categoryId || undefined}
+            onChange={(value) => patchFilters({ categoryId: value || '' })}
+            options={(filterOptions.categories || []).map((cat) => ({
+              value: cat.category_id,
+              label: cat.category_name,
+            }))}
+          />
+          <Select
+            placeholder="选择状态"
+            style={{ width: 140 }}
+            allowClear
+            value={filters.status || undefined}
+            onChange={(value) => patchFilters({ status: value || '' })}
+            options={statusOptions}
+          />
+          <Button onClick={clearFilters}>清空筛选</Button>
+        </Space>
       )}
       {view === 'stock' ? (
         <Table
           columns={columns}
           dataSource={assets || []}
           rowKey="id"
+          loading={loading}
           rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
           pagination={{
             current: page, pageSize, total, showSizeChanger: true,

@@ -4,7 +4,9 @@
 // 不能被 code 家族通用文案（40900「数据冲突，请刷新后重试」）遮蔽。
 // 解析顺序（唯一出口 resolveErrorMessage）：
 //   L1 ERROR_MESSAGE_MAP 精确英文键 → L2 可读中文 message 透传 → L3 code 家族兜底 →
-//   L4 其它 message 透传 → L5 调用点 fallback。
+//   L4 raw_message（**已不可达**：含 CJK 的文案在 L2 已返回；层名保留仅为兼容历史
+//   断言/日志口径，不再有返回分支）→ L5 调用点 fallback。
+// #2504：ASCII 机器串（如后端硬编码 `access denied`）一律不外溢，落到 code 家族或 fallback。
 
 // L2: code 家族 → 通用中文（兜底）
 export const ERROR_CODE_MAP = {
@@ -23,6 +25,7 @@ export const ERROR_CODE_MAP = {
   40104: '登录状态异常，请重新登录',
   40300: '暂无权限执行此操作',
   40301: '暂无权限执行此操作',
+  40303: '暂无权限访问该页面', // #2504：personnel/权限中间件「权限范围不匹配」
   40400: '未找到相关数据',
   40900: '数据冲突，请刷新后重试',
   40901: '数据冲突，请刷新后重试',
@@ -104,7 +107,7 @@ function hasMessage(message) {
 }
 
 // 解析核心（层序唯一 owner）；返回 { text, layer } 便于断言「哪一层胜出」。
-// layer ∈ message_map | human_message | code_map | raw_message | fallback
+// layer ∈ message_map | human_message | code_map | raw_message（仅保留层名，不可达） | fallback
 export function resolveErrorCore(result, options = {}) {
   const {
     codeMap = ERROR_CODE_MAP,
@@ -114,12 +117,20 @@ export function resolveErrorCore(result, options = {}) {
   if (!result) return { text: fallback, layer: 'fallback' }
   const { code, message } = result
   if (hasMessage(message) && messageMap[message]) return { text: messageMap[message], layer: 'message_map' }
+  // #2497：5xx（code >= 50000）的中文串是后端内部诊断（中文前缀 + err.Error() 拼接），
+  // 不得作为 human_message 透传给用户；有 code 家族文案走 code_map，否则走 fallback。
+  const numericCode = Number(code)
+  const isServerError = Number.isFinite(numericCode) && numericCode >= 50000
+  if (isServerError && hasMessage(message) && isHumanReadableMessage(message)) {
+    const mapped = codeMap[code] || codeMap[numericCode]
+    return mapped ? { text: mapped, layer: 'code_map' } : { text: fallback, layer: 'fallback' }
+  }
   // #2480：可读中文文案优先于 code 家族通用文案（40900/40901 等）——
   // #2290/#2104 曾把 4091x 排除出 map，本单把规则升级为「含 CJK 即优先透传」。
   if (isHumanReadableMessage(message)) return { text: message, layer: 'human_message' }
   if (code && codeMap[code]) return { text: codeMap[code], layer: 'code_map' }
-  // #2104：未知 code 且后端给出可执行 message 时透传，不再被通用 fallback 遮蔽。
-  if (hasMessage(message)) return { text: message, layer: 'raw_message' }
+  // #2504 D8：L4 raw_message 返回分支已删除（不可达：含 CJK 的文案在 L2 已返回）。
+  // 未知 code + ASCII 机器串（如 `access denied`）一律走 fallback，不直出后端技术串。
   return { text: fallback, layer: 'fallback' }
 }
 

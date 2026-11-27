@@ -1,0 +1,11 @@
+# build=1.0.41b853a71 # commit=41b853a71d03ee86db166782bb21eb2d5a0ebfc9 # dirty=false
+== R3 instrument list page static structure (frontend-pc/src/pages/admin/instrument/List.jsx) ==
+DEAD_PATH=0
+SHARED_BUILDER=1
+USES_SHARED_API=1
+OPTIONS_FROM_SHARED=1
+PARTIAL_WARN=1
+LEGACY_PRICE_TYPES=0
+LEGACY_OPERATORS=0
+SCOPE_HINT=1
+R3_OK

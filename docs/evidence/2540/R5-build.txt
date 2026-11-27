@@ -1,0 +1,26 @@
+# build=1.0.150ff8d85 # commit=150ff8d853d3941287e457f2bcaf72d320181ac3 # dirty=false
+GENERATED_AT_HEAD=150ff8d853d3941287e457f2bcaf72d320181ac3
+== R5 构建 + 定向测试 + 全量基线差异 ==
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed at_ms=1795688835460 wait_ms=584
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed wait_ms=584
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795688844738 hold_ms=9278
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed at_ms=1795688844505 wait_ms=284
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s35-p35-913aed wait_ms=284
+# github.com/mattn/go-sqlite3
+sqlite3-binding.c: In function ‘sqlite3ShadowTableName’:
+sqlite3-binding.c:123133:9: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+123133 |   zTail = strrchr(zName, '_');
+       |         ^
+ok  	tuneloop-backend/handlers	2.562s
+ok  	tuneloop-backend/services	0.374s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795688853428 hold_ms=8923
+GO_TEST_OK=1
+BUILD_OK=1
+BASELINE_REF=origin/develop
+BASELINE_SHA=c37655eb0237a63571bbe95156a2336c2d6810a0
+BASELINE_GATE_EXIT=1
+FULL_GATE_EXIT=1
+FULL_GATE_CURRENT_FAILURES=12
+FULL_GATE_BASELINE_FAILURES=12
+FULL_GATE_NEW_FAILURES=0
+R5_OK

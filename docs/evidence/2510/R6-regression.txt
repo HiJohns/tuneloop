@@ -1,0 +1,8 @@
+# build=1.0.f11aedb5 # commit=f11aedb567ec2a6b57ea3cc17eaf25b2b0e7f030 # dirty=false
+# tree=f11aedb567ec2a6b57ea3cc17eaf25b2b0e7f030
+TESTS_RUN=12
+PASS_COUNT=12
+FAIL_COUNT=0
+SKIP_COUNT=0
+GO_TEST_EXIT=0
+REGRESSION_PASS=1

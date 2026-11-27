@@ -1,0 +1,10 @@
+# build=1.0.5a695fef # commit=5a695fefb262ba0e78ead79b4f28275c85229f50 # dirty=false
+INPUT_CODE=50000
+INPUT_MESSAGE=标记删除失败：pq: duplicate key value violates unique constraint
+PC_TEXT=服务器开小差了，请稍后再试
+PC_LAYER=code_map
+MOBILE_TEXT=服务器开小差了，请稍后再试
+MOBILE_LAYER=code_map
+LEAK=0
+RESULT: PASS
+

@@ -1,0 +1,7 @@
+# build=1.0.f11aedb5 # commit=f11aedb567ec2a6b57ea3cc17eaf25b2b0e7f030 # dirty=false
+# tree=f11aedb567ec2a6b57ea3cc17eaf25b2b0e7f030
+BUILD_CMD=cd backend && go build ./...
+BUILD_RC=0
+OID_SITE_STRING_COMPARE=0
+LIST_SCOPE_OID=0
+CURRENT_SITE_HITS=4

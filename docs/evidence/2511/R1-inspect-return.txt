@@ -1,0 +1,8 @@
+# build=1.0.220785f52 # commit=220785f52d7eee81d62efcfa5b35c7da923535c5 # dirty=false
+== R1 InspectReturn fallback writes sites.id ==
+CURRENT_SITE_ID=aID
+OLD_FALLBACK_IS_ORG=1
+RED_CONFIRMED=1
+--- PASS: TestInspectReturn2511_FallbackWritesSiteNotOrg (1.42s)
+SITE_ID_IS=aID
+R1_OK

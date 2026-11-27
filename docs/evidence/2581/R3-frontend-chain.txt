@@ -1,0 +1,44 @@
+# build=1.0.f6174f7ee # commit=f6174f7ee7b852e9873a5eb7737b781217d41ee1 # dirty=false
+# 409 → resolveHttpFailure(result) → isBusinessCorrectableConflict → conflictText（含英文负例 + catch 路径）
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s107-p107-350703 at_ms=1795726820127 wait_ms=73
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s107-p107-350703 wait_ms=73
+TAP version 13
+# CHAIN_KIND=result
+# CHAIN_CODE=40900
+# CHAIN_MSG_CJK=1
+# CHAIN_TEXT_MATCH=1
+# CHAIN_RUBRIC=1
+# CHAIN_CONFLICT_TEXT=该商户下已存在同名网点「海淀店」，请换一个名称
+# NEG_ENGLISH_KIND=result
+# NEG_ENGLISH_GENERIC=1
+# CATCH_KIND=throw
+# CATCH_RUBRIC=1
+# CATCH_TEXT_MATCH=1
+# Subtest: 409 + CJK message: passthrough, rubric hits, conflictText keeps the reason
+ok 1 - 409 + CJK message: passthrough, rubric hits, conflictText keeps the reason
+  ---
+  duration_ms: 2.334178
+  type: 'test'
+  ...
+# Subtest: negative: 409 + ASCII message still degrades to the generic conflict text
+ok 2 - negative: 409 + ASCII message still degrades to the generic conflict text
+  ---
+  duration_ms: 0.321836
+  type: 'test'
+  ...
+# Subtest: catch path: ApiError carrying 40900 still hits the shared rubric
+ok 3 - catch path: ApiError carrying 40900 still hits the shared rubric
+  ---
+  duration_ms: 0.710234
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 82.12078
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795726820275 hold_ms=148

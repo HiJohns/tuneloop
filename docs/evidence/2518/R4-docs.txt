@@ -1,0 +1,22 @@
+# build=1.0.ccb0c8b8 # commit=ccb0c8b8e6a316ce2879374c9e6110347705e6c6 # dirty=false
+DOC=docs/spec/ui/ui.md
+DOC_REMOVED=1
+TENANT_ALIAS=1
+--- §5 系统管理 ---
+3138:**5. 系统管理**
+3139-- **路由**: 一级菜单
+3140-- **权限**: 商户管理员（含 sys_perm bit 26 可看权限管理）
+3141-- **子菜单**:
+3142-  - 商户管理 (`/merchants`) — sys_perm bit 5
+3143-    - 创建/编辑表单新增**商户类型**下拉选择（全权商户/受控商户）
+3144-    - 选择"受控商户"时条件显示中转地址、中转电话、中转联系人字段
+3145-    - 创建表单新增**跳过邮箱验证** Checkbox，勾选后管理员直接激活无需确认邮件
+3146-    - 勾选"跳过邮箱验证"且创建成功时，弹窗显示管理员初始密码
+3147-  - 操作日志 (`/system/audit-logs`) — sys_perm bit 5
+3148-  - 权限管理 (`/system/permissions`) — sys_perm bit 26（商户管理员）
+3149-  - 内容管理 (`/system/banners`) — cus_perm `banner:manage`：轮播图管理；同页下方「商城页图片管理」Card（cus_perm `mall_image:manage`，平台级全站配置、与租户无关，图片建议 750×400px）
+3150-- **租户即商户（#2518）**：本项目不存在独立的「租户管理」页面，租户 ≡ 商户，统一由「商户管理」(`/merchants`) 承载列表与新建；「客户端管理」不承载（OAuth client 属 IAM 概念，平台端无此实体）。
+3151-
+3152-
+RESULT: PASS
+

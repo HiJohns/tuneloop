@@ -309,8 +309,13 @@ func appendRepairServiceTimeline(db *gorm.DB, repairID, operatorID, recordType, 
 }
 
 // repairServiceStaffAllowed 员工/师傅操作目标服务单的归属校验（审计 F1，#688 清单）：
-// 目标单的 tenant/site 必须与 JWT 的 tid/oid 匹配；未选定网点（tenant 为空）的服务单
+// 目标单的 tenant 必须落在操作者的归属集合内；未选定网点（tenant 为空）的服务单
 // 不允许任何 staff 操作。namespace/merchant 级（oid 空）只校验租户。
+//
+// #2513：服务单**无 site 维度**（师傅直属商户，`docs/cases/repair-service.md:65`），
+// 历史实现用 `rr.SiteID != oid` 比较，把 `repair_requests.site_id`（`sites.id` 域）
+// 与 JWT `oid`（`sites.org_id` 域）混用 → 任何带 site_id 的行对所有人恒拒。
+// 该维度按规格不存在，故彻底移除；跨商户隔离由 repairServiceTenantScope 承担。
 func repairServiceStaffAllowed(rr *models.RepairRequest, ctx context.Context) bool {
 	if rr.TenantID == "" {
 		return false
@@ -320,24 +325,33 @@ func repairServiceStaffAllowed(rr *models.RepairRequest, ctx context.Context) bo
 	if len(scopes) == 0 {
 		return false
 	}
-	matched := false
 	for _, s := range scopes {
 		if rr.TenantID == s {
-			matched = true
-			break
+			return true
 		}
 	}
-	if !matched {
+	return false
+}
+
+// repairServiceMerchantLevel（#2513）：维修服务仅商户层级参与（RS-API-2 / #2122）。
+//
+// 唯一判定，供 ListTasks 与 ListPendingDispatch 复用（禁止各写一份内联闸门）：
+//   - 平台级业务角色（system_admin / platform_staff / merchant_admin）→ true；
+//   - 其它角色：JWT oid 命中 `merchants.org_id`（即 oid 是商户组织锚）→ true；
+//   - 纯网点账号（oid 是网点 id / 空）→ false。
+func repairServiceMerchantLevel(db *gorm.DB, ctx context.Context) bool {
+	switch middleware.GetBusinessRole(ctx) {
+	case middleware.BusinessRoleSystemAdmin, middleware.BusinessRolePlatformStaff, middleware.BusinessRoleMerchantAdmin:
+		return true
+	}
+	oid := middleware.GetOrgID(ctx)
+	if oid == "" {
 		return false
 	}
-	// #1974 T1（2026-09-18）：服务单**无 site 维度**（师傅直属商户）→ 租户匹配即可；
-	// 若历史/异常单带 site，则网点级账号仍需匹配 site
-	if rr.SiteID != "" {
-		if oid := middleware.GetOrgID(ctx); oid != "" && rr.SiteID != oid {
-			return false
-		}
-	}
-	return true
+	var merchantOrgCount int64
+	db.WithContext(database.IdentityCtx(ctx)).Model(&models.Merchant{}).
+		Where("org_id = ?", oid).Count(&merchantOrgCount)
+	return merchantOrgCount > 0
 }
 
 // isAssignedTechnician（#2118 修订）：technician_id 可能存本地 users.id 或 IAM sub
@@ -1827,12 +1841,22 @@ func (h *RepairServiceHandler) ListPendingDispatch(c *gin.Context) {
 		return
 	}
 	db := database.GetDB().WithContext(ctx)
-	query := db.Where("type = ? AND status = ?", repairServiceTypeVal, models.RepairReqStatusDoneRepair)
-	if orgID := middleware.GetOrgID(ctx); orgID != "" {
-		query = query.Where("site_id = ?", orgID)
-	} else if tenantID := middleware.GetTenantID(ctx); tenantID != "" {
-		query = query.Where("tenant_id = ?", tenantID)
+	// #2513：与 ListTasks scope=site&status=done_repair 同口径（RS-05：pending-dispatch
+	// 是兼容入口）；服务单无 site 维度（#1974 T1 / RS-13），过滤只按归属集合，恒空
+	// 不再由 `site_id = oid` 的 ID 域事故造成。
+	if !repairServiceMerchantLevel(db, ctx) {
+		// #2122：维修服务仅商户层级参与——纯网点账号返回空清单
+		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": []interface{}{}, "total": 0}})
+		return
 	}
+	scopes := repairServiceTenantScope(ctx)
+	if len(scopes) == 0 {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
+		return
+	}
+	query := db.WithContext(database.IdentityCtx(ctx)).
+		Where("type = ? AND status = ?", repairServiceTypeVal, models.RepairReqStatusDoneRepair).
+		Where("tenant_id IN ?", scopes)
 	var list []models.RepairRequest
 	if err := query.Order("updated_at ASC").Find(&list).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to list pending dispatches"})
@@ -1871,21 +1895,14 @@ func (h *RepairServiceHandler) ListTasks(c *gin.Context) {
 		query = query.Where("technician_id = ?", me)
 	case "site":
 		// #2122：维修服务仅商户层级可见——网点账号（oid 非任何商户组织）不涉及维修服务
-		oid := middleware.GetOrgID(ctx)
-		var merchantOrgCount int64
-		db.Model(&models.Merchant{}).Where("org_id = ?", oid).Count(&merchantOrgCount)
-		if oid == "" || merchantOrgCount == 0 {
+		// #2513：闸门抽为 repairServiceMerchantLevel（唯一判定，与 pending-dispatch 复用）
+		if !repairServiceMerchantLevel(db, ctx) {
 			c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": []interface{}{}, "total": 0}})
 			return
 		}
-		// #1974 T1：服务单可能无 site（师傅直属商户）→ 商户账号可见本租户的无 site 单
-		if orgID := middleware.GetOrgID(ctx); orgID != "" {
-			query = query.Where("(site_id = ? OR site_id IS NULL)", orgID)
-			// #2134：显式 {tid, oid} 集合（替代单一 tenant_id = tid，兼容叶组织行）
-			if len(scopes) > 0 {
-				query = query.Where("tenant_id IN ?", scopes)
-			}
-		} else if len(scopes) > 0 {
+		// #1974 T1 / #2513：服务单无 site 维度 → 只按归属集合过滤，历史带 site_id 的行
+		// 不再被旧谓词的「site 相等 / site 为空」分支静默漏掉（NULL 行照旧命中）。
+		if len(scopes) > 0 {
 			query = query.Where("tenant_id IN ?", scopes)
 		} else {
 			// 员工上下文缺组织信息 → 不泄露任何数据（#688）

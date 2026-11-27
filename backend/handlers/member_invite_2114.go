@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"slices"
 	"strings"
@@ -383,7 +384,9 @@ func InviteToMerchant(c *gin.Context) {
 	}
 	visibleOrgs, visErr := middleware.GetVisibleOrgIDs(ctx)
 	if visErr != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "解析可见组织失败：" + visErr.Error()})
+		// #2497：内部诊断只进日志，用户只看固定文案（不得透传 err 细节）。
+		log.Printf("[MerchantInvite] resolve visible orgs failed merchant=%s: %v", merchantID, visErr)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "获取可见组织失败，请稍后重试"})
 		return
 	}
 	if len(visibleOrgs) > 0 && !slices.Contains(visibleOrgs, merchant.OrgID) {

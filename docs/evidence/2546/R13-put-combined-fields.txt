@@ -1,0 +1,31 @@
+# build=1.0.29eea1dae # commit=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b # dirty=false
+GENERATED_AT_HEAD=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b
+# R13 PUT /merchants/:id 组合字段（name/phone/admin_uid）三者同时落库
+# build=1.0.29eea1dae # commit=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b # dirty=false
+GENERATED_AT_HEAD=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b
+# CMD go test -count=1 -run 'TestUpdateMerchantCombinedFields_2546' ./handlers/
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s107-p107-350703 at_ms=1795730821488 wait_ms=68
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s107-p107-350703 wait_ms=68
+[DEBUG] Loaded .env from: ../.env
+2026/11/26 22:07:05 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e sslmode=disable
+2026/11/26 22:07:06 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e
+2026/11/26 22:07:06 [DB] Connected to database 'tuneloop_test_node_opencode_s107_p107_350703_ff978a8e'
+=== RUN   TestUpdateMerchantCombinedFields_2546
+2026/11/26 22:07:06 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e sslmode=disable
+2026/11/26 22:07:06 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e
+2026/11/26 22:07:06 [DB] Connected to database 'tuneloop_test_node_opencode_s107_p107_350703_ff978a8e'
+
+2026/11/26 22:07:07 [32m/tmp/opencode/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[606.526ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/26 22:07:07 [TenantScope][observe] auto-scope injected for table=merchants (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/26 22:07:07 [TenantScope][observe] auto-scope injected for table=merchant_members (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/26 22:07:07 [TenantScope][observe] auto-scope injected for table=users (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/26 22:07:07 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:44783, clientID=test-ns, namespace=test-ns
+2026/11/26 22:07:07 [IAMClient] Transferred org d3c73f0f-ff37-41d7-82a7-8917e7501ec6 ownership to user d44e07be-864f-41df-a7ea-2d8c41387dfb (user token)
+2026/11/26 22:07:07 [UpdateMerchant] ownership transferred merchant=7c77d612-c43f-4a9e-bf1a-d3394d3bd87b previous_owner=c6c34fea-f6eb-4608-8fc6-ab1a4c32c7f5 new_owner=92509102-295e-4e5e-8b41-a6fcc4d84656
+    merchant_ownership_2546_test.go:782: COMBINED_STATUS=200 NAME_PERSISTED=1 PHONE_PERSISTED=1 ADMIN_UID_SWITCHED=1
+--- PASS: TestUpdateMerchantCombinedFields_2546 (0.90s)
+PASS
+ok  	tuneloop-backend/handlers	1.620s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795730827274 hold_ms=5786
+GO_TEST_RC=0

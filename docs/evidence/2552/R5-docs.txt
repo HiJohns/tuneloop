@@ -1,0 +1,7 @@
+# build=1.0.b31e7815d # commit=b31e7815d # dirty=false
+== R5 四份文档口径同步 ==
+DOC_API_TRANSIT_TENANT=1
+DOC_CASE_TRANSIT_ORG=1
+DOC_OPS_AUDIT_ROW=1
+DOC_DB_SITES_ORG=1
+R5_OK

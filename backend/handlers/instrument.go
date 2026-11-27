@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 	"log"
 	"net/http"
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/database"
 	"tuneloop-backend/internal/service"
 	"tuneloop-backend/middleware"
@@ -867,7 +868,7 @@ func UpdateInstrumentStatus(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40001,
-			"message": "invalid parameters: " + err.Error(),
+			"message": bindmsg.Message(err),
 		})
 		return
 	}

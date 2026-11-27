@@ -1,0 +1,29 @@
+# build=1.0.e77597a7d # commit=e77597a7d2560a3ba562e0d31d7804d06db84575 # dirty=false
+# red-run: pre-fix source backend/handlers/assessment.go @ e77597a7d2560a3ba562e0d31d7804d06db84575 (fix 0275ebc843ea3087dcf9a9f316adb33619baadf2 reverted in the working tree for this run)
+== R1 red run: pre-fix SubmitAssessment fallback writes order.OrgID ==
+STATUS=500
+OPERATOR_SITE=none
+RESOLVED_IS_SITE=1
+CURRENT_IS_SITE=0
+CURRENT_NOT_ORG=0
+OLD_VALUE_IS_ORG=1
+RED_CONFIRMED=0
+--- FAIL: TestSubmitAssessment2532_FallbackWritesSiteNotOrg (0.83s)
+--- go test output (tail) ---
+CURRENT_NOT_ORG=0
+OLD_VALUE_IS_ORG=1
+RED_CONFIRMED=0
+    assessment_2532_test.go:167: 
+        	Error Trace:	/home/coder/worktrees/tuneloop/wt-2532/backend/handlers/assessment_2532_test.go:167
+        	Error:      	Not equal: 
+        	            	expected: 200
+        	            	actual  : 500
+        	Test:       	TestSubmitAssessment2532_FallbackWritesSiteNotOrg
+        	Messages:   	fallback branch must still succeed
+--- FAIL: TestSubmitAssessment2532_FallbackWritesSiteNotOrg (0.83s)
+FAIL
+FAIL	tuneloop-backend/handlers	1.618s
+FAIL
+[heavy-lock] released scope=host slot=0 rc=1 at_ms=1795660752603 hold_ms=35679
+RED_EXIT=1
+RED_OK
