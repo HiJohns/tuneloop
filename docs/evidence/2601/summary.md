@@ -115,7 +115,9 @@ FAIL(r8): vitest bind-failure-2601 (expired rows) exit=1
 
 ## Remote
 
-- `remote: origin/issue-2601`；fix `48081b74e`（Rev.1）+ `927158cf2`（Rev.2）pushed=yes；evidence `docs(evidence): issue-2601`（本轮）pushed=yes。
+- `remote: origin/issue-2601`；fix `48081b74e`（Rev.1）+ `927158cf2`（Rev.2）pushed=yes。
+- 证据提交（本轮 Round 2 整改，均 pushed=yes）：`d3e819977`（R1–R8 在 Rev.2 锚点重生成 + 账本 21 行 + 本节措辞）、`5e6cdf94a`（gate PASS 报告）。
+- gate 报告提交后，在干净树（无未提交改动）用同一命令把 report 指向 tmp/ 复跑，结果同为 `RESULT: PASS`（可复现性证明见 Work Summary 评论）。
 
 ## 证据真实性 / 持久化
 
@@ -168,13 +170,15 @@ FAIL(r8): vitest bind-failure-2601 (expired rows) exit=1
   --report docs/evidence/2601/pre-ready-2601.json
 ```
 
-- 结果：
+- 结果（`docs/evidence/2601/pre-ready-2601.json`，提交版本）：
 
 ```
 RESULT: PASS
 REPORT: docs/evidence/2601/pre-ready-2601.json
 P1/P2/P3/P4/P6/P7/P11/P12/P13/P14/P17/P18 = PASS；P5 = N/A（无 go.mod/package.json 于根，全量由批次 gate 承担）；P8/P9/P10/P15/P16 = N/A
 ```
+
+- 可复现性：证据与报告均入库并 push 后，在干净树把 `--report` 指向 `tmp/` 复跑同一命令 → `RESULT: PASS`（不修改已提交报告）。
 
 - plan_sha256 = `7c98a6652062115762d681826c976c94fd4dc1374f6ee4d82298838e8aa64515`（Accepted Plan Rev.2 评论，plan-source FRESH）。
 
