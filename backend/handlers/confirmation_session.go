@@ -201,6 +201,9 @@ func (h *ConfirmationSessionHandler) Confirm(c *gin.Context) {
 
 	// Execute the action
 	if err := h.executeAction(&session); err != nil {
+		// #2542: the session was already persisted as "confirmed" above; a failed
+		// action must not leave that receipt behind.
+		failSession(db, &session, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to execute action: " + err.Error()})
 		return
 	}
@@ -300,10 +303,10 @@ func (h *ConfirmationSessionHandler) IAMConfirmationCallback(c *gin.Context) {
 
 		if err := h.executeAction(&session); err != nil {
 			log.Printf("[IAMCallback] Failed to execute action: %v", err)
-			session.Status = "failed"
-			session.Message = fmt.Sprintf("Action execution failed: %v", err)
-			db.Save(&session)
-			c.Redirect(http.StatusFound, fmt.Sprintf("/confirmation-result?status=error&message=%s", err.Error()))
+			// #2542: receipt must say failed, not error-with-message — the
+			// /confirmation-result page renders the status=failed branch.
+			failSession(db, &session, err)
+			c.Redirect(http.StatusFound, "/confirmation-result?status=failed&action="+session.ActionType)
 			return
 		}
 
@@ -329,6 +332,23 @@ func (h *ConfirmationSessionHandler) IAMConfirmationCallback(c *gin.Context) {
 	default:
 		log.Printf("[IAMCallback] Unknown result: %s", result)
 		c.Redirect(http.StatusFound, "/confirmation-result?status=error&message=unknown_result")
+	}
+}
+
+// failSession persists the terminal "failed" state after executeAction fails.
+//
+// #2542: Confirm / SMSCallback persist "confirmed" *before* running the action,
+// so a failed IAM write used to leave a success receipt behind. Every caller
+// keeps its own surface shape (JSON 500, redirect, SMS text) and only delegates
+// the persisted outcome here — one implementation, no per-caller copies.
+func failSession(db *gorm.DB, session *models.ConfirmationSession, actionErr error) {
+	session.Status = "failed"
+	session.Message = fmt.Sprintf("Action execution failed: %v", actionErr)
+	if err := db.Save(session).Error; err != nil {
+		// Compensation must not be silently swallowed: keep the original action
+		// error in the log so operators can reconcile the orphaned session.
+		log.Printf("[Confirm] CRITICAL: failed to persist failure state for session %s: %v (action error: %v)",
+			session.ID, err, actionErr)
 	}
 }
 
@@ -366,7 +386,18 @@ func (h *ConfirmationSessionHandler) executeAction(session *models.ConfirmationS
 				if t, ok := services.AllRoleTemplates["merchant_admin"]; ok && len(t.CusPermCodes) > 0 {
 					cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(t.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
 					if err := iamClient.SetUserCustomerPermissions(merchant.OrgID, session.UserID, cusPerm, cusPermExt); err != nil {
-						log.Printf("[Confirm] SetUserCustomerPermissions failed: %v", err)
+						// #2542: failing to write the customer-permission bitmap means the
+						// admin has no usable permissions, so treat it exactly like a bind
+						// failure — roll the binding back (no purge: this flow did not create
+						// the principal) and propagate the error. Logging and continuing
+						// would report success for a half-provisioned admin (AGENTS.md red
+						// line: no silent error swallowing in API call chains).
+						if unbindErr := iamClient.UnbindUserFromOrganization(session.UserID, merchant.OrgID, ""); unbindErr != nil {
+							log.Printf("[Confirm] CRITICAL: rollback unbind failed user=%s org=%s: %v (action error: %v)",
+								session.UserID, merchant.OrgID, unbindErr, err)
+							return fmt.Errorf("IAM set customer permissions failed: %w (rollback unbind also failed: %v)", err, unbindErr)
+						}
+						return fmt.Errorf("IAM set customer permissions failed: %w", err)
 					}
 				}
 			}
@@ -432,6 +463,7 @@ func (h *ConfirmationSessionHandler) SMSCallback(c *gin.Context) {
 
 		// Execute action
 		if err := h.executeAction(&session); err != nil {
+			failSession(db, &session, err)
 			c.String(http.StatusInternalServerError, "failed to execute action: "+err.Error())
 			return
 		}

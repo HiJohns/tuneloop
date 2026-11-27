@@ -832,6 +832,32 @@ GET /api/confirmation-sessions/:id
 | iam_session_id | string | IAM 侧确认会话 ID |
 | callback_url | string | IAM 确认后的回调地址 |
 
+### 2.8.2 确认执行与失败语义
+
+> 来源：#2542（`merchant_admin` 确认路径的客户权限位写入失败曾被静默吞掉）。
+
+**执行入口**（三者共用同一段执行逻辑，失败语义一致）：
+
+| 入口 | 成功回执 | 失败回执 |
+|------|----------|----------|
+| `POST /api/confirmation-sessions/:id/confirm?token=<token>` | `200` / `code=20000`，会话 `status=confirmed` | `500` / `code=50000`，会话 `status=failed`，`message` 记录失败原因 |
+| `GET /api/iam/confirmation-callback?session=<id>&result=accept&confirm_type=<email\|phone>` | `302 → /confirmation-result?status=success&action=<action_type>` | `302 → /confirmation-result?status=failed&action=<action_type>` |
+| `GET /api/iam/confirmation-callback?token=<token>&reply=Y`（短信回调） | `200` 文本「Thank you! …」 | `500` 文本「failed to execute action: …」，会话 `status=failed` |
+
+**`merchant_admin` 动作的执行语义**：
+
+1. IAM `bind`（关系角色 `OWNER`，见 #2540）失败 → 直接失败，本地不落成功态；
+2. IAM `customer-permissions`（客户权限位写入）失败 → **回滚绑定**（`unbind`，**不** `purge`：主体不是本流程创建的）后失败：
+   - 回滚成功：`message` 为 `failed to execute action: IAM set customer permissions failed: …`；
+   - 回滚本身失败：以 `CRITICAL` 级别记录日志，且 `message` 同时携带两条原因（`(rollback unbind also failed: …)`）；
+3. 成功：会话 `status=confirmed`，客户权限位与 `merchant_admin` 暂存模板一致。
+
+**约束**：
+
+- 执行失败**不得**返回 `200`/`code=20000`（AGENTS.md 红线：API 调用链禁止静默吞错）；
+- 会话被置 `failed` 后不影响重试：`failed` 不等于 `already confirmed`，可修复 IAM 侧后再次确认；
+- 失败时 `users.status` 已按执行前逻辑置为 `active`（本语义未回退，如需回退另立 Issue）。
+
 ## 三、白标化配置模块
 
 ### 3.0 客户端能力配置
