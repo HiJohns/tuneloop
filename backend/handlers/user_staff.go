@@ -1686,11 +1686,18 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 
 	if err := iamClient.UpdateUser(userID, iamReq); err != nil {
 		log.Printf("[UpdateCurrentUser] IAM UpdateUser failed for %s: %v", userID, err)
-		msg := err.Error()
-		if strings.Contains(strings.ToLower(msg), "username already exists") {
-			msg = "用户名已被占用，请换一个"
+		// #2614: 失败语义走 #2598 的统一出口。瞬时故障不得再被表达成 409 数据冲突；
+		// 「用户名已被占用，请换一个」由类型判据（errors.As + iamConflictField）产出，
+		// 文案与码值逐字保持（#2446 契约）。message 不拼接上游原始串。
+		conflictText := iamUserUpdateConflictText(err)
+		if conflictText == "" {
+			conflictText = "保存失败：资料与现有账户冲突，请检查用户名/邮箱/手机号后重试"
 		}
-		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": msg})
+		respondIAMFailure(c, err, iamFailureTexts{
+			Transient:  "保存失败，请稍后再试",
+			Conflict:   conflictText,
+			UserAction: "保存失败：资料格式不正确，请修改后重试",
+		})
 		return
 	}
 	db := database.GetDB().WithContext(database.IdentityCtx(ctx))

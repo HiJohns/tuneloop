@@ -599,9 +599,18 @@ func (h *IAMProxyHandler) UpdateIAMUser(c *gin.Context) {
 
 	if err := iamClient.UpdateUser(userID, iamReq); err != nil {
 		log.Printf("[UpdateIAMUser] IAM UpdateUser failed for %s: %v", userID, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    50000,
-			"message": "Failed to update user in IAM: " + err.Error(),
+		// #2614: 失败语义走 #2598 的统一出口（transient 502 / conflict 409 /
+		// userAction 400 / config 500+50015）；message 不再拼接上游原始串，
+		// 诊断只进日志。
+		conflictText := iamUserUpdateConflictText(err)
+		if conflictText == "" {
+			// 本端点只提交 name/email/phone/password，上游 409 只可能是邮箱/手机号占用。
+			conflictText = "保存用户信息失败：邮箱或手机号已被其他账户占用，请修改后重试"
+		}
+		respondIAMFailure(c, err, iamFailureTexts{
+			Transient:  "保存用户信息失败，请稍后再试",
+			Conflict:   conflictText,
+			UserAction: "保存用户信息失败：提交的内容格式不正确，请修改后重试",
 		})
 		return
 	}

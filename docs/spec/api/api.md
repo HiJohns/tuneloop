@@ -589,6 +589,22 @@ HTTP 401。H5（`client_type=wx`）与小程序 `/api/auth/wx-login` 令牌没�
 **响应**：`{code:20000, data:{status:"success", relogin?:true, username?:string, needs_credentials?:boolean}}`。
 **错误**：`40002` 用户名格式/密码规则；`40900` 用户名冲突；`40104` 未登录。
 
+**IAM 失败三元组（#2614）**——`PUT /api/users/me` 会调用 IAM `PUT /api/v1/users/{id}`，其失败按 §14.4「错误三元组一致性（#2598）」分流，**不再**把任意失败压成 `409/40900` + 上游原始串：
+
+| 上游状态 | HTTP / code | message（用户可见，CJK） |
+|---|---|---|
+| 传输层失败 / `429` / `5xx` | `502 / 50200` | 「保存失败，请稍后再试」 |
+| `400` / `422` | `400 / 40002` | 「保存失败：资料格式不正确，请修改后重试」 |
+| `409` + `username already exists` | `409 / 40900` | 「用户名已被占用，请换一个」（逐字契约，#2446） |
+| `409` + `email already exists` | `409 / 40900` | 「邮箱已被其他账户使用，请更换后重试」 |
+| `409` + `phone already exists` | `409 / 40900` | 「手机号已被其他账户使用，请更换后重试」 |
+| `409`（未知原因） | `409 / 40900` | 「保存失败：资料与现有账户冲突，请检查用户名/邮箱/手机号后重试」 |
+| `401` / `403` / `404` / 其余 4xx | `500 / 50015` | 「身份服务配置异常，请联系平台管理员处理」 |
+
+- `message` **不拼接**上游原始串，诊断只进服务端日志。
+- 本地校验（用户名 4–32 位、密码规则、`40903` 已认证不可改、`id_photo_other_type` 枚举）仍在 IAM 调用**之前**，语义不变。
+
+
 ### 2.5 影子用户同步
 
 **接口**: `POST /api/auth/sync-user`
@@ -765,6 +781,46 @@ HTTP 401。H5（`client_type=wx`）与小程序 `/api/auth/wx-login` 令牌没�
 - `skipped`: 跳过的用户数量（已存在且一致）
 - `conflicts`: 发生冲突的数量
 - `details`: 逐条明细数组，每项含 `id`（IAM 用户 ID）、`name`、`email`、`org_id`、`result`（added/existing/updated/error）
+
+#### 2.6.5 更新 IAM 用户（`PUT /api/iam/users/:id`）
+
+**接口**: `PUT /api/iam/users/:id`
+
+**说明**: PC 后台（`StaffEdit`）保存 IAM 用户资料，转发 IAM `PUT /api/v1/users/{id}`；成功后同步本地 `users` 缓存（按 `iam_sub` 过滤，不按 `tenant_id`，#2249）。
+
+**权限**: `authRequired`（PC 管理员）
+
+**请求 Body**:
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `name` | string | 姓名（可选） |
+| `email` | string | 邮箱（可选；变更后 IAM 发确认邮件） |
+| `phone` | string | 手机号（可选） |
+| `password` | string | 密码（可选；留空表示不改） |
+
+**成功响应**:
+```json
+{
+  "code": 20000,
+  "data": { "id": "iam-user-id", "status": "success" },
+  "message": "..."
+}
+```
+- 邮箱变更时追加 `data.email_confirmation = "pending"`。
+
+**失败响应（IAM 侧失败，按 §14.4 三元组，#2614）**:
+
+| 上游状态 | HTTP / code | message（用户可见，CJK） |
+|---|---|---|
+| 传输层失败 / `429` / `5xx` | `502 / 50200` | 「保存用户信息失败，请稍后再试」 |
+| `400` / `422` | `400 / 40002` | 「保存用户信息失败：提交的内容格式不正确，请修改后重试」 |
+| `409` + `email already exists` | `409 / 40900` | 「邮箱已被其他账户使用，请更换后重试」 |
+| `409` + `phone already exists` | `409 / 40900` | 「手机号已被其他账户使用，请更换后重试」 |
+| `409`（未知原因） | `409 / 40900` | 「保存用户信息失败：邮箱或手机号已被其他账户占用，请修改后重试」 |
+| `401` / `403` / `404` / 其余 4xx | `500 / 50015` | 「身份服务配置异常，请联系平台管理员处理」 |
+
+- 本端点不提交 `username`，故 `409` 只会是邮箱/手机号占用。
+- `message` **不拼接**上游原始串（旧实现为 `500/50000` + `"Failed to update user in IAM: <原始串>"`），诊断只进日志。
 
 ---
 
@@ -7520,7 +7576,7 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 > | 用户可重做 | 上游 `400` / `422` | `400 / 40002` | 指明用户动作（重新扫码/重新发起），**不含**「稍后再试」 |
 > | 持久配置/权限 | 上游 `401` / `403` / `404` / 其余 4xx | `500 / 50015` | 「身份服务配置异常，请联系平台管理员处理」（与 PC/mobile `ERROR_CODE_MAP[50015]` 逐字一致），**不含**「稍后再试」 |
 >
-> 适用端点：`POST /api/admin/transit-sites`（上游建组织失败）、`POST /api/users/me/wx-bind`、`POST /api/users/me/wx-merge`、`POST /api/wechat-bind/confirm`（#2601）、`POST /api/wechat-bind/merge`、`POST /api/users/me/wechat-unbind`（#2601）。
+> 适用端点：`POST /api/admin/transit-sites`（上游建组织失败）、`POST /api/users/me/wx-bind`、`POST /api/users/me/wx-merge`、`POST /api/wechat-bind/confirm`（#2601）、`POST /api/wechat-bind/merge`、`POST /api/users/me/wechat-unbind`（#2601）、`PUT /api/iam/users/:id`（#2614）、`PUT /api/users/me`（#2614）。
 > 特例：服务端**代发起**的上游请求（如中转建组织）其上游 `400/422` 只能是本服务请求/配置缺陷 → 归「持久配置」（`500/50015`），不提示用户重做动作。
 > 瞬时类不新增 `50200` 到前端码表（全站影响另议）→ 前端落调用点 fallback，仍不含误导性「数据冲突」。
 
