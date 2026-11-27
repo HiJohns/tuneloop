@@ -2282,6 +2282,74 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
 - `enabled: false` → 隐藏租购转化模块
 - `content` 非空 → 显示自定义文案；空 → 默认「如需购买此乐器，请联系商户」
 
+### 5.12 乐器丢失台账（#2615）
+
+> 业务口径见 `docs/cases/instrument-loss.md`（LS-01/03/05/05a）；UI 形态见 `docs/spec/ui/ui.md` §3.26。
+> 权限统一为 `instrument:read`（登记/恢复为 `instrument:update`），全部走 `ExplicitTenantScope` + JWT `tid` 过滤。
+
+#### 5.12.1 丢失记录列表
+
+**接口**: `GET /api/instrument-loss`
+
+**Query 参数**:
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| page | int | 否 | 从 1 起，默认 1（`<1` 归 1） |
+| pageSize | int | 否 | 默认 20，上限 100（越界截断，不改变结果集语义） |
+| status | string | 否 | `open`（未恢复）/ `restored`（已恢复）/ `all`（默认）；其他值 → `400/40002`，**不得静默按 all 处理** |
+| instrument_id | string | 否 | 按乐器过滤 |
+| open | string | 否 | 旧参数兼容：`open=true` 等价 `status=open`（PC `lossApi.list` 等既有调用方不受影响） |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "id": "uuid", "tenant_id": "uuid", "instrument_id": "uuid", "order_id": null,
+        "responsible_party": "user", "user_ratio": 100,
+        "compensation_cents": 100000, "user_burden_cents": 100000,
+        "description": "运输途中丢失",
+        "photos": ["uploads/xxx.jpg"],
+        "settled_at": null, "settle_breakdown": "{}", "created_by": "uuid",
+        "restored_at": null, "restored_damaged": false,
+        "restore_description": "", "restore_photos": [],
+        "created_at": "2026-11-01T10:00:00Z", "updated_at": "2026-11-01T10:00:00Z",
+        "instrument_brief": {
+          "id": "uuid", "sn": "SN-0001", "category_name": "吉他", "level_name": "专业",
+          "cover_image": "uploads/xxx_thumb.jpg", "stock_status": "lost"
+        }
+      }
+    ],
+    "total": 3, "page": 1, "page_size": 20
+  }
+}
+```
+
+- `total` 为**真实计数**（`COUNT(*)`），不是 `len(list)`；列表按 `created_at DESC`。
+- `photos` / `restore_photos` 原为 `jsonb` 字符串，这里**归一化为字符串数组**（空值/非法 JSON → `[]`，不返回 `null`、不报 500）。
+- `instrument_brief` 为一次 `IN` 查询批量取回的乐器摘要（禁 N+1）；乐器被删或跨租户 → `null`（前端按 `SN: -` 展示）。
+
+#### 5.12.2 丢失记录详情
+
+**接口**: `GET /api/instrument-loss/:id`
+
+**响应**: `{ "code": 20000, "data": { ...同上单条记录形态（含 instrument_brief） } }`
+
+**错误**:
+| HTTP | code | 场景 |
+|---|---|---|
+| 401/403 | 40100/40300 | 未登录 / 无 `tid`（与列表一致） |
+| 404 | 40400 | 记录不存在、`id` 非法、或属其他租户（**统一 404，不泄漏存在性**） |
+
+#### 5.12.3 登记 / 恢复（既有端点，语义不变）
+
+| 接口 | 请求体 | 说明 |
+|---|---|---|
+| `POST /api/instruments/:id/lost` | `{description*, responsible_party*, user_ratio, compensation_cents, user_burden_cents?, photos[]}` | LS-01；`responsible_party` ∈ `user/logistics/platform/site`，`user_ratio` 0–100；已丢失或存在未恢复记录 → `409/40900` |
+| `POST /api/instruments/:id/restore` | `{damaged, description, photos[]}` | LS-05 仅「恢复上架 + 留痕」（无冲正、无重结算）；无未恢复记录 → `404/40400` |
+
 ---
 
 ## 六、订单模块

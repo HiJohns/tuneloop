@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -400,7 +401,8 @@ func (h *InstrumentLossHandler) Restore(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": result})
 }
 
-// List GET /api/instrument-loss?instrument_id=&status=（员工/管理员台账）
+// List GET /api/instrument-loss?page=&pageSize=&status=open|restored|all&instrument_id=
+// （员工/管理员台账，#2615：分页 + 状态过滤 + 乐器摘要 + photos 数组归一化）
 func (h *InstrumentLossHandler) List(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
@@ -409,17 +411,153 @@ func (h *InstrumentLossHandler) List(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
 		return
 	}
-	query := db.Where("tenant_id = ?", tid)
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if page < 1 {
+		page = 1
+	}
+	rawSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
+	pageSize := clampPageSize(rawSize, 20, maxPageSize)
+
+	// status 默认 all；旧参数 open=true 等价 status=open（兼容既有调用方）。
+	status := c.DefaultQuery("status", "all")
+	if c.Query("open") == "true" {
+		status = "open"
+	}
+
+	query := db.Model(&models.InstrumentLossRecord{}).Where("tenant_id = ?", tid)
 	if iid := c.Query("instrument_id"); iid != "" {
 		query = query.Where("instrument_id = ?", iid)
 	}
-	if open := c.Query("open"); open == "true" {
+	switch status {
+	case "open":
 		query = query.Where("restored_at IS NULL")
+	case "restored":
+		query = query.Where("restored_at IS NOT NULL")
+	case "all":
+		// no status filter
+	default:
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "status must be open/restored/all"})
+		return
+	}
+
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		log.Printf("[InstrumentLoss.List] count failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to count loss records"})
+		return
 	}
 	var list []models.InstrumentLossRecord
-	if err := query.Order("created_at DESC").Limit(200).Find(&list).Error; err != nil {
+	if err := query.Order("created_at DESC").
+		Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error; err != nil {
+		log.Printf("[InstrumentLoss.List] query failed: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to list loss records"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": list, "total": len(list)}})
+
+	briefs := lossInstrumentBriefs(db, tid, list)
+	out := make([]gin.H, 0, len(list))
+	for _, r := range list {
+		out = append(out, lossRecordJSON(r, briefs[r.InstrumentID]))
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{
+		"list": out, "total": total, "page": page, "page_size": pageSize,
+	}})
+}
+
+// Get GET /api/instrument-loss/:id（#2615：记录详情页的深链入口）
+// 不存在 / 他人租户 / 非法 id 一律 404/40400（不区分，避免探测存在性）。
+func (h *InstrumentLossHandler) Get(c *gin.Context) {
+	ctx := c.Request.Context()
+	db := database.GetDB().WithContext(ctx)
+	tid := middleware.GetTenantID(ctx)
+	if tid == "" {
+		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
+		return
+	}
+	var rec models.InstrumentLossRecord
+	if err := db.Where("id = ? AND tenant_id = ?", c.Param("id"), tid).First(&rec).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "loss record not found"})
+		return
+	}
+	briefs := lossInstrumentBriefs(db, tid, []models.InstrumentLossRecord{rec})
+	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": lossRecordJSON(rec, briefs[rec.InstrumentID])})
+}
+
+// lossPhotosArray 把 jsonb 列的原始字符串归一化为字符串数组：
+// 空值 / null / 非法 JSON → []（前端无需区分 null 与空数组）。
+func lossPhotosArray(raw string) []string {
+	out := []string{}
+	raw = strings.TrimSpace(raw)
+	if raw == "" || raw == "null" {
+		return out
+	}
+	var arr []string
+	if err := json.Unmarshal([]byte(raw), &arr); err != nil {
+		return out
+	}
+	return append(out, arr...)
+}
+
+// lossInstrumentBriefs 批量取乐器摘要（一次 IN 查询，禁 N+1）。
+// 未命中（乐器被删/跨租户）→ 不放入 map，调用方输出 instrument_brief=null。
+func lossInstrumentBriefs(db *gorm.DB, tenantID string, recs []models.InstrumentLossRecord) map[string]gin.H {
+	briefs := map[string]gin.H{}
+	ids := make([]string, 0, len(recs))
+	seen := make(map[string]struct{}, len(recs))
+	for _, r := range recs {
+		if r.InstrumentID == "" {
+			continue
+		}
+		if _, ok := seen[r.InstrumentID]; ok {
+			continue
+		}
+		seen[r.InstrumentID] = struct{}{}
+		ids = append(ids, r.InstrumentID)
+	}
+	if len(ids) == 0 {
+		return briefs
+	}
+	var insts []models.Instrument
+	if err := db.Where("tenant_id = ? AND id IN ?", tenantID, ids).Find(&insts).Error; err != nil {
+		log.Printf("[InstrumentLoss] WARN: load instrument briefs failed: %v", err)
+		return briefs
+	}
+	for _, inst := range insts {
+		briefs[inst.ID] = gin.H{
+			"id":            inst.ID,
+			"sn":            inst.SN,
+			"category_name": inst.CategoryName,
+			"level_name":    inst.LevelName,
+			"cover_image":   inst.CoverImage,
+			"stock_status":  inst.StockStatus,
+		}
+	}
+	return briefs
+}
+
+// lossRecordJSON 记录行 → API 形态：原始字段全保留，photos/restore_photos 数组化，
+// 并挂 instrument_brief（未命中为 null）。
+func lossRecordJSON(r models.InstrumentLossRecord, brief gin.H) gin.H {
+	return gin.H{
+		"id":                  r.ID,
+		"tenant_id":           r.TenantID,
+		"instrument_id":       r.InstrumentID,
+		"order_id":            r.OrderID,
+		"responsible_party":   r.ResponsibleParty,
+		"user_ratio":          r.UserRatio,
+		"compensation_cents":  r.CompensationCents,
+		"user_burden_cents":   r.UserBurdenCents,
+		"description":         r.Description,
+		"photos":              lossPhotosArray(r.Photos),
+		"settled_at":          r.SettledAt,
+		"settle_breakdown":    r.SettleBreakdown,
+		"created_by":          r.CreatedBy,
+		"restored_at":         r.RestoredAt,
+		"restored_damaged":    r.RestoredDamaged,
+		"restore_description": r.RestoreDescription,
+		"restore_photos":      lossPhotosArray(r.RestorePhotos),
+		"created_at":          r.CreatedAt,
+		"updated_at":          r.UpdatedAt,
+		"instrument_brief":    brief,
+	}
 }

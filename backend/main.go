@@ -440,6 +440,8 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.POST("/instruments/:id/lost", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:update"), lossHandler.Register)
 		authRequired.POST("/instruments/:id/restore", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:update"), lossHandler.Restore)
 		authRequired.GET("/instrument-loss", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:read"), lossHandler.List)
+		// #2615 记录详情（列表行点进来；越权/不存在统一 404/40400）
+		authRequired.GET("/instrument-loss/:id", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:read"), lossHandler.Get)
 		// #1974 T1 师傅档案维护（PC 管理端）
 		authRequired.GET("/technician-profiles", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:read"), technicianProfileHandler.List)
 		authRequired.POST("/technician-profiles", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:update"), technicianProfileHandler.Create)

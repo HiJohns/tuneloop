@@ -14,6 +14,8 @@ const ROUTE_MAP = [
   { match: '/repair-service-create', type: 'navigateTo', url: '/pages-weapp/repair-service-create/index' },
   { match: '/repair-service-detail', type: 'navigateTo', url: '/pages-weapp/repair-service-detail/index' },
   { match: '/instrument-loss-manage', type: 'navigateTo', url: '/pages-weapp/instrument-loss-manage/index' },
+  { match: '/instrument-loss-register', type: 'navigateTo', url: '/pages-weapp/instrument-loss-register/index' },
+  { match: '/instrument-loss-detail', type: 'navigateTo', url: '/pages-weapp/instrument-loss-detail/index' },
   { match: '/tech-detail', type: 'navigateTo', url: '/pages-weapp/tech-detail/index' },
   { match: '/tech-list', type: 'navigateTo', url: '/pages-weapp/tech-list/index' },
   { match: '/messages',    type: 'navigateTo', url: '/pages-weapp/messages/index' },

@@ -99,6 +99,8 @@ import RepairServiceCreate from './pages/RepairServiceCreate'
 import RepairServiceComplete from './pages/RepairServiceComplete'
 import RepairServiceDetail from './pages/RepairServiceDetail'
 import InstrumentLossManage from './pages/InstrumentLossManage'
+import InstrumentLossRegister from './pages/InstrumentLossRegister'
+import InstrumentLossDetail from './pages/InstrumentLossDetail'
 import TechDetail from './pages/TechDetail'
 import TechList from './pages/TechList'
 import RepairWorkflow from './pages/RepairWorkflow'
@@ -343,6 +345,8 @@ function App() {
         <Route path="/repair-service-complete" element={<ProtectedRoute><RepairServiceComplete /></ProtectedRoute>} />
         <Route path="/repair-service-detail" element={<ProtectedRoute><RepairServiceDetail /></ProtectedRoute>} />
         <Route path="/instrument-loss-manage" element={<ProtectedRoute><InstrumentLossManage /></ProtectedRoute>} />
+        <Route path="/instrument-loss-register" element={<ProtectedRoute><InstrumentLossRegister /></ProtectedRoute>} />
+        <Route path="/instrument-loss-detail" element={<ProtectedRoute><InstrumentLossDetail /></ProtectedRoute>} />
         <Route path="/tech-detail" element={<ProtectedRoute><TechDetail /></ProtectedRoute>} />
         <Route path="/tech-list" element={<ProtectedRoute><TechList /></ProtectedRoute>} />
         <Route path="/repair" element={<ProtectedRoute><RepairWorkflow /></ProtectedRoute>} />
