@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "issue": 2625,
+  "build": "1.0.72ca1bcb",
+  "commit": "72ca1bcbcb22645de848b33d86e89a8706cf6daa",
+  "dirty": false,
+  "plan_sha256": "92b1a823a919fa9dddacdfaa9542ba348827f92c98fd583b87d823cd47b05d0b",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2625 (branch issue-2625, base origin/develop bdd14b69d); 全离线：沙箱 HOME/XDG_STATE_HOME + fake gh/systemctl/crontab + fake reconcile；未触碰真实 systemd/crontab、未创建真实 Issue、未连任何数据库",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/tests/test_reconcile_user_cache_cron_2625.sh r1 > docs/evidence/2625/R1-timer-install.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2625/R1-timer-install.txt"
+      ],
+      "assert": "exit 0 且含 TEST_EXIT=0 PRINT_FILES_WRITTEN=0 UNIT_ONCALENDAR_0330=1 UNIT_PERSISTENT=1 UNIT_EXEC_READONLY=1 UNIT_ENVFILE=1 UNIT_NO_SECRET=1 IDEMPOTENT=1",
+      "actual": "PASS：PRINT_EXIT=0 / PRINT_FILES_WRITTEN=0 / PRINT_WROTE_UNIT=0 / APPLY_FILES_WRITTEN=2 / UNIT_ONCALENDAR_0330=1 / UNIT_PERSISTENT=1 / UNIT_EXEC_READONLY=1 / UNIT_ENVFILE=1 / UNIT_NO_SECRET=1 / UNIT_LOG_APPEND=1 / IDEMPOTENT=1 / UNIT_CONTENT_STABLE=1 / UNINSTALL_REMOVED=2 / CRON_MARKER_PRESENT=1 / CRON_SCHEDULE_0330=1 / CRON_IDEMPOTENT=1 / CRON_UNINSTALL_CLEAN=1 / BAD_AT_EXIT=2",
+      "expected": "PASS（8 项 token 全为期望值）",
+      "negative": "--print 写文件、unit 含 --apply/密钥、缺 EnvironmentFile、重复安装、卸载残留 → FAIL",
+      "negative_result": "负例已实测：--print 后沙箱 systemd 目录为空（PRINT_WROTE_UNIT=0）；service 内 --apply 命中 0（UNIT_EXEC_READONLY=1）；service 内 PASSWORD/SECRET/TOKEN 命中 0（UNIT_NO_SECRET=1）；EnvironmentFile 存在；重复 --apply 后 unit sha 不变且 cron marker 只有 1 行；--uninstall 后 unit 与 cron 行均清零；--at 25:99 → exit 2。",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/tests/test_reconcile_user_cache_cron_2625.sh r2 > docs/evidence/2625/R2-cron-alert-branches.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2625/R2-cron-alert-branches.txt"
+      ],
+      "assert": "exit 0 且含 TEST_EXIT=0 DIFFS0_GH_CALLS=0 DIFFS0_ISSUE_CREATED=0 DIFFS_ISSUE_CREATED=1 ISSUE_LABELS_EXACT=waitForConfirm ISSUE_BODY_HAS_TOKENS=1 SAME_DAY_DUPLICATE=0 ARCHIVE_WRITTEN=1",
+      "actual": "PASS：ZERO_EXIT=0 / DIFFS=0 / GH_CALLS=0 / DIFFS0_ISSUE_CREATED=0 / ARCHIVE_WRITTEN=1 / DIFF_EXIT=0 / DIFFS_TOTAL=3 / DIFFS_GH_CALLS=2 / DIFFS_ISSUE_CREATED=1 / DIFFS_ISSUE_NUMBER=777 / ISSUE_LABELS_EXACT=waitForConfirm / ISSUE_BODY_HAS_TOKENS=1 / ISSUE_BODY_DETAIL_LIMIT=1 / SAME_DAY_CREATES=0 / SAME_DAY_DUPLICATE=0 / SAME_DAY_ISSUE=777 / DRY_RUN_GH_CALLS=0 / DRY_RUN_FILES_WRITTEN=0",
+      "expected": "PASS（8 项 token 全为期望值）",
+      "negative": "无差异建单、Issue 带 status:*、正文缺 token、同日重复、未归档 → FAIL",
+      "negative_result": "负例已实测：无差异场景 gh 调用 0 次且未建单；建单命令行只有 --label waitForConfirm（无 status:*）；正文含汇总 token 与 ≤20 条明细；同日期第二次运行复用既有单（create 0 次）；--dry-run 零 gh 调用、零写入。",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/tests/test_reconcile_user_cache_cron_2625.sh r3 > docs/evidence/2625/R3-escalation-and-failure.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2625/R3-escalation-and-failure.txt"
+      ],
+      "assert": "exit 0 且含 TEST_EXIT=0 ESCALATED=1 ESCALATE_COMMENTS=1 ESCALATE_NEW_ISSUE=0 FAILURE_ISSUE_CREATED=1 FAILURE_EXIT=2 MISSING_ENV_EXIT=2",
+      "actual": "PASS：ESCALATE_EXIT=0 / ESCALATED=1 / ESCALATE_COMMENTS=1 / ESCALATE_NEW_ISSUE=0 / ESCALATE_COMMENT_CALLS=1 / ESCALATE_REASON_IN_BODY=1 / FAILURE_EXIT=2 / FAILURE_ISSUE_CREATED=1 / FAILURE_ISSUE=888 / FAILURE_NOT_SILENT=1 / FAILURE_NO_PASS=0 / FAILURE_LABEL_EXACT=1 / MISSING_ENV_EXIT=2 / MISSING_ENV_TOKEN=BEACONIAM_DB_NAME",
+      "expected": "PASS（7 项 token 全为期望值）",
+      "negative": "未升级、升级时重复建单、失败静默、缺 env 静默 → FAIL",
+      "negative_result": "负例已实测：连续 2 天同类差异未下降只追加 1 条评论且不新建第二个 Issue；对账 exit 2 → 建失败单并 exit 2，输出无 RESULT: PASS（FAILURE_NO_PASS=0）；缺 env（BEACONIAM_DB_NAME 空）→ exit 2 + MISSING_ENV=BEACONIAM_DB_NAME 且零 gh 调用。",
+      "pass": true
+    }
+  ]
+}

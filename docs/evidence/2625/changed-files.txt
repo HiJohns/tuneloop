@@ -1,0 +1,4 @@
+docs/ops/user-cache-reconcile.md
+scripts/install-user-cache-reconcile-timer.sh
+scripts/reconcile-user-cache-cron.sh
+scripts/tests/test_reconcile_user_cache_cron_2625.sh

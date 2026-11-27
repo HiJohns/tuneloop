@@ -1,0 +1,70 @@
+# build=1.0.72ca1bcb # commit=72ca1bcbcb22645de848b33d86e89a8706cf6daa # dirty=false
+GENERATED_AT_HEAD=72ca1bcbcb22645de848b33d86e89a8706cf6daa
+BACKEND=systemd
+AT=03:30
+SERVICE=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.GFG5ii/home/.config/systemd/user/opencode-user-cache-reconcile.service
+TIMER=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.GFG5ii/home/.config/systemd/user/opencode-user-cache-reconcile.timer
+LOG=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.GFG5ii/state/tuneloop/user-cache-reconcile.log
+ENV_FILE=%h/.config/tuneloop/reconcile.env
+--- service ---
+[Unit]
+Description=TuneLoop user cache reconcile (read-only, #2623/#2625)
+
+[Service]
+Type=oneshot
+WorkingDirectory=/tmp/opencode/tuneloop/wt-2625
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+EnvironmentFile=%h/.config/tuneloop/reconcile.env
+ExecStart=/tmp/opencode/tuneloop/wt-2625/scripts/reconcile-user-cache-cron.sh
+StandardOutput=append:/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.GFG5ii/state/tuneloop/user-cache-reconcile.log
+StandardError=append:/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.GFG5ii/state/tuneloop/user-cache-reconcile.log
+--- timer ---
+[Unit]
+Description=Nightly TuneLoop user cache reconcile
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target
+FILES_WRITTEN=0
+PRINT_EXIT=0
+PRINT_FILES_WRITTEN=0
+PRINT_WROTE_UNIT=0
+PRINT_ONCALENDAR=1
+BACKEND=systemd
+AT=03:30
+SERVICE_SHA=e6107d2d3a3d9364b6e6bbd708ea93003370e34b714e2ff46253357db5694147
+TIMER_SHA=0c82ae6c1766a12b7b8fa10839edc86b290cdf487d77e59213440b6fd16fafcf
+FILES_WRITTEN=2
+IDEMPOTENT=1
+NEXT_ELAPSE=Fri 2026-11-28 03:30:00 CST
+RESULT: PASS
+APPLY_EXIT=0
+APPLY_FILES_WRITTEN=2
+UNIT_SERVICE_EXISTS=1
+UNIT_TIMER_EXISTS=1
+UNIT_ONCALENDAR_0330=1
+UNIT_PERSISTENT=1
+UNIT_EXEC_PATH=1
+UNIT_EXEC_READONLY=1
+UNIT_ENVFILE=1
+UNIT_NO_SECRET=1
+UNIT_LOG_APPEND=1
+IDEMPOTENT_EXIT=0
+IDEMPOTENT=1
+UNIT_CONTENT_STABLE=1
+UNINSTALL_EXIT=0
+UNINSTALL_REMOVED=2
+UNINSTALL_UNIT_GONE=1
+CRON_APPLY_EXIT=0
+CRON_MARKER_PRESENT=1
+CRON_SCHEDULE_0330=1
+CRON_MARKER_SINGLE=1
+CRON_IDEMPOTENT=1
+CRON_UNINSTALL_CLEAN=1
+BAD_AT_EXIT=2
+TEST_EXIT=0
+RESULT: PASS
