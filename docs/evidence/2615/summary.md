@@ -154,6 +154,6 @@ $ cd backend && go test ./... -count=1 -timeout 20m -p 2
 
 - 命令：`~/.config/opencode/scripts/pre-ready-check.sh 2615 --summary-file docs/evidence/2615/summary.md --changed-files docs/evidence/2615/changed-files.txt --evidence-file docs/evidence/2615/evidence.json --affected-cmd "bash scripts/verify-2615.sh gate" --report docs/evidence/2615/pre-ready-2615.json`
 - 报告：`docs/evidence/2615/pre-ready-2615.json`
-- 结果：（本节在 gate 运行后回填）
+- 结果：`RESULT: PASS`（overall=PASS）。P1/P2/P3/P4/P6/P7/P11/P12/P13/P14/P17 PASS；P5 N/A（仓库根无 go.mod/package.json，全量编译与定向回归见上文）；P8/P9/P10/P15/P16 N/A；P18 WARN（tooling_commit 提示为既有口径，非本单改动）。
 
 Model: deepseek/deepseek-flash
