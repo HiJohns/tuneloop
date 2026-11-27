@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2620,
-  "build": "1.0.0064ce14",
-  "commit": "0064ce14639b07ba16e23b8053f695ce69b09d45",
+  "build": "1.0.743681456",
+  "commit": "743681456ad81d3908cd0867f14172f74bf5b6b3",
   "dirty": false,
   "plan_sha256": "87052a231cbe015afe2bffeffb398bfbd8606c8a8802a33ce4c241e2a2405335",
   "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2620 (branch issue-2620, base origin/develop 19711ee7a); handler 直调 + 一次性 PostgreSQL 127.0.0.1:15433（TUNELOOP_TEST_DB=tuneloop_test_2620，#2341 口径）；未使用 jobmaster-postgres 与预生产/生产库",
