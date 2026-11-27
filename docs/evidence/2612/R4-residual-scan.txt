@@ -1,0 +1,56 @@
+# build=1.0.fce5ce63a # commit=fce5ce63afb51774dc1e56475c699bb1d7c1b392 # dirty=false
+# tree=fce5ce63afb51774dc1e56475c699bb1d7c1b392
+SCAN_CMD=bash scripts/scan-catch-guard-2609.sh (full src)
+CATCH_SITES=125
+CATCH_RAW=0
+CATCH_GUARDED=125
+CATCH_FALLBACK_OK=125
+CATCH_RAW_FILES=0
+HELPER_GATE=1
+CATCH_MESSAGE=1
+CATCH_NETWORK_FALLBACK=1
+GIT_DIFF_FILES=37
+TABLE_FILES=37
+FILES_MATCH_TABLE=1
+INSCOPE_EXCLUDE_2609=3
+DIFF_FILES:
+frontend-pc/src/components/IdPhotoDisplay.jsx
+frontend-pc/src/components/MerchantMemberManagement.jsx
+frontend-pc/src/pages/DepositFlow.jsx
+frontend-pc/src/pages/DirectMemberManagement.jsx
+frontend-pc/src/pages/FinanceConfig.jsx
+frontend-pc/src/pages/IAMSyncPage.jsx
+frontend-pc/src/pages/InviteManagement.jsx
+frontend-pc/src/pages/LeaseLedger.jsx
+frontend-pc/src/pages/MerchantManagement.jsx
+frontend-pc/src/pages/SiteBulkImport.jsx
+frontend-pc/src/pages/SiteManagement.jsx
+frontend-pc/src/pages/StaffBulkImport.jsx
+frontend-pc/src/pages/StaffEdit.jsx
+frontend-pc/src/pages/StaffManagement.jsx
+frontend-pc/src/pages/StaffResetPassword.jsx
+frontend-pc/src/pages/System/AuditLogPage.jsx
+frontend-pc/src/pages/System/GiftPolicies.jsx
+frontend-pc/src/pages/System/TechnicianProfiles.jsx
+frontend-pc/src/pages/System/UserManagement.jsx
+frontend-pc/src/pages/WarehouseManagement.jsx
+frontend-pc/src/pages/admin/audit/DamageAssessment.jsx
+frontend-pc/src/pages/admin/billing/BillingDashboard.jsx
+frontend-pc/src/pages/admin/category/List.jsx
+frontend-pc/src/pages/admin/face-review/index.jsx
+frontend-pc/src/pages/admin/instrument/BatchImport.jsx
+frontend-pc/src/pages/admin/instrument/Detail.jsx
+frontend-pc/src/pages/admin/instrument/Form.jsx
+frontend-pc/src/pages/admin/instrument/List.jsx
+frontend-pc/src/pages/admin/inventory/RentSetting.jsx
+frontend-pc/src/pages/admin/payments/PaymentList.jsx
+frontend-pc/src/pages/admin/platform-staff/index.jsx
+frontend-pc/src/pages/admin/pricing/MerchantPricingConfig.jsx
+frontend-pc/src/pages/admin/property/List.jsx
+frontend-pc/src/pages/admin/transit/TransitCenter.jsx
+frontend-pc/src/pages/admin/warnings/SmtpSettings.jsx
+frontend-pc/src/pages/admin/warnings/WarningSettings.jsx
+frontend-pc/src/pages/merchant/NotificationSettings.jsx
+RESIDUAL_PC_RAW=0
+OUT_OF_SCOPE_SITES=0
+RESULT: PASS (r4)

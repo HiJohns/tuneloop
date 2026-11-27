@@ -1,0 +1,26 @@
+# build=1.0.fce5ce63a # commit=fce5ce63afb51774dc1e56475c699bb1d7c1b392 # dirty=false
+# tree=fce5ce63afb51774dc1e56475c699bb1d7c1b392
+BUILD_CMD=cd frontend-pc && npm run build (via heavy-run.sh)
+PC_BUILD=0
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 33.07s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795815506676 hold_ms=35883
+LINT_CMD=cd frontend-pc && npx eslint <changed files>
+LINT_EXIT=0
+  29:6   warning  React Hook useEffect has a missing dependency: 'loadConfig'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  41:11  warning  'applyConfig' was used before it was defined                                                                   no-use-before-define
+  43:11  warning  'applyConfig' was used before it was defined                                                                   no-use-before-define
+
+/home/coder/worktrees/tuneloop/wt-2612/frontend-pc/src/pages/admin/property/List.jsx
+  27:5  warning  'fetchProperties' was used before it was defined  no-use-before-define
+
+/home/coder/worktrees/tuneloop/wt-2612/frontend-pc/src/pages/admin/warnings/SmtpSettings.jsx
+  38:38  warning  React Hook useEffect has a missing dependency: 'fetchConfig'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+✖ 98 problems (0 errors, 98 warnings)
+
+BUILD_LINT_OK=1
+RESULT: PASS (r5)

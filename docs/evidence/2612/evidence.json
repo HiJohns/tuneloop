@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "issue": 2612,
+  "build": "1.0.fce5ce63a",
+  "commit": "fce5ce63afb51774dc1e56475c699bb1d7c1b392",
+  "dirty": false,
+  "plan_sha256": "4b2c7cea1be5a75fe278a576142b5a37f748222cfa265d5f9d658fe53cccc8a0",
+  "tooling_commit": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
+  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2612 (branch issue-2612, base origin/issue-2609); node/npm for PC vite build + eslint (host heavy-lock); no DB, no backend change; artifacts generated after the fix commit with clean tree",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2612.sh r1 > docs/evidence/2612/R1-triage-table.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2612/R1-triage-table.txt"
+      ],
+      "assert": "exit 0 且含 SCAN_EXIT=0 PRE_SITES=117 PRE_FILES=37 TIER_ROWS=117 UNCLASSIFIED_ROWS=0 FALLBACK_ASCII_LEAK=0 NO_FALLBACK_ROWS=0 TIER_T1_T6_SUM=117",
+      "actual": "PASS：PRE_SITES=117 PRE_FILES=37 TIER_ROWS=117 UNCLASSIFIED_ROWS=0 FALLBACK_ASCII_LEAK=0 NO_FALLBACK_ROWS=0 TIER_T1_T6_SUM=117 SCAN_EXIT=0；tier 分布 T1=46 T2=27 T3=40 T4=1 T5=2 T6=1 （判定表从修前快照 fce5ce63a^ 读取，工作树保持 clean）",
+      "expected": "PASS（8 项 token 全为期望值）",
+      "negative": "未分类行、兜底含 ASCII、缺兜底、行数≠117 → FAIL",
+      "negative_result": "红样实测（tmp/red-2612/probe.log）：同一 --table 口径指向修后 HEAD → PRE_SITES=0 PRE_FILES=0 TIER_ROWS=0；指向修前 fce5ce63a^ → PRE_SITES=117/PRE_FILES=37。注入样本 tmp/red-2612/raw.jsx 含 `message.error('删除失败: ' + (e.message || ''))` → PRE_SITES=1 且 T2/fallback=删除失败。故 117 是输入驱动、不是常量；口径放宽或站点漏改都会改变该计数。",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2612.sh r2 > docs/evidence/2612/R2-batch-b1b2.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2612/R2-batch-b1b2.txt"
+      ],
+      "assert": "exit 0 且含 B1_SITES=14 B2_SITES=38 B1B2_GUARDED=52 B1B2_RESIDUAL=0",
+      "actual": "PASS：B1_SITES=14 B2_SITES=38 CATCH_SITES=52 CATCH_RAW=0 CATCH_GUARDED=52 CATCH_FALLBACK_OK=52 CATCH_RAW_FILES=0 HELPER_GATE=1 CATCH_MESSAGE=1 CATCH_NETWORK_FALLBACK=1 B1B2_GUARDED=52 B1B2_RESIDUAL=0",
+      "expected": "PASS（4 项 token 全为期望值）",
+      "negative": "该批残留裸 .message、站点数被删减、兜底非 CJK → FAIL",
+      "negative_result": "红样实测（tmp/red-2612/probe.log）：同一扫描器扫注入样本（1 处裸透传 `e.message`）→ CATCH_RAW=1 CATCH_GUARDED=2 CATCH_SITES=3，B1B2_RESIDUAL 口径随之为非 0；若把已改行回退为 `err.message` 拼接，该批 CATCH_RAW>0 → FAIL。CATCH_FALLBACK_OK=0（ASCII 兜底 + 无兜底两行不计）证明兜底断言可证伪。",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2612.sh r3 > docs/evidence/2612/R3-batch-b3b4.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2612/R3-batch-b3b4.txt"
+      ],
+      "assert": "exit 0 且含 B3_SITES=24 B4_SITES=41 B3B4_GUARDED=65 B3B4_RESIDUAL=0",
+      "actual": "PASS：B3_SITES=24 B4_SITES=41 CATCH_SITES=65 CATCH_RAW=0 CATCH_GUARDED=65 CATCH_FALLBACK_OK=65 CATCH_RAW_FILES=0 HELPER_GATE=1 CATCH_MESSAGE=1 CATCH_NETWORK_FALLBACK=1 B3B4_GUARDED=65 B3B4_RESIDUAL=0",
+      "expected": "PASS（4 项 token 全为期望值）",
+      "negative": "同上 → FAIL",
+      "negative_result": "红样实测（tmp/red-2612/probe.log）：注入样本中 `userFacingErrorMessage(e, 'Load failed')`（ASCII 兜底）与 `userFacingErrorMessage(e)`（缺兜底）令 CATCH_FALLBACK_OK=0、CATCH_NETWORK_FALLBACK=0；即 B3+B4 任一站点兜底非中文或缺失 → CATCH_NETWORK_FALLBACK 归 0 → FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2612.sh r4 > docs/evidence/2612/R4-residual-scan.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2612/R4-residual-scan.txt"
+      ],
+      "assert": "exit 0 且含 RESIDUAL_PC_RAW=0 OUT_OF_SCOPE_SITES=0 INSCOPE_EXCLUDE_2609=3 GIT_DIFF_FILES=37 FILES_MATCH_TABLE=1",
+      "actual": "PASS：全目录 CATCH_SITES=125（117 本单 + 8 #2609）= CATCH_RAW=0 + CATCH_GUARDED=125；CATCH_FALLBACK_OK=125 CATCH_RAW_FILES=0 RESIDUAL_PC_RAW=0 OUT_OF_SCOPE_SITES=0 GIT_DIFF_FILES=37 TABLE_FILES=37 FILES_MATCH_TABLE=1 INSCOPE_EXCLUDE_2609=3",
+      "expected": "PASS（5 项 token 全为期望值）",
+      "negative": "全仓仍有裸 .message、改动文件集≠判定表、#2609 三页被改 → FAIL",
+      "negative_result": "红样实测（tmp/red-2612/probe.log）：注入样本 1 处裸透传 → CATCH_RAW=1、CATCH_RAW_FILES=1，RESIDUAL_PC_RAW 口径不再为 0；`--table --base HEAD` 得 PRE_SITES=0 与修前 117 对照，说明残留计数非恒 0。改动文件集断言取真实 `git diff --name-only fce5ce63a^..HEAD -- frontend-pc/src`（37 个）与判定表 FILES= 集合逐字比对；越界改文件或漏改 → FILES_MATCH_TABLE=0。",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2612.sh r5 > docs/evidence/2612/R5-build-lint.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2612/R5-build-lint.txt"
+      ],
+      "assert": "exit 0 且含 PC_BUILD=0 LINT_EXIT=0 BUILD_LINT_OK",
+      "actual": "PASS：PC_BUILD=0（vite build ✓ built，dist 产物正常）LINT_EXIT=0（npx eslint 37 个改动文件：98 problems = 0 errors / 98 warnings，warning 全部为既有 react-hooks/no-use-before-define）BUILD_LINT_OK=1",
+      "expected": "PASS（3 项 token 全为期望值）",
+      "negative": "构建失败 / ESLint 非 0 → FAIL",
+      "negative_result": "断言取真实退出码：`npm run build` 经 heavy-run.sh 持 host 锁执行 vite build，构建失败/import 路径错 → PC_BUILD≠0；`npx eslint` 对 37 个改动文件执行，出现 no-undef/解析错误 → LINT_EXIT≠0（本次 98 条全部为 0 error 的既有 warning）；两者非 0 → BUILD_LINT_OK=0 且 rc=1。",
+      "pass": true
+    }
+  ]
+}

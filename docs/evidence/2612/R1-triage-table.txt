@@ -1,0 +1,131 @@
+# build=1.0.fce5ce63a # commit=fce5ce63afb51774dc1e56475c699bb1d7c1b392 # dirty=false
+# tree=fce5ce63afb51774dc1e56475c699bb1d7c1b392
+SCAN_CMD=bash scripts/scan-catch-guard-2609.sh --table --base fce5ce63afb51774dc1e56475c699bb1d7c1b392^
+SCAN_BASE=fce5ce63afb51774dc1e56475c699bb1d7c1b392^
+ROW	frontend-pc/src/components/IdPhotoDisplay.jsx	36	T3	reachable=yes	fallback=上传失败	ascii=0	nofb=0
+ROW	frontend-pc/src/components/IdPhotoDisplay.jsx	53	T3	reachable=yes	fallback=删除失败	ascii=0	nofb=0
+ROW	frontend-pc/src/components/MerchantMemberManagement.jsx	154	T3	reachable=yes	fallback=转让所有权失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/DepositFlow.jsx	59	T1	reachable=yes	fallback=加载失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/DepositFlow.jsx	82	T1	reachable=yes	fallback=创建失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/DirectMemberManagement.jsx	65	T2	reachable=yes	fallback=加载直属员工失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/DirectMemberManagement.jsx	118	T2	reachable=yes	fallback=邀请失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/DirectMemberManagement.jsx	195	T2	reachable=yes	fallback=创建失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/FinanceConfig.jsx	59	T1	reachable=yes	fallback=保存失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/IAMSyncPage.jsx	53	T2	reachable=yes	fallback=同步失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/InviteManagement.jsx	55	T2	reachable=yes	fallback=加载邀请列表失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/InviteManagement.jsx	81	T2	reachable=yes	fallback=操作失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/InviteManagement.jsx	104	T2	reachable=yes	fallback=操作失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/LeaseLedger.jsx	68	T1	reachable=yes	fallback=加载失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/LeaseLedger.jsx	96	T1	reachable=yes	fallback=创建失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/LeaseLedger.jsx	108	T1	reachable=yes	fallback=操作失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/MerchantManagement.jsx	134	T6	reachable=no	fallback=保存失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/SiteBulkImport.jsx	40	T1	reachable=yes	fallback=校验失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/SiteBulkImport.jsx	64	T1	reachable=yes	fallback=下载模板失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/SiteBulkImport.jsx	83	T1	reachable=yes	fallback=导入失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/SiteManagement.jsx	115	T1	reachable=yes	fallback=加载网点数据失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/SiteManagement.jsx	239	T1	reachable=yes	fallback=删除失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/SiteManagement.jsx	318	T1	reachable=yes	fallback=操作失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/StaffBulkImport.jsx	42	T1	reachable=yes	fallback=校验失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/StaffBulkImport.jsx	66	T1	reachable=yes	fallback=下载模板失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/StaffBulkImport.jsx	85	T1	reachable=yes	fallback=导入失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/StaffEdit.jsx	114	T1	reachable=yes	fallback=更新用户失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/StaffManagement.jsx	114	T1	reachable=yes	fallback=加载人员列表失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/StaffManagement.jsx	365	T1	reachable=yes	fallback=创建员工失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/StaffManagement.jsx	380	T2	reachable=yes	fallback=删除失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/StaffManagement.jsx	394	T2	reachable=yes	fallback=激活失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/StaffManagement.jsx	428	T2	reachable=yes	fallback=重设密码失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/StaffManagement.jsx	455	T1	reachable=yes	fallback=批量删除失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/StaffResetPassword.jsx	57	T1	reachable=yes	fallback=重置密码失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/System/AuditLogPage.jsx	94	T5	reachable=yes	fallback=获取日志失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/System/AuditLogPage.jsx	111	T5	reachable=yes	fallback=导出失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/System/GiftPolicies.jsx	30	T3	reachable=yes	fallback=读取全局参数失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/System/GiftPolicies.jsx	50	T3	reachable=yes	fallback=保存失败，请稍后重试	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/System/GiftPolicies.jsx	66	T3	reachable=yes	fallback=保存失败，请稍后重试	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/System/TechnicianProfiles.jsx	110	T3	reachable=yes	fallback=保存失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/System/UserManagement.jsx	76	T2	reachable=yes	fallback=加载失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/System/UserManagement.jsx	94	T3	reachable=yes	fallback=导出失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/System/UserManagement.jsx	151	T2	reachable=yes	fallback=保存失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/System/UserManagement.jsx	173	T2	reachable=yes	fallback=加赠失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/System/UserManagement.jsx	195	T2	reachable=yes	fallback=加载孤儿账号失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/System/UserManagement.jsx	230	T2	reachable=yes	fallback=清理失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/System/UserManagement.jsx	319	T2	reachable=yes	fallback=保存失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/System/UserManagement.jsx	340	T2	reachable=yes	fallback=操作失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/WarehouseManagement.jsx	41	T3	reachable=yes	fallback=导出失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/WarehouseManagement.jsx	91	T1	reachable=yes	fallback=相机访问失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/WarehouseManagement.jsx	117	T1	reachable=yes	fallback=拍照失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/WarehouseManagement.jsx	146	T3	reachable=yes	fallback=更新失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/audit/DamageAssessment.jsx	36	T1	reachable=yes	fallback=获取数据失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/audit/DamageAssessment.jsx	63	T1	reachable=yes	fallback=提交失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/billing/BillingDashboard.jsx	70	T3	reachable=yes	fallback=导出失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/category/List.jsx	97	T1	reachable=yes	fallback=加载分类失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/category/List.jsx	124	T1	reachable=yes	fallback=更新排序失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/category/List.jsx	143	T1	reachable=yes	fallback=更新失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/category/List.jsx	158	T1	reachable=yes	fallback=更新失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/category/List.jsx	227	T1	reachable=yes	fallback=删除失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/category/List.jsx	279	T3	reachable=yes	fallback=提交失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/face-review/index.jsx	66	T3	reachable=yes	fallback=加载审核队列失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/face-review/index.jsx	90	T3	reachable=yes	fallback=加载审核历史失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/face-review/index.jsx	155	T3	reachable=yes	fallback=操作失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/face-review/index.jsx	178	T3	reachable=yes	fallback=操作失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/instrument/BatchImport.jsx	17	T3	reachable=yes	fallback=下载模板失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/instrument/BatchImport.jsx	70	T1	reachable=yes	fallback=校验失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/instrument/BatchImport.jsx	101	T1	reachable=yes	fallback=提交失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/instrument/BatchImport.jsx	446	T2	reachable=yes	fallback=保存失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/instrument/Detail.jsx	119	T1	reachable=yes	fallback=删除失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/instrument/Detail.jsx	132	T1	reachable=yes	fallback=删除失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/instrument/Detail.jsx	142	T2	reachable=yes	fallback=删除失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/instrument/Detail.jsx	154	T2	reachable=yes	fallback=删除失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/instrument/Detail.jsx	170	T2	reachable=yes	fallback=保存失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/instrument/Detail.jsx	188	T2	reachable=yes	fallback=保存失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/instrument/Detail.jsx	619	T2	reachable=yes	fallback=上传失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/instrument/Detail.jsx	657	T2	reachable=yes	fallback=删除失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/instrument/Detail.jsx	688	T2	reachable=yes	fallback=上传失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/instrument/Detail.jsx	724	T2	reachable=yes	fallback=上传失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/instrument/Detail.jsx	775	T2	reachable=yes	fallback=上传失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/instrument/Form.jsx	1094	T3	reachable=yes	fallback=提交失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/instrument/Form.jsx	1484	T3	reachable=yes	fallback=上传失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/instrument/List.jsx	116	T1	reachable=yes	fallback=加载乐器失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/instrument/List.jsx	147	T4	reachable=yes	fallback=排序失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/instrument/List.jsx	150	T3	reachable=yes	fallback=排序失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/instrument/List.jsx	326	T3	reachable=yes	fallback=删除失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/instrument/List.jsx	367	T3	reachable=yes	fallback=批量操作失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/instrument/List.jsx	407	T3	reachable=yes	fallback=批量删除失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/instrument/List.jsx	450	T3	reachable=yes	fallback=批量价格修改失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/instrument/List.jsx	465	T3	reachable=yes	fallback=下载模板失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/instrument/List.jsx	494	T3	reachable=yes	fallback=导出失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/inventory/RentSetting.jsx	104	T1	reachable=yes	fallback=加载数据失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/inventory/RentSetting.jsx	151	T1	reachable=yes	fallback=保存失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/inventory/RentSetting.jsx	177	T1	reachable=yes	fallback=保存失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/inventory/RentSetting.jsx	196	T1	reachable=yes	fallback=加载数据失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/payments/PaymentList.jsx	67	T3	reachable=yes	fallback=导出失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/platform-staff/index.jsx	31	T3	reachable=yes	fallback=加载平台员工失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/platform-staff/index.jsx	72	T3	reachable=yes	fallback=创建失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/platform-staff/index.jsx	88	T3	reachable=yes	fallback=禁用失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/pricing/MerchantPricingConfig.jsx	48	T1	reachable=yes	fallback=加载定价配置失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/pricing/MerchantPricingConfig.jsx	123	T1	reachable=yes	fallback=保存失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/property/List.jsx	61	T1	reachable=yes	fallback=加载属性失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/property/List.jsx	114	T1	reachable=yes	fallback=操作失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/property/List.jsx	128	T1	reachable=yes	fallback=添加失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/property/List.jsx	138	T1	reachable=yes	fallback=核定失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/property/List.jsx	160	T1	reachable=yes	fallback=归并失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/property/List.jsx	183	T1	reachable=yes	fallback=修正失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/transit/TransitCenter.jsx	46	T3	reachable=yes	fallback=加载失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/warnings/SmtpSettings.jsx	33	T3	reachable=yes	fallback=加载邮件配置失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/warnings/SmtpSettings.jsx	51	T3	reachable=yes	fallback=保存失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/warnings/SmtpSettings.jsx	65	T3	reachable=yes	fallback=测试发送失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/warnings/WarningSettings.jsx	31	T3	reachable=yes	fallback=加载警告配置失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/warnings/WarningSettings.jsx	40	T3	reachable=yes	fallback=测试发送失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/admin/warnings/WarningSettings.jsx	62	T3	reachable=yes	fallback=保存失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/merchant/NotificationSettings.jsx	25	T3	reachable=yes	fallback=加载通知设置失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/merchant/NotificationSettings.jsx	41	T3	reachable=yes	fallback=保存失败	ascii=0	nofb=0
+ROW	frontend-pc/src/pages/merchant/NotificationSettings.jsx	51	T3	reachable=yes	fallback=测试发送失败	ascii=0	nofb=0
+PRE_SITES=117
+PRE_FILES=37
+TIER_ROWS=117
+UNCLASSIFIED_ROWS=0
+FALLBACK_ASCII_LEAK=0
+NO_FALLBACK_ROWS=0
+TIER_T1_T6_SUM=117
+FILES=frontend-pc/src/components/IdPhotoDisplay.jsx frontend-pc/src/components/MerchantMemberManagement.jsx frontend-pc/src/pages/DepositFlow.jsx frontend-pc/src/pages/DirectMemberManagement.jsx frontend-pc/src/pages/FinanceConfig.jsx frontend-pc/src/pages/IAMSyncPage.jsx frontend-pc/src/pages/InviteManagement.jsx frontend-pc/src/pages/LeaseLedger.jsx frontend-pc/src/pages/MerchantManagement.jsx frontend-pc/src/pages/SiteBulkImport.jsx frontend-pc/src/pages/SiteManagement.jsx frontend-pc/src/pages/StaffBulkImport.jsx frontend-pc/src/pages/StaffEdit.jsx frontend-pc/src/pages/StaffManagement.jsx frontend-pc/src/pages/StaffResetPassword.jsx frontend-pc/src/pages/System/AuditLogPage.jsx frontend-pc/src/pages/System/GiftPolicies.jsx frontend-pc/src/pages/System/TechnicianProfiles.jsx frontend-pc/src/pages/System/UserManagement.jsx frontend-pc/src/pages/WarehouseManagement.jsx frontend-pc/src/pages/admin/audit/DamageAssessment.jsx frontend-pc/src/pages/admin/billing/BillingDashboard.jsx frontend-pc/src/pages/admin/category/List.jsx frontend-pc/src/pages/admin/face-review/index.jsx frontend-pc/src/pages/admin/instrument/BatchImport.jsx frontend-pc/src/pages/admin/instrument/Detail.jsx frontend-pc/src/pages/admin/instrument/Form.jsx frontend-pc/src/pages/admin/instrument/List.jsx frontend-pc/src/pages/admin/inventory/RentSetting.jsx frontend-pc/src/pages/admin/payments/PaymentList.jsx frontend-pc/src/pages/admin/platform-staff/index.jsx frontend-pc/src/pages/admin/pricing/MerchantPricingConfig.jsx frontend-pc/src/pages/admin/property/List.jsx frontend-pc/src/pages/admin/transit/TransitCenter.jsx frontend-pc/src/pages/admin/warnings/SmtpSettings.jsx frontend-pc/src/pages/admin/warnings/WarningSettings.jsx frontend-pc/src/pages/merchant/NotificationSettings.jsx
+SCAN_EXIT=0
+RESULT: PASS (r1)
