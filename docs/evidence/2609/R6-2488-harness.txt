@@ -1,0 +1,20 @@
+# build=1.0.04e8d1ebc # commit=04e8d1ebcb57283850417f72fc10121a5811687f # dirty=false
+# tree=04e8d1ebcb57283850417f72fc10121a5811687f
+HARNESS=scripts/verify-2488.sh (OUT_DIR=tmp/verify-2609-2488, FIX_REF=04e8d1ebcb57283850417f72fc10121a5811687f)
+HARNESS_r2_EXIT=0
+[r2] ARTIFACT=/home/coder/worktrees/tuneloop/wt-2609/tmp/verify-2609-2488/R2-banner.txt
+[r2] RESULT: PASS (r2)
+HARNESS_r3_EXIT=0
+[r3] ARTIFACT=/home/coder/worktrees/tuneloop/wt-2609/tmp/verify-2609-2488/R3-mall-image.txt
+[r3] RESULT: PASS (r3)
+HARNESS_r4_EXIT=0
+[r4] ARTIFACT=/home/coder/worktrees/tuneloop/wt-2609/tmp/verify-2609-2488/R4-stock.txt
+[r4] RESULT: PASS (r4)
+STOCK_CATCH_COVERED=1
+OLD_LITERAL_HITS=0
+OLD_METRIC_WOULD_FAIL=1
+EVIDENCE_2488_UNTOUCHED=1
+R2_EXIT=0
+R3_EXIT=0
+R4_EXIT=0
+RESULT: PASS (r6)

@@ -1,0 +1,60 @@
+# build=1.0.fd2d0fdd8 # commit=fd2d0fdd8660951f997c1dcc354a2f202557a1f6 # dirty=false
+# tree=fd2d0fdd8660951f997c1dcc354a2f202557a1f6
+SCAN_CMD=bash scripts/scan-form-toasts-2488.sh
+pages/System/BannerManagePage.jsx:26	fn=fetchBanners	reads_code=1	reachable=yes	tier=keep:instant	reason=list/delete/transport feedback (no business-correctable code)
+pages/System/BannerManagePage.jsx:29	fn=fetchBanners	reads_code=1	reachable=yes	tier=keep:instant	reason=list/delete/transport feedback (no business-correctable code)
+pages/System/BannerManagePage.jsx:58	fn=handleDelete	reads_code=1	reachable=yes	tier=keep:instant	reason=list/delete/transport feedback (no business-correctable code)
+pages/System/BannerManagePage.jsx:61	fn=handleDelete	reads_code=1	reachable=yes	tier=keep:instant	reason=list/delete/transport feedback (no business-correctable code)
+pages/System/BannerManagePage.jsx:76	fn=handleMoveUp	reads_code=0	reachable=yes	tier=keep:instant	reason=transport/network fallback in catch
+pages/System/BannerManagePage.jsx:90	fn=handleMoveDown	reads_code=0	reachable=yes	tier=keep:instant	reason=transport/network fallback in catch
+pages/System/BannerManagePage.jsx:106	fn=handleSubmit	reads_code=1	reachable=yes	tier=business-persisted	reason=rubric branch routed to FormConflictAlert; this toast is the non-business branch
+pages/System/BannerManagePage.jsx:118	fn=handleSubmit	reads_code=1	reachable=yes	tier=business-persisted	reason=rubric branch routed to FormConflictAlert; this toast is the non-business branch
+pages/System/BannerManagePage.jsx:135	fn=handleSubmit	reads_code=1	reachable=yes	tier=business-persisted	reason=rubric branch routed to FormConflictAlert; this toast is the non-business branch
+pages/System/BannerManagePage.jsx:160	fn=inline:onClick	reads_code=1	reachable=yes	tier=keep:instant	reason=transport/network fallback in catch
+pages/System/BannerManagePage.jsx:216	fn=inline:onError	reads_code=0	reachable=yes	tier=keep:instant	reason=server message passthrough without a business-correctable code
+pages/System/MallImageManageCard.jsx:26	fn=fetchImages	reads_code=1	reachable=yes	tier=keep:instant	reason=list/delete/transport feedback (no business-correctable code)
+pages/System/MallImageManageCard.jsx:29	fn=fetchImages	reads_code=1	reachable=yes	tier=keep:instant	reason=list/delete/transport feedback (no business-correctable code)
+pages/System/MallImageManageCard.jsx:58	fn=handleDelete	reads_code=1	reachable=yes	tier=keep:instant	reason=list/delete/transport feedback (no business-correctable code)
+pages/System/MallImageManageCard.jsx:61	fn=handleDelete	reads_code=1	reachable=yes	tier=keep:instant	reason=list/delete/transport feedback (no business-correctable code)
+pages/System/MallImageManageCard.jsx:76	fn=handleMoveUp	reads_code=0	reachable=yes	tier=keep:instant	reason=transport/network fallback in catch
+pages/System/MallImageManageCard.jsx:90	fn=handleMoveDown	reads_code=0	reachable=yes	tier=keep:instant	reason=transport/network fallback in catch
+pages/System/MallImageManageCard.jsx:106	fn=handleSubmit	reads_code=1	reachable=yes	tier=business-persisted	reason=rubric branch routed to FormConflictAlert; this toast is the non-business branch
+pages/System/MallImageManageCard.jsx:118	fn=handleSubmit	reads_code=1	reachable=yes	tier=business-persisted	reason=rubric branch routed to FormConflictAlert; this toast is the non-business branch
+pages/System/MallImageManageCard.jsx:135	fn=handleSubmit	reads_code=1	reachable=yes	tier=business-persisted	reason=rubric branch routed to FormConflictAlert; this toast is the non-business branch
+pages/System/MallImageManageCard.jsx:161	fn=inline:onClick	reads_code=1	reachable=yes	tier=keep:instant	reason=transport/network fallback in catch
+pages/System/MallImageManageCard.jsx:216	fn=inline:onError	reads_code=0	reachable=yes	tier=keep:instant	reason=server message passthrough without a business-correctable code
+pages/InstrumentStock.jsx:234	fn=handleDeleteInstrument	reads_code=1	reachable=yes	tier=keep:instant	reason=list/delete/transport feedback (no business-correctable code)
+pages/InstrumentStock.jsx:237	fn=handleDeleteInstrument	reads_code=1	reachable=yes	tier=keep:instant	reason=list/delete/transport feedback (no business-correctable code)
+pages/InstrumentStock.jsx:250	fn=handleBatchPrice	reads_code=1	reachable=yes	tier=keep:instant	reason=client-side validation / payload precheck feedback
+pages/InstrumentStock.jsx:260	fn=handleBatchPrice	reads_code=1	reachable=yes	tier=business-persisted	reason=rubric branch routed to FormConflictAlert; this toast is the non-business branch
+pages/InstrumentStock.jsx:277	fn=handleBatchPrice	reads_code=1	reachable=yes	tier=business-persisted	reason=rubric branch routed to FormConflictAlert; this toast is the non-business branch
+pages/InstrumentStock.jsx:296	fn=handleExport	reads_code=0	reachable=yes	tier=keep:instant	reason=server message passthrough without a business-correctable code
+pages/InstrumentStock.jsx:320	fn=inline:onOk	reads_code=1	reachable=yes	tier=keep:instant	reason=list/delete/transport feedback (no business-correctable code)
+pages/InstrumentStock.jsx:323	fn=inline:onOk	reads_code=1	reachable=yes	tier=keep:instant	reason=list/delete/transport feedback (no business-correctable code)
+pages/InstrumentStock.jsx:380	fn=submitLost	reads_code=1	reachable=yes	tier=business-persisted	reason=rubric branch routed to FormConflictAlert; this toast is the non-business branch
+pages/InstrumentStock.jsx:384	fn=submitLost	reads_code=1	reachable=yes	tier=business-persisted	reason=rubric branch routed to FormConflictAlert; this toast is the non-business branch
+pages/InstrumentStock.jsx:408	fn=submitRestore	reads_code=1	reachable=yes	tier=business-persisted	reason=rubric branch routed to FormConflictAlert; this toast is the non-business branch
+pages/InstrumentStock.jsx:412	fn=submitRestore	reads_code=1	reachable=yes	tier=business-persisted	reason=rubric branch routed to FormConflictAlert; this toast is the non-business branch
+SCAN_ROWS=34
+CLASSIFIED_ROWS=34
+UNCLASSIFIED_ROWS=0
+FILES=3
+SHARED_REUSE=3
+CONVERTED_SITES=12
+KEEP_ROWS=22
+PERSISTED_ROWS=12
+DEFER_ROWS=0
+RESIDUAL_CODE_SITES=0
+RESIDUAL_PREDICATE_SITES=0
+BUSINESS_TOAST_RESIDUAL=0
+RESIDUAL_PREDICATE_SPLIT=1
+REACHABLE_ROWS=34
+UNREACHABLE_ROWS=0
+UNREACHABLE_CLAIMED=0
+LOCAL_CODE_LIST=0
+LOCAL_ALERT_DUP=0
+AMBIGUOUS=
+READONLY=1
+DB_WRITES=0
+RESULT: PASS (scan rows=34 classified=34 residual=0 reachable=34)
+SCAN_EXIT=0

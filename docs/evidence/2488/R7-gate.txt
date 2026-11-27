@@ -1,0 +1,22 @@
+# build=1.0.fd2d0fdd8 # commit=fd2d0fdd8660951f997c1dcc354a2f202557a1f6 # dirty=false
+# tree=542df80286bf532378c296d1b5b1e2a95ab94fd8
+GATE_RESULT=PASS
+FULL_GATE_CMD=cd frontend-pc && npm run build
+dist/assets/index--6bJ1ROx.js   2,627.87 kB │ gzip: 809.92 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 31.32s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795807326549 hold_ms=33040
+FULL_GATE_DIRECT_EXIT=0
+P5=N/A
+GATE_PLAN_SHA_MATCH=1
+REBUILT_ROWS=7
+PLAN_SOURCE: plan sha=d97a667a6ffecf1d3fc8da8c9f7562357b6cbfdd3f91198d2dd6d8ad5e11e62e source=/home/coder/worktrees/tuneloop/wt-2488/docs/evidence/2488/plan.md
+PLAN_SOURCE: gate sha=d97a667a6ffecf1d3fc8da8c9f7562357b6cbfdd3f91198d2dd6d8ad5e11e62e source=/home/coder/worktrees/tuneloop/wt-2488/docs/evidence/2488/pre-ready-2488.json
+PLAN_SOURCE: evidence sha=d97a667a6ffecf1d3fc8da8c9f7562357b6cbfdd3f91198d2dd6d8ad5e11e62e source=/home/coder/worktrees/tuneloop/wt-2488/docs/evidence/2488/evidence.json
+PLAN_SOURCE: PASS sha=d97a667a6ffecf1d3fc8da8c9f7562357b6cbfdd3f91198d2dd6d8ad5e11e62e
+PLAN_SOURCE=PASS
+GATE_OK

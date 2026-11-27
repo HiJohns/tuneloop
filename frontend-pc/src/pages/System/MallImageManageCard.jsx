@@ -2,7 +2,10 @@ import { useState, useEffect } from 'react';
 import { Table, Card, Button, Space, Modal, Form, Input, Upload, Image, Popconfirm, message } from 'antd';
 import { PlusOutlined, UploadOutlined, EditOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import { mallImageApi } from '../../services/api';
+import { userFacingErrorMessage } from '../../services/apiError';
 import { antdUploadProps } from '../../utils/upload';
+import FormConflictAlert from '../../components/FormConflictAlert';
+import { conflictText, isBusinessCorrectableConflict } from '../../utils/formConflict';
 
 // #2210: 商城页图片管理（平台级全站配置，与租户无关）——复用轮播图管理模式。
 export default function MallImageManageCard() {
@@ -11,6 +14,8 @@ export default function MallImageManageCard() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingImage, setEditingImage] = useState(null);
   const [form] = Form.useForm();
+  // #2488（沿用 #2480 D8）：业务可纠正冲突用表单内持久提示，不用 3 秒 toast。
+  const [formConflict, setFormConflict] = useState('');
 
   const fetchImages = async () => {
     setLoading(true);
@@ -30,6 +35,7 @@ export default function MallImageManageCard() {
   useEffect(() => { fetchImages(); }, []);
 
   const handleCreate = () => {
+    setFormConflict(''); // #2488 D8：打开表单即清空陈旧冲突提示
     setEditingImage(null);
     form.resetFields();
     form.setFieldsValue({ status: 'active' });
@@ -37,6 +43,7 @@ export default function MallImageManageCard() {
   };
 
   const handleEdit = (record) => {
+    setFormConflict('');
     setEditingImage(record);
     form.setFieldsValue(record);
     setModalOpen(true);
@@ -85,14 +92,19 @@ export default function MallImageManageCard() {
   }
 
   const handleSubmit = async () => {
+    setFormConflict(''); // #2488 D8：提交开始即清空
     try {
       const values = await form.validateFields();
       if (editingImage) {
         const res = await mallImageApi.update(editingImage.id, values);
         if (res.code === 20000) {
           message.success('更新成功');
+        } else if (isBusinessCorrectableConflict(res)) {
+          // #2488：商城图片业务冲突改为表单内持久提示。
+          setFormConflict(conflictText(res, '更新失败，请调整后重试'));
+          return;
         } else {
-          message.error('更新失败');
+          message.error(res.message || '更新失败');
           return;
         }
       } else {
@@ -100,16 +112,28 @@ export default function MallImageManageCard() {
         const res = await mallImageApi.create({ ...values, sort_order: maxSort + 1 });
         if (res.code === 20000 || res.code === 20100) {
           message.success('创建成功');
+        } else if (isBusinessCorrectableConflict(res)) {
+          setFormConflict(conflictText(res, '创建失败，请调整后重试'));
+          return;
         } else {
-          message.error('创建失败');
+          message.error(res.message || '创建失败');
           return;
         }
       }
+      setFormConflict('');
       setModalOpen(false);
       fetchImages();
     } catch (e) {
       if (e.errorFields) return;
-      message.error('操作失败');
+      // #2488 D7：传输层非 2xx 抛出的 ApiError 携带 `code`，业务可纠正冲突
+      // （如 HTTP 400 + 40002）必须进持久提示，不得退化成瞬时 toast。
+      if (isBusinessCorrectableConflict(e)) {
+        setFormConflict(conflictText(e, editingImage ? '更新失败，请调整后重试' : '创建失败，请调整后重试'));
+        return;
+      }
+      // #2488 Rev.5（Bug B）+ #2609：仅 `ApiError`（后端中文，已由 resolveErrorMessage
+      // 中文化）透传；网络/未知错误（浏览器 TypeError，ASCII 技术串）落中文兜底。
+      message.error(userFacingErrorMessage(e, '操作失败'));
     }
   };
 
@@ -172,20 +196,25 @@ export default function MallImageManageCard() {
         title={editingImage ? '编辑商城图片' : '新增商城图片'}
         open={modalOpen}
         onOk={handleSubmit}
-        onCancel={() => setModalOpen(false)}
+        onCancel={() => { setFormConflict(''); setModalOpen(false); }}
         okText="保存"
         cancelText="取消"
       >
-        <Form form={form} layout="vertical">
+        <FormConflictAlert text={formConflict} testId="mall-image-form-conflict" />
+        {/* #2488 Rev.5（CLEAR_FIELDS）：任一可编辑字段变更即清空陈旧冲突提示，
+            一次覆盖 image_url/link_url/title。 */}
+        <Form form={form} layout="vertical" onValuesChange={() => { if (formConflict) setFormConflict(''); }}>
           <Form.Item label="图片" extra="支持上传或输入图片URL，建议 750×400px">
             <Upload
               showUploadList={false}
               {...antdUploadProps(
                 (result) => {
                   form.setFieldsValue({ image_url: result.url });
+                  // setFieldsValue 不触发 onValuesChange，上传成功需显式清空。
+                  setFormConflict('');
                   message.success('上传成功');
                 },
-                { onError: (e) => message.error(e.message || '上传失败') }
+                { onError: (e) => message.error(userFacingErrorMessage(e, '上传失败')) }
               )}
             >
               <Button icon={<UploadOutlined />}>上传图片</Button>

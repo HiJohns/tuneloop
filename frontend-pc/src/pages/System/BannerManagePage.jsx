@@ -2,7 +2,10 @@ import { useState, useEffect } from 'react';
 import { Table, Card, Button, Space, Modal, Form, Input, Upload, Image, Popconfirm, message, ColorPicker } from 'antd';
 import { PlusOutlined, UploadOutlined, EditOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import { bannerApi } from '../../services/api';
+import { userFacingErrorMessage } from '../../services/apiError';
 import { antdUploadProps } from '../../utils/upload';
+import FormConflictAlert from '../../components/FormConflictAlert';
+import { conflictText, isBusinessCorrectableConflict } from '../../utils/formConflict';
 import MallImageManageCard from './MallImageManageCard';
 
 export default function BannerManagePage() {
@@ -11,6 +14,8 @@ export default function BannerManagePage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingBanner, setEditingBanner] = useState(null);
   const [form] = Form.useForm();
+  // #2488（沿用 #2480 D8）：业务可纠正冲突用表单内持久提示，不用 3 秒 toast。
+  const [formConflict, setFormConflict] = useState('');
 
   const fetchBanners = async () => {
     setLoading(true);
@@ -30,6 +35,7 @@ export default function BannerManagePage() {
   useEffect(() => { fetchBanners(); }, []);
 
   const handleCreate = () => {
+    setFormConflict(''); // #2488 D8：打开表单即清空陈旧冲突提示
     setEditingBanner(null);
     form.resetFields();
     form.setFieldsValue({ status: 'active' });
@@ -37,6 +43,7 @@ export default function BannerManagePage() {
   };
 
   const handleEdit = (record) => {
+    setFormConflict('');
     setEditingBanner(record);
     form.setFieldsValue(record);
     setModalOpen(true);
@@ -85,32 +92,48 @@ export default function BannerManagePage() {
   }
 
   const handleSubmit = async () => {
+    setFormConflict(''); // #2488 D8：提交开始即清空
     try {
       const values = await form.validateFields();
       if (editingBanner) {
         const res = await bannerApi.update(editingBanner.id, values);
         if (res.code === 20000) {
           message.success('更新成功');
+        } else if (isBusinessCorrectableConflict(res)) {
+          // #2488：轮播图业务冲突（重复/字段非法/状态冲突）改为表单内持久提示。
+          setFormConflict(conflictText(res, '更新失败，请调整后重试'));
+          return;
         } else {
-          message.error('更新失败');
+          message.error(res.message || '更新失败');
           return;
         }
       } else {
-        const values = await form.validateFields();
         const maxSort = banners.reduce((max, b) => Math.max(max, b.sort_order || 0), 0);
         const res = await bannerApi.create({ ...values, sort_order: maxSort + 1 });
         if (res.code === 20000 || res.code === 20100) {
           message.success('创建成功');
+        } else if (isBusinessCorrectableConflict(res)) {
+          setFormConflict(conflictText(res, '创建失败，请调整后重试'));
+          return;
         } else {
-          message.error('创建失败');
+          message.error(res.message || '创建失败');
           return;
         }
       }
+      setFormConflict('');
       setModalOpen(false);
       fetchBanners();
     } catch (e) {
       if (e.errorFields) return;
-      message.error('操作失败');
+      // #2488 D7：传输层非 2xx 抛出的 ApiError 携带 `code`，业务可纠正冲突
+      // （如 HTTP 400 + 40002）必须进持久提示，不得退化成瞬时 toast。
+      if (isBusinessCorrectableConflict(e)) {
+        setFormConflict(conflictText(e, editingBanner ? '更新失败，请调整后重试' : '创建失败，请调整后重试'));
+        return;
+      }
+      // #2488 Rev.5（Bug B）+ #2609：仅 `ApiError`（后端中文，已由 resolveErrorMessage
+      // 中文化）透传；网络/未知错误（浏览器 TypeError，ASCII 技术串）落中文兜底。
+      message.error(userFacingErrorMessage(e, '操作失败'));
     }
   };
 
@@ -173,20 +196,25 @@ export default function BannerManagePage() {
         title={editingBanner ? '编辑轮播图' : '新增轮播图'}
         open={modalOpen}
         onOk={handleSubmit}
-        onCancel={() => setModalOpen(false)}
+        onCancel={() => { setFormConflict(''); setModalOpen(false); }}
         okText="保存"
         cancelText="取消"
       >
-        <Form form={form} layout="vertical">
+        <FormConflictAlert text={formConflict} testId="banner-form-conflict" />
+        {/* #2488 Rev.5（CLEAR_FIELDS）：任一可编辑字段变更即清空陈旧冲突提示，
+            一次覆盖 image_url/link_url/title/bg_color（含 ColorPicker）。 */}
+        <Form form={form} layout="vertical" onValuesChange={() => { if (formConflict) setFormConflict(''); }}>
           <Form.Item label="图片" extra="支持上传或输入图片URL">
             <Upload
               showUploadList={false}
               {...antdUploadProps(
                 (result) => {
                   form.setFieldsValue({ image_url: result.url });
+                  // setFieldsValue 不触发 onValuesChange，上传成功需显式清空。
+                  setFormConflict('');
                   message.success('上传成功');
                 },
-                { onError: (e) => message.error(e.message || '上传失败') }
+                { onError: (e) => message.error(userFacingErrorMessage(e, '上传失败')) }
               )}
             >
               <Button icon={<UploadOutlined />}>上传图片</Button>

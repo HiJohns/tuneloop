@@ -4,6 +4,9 @@ import { Table, Tag, Button, Space, Modal, Form, Input, InputNumber, Select, Rad
 import { EditOutlined, WarningOutlined, RollbackOutlined, FileTextOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { inventoryApi, lossApi, api, pricingApi, instrumentsApi, fetchBlob } from '../services/api'
+import { userFacingErrorMessage } from '../services/apiError'
+import FormConflictAlert from '../components/FormConflictAlert'
+import { conflictText, isBusinessCorrectableConflict } from '../utils/formConflict'
 import PermissionGate from '../components/PermissionGate'
 import { usePermission } from '../hooks/usePermission'
 import {
@@ -39,6 +42,11 @@ export default function InstrumentStock() {
   const [total, setTotal] = useState(0)
   const [selectedRowKeys, setSelectedRowKeys] = useState([]) // #2043 批量操作
   const [priceModalVisible, setPriceModalVisible] = useState(false) // #2043 批量设价
+  // #2488（沿用 #2480 D8）：库存操作里的业务可纠正冲突（40005 状态不允许 / 40900 冲突）
+  // 用表单内持久提示，不当作瞬时 toast —— 用户改一个输入/重开表单即可重试。
+  const [priceConflict, setPriceConflict] = useState('')
+  const [lostConflict, setLostConflict] = useState('')
+  const [restoreConflict, setRestoreConflict] = useState('')
   const [priceForm] = Form.useForm()
 
   // #2577: URL 即筛选唯一来源（D1）；page/pageSize 仍为本地 state（D6）。
@@ -235,6 +243,7 @@ export default function InstrumentStock() {
   // 路径与 payload 统一由 utils/batchPricing 生成，避免再次打到不存在的
   // /instruments/batch/price 或发送后端不认识的 {ids, price_type, ...}。
   const handleBatchPrice = async () => {
+    setPriceConflict('') // #2488 D8：提交开始即清空陈旧冲突提示
     try {
       const values = await priceForm.validateFields()
       const built = buildBatchPricingPayload(selectedRowKeys, values)
@@ -244,17 +253,29 @@ export default function InstrumentStock() {
       }
       const res = await pricingApi.batchSetPricing(built.payload)
       if (res.code !== 20000) {
+        // #2488 CODE_FIRST：先判 code，再按 rubric 决定常驻提示还是瞬时 toast。
+        if (isBusinessCorrectableConflict(res)) {
+          setPriceConflict(conflictText(res, '批量修改价格失败，请调整后重试'))
+          return
+        }
         message.error(res.message || '批量修改价格失败')
         return
       }
       const feedback = batchPricingFeedback(res, selectedRowKeys.length)
       message[feedback.level](feedback.text)
+      setPriceConflict('')
       setPriceModalVisible(false)
       priceForm.resetFields()
       setSelectedRowKeys([])
       loadData()
     } catch (e) {
-      if (!e?.errorFields) message.error(e?.message || '批量修改价格失败')
+      if (e?.errorFields) return
+      // #2488（D2/Rev.5 Bug D）：传输层 ApiError 也走同一 rubric 判定。
+      if (isBusinessCorrectableConflict(e)) {
+        setPriceConflict(conflictText(e, '批量修改价格失败，请调整后重试'))
+        return
+      }
+      message.error(userFacingErrorMessage(e, '批量修改价格失败'))
     }
   }
 
@@ -273,7 +294,7 @@ export default function InstrumentStock() {
       window.URL.revokeObjectURL(url)
       message.success('导出成功')
     } catch (e) {
-      message.error(e.message || '导出失败')
+      message.error(userFacingErrorMessage(e, '导出失败'))
     }
   }
 
@@ -319,11 +340,13 @@ export default function InstrumentStock() {
   const [restoreFiles, setRestoreFiles] = useState([])
 
   const openLostModal = (record) => {
+    setLostConflict('') // #2488 D8：打开表单即清空陈旧冲突提示
     setLostTarget(record)
     lossForm.setFieldsValue({ responsible_party: 'user', user_ratio: 100 })
     setRestoreFiles([])
   }
   const openRestoreModal = (record) => {
+    setRestoreConflict('')
     setRestoreTarget(record)
     restoreForm.setFieldsValue({ damaged: false })
     setRestoreFiles([])
@@ -350,10 +373,17 @@ export default function InstrumentStock() {
       })
       if (resp.code === 20000) {
         message.success('丢失登记完成')
+        setLostConflict('')
         setLostTarget(null)
         loadData()
+      } else if (isBusinessCorrectableConflict(resp)) {
+        setLostConflict(conflictText(resp, '登记失败，请调整后重试'))
       } else message.error(resp.message || '登记失败')
-    } catch (e) { message.error(e.message || '登记失败') }
+    } catch (e) {
+      if (isBusinessCorrectableConflict(e)) {
+        setLostConflict(conflictText(e, '登记失败，请调整后重试'))
+      } else message.error(userFacingErrorMessage(e, '登记失败'))
+    }
     setSubmitting(false)
   }
 
@@ -367,14 +397,21 @@ export default function InstrumentStock() {
         damaged: !!v.damaged, description: v.description || '', photos,
       })
       if (resp.code === 20000) {
+        setRestoreConflict('')
         const d = resp.data || {}
         message.success(d.reversal === 'refunded'
           ? `恢复成功，冲正退款 ¥${formatCents(d.refund_cents || 0)}`
           : d.reversal === 'held_pending_assessment' ? '恢复成功（有损坏，赔偿暂扣待定损）' : '恢复成功')
         setRestoreTarget(null)
         loadData()
+      } else if (isBusinessCorrectableConflict(resp)) {
+        setRestoreConflict(conflictText(resp, '恢复失败，请调整后重试'))
       } else message.error(resp.message || '恢复失败')
-    } catch (e) { message.error(e.message || '恢复失败') }
+    } catch (e) {
+      if (isBusinessCorrectableConflict(e)) {
+        setRestoreConflict(conflictText(e, '恢复失败，请调整后重试'))
+      } else message.error(userFacingErrorMessage(e, '恢复失败'))
+    }
     setSubmitting(false)
   }
 
@@ -417,10 +454,11 @@ export default function InstrumentStock() {
         title="批量修改价格"
         open={priceModalVisible}
         onOk={handleBatchPrice}
-        onCancel={() => setPriceModalVisible(false)}
+        onCancel={() => { setPriceConflict(''); setPriceModalVisible(false) }}
         width={500}
       >
-        <Form form={priceForm} layout="vertical">
+        <FormConflictAlert text={priceConflict} testId="stock-price-conflict" />
+        <Form form={priceForm} layout="vertical" onValuesChange={() => { if (priceConflict) setPriceConflict('') }}>
           <Alert
             type="info"
             showIcon
@@ -466,7 +504,7 @@ export default function InstrumentStock() {
         {/* #2043: 批量设价（仅选中后出现；服务端 RequireRole 兜底） */}
         <PermissionGate code="instrument:update">
           {view === 'stock' && selectedRowKeys.length > 0 && (
-            <Button onClick={() => { priceForm.resetFields(); setPriceModalVisible(true) }}>批量设价（{selectedRowKeys.length}）</Button>
+            <Button onClick={() => { setPriceConflict(''); priceForm.resetFields(); setPriceModalVisible(true) }}>批量设价（{selectedRowKeys.length}）</Button>
           )}
         </PermissionGate>
         {/* #2043: 批量删除（仅选中后出现；需 instrument:delete） */}
@@ -538,8 +576,9 @@ export default function InstrumentStock() {
 
       {/* 丢失登记（LS-01/02） */}
       <Modal title={`丢失登记 — ${lostTarget?.name || ''}`} open={!!lostTarget}
-        onCancel={() => setLostTarget(null)} onOk={submitLost} confirmLoading={submitting} okText="提交登记">
-        <Form form={lossForm} layout="vertical">
+        onCancel={() => { setLostConflict(''); setLostTarget(null) }} onOk={submitLost} confirmLoading={submitting} okText="提交登记">
+        <FormConflictAlert text={lostConflict} testId="stock-lost-conflict" />
+        <Form form={lossForm} layout="vertical" onValuesChange={() => { if (lostConflict) setLostConflict('') }}>
           <Form.Item name="description" label="丢失描述" rules={[{ required: true, message: '请填写丢失描述' }]}>
             <Input.TextArea rows={3} placeholder="描述丢失经过" />
           </Form.Item>
@@ -563,8 +602,9 @@ export default function InstrumentStock() {
 
       {/* 恢复（LS-05） */}
       <Modal title={`乐器恢复 — ${restoreTarget?.name || ''}`} open={!!restoreTarget}
-        onCancel={() => setRestoreTarget(null)} onOk={submitRestore} confirmLoading={submitting} okText="确认恢复">
-        <Form form={restoreForm} layout="vertical">
+        onCancel={() => { setRestoreConflict(''); setRestoreTarget(null) }} onOk={submitRestore} confirmLoading={submitting} okText="确认恢复">
+        <FormConflictAlert text={restoreConflict} testId="stock-restore-conflict" />
+        <Form form={restoreForm} layout="vertical" onValuesChange={() => { if (restoreConflict) setRestoreConflict('') }}>
           <Form.Item name="damaged" label="是否有损坏">
             <Radio.Group>
               <Radio value={false}>无损坏</Radio>
