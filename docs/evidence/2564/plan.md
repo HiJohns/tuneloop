@@ -1,4 +1,4 @@
-## Accepted Plan — #2564（分类页 40002 重名恢复表单内持久提示 + 提交路径判码去假成功）｜Rev.3
+## Accepted Plan — #2564（分类页 40002 重名恢复表单内持久提示 + 提交路径判码去假成功）｜Rev.4
 
 ### 背景与现状核对（仓库 HEAD 只读核对）
 
@@ -68,7 +68,7 @@
 - **工具盲区声明**：
   - `scripts/verify-2564.sh` 是**文本级**结构断言（grep 块边界/计数），无法证明运行时渲染；UI 回执由 `[Ops-Followup of #2564]` 承载（D4）。
   - 静态断言不能区分同名函数分支，故 R2 只锁「`handleFormSubmit` 函数体内、`setModalVisible(false)` 之前存在 ≥2 个失败 `return`」这一结构事实。
-  - 红样依赖 `git log -1 --format=%H -- frontend-pc/src/pages/admin/category/List.jsx`（禁止手写 sha）。
+  - 红样为**动态推导的真红基线**：本 Issue 第一个 `fix(issue-2564)` 且触及 `frontend-pc/src/pages/admin/category/List.jsx` 的 commit 的父提交（脚本内 `git log --format=%H --grep='^fix(issue-2564' --reverse -- "$SRC" | head -1` 再取 `^`；**禁止手写 sha**，**也不得用 `git log -1 -- <file>`**——它指向最新绿样 `a30c6e250^`= `d1771ce80`，红侧会恒为 0）。
 
 ## Decision Lock
 
@@ -102,7 +102,7 @@
 | 行 ID | fixture（输入/seed） | entry（生产入口） | artifact（路径/类型） | assertions（含负例） |
 |---|---|---|---|---|
 | R1 | 修后 `List.jsx` 的 `handleFormSubmit` 与 Modal 段 | 分类新建/改名弹窗提交 | `docs/evidence/2564/R1-consumer-wiring.txt` | `CONFLICT_BRANCH_IN_CATCH=1`、`CONFLICT_TEXT_FALLBACK=1`、`ALERT_RENDERED=1`、`CLEAR_ON_CHANGE=1`、`SHARED_REUSE=1`、`LOCAL_ALERT_DUP=0`、`FALLBACK_TOAST=1`；负例：自写 `Alert` 或 catch 无 `isBusinessCorrectableConflict` → FAIL |
-| R2 | 修前 `List.jsx`（`git log -1 -- ...List.jsx` 的父提交）+ 修后同文件；**夹具锚点（可执行）**：`frontend-pc/src/pages/admin/category/List.jsx` 的 `finalParentId` 计算块 + `if (response.data?.id && !finalParentId)` 守卫（脚本按正则定位并把实际行号写入 artifact，不写死行号） | 提交路径判码 + 分类选择器结构 | `docs/evidence/2564/R2-code-first.txt` | `RED_SINGLE_CODE_CHECK=1`、`RED_NO_CATCH_BRANCH=1`、`GREEN_CODE_FIRST=1`、`CREATE_ACCEPTS_20100=1`、`UPDATE_CODE_GUARD=1`、`NONOK_RETURN_BEFORE_CLOSE=2`、**`AUTOSELECT_TOPLEVEL_ONLY=1`**、**`CREATED_SUBCATEGORY_KEEPS_PARENT=1`**、**`GUARD_MUTATION_DETECTED=1`**、**`RED_NO_AUTOSELECT_GUARD=1`**；负例：仍只判 `20000`、失败分支仍关闭弹窗、或父分类被静默改成顶级 → FAIL |
+| R2 | 修前 `List.jsx`（**首个 `fix(issue-2564)` 命中该文件的 commit 的父提交**，当前 = `5cd3c900a^`）+ 修后同文件；**夹具锚点（可执行）**：`frontend-pc/src/pages/admin/category/List.jsx` 的 `finalParentId` 计算块 + `if (response.data?.id && !finalParentId)` 守卫（脚本按正则定位并把实际行号写入 artifact，不写死行号） | 提交路径判码 + 分类选择器结构 | `docs/evidence/2564/R2-code-first.txt` | `RED_SINGLE_CODE_CHECK=1`、`RED_NO_CATCH_BRANCH=1`、`GREEN_CODE_FIRST=1`、`CREATE_ACCEPTS_20100=1`、`UPDATE_CODE_GUARD=1`、`NONOK_RETURN_BEFORE_CLOSE=2`、**`AUTOSELECT_TOPLEVEL_ONLY=1`**、**`CREATED_SUBCATEGORY_KEEPS_PARENT=1`**、**`GUARD_MUTATION_DETECTED=1`**、**`RED_NO_AUTOSELECT_GUARD=1`**；负例：仍只判 `20000`、失败分支仍关闭弹窗、或父分类被静默改成顶级 → FAIL |
 | R3 | 修后干净树 | `cd frontend-pc` | `docs/evidence/2564/R3-build-lint.txt` | `BUILD_EXIT=0`、`ESLINT_NO_UNDEF=0`；负例：构建非 0 或 `no-undef` > 0 → FAIL |
 | R4 | 修后树 + 最新 Accepted Plan + evidence.json | `pre-ready-check.sh 2564` | `docs/evidence/2564/pre-ready-2564.json` | `GATE_RESULT=PASS`、`jq -e '.overall == "PASS"'`、每行 `pass=true`、`dirty=false`；负例：任一 P 失败 / evidence 缺行 → FAIL |
 
@@ -111,9 +111,9 @@
 | 行 ID | 命令 | 产物（仓库可见路径） | 断言（机器可判定） | 期望值 | 负例 | 责任人 |
 |---|---|---|---|---|---|---|
 | R1 | `bash scripts/verify-2564.sh r1 > docs/evidence/2564/R1-consumer-wiring.txt` | `docs/evidence/2564/R1-consumer-wiring.txt` | exit 0；`grep -q '^R1_OK$'`；`grep -q 'CONFLICT_BRANCH_IN_CATCH=1'` | 7 个标记全部为期望值（含 `LOCAL_ALERT_DUP=0`、`CLEAR_ON_CHANGE=1`） | catch 无 code 判定、自写 Alert、或删掉兜底 toast → `R1_FAIL` 并非 0 退出 | dev |
-| R2 | `bash scripts/verify-2564.sh r2 > docs/evidence/2564/R2-code-first.txt` | `docs/evidence/2564/R2-code-first.txt` | exit 0；`grep -q '^R2_OK$'`；`grep -q 'CREATE_ACCEPTS_20100=1'` | `UPDATE_CODE_GUARD=1`、`NONOK_RETURN_BEFORE_CLOSE=2`、`RED_SINGLE_CODE_CHECK=1`、`RED_NO_CATCH_BRANCH=1` | 仍只判 `20000`、失败分支仍 `setModalVisible(false)` 或仍报「更新成功」→ `R2_FAIL` 并非 0 退出 | dev |
+| R2 | `bash scripts/verify-2564.sh r2 > docs/evidence/2564/R2-code-first.txt` | `docs/evidence/2564/R2-code-first.txt` | exit 0；`grep -q '^R2_OK$'`；`grep -q 'CREATE_ACCEPTS_20100=1'` | `UPDATE_CODE_GUARD=1`、`NONOK_RETURN_BEFORE_CLOSE=2`、`RED_SINGLE_CODE_CHECK=1`、`RED_NO_CATCH_BRANCH=1`、`AUTOSELECT_TOPLEVEL_ONLY=1`、`CREATED_SUBCATEGORY_KEEPS_PARENT=1`、`GUARD_MUTATION_DETECTED=1`（变异负例：删掉 `!finalParentId` 守卫 → 必须变 0）、`RED_NO_AUTOSELECT_GUARD=1` | 仍只判 `20000`、失败分支仍 `setModalVisible(false)`、或父分类被静默改成顶级 → `R2_FAIL` 并非 0 退出 | dev |
 | R3 | `bash scripts/verify-2564.sh r3 > docs/evidence/2564/R3-build-lint.txt` | `docs/evidence/2564/R3-build-lint.txt` | exit 0；`grep -q '^R3_OK$'`；`grep -q 'BUILD_EXIT=0'`；`grep -q 'ESLINT_NO_UNDEF=0'` | 构建 0 退出、`no-undef` 计数 0 | 构建非 0 或 `no-undef` > 0 → `R3_FAIL` 并非 0 退出 | dev |
-| R4 | `/home/coder/.config/opencode/scripts/pre-ready-check.sh 2564 --summary-file docs/evidence/2564/summary.md --changed-files docs/evidence/2564/changed-files.txt --evidence-file docs/evidence/2564/evidence.json --full-gate-cmd "cd frontend-pc && npm run build" --report docs/evidence/2564/pre-ready-2564.json` | `docs/evidence/2564/pre-ready-2564.json` | exit 0；`GATE_RESULT=PASS`；`jq -e '.overall == "PASS"'` | 每条合同行 `pass=true`、`dirty=false`、P13 提交在 `origin/issue-2564` | 任一 P 项失败 / evidence.json 缺行 / `dirty=true` → gate 非 0，禁止 ready | dev |
+| R4 | `/home/coder/.config/opencode/scripts/pre-ready-check.sh 2564 --summary-file docs/evidence/2564/summary.md --changed-files docs/evidence/2564/changed-files.txt --evidence-file docs/evidence/2564/evidence.json --affected-cmd "cd frontend-pc && npx eslint src/pages/admin/category/List.jsx" --full-gate-cmd "cd frontend-pc && npm run build" --report docs/evidence/2564/pre-ready-2564.json` | `docs/evidence/2564/pre-ready-2564.json` | exit 0；`GATE_RESULT=PASS`；`jq -e '.overall == "PASS"'` | 每条合同行 `pass=true`、`dirty=false`、P13 提交在 `origin/issue-2564` | 任一 P 项失败 / evidence.json 缺行 / `dirty=true` → gate 非 0，禁止 ready | dev |
 
 ### Files（变更文件清单）
 
@@ -159,6 +159,7 @@
 - Confidence: high
 
 *Model: DeepSeek V4.1 Flash 1017*
+
 
 
 
