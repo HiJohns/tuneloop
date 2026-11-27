@@ -1,7 +1,7 @@
 {
   "issue": 2601,
-  "overall": "FAIL",
-  "plan": "/home/coder/worktrees/tuneloop/wt-2601/tmp/pre-ready-2601.ht8Sig/plan.md",
+  "overall": "PASS",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2601/tmp/pre-ready-2601.v0ynyp/plan.md",
   "plan_sha256": "0ec13bc1c6265443db4d727a6f9451ade2f3e187cc4b69d60e6ef711b3cd408a",
   "config_sha": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
   "provenance": {
@@ -10,7 +10,7 @@
     "dirty": false
   },
   "summary": "docs/evidence/2601/summary.md",
-  "timestamp": "20261127-054754",
+  "timestamp": "20261127-054811",
   "checks": [
     {
       "id": "P1",
@@ -29,8 +29,8 @@
     },
     {
       "id": "P4",
-      "status": "N/A",
-      "detail": "--dry-run: skipped 1 affected command(s)"
+      "status": "PASS",
+      "detail": "all 1 affected command(s) passed"
     },
     {
       "id": "P12",
@@ -99,8 +99,8 @@
     },
     {
       "id": "P13",
-      "status": "FAIL",
-      "detail": "remote ref not found: origin/issue-2601"
+      "status": "PASS",
+      "detail": "fix commit and evidence artifacts are on origin/issue-2601"
     }
   ]
 }
