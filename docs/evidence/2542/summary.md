@@ -130,6 +130,25 @@ build_version 的短码 7ef3e0271 即本轮 fix commit（git merge-base --is-anc
 
 ## Pre-ready gate
 
-见 `docs/evidence/2542/pre-ready-2542.json`；最终 RESULT: PASS 的关键输出粘贴于本评论末尾。
+见 `docs/evidence/2542/pre-ready-2542.json`（`overall: PASS`）。关键输出：
+
+```
+P1   PASS   plan has Verification Matrix / Input Truth & Tool Preflight / Decision Lock / Out of Scope
+P2   PASS   Work Summary covers all 7 matrix rows with PASS/N/A
+P3   PASS   all referenced evidence paths exist and are durable
+P4   PASS   all 1 affected command(s) passed
+P12  PASS   Evidence Contract complete: 7 row(s) match the plan and have durable artifacts
+P14  PASS   artifact provenance matches evidence (7 artifacts)
+P17  PASS   plan snapshot and Accepted Plan comment match the gated plan
+P5   WARN   baseline gate also failed (rc=127); no parseable baseline failures, cannot prove subset
+P6   PASS   all changed files are declared in the Accepted Plan
+P7   PASS   contract three-way section present
+P9   PASS   build provenance verified for 1 version(s)
+P11  PASS   fix commit(s) are ancestors of HEAD; canonical worktree; worktree guard: PASS
+P13  PASS   fix commit and evidence artifacts are on origin/issue-2542
+RESULT: PASS
+```
+
+P5 的 WARN 说明：baseline（merge-base）上不存在本单新增的 scripts/verify-2542.sh，因此 baseline gate 以 rc=127（command not found）退出，无法证明「失败集合是修复版的子集」；修复版 gate 本身 `exit=0`（`[gate-run] source=run ... exit=0`），该项不阻断。
 
 *Model: deepseek/deepseek-flash*

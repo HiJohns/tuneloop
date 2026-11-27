@@ -1,7 +1,7 @@
 {
   "issue": 2542,
-  "overall": "FAIL",
-  "plan": "/tmp/opencode/tuneloop/wt-2542/tmp/pre-ready-2542.ZU9aws/plan.md",
+  "overall": "PASS",
+  "plan": "/tmp/opencode/tuneloop/wt-2542/tmp/pre-ready-2542.cKKwmS/plan.md",
   "plan_sha256": "df53e72202482e68acbe916c3835ffaedd416ce702cfc1e73296425edce1b611",
   "config_sha": "a29b2b35530c77f2bae31c509207199e6572ad9c",
   "provenance": {
@@ -10,7 +10,7 @@
     "dirty": false
   },
   "summary": "docs/evidence/2542/summary.md",
-  "timestamp": "20261127-200142",
+  "timestamp": "20261127-200349",
   "checks": [
     {
       "id": "P1",
@@ -64,8 +64,8 @@
     },
     {
       "id": "P5",
-      "status": "FAIL",
-      "detail": "working tree is dirty or has untracked files (only tmp/ and --allow-file are allowed):  docs/evidence/2542/"
+      "status": "WARN",
+      "detail": "baseline gate also failed (rc=127); no parseable baseline failures, cannot prove subset"
     },
     {
       "id": "P6",
@@ -84,8 +84,8 @@
     },
     {
       "id": "P9",
-      "status": "FAIL",
-      "detail": "build provenance failed:; 1.0.7ef3e0271 (HiJohns/tuneloop): "
+      "status": "PASS",
+      "detail": "build provenance verified for 1 version(s)"
     },
     {
       "id": "P10",
@@ -99,8 +99,8 @@
     },
     {
       "id": "P13",
-      "status": "FAIL",
-      "detail": "remote ref not found: origin/issue-2542"
+      "status": "PASS",
+      "detail": "fix commit and evidence artifacts are on origin/issue-2542"
     }
   ]
 }
