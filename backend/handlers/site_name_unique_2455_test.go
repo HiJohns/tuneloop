@@ -1,14 +1,19 @@
 package handlers
 
-// #2455 Phase A：同商户网点名唯一（DB 唯一部分索引 + 创建/编辑前置预检）。
+// #2455 Phase A：同商户网点名唯一（DB 唯一部分索引 + IAM 判定重名）。
 //
-// 证据行（Accepted Plan v2 R1–R4）：
-//   R1 唯一部分索引          → INDEX_FOUND=1 / INDEX_DEFINITION=(tenant_id, lower(name)) /
-//                              UP_IDEMPOTENT=1 / DOWN_DROPS=1 / DUP_FAILFAST=1
-//   R2 创建重名预检先于 IAM  → HTTP=409 / CODE=40900 / IAM_CALLS=0 / TRIMMED_CASE_HTTP=409
-//   R3 跨商户同名允许 + 兜底 → CROSS_TENANT_HTTP=<status> / SAME_TENANT_DUP_REJECTED=1 /
-//                              RACE_MAPPED=409
-//   R4 编辑重名预检先于 IAM  → HTTP=409 / CODE=40900 / IAM_CALLS=0 / DB_NAME=<旧名>
+// 证据行（Accepted Plan Rev.5 R1–R4；Owner 2026-11-27 裁定 B：判定权威 = IAM）：
+//   R1 唯一部分索引            → INDEX_FOUND=1 / INDEX_DEFINITION=(tenant_id, lower(name)) /
+//                                UP_IDEMPOTENT=1 / DOWN_DROPS=1 / DUP_FAILFAST=1
+//   R2 创建重名由 IAM 判定      → HTTP=409 / CODE=40900 / MSG_ZH=1 / IAM_CALLS=1（不预检）/
+//                                LOCAL_ROWS_ADDED=0 / TRIMMED_CASE_HTTP=409
+//   R3 跨商户同名允许 + 兜底    → CROSS_TENANT_HTTP=200 / SAME_TENANT_DUP_REJECTED=1 /
+//                                RACE_MAPPED=409
+//   R4 编辑重名拦截（先于 IAM） → HTTP=409 / CODE=40900 / MSG_ZH=1 / IAM_CALLS=0 / DB_NAME=<旧名>
+//
+// R4 的「调用次数=0」取 Verification Matrix 行的期望值（#2457 已在 UpdateSite 落地本地
+// 预检）；Evidence Contract 的同名字面 「IAM_CALLS=1」与矩阵行冲突，已在 Work Summary
+// 记录并按矩阵执行（不改验收文本、不重复实现 #2457）。
 
 import (
 	"encoding/json"
@@ -38,19 +43,25 @@ const (
 )
 
 // fakeIAMSite2455 is a minimal IAM for site create/rename: client-credentials
-// token, namespace lookup, organization create (POST) and rename (PUT). Both
-// counters are asserted by R2/R4 to prove the local pre-check runs first.
+// token, namespace lookup, organization create (POST) and rename (PUT).
+//
+// The fake owns the authoritative per-parent organization-name uniqueness
+// (Decision Lock D2: IAM decides, the handler must not pre-check locally), so
+// POST /organizations answers 409 when the (parent, lower(name)) pair is
+// already registered. R2 asserts IAM_CALLS=1; R4 asserts IAM_CALLS=0 because
+// #2457's UpdateSite rejects the duplicate before calling IAM.
 type fakeIAMSite2455 struct {
 	srv         *httptest.Server
 	mu          sync.Mutex
 	createCalls int
 	renameCalls int
+	orgNames    map[string]map[string]bool // parent org id -> lower(name) set
 	onCreate    func()
 }
 
 func newFakeIAMSite2455(t *testing.T) *fakeIAMSite2455 {
 	t.Helper()
-	f := &fakeIAMSite2455{}
+	f := &fakeIAMSite2455{orgNames: map[string]map[string]bool{}}
 	f.srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
@@ -59,10 +70,32 @@ func newFakeIAMSite2455(t *testing.T) *fakeIAMSite2455 {
 				"access_token": "svc-token-2455", "expires_in": 3600, "token_type": "Bearer",
 			})
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/organizations"):
+			var body struct {
+				Name     string `json:"name"`
+				ParentID string `json:"parent_id"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			key := strings.ToLower(strings.TrimSpace(body.Name))
 			f.mu.Lock()
 			f.createCalls++
+			if f.orgNames[body.ParentID] == nil {
+				f.orgNames[body.ParentID] = map[string]bool{}
+			}
+			conflict := f.orgNames[body.ParentID][key]
+			if !conflict {
+				f.orgNames[body.ParentID][key] = true
+			}
 			hook := f.onCreate
 			f.mu.Unlock()
+			if conflict {
+				// 与真实 IAM 同口径：同父组织下重名 → 409（services 映射为
+				// ErrOrganizationNameConflict → handler 409/40900 中文）。
+				w.WriteHeader(http.StatusConflict)
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
+					"code": 40901, "message": "organization name already exists",
+				})
+				return
+			}
 			if hook != nil {
 				hook()
 			}
@@ -91,6 +124,17 @@ func (f *fakeIAMSite2455) counts() (create, rename int) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return f.createCalls, f.renameCalls
+}
+
+// addOrgName pre-registers an existing organization name under `parent` so the
+// fake IAM rejects a later create with the same (trim/lower-insensitive) name.
+func (f *fakeIAMSite2455) addOrgName(parent, name string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.orgNames[parent] == nil {
+		f.orgNames[parent] = map[string]bool{}
+	}
+	f.orgNames[parent][strings.ToLower(strings.TrimSpace(name))] = true
 }
 
 func (f *fakeIAMSite2455) setOnCreate(hook func()) {
@@ -261,45 +305,70 @@ func TestSiteNameUniqueIndex_2455(t *testing.T) {
 	t.Logf("DUP_FAILFAST=1")
 }
 
-// R2：同商户重名创建 → 409/40900，且 IAM 一次都不调（不产生孤儿组织）。
-func TestCreateSite_DuplicateNameRejectedBeforeIAM_2455(t *testing.T) {
+// R2：同商户重名创建由 IAM 判定 → 409/40900 + 中文；请求必须真的走到 IAM
+// （IAM_CALLS=1，不做本地预检），且不得留下本地半态行。
+func TestCreateSite_DuplicateNameRejectedByIAM_2455(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
 	t.Setenv("IAM_NAMESPACE", "test-ns")
 	iam := newFakeIAMSite2455(t)
 
 	merchant := seedMerchant2455(t, db, "cadenza")
 	seedSiteNamed2455(t, db, merchant.OrgID, siteNameDupFixture2455)
+	// IAM 侧已有同名组织（种子网点的组织名）——重名判定权威在 IAM。
+	iam.addOrgName(merchant.OrgID, siteNameDupFixture2455)
 	r := siteNameRouter2455()
 
 	code, resp := postSite2455(t, r, merchant.TenantID, merchant.OrgID,
 		`{"name":"`+siteNameDupFixture2455+`"}`)
 	require.Equal(t, http.StatusConflict, code, "%v", resp)
 	require.EqualValues(t, 40900, resp["code"])
-	require.Contains(t, resp["message"], "同商户已存在同名网点")
-
-	// 前后空格 + 大小写差异同样必须命中（lower + trim 归一）。
-	codeTrim, respTrim := postSite2455(t, r, merchant.TenantID, merchant.OrgID,
-		`{"name":"  `+strings.ToUpper(siteNameDupFixture2455)+`  "}`)
-	require.Equal(t, http.StatusConflict, codeTrim, "%v", respTrim)
+	msg, _ := resp["message"].(string)
+	require.Contains(t, msg, "已存在同名网点", "40900 必须是具体中文原因")
+	msgZH := boolToInt2455(hasCJK2455(msg))
 
 	createCalls, _ := iam.counts()
-	require.Equal(t, 0, createCalls, "IAM_CALLS=0：重名预检必须先于 IAM CreateOrganization")
+	require.Equal(t, 1, createCalls, "IAM_CALLS=1：重名必须由 IAM 判定（不做本地预检）")
 
 	var count int64
 	require.NoError(t, db.Model(&models.Site{}).Where("tenant_id = ?", merchant.OrgID).Count(&count).Error)
 	require.EqualValues(t, 1, count, "被拒绝的创建不得写库")
+	localRowsAdded := int(count) - 1
 
-	// 正向对照：不同名仍可创建（预检不得误杀）。
+	// 前后空格 + 大小写差异：trim 后交给 IAM（不得靠加空格绕过组织名唯一性）。
+	codeTrim, respTrim := postSite2455(t, r, merchant.TenantID, merchant.OrgID,
+		`{"name":"  `+strings.ToUpper(siteNameDupFixture2455)+`  "}`)
+	require.Equal(t, http.StatusConflict, codeTrim, "%v", respTrim)
+	require.EqualValues(t, 40900, respTrim["code"])
+
+	// 正向对照：不同名仍可创建（IAM 只拒绝重名）。
 	codeOK, respOK := postSite2455(t, r, merchant.TenantID, merchant.OrgID, `{"name":"北京中转站"}`)
 	require.Equal(t, http.StatusCreated, codeOK, "%v", respOK)
-	afterOK, _ := iam.counts()
-	require.Equal(t, 1, afterOK, "不同名创建必须真正走到 IAM（对照组证明预检非全量拦截）")
 
 	t.Logf("HTTP=%d", code)
 	t.Logf("CODE=%v", resp["code"])
+	t.Logf("MSG_ZH=%d", msgZH)
 	t.Logf("IAM_CALLS=%d", createCalls)
+	t.Logf("LOCAL_ROWS_ADDED=%d", localRowsAdded)
 	t.Logf("TRIMMED_CASE_HTTP=%d", codeTrim)
 	t.Logf("DISTINCT_NAME_HTTP=%d", codeOK)
+}
+
+// hasCJK2455 reports whether s contains at least one CJK ideograph (the plan
+// requires the user-facing conflict message to be Chinese, not ASCII IAM text).
+func hasCJK2455(s string) bool {
+	for _, r := range s {
+		if r >= 0x4E00 && r <= 0x9FFF {
+			return true
+		}
+	}
+	return false
+}
+
+func boolToInt2455(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }
 
 // R3：跨商户同名允许；同商户重复被索引拒绝；并发竞态映射 409（不是 500）。
@@ -354,7 +423,8 @@ func TestCreateSite_CrossTenantSameNameAllowed_2455(t *testing.T) {
 	t.Logf("CROSS_TENANT_SITE=%s", siteB.ID)
 }
 
-// R4：编辑网点改成同商户已占用的名称 → 409/40900，IAM 不调、本地名不变。
+// R4：编辑网点改成同商户已占用的名称 → 409/40900 + 中文；#2457 的本地预检先于 IAM
+// 改名（IAM_CALLS=0），本地名不变。
 func TestUpdateSite_DuplicateNameRejectedBeforeIAM_2455(t *testing.T) {
 	db := testfixtures.SetupTestDB(t)
 	t.Setenv("IAM_NAMESPACE", "test-ns")
@@ -369,6 +439,10 @@ func TestUpdateSite_DuplicateNameRejectedBeforeIAM_2455(t *testing.T) {
 	require.Equal(t, http.StatusConflict, code, "%v", resp)
 	require.EqualValues(t, 40900, resp["code"])
 
+	msg, _ := resp["message"].(string)
+	msgZH := boolToInt2455(hasCJK2455(msg))
+	require.Equal(t, 1, msgZH, "40900 必须是具体中文原因: %q", msg)
+
 	_, renameCalls := iam.counts()
 	require.Equal(t, 0, renameCalls, "IAM_CALLS=0：重名预检必须先于 IAM 改名")
 
@@ -378,6 +452,7 @@ func TestUpdateSite_DuplicateNameRejectedBeforeIAM_2455(t *testing.T) {
 
 	t.Logf("HTTP=%d", code)
 	t.Logf("CODE=%v", resp["code"])
+	t.Logf("MSG_ZH=%d", msgZH)
 	t.Logf("IAM_CALLS=%d", renameCalls)
 	t.Logf("DB_NAME=%s", after.Name)
 }

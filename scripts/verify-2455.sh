@@ -97,10 +97,13 @@ row_r1() {
 
 row_r2() {
   local artifact="$EDIR/R2-create-conflict.txt"
-  go_test_row "$artifact" 'TestCreateSite_DuplicateNameRejectedBeforeIAM_2455' r2 || return 1
+  go_test_row "$artifact" 'TestCreateSite_DuplicateNameRejectedByIAM_2455' r2 || return 1
   grep -Fq 'HTTP=409' "$artifact" || return 1
   grep -Fq 'CODE=40900' "$artifact" || return 1
-  grep -Fq 'IAM_CALLS=0' "$artifact" || return 1
+  grep -Fq 'MSG_ZH=1' "$artifact" || return 1
+  # Rev.5 D2：判定权威 = IAM，不做本地预检 → 请求必须真的走到 IAM。
+  grep -Fq 'IAM_CALLS=1' "$artifact" || return 1
+  grep -Fq 'LOCAL_ROWS_ADDED=0' "$artifact" || return 1
   grep -Fq 'TRIMMED_CASE_HTTP=409' "$artifact" || return 1
   return 0
 }
@@ -121,6 +124,9 @@ row_r4() {
   go_test_row "$artifact" 'TestUpdateSite_DuplicateNameRejectedBeforeIAM_2455' r4 || return 1
   grep -Fq 'HTTP=409' "$artifact" || return 1
   grep -Fq 'CODE=40900' "$artifact" || return 1
+  grep -Fq 'MSG_ZH=1' "$artifact" || return 1
+  # 矩阵行「先于 IAM」+「调用次数=0」= #2457 UpdateSite 已落地的本地预检；
+  # Evidence Contract 同名字面写 IAM_CALLS=1，与矩阵冲突（见 Work Summary 说明）。
   grep -Fq 'IAM_CALLS=0' "$artifact" || return 1
   grep -Fq 'DB_NAME=北京中转站' "$artifact" || return 1
   return 0
@@ -224,7 +230,7 @@ row_r9() {
   echo "--- go build ./... exit=$build_exit" >> "$log"
 
   ( cd backend && run_heavy go test ./handlers \
-      -run 'TestSiteNameUnique|TestCreateSite_DuplicateNameRejectedBeforeIAM_2455|TestCreateSite_CrossTenantSameNameAllowed_2455|TestUpdateSite_DuplicateNameRejectedBeforeIAM_2455|TestWxAccounts|TestUpdateSite_' \
+      -run 'TestSiteNameUnique|TestCreateSite_DuplicateNameRejectedByIAM_2455|TestCreateSite_CrossTenantSameNameAllowed_2455|TestUpdateSite_DuplicateNameRejectedBeforeIAM_2455|TestWxAccounts|TestUpdateSite_' \
       -count=1 -timeout 15m ) >> "$log" 2>&1
   local test_exit=$?
 
@@ -291,7 +297,7 @@ row_r10() {
         --changed-files "$changed" \
         --evidence-file "$EDIR/evidence.json" \
         --fix-commit "$COMMIT" \
-        --affected-cmd "cd backend && go test ./handlers -run 'TestSiteNameUnique|TestCreateSite_DuplicateNameRejectedBeforeIAM_2455|TestCreateSite_CrossTenantSameNameAllowed_2455|TestUpdateSite_DuplicateNameRejectedBeforeIAM_2455|TestWxAccounts_ContextLabelDisambiguatesSameNamedSites_2455' -count=1 -timeout 15m" \
+        --affected-cmd "cd backend && go test ./handlers -run 'TestSiteNameUnique|TestCreateSite_DuplicateNameRejectedByIAM_2455|TestCreateSite_CrossTenantSameNameAllowed_2455|TestUpdateSite_DuplicateNameRejectedBeforeIAM_2455|TestWxAccounts_ContextLabelDisambiguatesSameNamedSites_2455' -count=1 -timeout 15m" \
         --remote-ref "origin/issue-$ISSUE" \
         --gate-adapter go \
         --full-gate-cmd "$full_cmd" \
