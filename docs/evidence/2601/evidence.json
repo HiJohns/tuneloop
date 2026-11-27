@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
   "issue": 2601,
-  "build": "1.0.48081b74e",
-  "commit": "48081b74e3f6755d956027c0101d36c9740c2792",
+  "build": "1.0.927158cf2",
+  "commit": "927158cf24e146f1a8cd492f0ba1e7296f667284",
   "dirty": false,
-  "plan_sha256": "0ec13bc1c6265443db4d727a6f9451ade2f3e187cc4b69d60e6ef711b3cd408a",
-  "environment": "/home/coder/worktrees/tuneloop/wt-2601 (branch issue-2601, base origin/issue-2598 1e207b9a8); Postgres test DB 127.0.0.1:15433/tuneloop_test; fake IAM via httptest (services.SetIAMInternalURLForTesting); go build/test via host heavy-lock (heavy-run.sh); vitest jsdom + @testing-library/react (node 22)",
+  "plan_sha256": "7c98a6652062115762d681826c976c94fd4dc1374f6ee4d82298838e8aa64515",
+  "environment": "/home/coder/worktrees/tuneloop/wt-2601 (branch issue-2601, base origin/issue-2598 1e207b9a8); Postgres test DB 127.0.0.1:15433/tuneloop_test; fake IAM via httptest; go build/test via host heavy-lock (heavy-run.sh); vitest jsdom + @testing-library/react (node 22); HEAD=927158cf24e146f1a8cd492f0ba1e7296f667284",
   "tooling_commit": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
   "rows": [
     {
@@ -16,10 +16,10 @@
         "docs/evidence/2601/R1-confirm-triples.txt"
       ],
       "assert": "exit 0 且含 CONFIRMBIND_400_CODE=40002、CONFIRMBIND_403_STATUS=500、CONFIRMBIND_403_CODE=50015、CONFIRMBIND_409_CODE=40900、CONFIRMBIND_TRANSIENT_STATUS=502、CONFIRMBIND_TRANSIENT_CODE=50200、CONFIRMBIND_PERSISTENT_NO_RETRY=0、CONFIRMBIND_RAW_LEAK=0、CONFIRMBIND_NEEDS_MERGE_KEPT=1",
-      "actual": "PASS：fake IAM `wx-bind` 上游 400→HTTP 400/code 40002、403→500/50015、404→500/50015、409→409/40900、500→502/50200、不可达→502/50200；持久/重做类文案 0 命中「请稍后再试」、message 0 命中上游原始串；`needs_merge(200)` 仍是 409/40900 + data.needs_merge=true + merge_ticket=ticket-2601 且 token 置 needs_merge",
+      "actual": "PASS：CONFIRMBIND_400_STATUS=400 / 400_CODE=40002、403_STATUS=500 / 403_CODE=50015、404_STATUS=500 / 404_CODE=50015、409_CODE=40900、TRANSIENT_STATUS=502 / TRANSIENT_CODE=50200、DEAD_STATUS=502、PERSISTENT_NO_RETRY=0、RAW_LEAK=0、NEEDS_MERGE_KEPT=1",
       "expected": "九项 token 全为期望值",
       "negative": "持久/重做类含「请稍后再试」、瞬时类 409、message 含上游原始串、needs_merge 回归 → FAIL",
-      "negative_result": "negative not triggered：修前该行确实 FAIL（`failed to bind: IAM returned status: 400` / needs_merge 之外的 500-50000 口径）；修后 `CONFIRMBIND_PERSISTENT_NO_RETRY=0` 与 `CONFIRMBIND_RAW_LEAK=0` 由逐条 message 扫描断言（含「请稍后再试」或 `IAM returned status` 即置 1 并 t.Errorf），瞬时类另断言 `!= 409`",
+      "negative_result": "负例方向：任一持久/重做类响应出现「请稍后再试」（PERSISTENT_NO_RETRY!=0）、瞬时类返回 409、message 含 upstream 原始串（RAW_LEAK!=0）或 needs_merge 不再 409/40900 → FAIL。",
       "pass": true
     },
     {
@@ -30,10 +30,10 @@
         "docs/evidence/2601/R2-unbind-triples.txt"
       ],
       "assert": "exit 0 且含 UNBIND_400_CODE=40002、UNBIND_403_STATUS=500、UNBIND_403_CODE=50015、UNBIND_TRANSIENT_STATUS=502、UNBIND_TRANSIENT_CODE=50200、UNBIND_PERSISTENT_NO_RETRY=0、UNBIND_RAW_LEAK=0、UPDATEUSER_403_TEXT_KEPT=1、UPDATEUSER_404_TYPED=1",
-      "actual": "PASS：fake IAM `PUT /api/v1/users/{id}` 上游 400→400/40002、403→500/50015、404→500/50015、500→502/50200、不可达→502/50200；message 不含上游原始串；`IAMClient.UpdateUser` 403 文本前缀逐字保持 `permission denied: `、404 以 `*services.IAMClientHTTPError{Status:404}` 上抛（errors.As 命中）",
+      "actual": "PASS：UNBIND_400_CODE=40002、403_STATUS=500 / 403_CODE=50015、404_STATUS=500 / 404_CODE=50015、TRANSIENT_STATUS=502 / TRANSIENT_CODE=50200、DEAD_STATUS=502、PERSISTENT_NO_RETRY=0、RAW_LEAK=0、UPDATEUSER_403_TEXT_KEPT=1、UPDATEUSER_404_TYPED=1",
       "expected": "九项 token 全为期望值",
       "negative": "403 仍 50000、原始串外溢、403 文本漂移、404 未类型化 → FAIL",
-      "negative_result": "negative not triggered：修前 FAIL（`unbind failed: UpdateUser returned status 400`）；修后 403 仍 50000 会使 `UNBIND_403_CODE=50015` 断言失败、404 未类型化会使 `errors.As` 断言失败、文本漂移会使 `HasPrefix(\"permission denied: \")` 断言失败",
+      "negative_result": "负例方向：403 仍压成 500/50000、原始串外溢、`permission denied: ` 前缀漂移或 404 未类型化（errors.As 取不到状态）→ FAIL。",
       "pass": true
     },
     {
@@ -44,10 +44,10 @@
         "docs/evidence/2601/R3-mergebind-state.txt"
       ],
       "assert": "exit 0 且含 MERGEBIND_STATE_STATUS=400、MERGEBIND_STATE_CODE=40002、MERGEBIND_STATE_MSG_ACTIONABLE=1、MERGEBIND_STATE_INTERNAL_LEAK=0、MERGEBIND_IDEMPOTENT_KEPT=1",
-      "actual": "PASS：token 状态 `bound` → HTTP 400/code 40002 +「绑定二维码已失效，请让管理员重新生成二维码后重试」，message 不含 `status=`/`not waiting for merge`；token 状态 `merged` → 200/20000 + data.merged=true（幂等）",
+      "actual": "PASS：MERGEBIND_STATE_STATUS=400、STATE_CODE=40002、STATE_MSG_ACTIONABLE=1、STATE_INTERNAL_LEAK=0、IDEMPOTENT_KEPT=1",
       "expected": "五项 token 全为期望值",
-      "negative": "仍 40902、message 含 status=、幂等分支回归 → FAIL",
-      "negative_result": "negative not triggered：修前 FAIL（实得 40902）；修后若仍返回 40902 或 message 含 `status=`，对应 require 立即失败并置 `MERGEBIND_STATE_INTERNAL_LEAK=1`",
+      "negative": "仍 40902、message 含 `status=`、幂等分支回归 → FAIL",
+      "negative_result": "负例方向：仍返回 40902、message 含 `status=` 内部串或 merged 幂等分支回归 → FAIL。",
       "pass": true
     },
     {
@@ -58,10 +58,10 @@
         "docs/evidence/2601/R4-bind-ui.txt"
       ],
       "assert": "exit 0 且含 BIND_UI_NEEDS_MERGE_RENDER=1、BIND_UI_50015_CONFIG_TEXT=1、BIND_UI_50015_NO_RETRY_HINT=1、BIND_UI_50200_RETRY_TEXT=1、BIND_UI_40002_SERVER_TEXT=1、BIND_UI_RENDER_FAIL=0",
-      "actual": "PASS：jsdom 真实渲染 Bind 页（@testing-library/react `render`+`waitFor`）；needs_merge 渲染「合并到我的个人账户」且不出现「绑定失败」；50015 正文=「身份服务配置异常，请联系平台管理员处理」且不含「请重试」「请稍后」；50200 正文含「请稍后」；40002 透传后端中文「微信授权已失效，请重新进入页面重试」且不进合并引导；渲染无异常",
+      "actual": "PASS：BIND_UI_NEEDS_MERGE_RENDER=1、50015_CONFIG_TEXT=1、50015_NO_RETRY_HINT=1、50200_RETRY_TEXT=1、40002_SERVER_TEXT=1、RENDER_FAIL=0（jsdom 渲染 Bind 页，9 例全过）",
       "expected": "六项 token 全为期望值",
       "negative": "50015 正文含「请重试」、needs_merge 未渲染、中文未透传、渲染异常 → FAIL",
-      "negative_result": "negative not triggered：修前 3 个用例 FAIL（'❌绑定失败请重试返回' 不含期望文案）；修后 `BIND_UI_50015_NO_RETRY_HINT=1` 依赖 `expect(text).not.toContain('请重试')`，needs_merge 分支断言「合并到我的个人账户」存在且「绑定失败」不存在",
+      "negative_result": "负例方向：50015 正文出现「请重试」、needs_merge 未渲染合并引导、400/40002 中文未透传或渲染抛错 → FAIL。",
       "pass": true
     },
     {
@@ -72,10 +72,10 @@
         "docs/evidence/2601/R5-docs.txt"
       ],
       "assert": "exit 0 且含 API_CONFIRM_ENDPOINT=1、API_UNBIND_ENDPOINT=1、API_CONFIRM_FAILURE_ROWS=1、API_MERGE_STATE_ROW=1、DOC_BIND_FAILURE_TEXT=1",
-      "actual": "PASS：api.md §14.4 适用端点已含 `POST /api/wechat-bind/confirm` 与 `POST /api/users/me/wechat-unbind`；confirm 段四行失败三元组（400/40002、409/40900、500/50015、502/50200）齐全；merge 段含 token 状态前置 400/40002 + 可行动文案；ui.md §2.6.2 含「Bind 页（扫码绑定）失败提示（#2601）」表与 50015 逐字文案",
+      "actual": "PASS：API_CONFIRM_ENDPOINT=1、API_UNBIND_ENDPOINT=1、API_CONFIRM_FAILURE_ROWS=1、API_MERGE_STATE_ROW=1、DOC_BIND_FAILURE_TEXT=1",
       "expected": "五项 token 全为期望值",
       "negative": "端点清单/失败行/Bind 页文档任一缺失 → FAIL",
-      "negative_result": "negative not triggered：任一 grep 缺失即对应 token=0 并 fail（端点清单/confirm 失败行/merge 状态行/ui 失败提示表）",
+      "negative_result": "负例方向：端点清单缺 confirm/unbind 之一、confirm 段失败三元组缺行、merge 状态前置行缺失或 ui.md 未写 Bind 页失败提示 → FAIL。",
       "pass": true
     },
     {
@@ -86,10 +86,10 @@
         "docs/evidence/2601/R6-build-lint.txt"
       ],
       "assert": "exit 0 且含 GO_BUILD_OK=1、GOFMT_DIFF=0、ESLINT_NOUNDEF=0",
-      "actual": "PASS：`cd backend && go build ./...` exit 0；3 个改动 Go 文件 `gofmt -l` 无输出；Bind.jsx / errorMessages.js / 新增渲染测试 ESLint exit 0 且 0 条 `no-undef`（仅 `no-use-before-define`/i18n 硬编码 warning，非阻塞）",
+      "actual": "PASS：GO_BUILD_OK=1、GOFMT_DIFF=0、ESLINT_NOUNDEF=0（go build ./... + gofmt -l + eslint no-undef）",
       "expected": "三项 token 全为期望值",
       "negative": "构建失败、gofmt 差异、eslint no-undef → FAIL",
-      "negative_result": "negative not triggered：build rc、`gofmt -l` 行数、eslint `no-undef` 计数分别捕获，任一非期望值即 fail",
+      "negative_result": "负例方向：构建失败、gofmt 有差异或 eslint 出现 no-undef → FAIL。",
       "pass": true
     },
     {
@@ -100,10 +100,24 @@
         "docs/evidence/2601/pre-ready-2601.json"
       ],
       "assert": "exit 0 且 jq -e '.overall == \"PASS\"' docs/evidence/2601/pre-ready-2601.json 成立，P12 对 docs/evidence/2601/evidence.json 每行判定 pass=true",
-      "actual": "PASS：pre-ready-check.sh exit 0、`overall=PASS`、P12 对 evidence.json 每行判 pass=true、P13 提交在 `origin/issue-2601`、dirty=false",
-      "expected": "overall=PASS 且证据行全 pass=true",
-      "negative": "任一 P 项失败、evidence 缺行、dirty=true → gate 非 0，禁止 ready",
-      "negative_result": "negative not triggered：任一 P 项 FAIL / evidence 缺行 / dirty=true → gate 非 0，禁止 ready；本次 overall=PASS",
+      "actual": "PASS：pre-ready-check.sh 2601 报告 overall=PASS，P12 八行 evidence 记录均 pass=true，P13 fix commit 在 origin/issue-2601，P17 plan sha256 与最新 Accepted Plan 一致",
+      "expected": "`overall=PASS` 且证据行全 `pass=true`",
+      "negative": "任一 P 项失败、evidence 缺行、`dirty=true` → gate 非 0，禁止 ready",
+      "negative_result": "负例方向：任一 P 项失败、evidence 缺行/字段缺失或 dirty=true → gate 非 0，禁止 ready。",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash scripts/verify-2601.sh r8 > docs/evidence/2601/R8-bind-expired.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2601/R8-bind-expired.txt"
+      ],
+      "assert": "exit 0 且含 BIND_UI_EXPIRED_TOKEN_TEXT=1、BIND_UI_EXPIRED_NO_CODE_MAP_MISMATCH=1、BIND_UI_EXPIRED_RENDER_FAIL=0",
+      "actual": "PASS：BIND_UI_EXPIRED_TOKEN_TEXT=1、BIND_UI_EXPIRED_NO_CODE_MAP_MISMATCH=1、BIND_UI_EXPIRED_RENDER_FAIL=0（confirm 400/40004 + merge 400/40002 两串 ASCII 过期文案均渲染为「绑定二维码已失效，请让管理员重新生成二维码后重试」）",
+      "expected": "三项 token 全为期望值",
+      "negative": "正文出现「数据已存在」/「信息不完整」、未出现「已失效」+「重新生成二维码」、渲染抛错 → FAIL",
+      "negative_result": "负例方向：正文落成「数据已存在」/「信息不完整」等码表通用文案、未出现「已失效」+「重新生成二维码」或渲染抛错 → FAIL（回退 ERROR_MESSAGE_MAP 三条映射时实测 3 例 FAIL）。",
       "pass": true
     }
   ]

@@ -16,4 +16,5 @@ docs/spec/api/api.md
 docs/spec/ui/ui.md
 frontend-mobile/scripts/page-smoke/bind-failure-2601.test.jsx
 frontend-mobile/src/pages-weapp/bind/Bind.jsx
+frontend-mobile/src/services/errorMessages.js
 scripts/verify-2601.sh
