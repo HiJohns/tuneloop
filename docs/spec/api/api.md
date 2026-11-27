@@ -842,7 +842,7 @@ GET /api/confirmation-sessions/:id
 |------|----------|----------|
 | `POST /api/confirmation-sessions/:id/confirm?token=<token>` | `200` / `code=20000`，会话 `status=confirmed` | `500` / `code=50000`，会话 `status=failed`，`message` 记录失败原因 |
 | `GET /api/iam/confirmation-callback?session=<id>&result=accept&confirm_type=<email\|phone>` | `302 → /confirmation-result?status=success&action=<action_type>` | `302 → /confirmation-result?status=failed&action=<action_type>` |
-| `GET /api/iam/confirmation-callback?token=<token>&reply=Y`（短信回调） | `200` 文本「Thank you! …」 | `500` 文本「failed to execute action: …」，会话 `status=failed` |
+| `GET /api/confirmation/callback/sms?token=<token>&reply=Y`（短信回调） | `200` 文本「Thank you! …」 | `500` 文本「failed to execute action: …」，会话 `status=failed` |
 
 **`merchant_admin` 动作的执行语义**：
 
