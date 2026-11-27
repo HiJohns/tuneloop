@@ -6,6 +6,7 @@ import { apiFetch, resolveErrorMessage, resolveUploadError } from '../services/a
 import { dialog, env, getInputValue, previewImage, toWeappRoute, uploadFile as uploadFileApi, useDidShow } from '../platform'
 import { formatCents } from '../utils/money'
 import { formatBeijingDateTimeShort } from '../utils/format'
+import { photoSrc } from '../utils/media'
 
 // #2615 详情页：列表行 → 本页（记录全文 + 照片预览 + 丢失中记录的「恢复上架」）。
 //   - 已恢复记录：展示恢复留痕（时间/损坏/说明/照片），**不渲染恢复按钮**
@@ -119,6 +120,10 @@ export default function InstrumentLossDetail() {
   const restored = Boolean(record?.restored_at)
   const photos = Array.isArray(record?.photos) ? record.photos : []
   const restorePhotosSaved = Array.isArray(record?.restore_photos) ? record.restore_photos : []
+  // #2615 B1：后端存的是裸 file_key（/upload 返回）或 /uploads/... 相对路径，weapp
+  // <Image> 不吃相对路径（静默不显示）；统一走 utils/media 的 photoSrc 补 origin。
+  const photoUrls = photos.map(photoSrc)
+  const restorePhotoUrls = restorePhotosSaved.map(photoSrc)
 
   return (
     <View style={{ backgroundColor: '#FDFBF7', display: 'flex', flexDirection: 'column', height: '100vh' }}>
@@ -140,7 +145,7 @@ export default function InstrumentLossDetail() {
               <View style={cardStyle}>
                 <View style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                   {brief.cover_image ? (
-                    <Image src={brief.cover_image} mode="aspectFill" style={{ width: 56, height: 56, borderRadius: 8 }} />
+                    <Image src={photoSrc(brief.cover_image)} mode="aspectFill" style={{ width: 56, height: 56, borderRadius: 8 }} />
                   ) : (
                     <View style={{ width: 56, height: 56, borderRadius: 8, backgroundColor: '#F4F4F5' }} />
                   )}
@@ -175,8 +180,13 @@ export default function InstrumentLossDetail() {
                 ) : (
                   <View style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {photos.map((key, i) => (
-                      <View key={`${key}-${i}`} style={thumbStyle} onClick={() => previewImage({ urls: photos, current: key })}>
-                        <Image src={key} mode="aspectFill" style={{ width: '100%', height: '100%' }} />
+                      <View
+                        key={`${key}-${i}`}
+                        data-testid="loss-photo"
+                        style={thumbStyle}
+                        onClick={() => previewImage({ urls: photoUrls, current: photoSrc(key) })}
+                      >
+                        <Image src={photoSrc(key)} mode="aspectFill" style={{ width: '100%', height: '100%' }} />
                       </View>
                     ))}
                   </View>
@@ -195,8 +205,13 @@ export default function InstrumentLossDetail() {
                   {restorePhotosSaved.length > 0 && (
                     <View style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                       {restorePhotosSaved.map((key, i) => (
-                        <View key={`r-${key}-${i}`} style={thumbStyle} onClick={() => previewImage({ urls: restorePhotosSaved, current: key })}>
-                          <Image src={key} mode="aspectFill" style={{ width: '100%', height: '100%' }} />
+                        <View
+                          key={`r-${key}-${i}`}
+                          data-testid="loss-restore-photo"
+                          style={thumbStyle}
+                          onClick={() => previewImage({ urls: restorePhotoUrls, current: photoSrc(key) })}
+                        >
+                          <Image src={photoSrc(key)} mode="aspectFill" style={{ width: '100%', height: '100%' }} />
                         </View>
                       ))}
                     </View>

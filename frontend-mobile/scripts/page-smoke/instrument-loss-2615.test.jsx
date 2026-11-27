@@ -14,9 +14,21 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import InstrumentLossManage from '../../src/pages/InstrumentLossManage'
 import InstrumentLossRegister from '../../src/pages/InstrumentLossRegister'
 import InstrumentLossDetail from '../../src/pages/InstrumentLossDetail'
-import { dialog } from '../../src/platform'
+import { dialog, env } from '../../src/platform'
 
 const token = (line) => process.stdout.write(`${line}\n`)
+
+// #2615 B1/B2：媒体 URL 必须经 utils/media.photoSrc 归一化（相对路径 → origin 前缀；
+// 裸 file_key → /uploads/media/<key>）。夹具刻意用两种真实形态（裸 key / 相对路径）。
+const MEDIA_ORIGIN = env.apiBaseUrl.replace(/\/api$/, '')
+const mediaUrl = (key) => `${MEDIA_ORIGIN}/uploads/media/${key}`
+
+// previewImage（H5 实现）把全屏覆盖层直接挂到 body 上，z-index=9999。
+const previewOverlays = () => Array.from(document.body.querySelectorAll('div'))
+  .filter((d) => d.style && d.style.zIndex === '9999')
+const previewOverlaySrcs = () => previewOverlays()
+  .flatMap((d) => Array.from(d.querySelectorAll('img')).map((i) => i.getAttribute('src') || ''))
+const clearPreviewOverlays = () => previewOverlays().forEach((d) => d.remove())
 
 const jsonResponse = (body) => ({
   ok: true,
@@ -32,14 +44,15 @@ const lossRecords = [
     compensation_cents: 100000, user_burden_cents: 100000, description: '运输途中丢失',
     photos: ['k1', 'k2'], restored_at: null, restored_damaged: false,
     created_at: '2026-11-01T10:00:00Z',
-    instrument_brief: { id: 'inst-1', sn: 'SN-2615-1', category_name: '吉他', level_name: '专业', cover_image: '', stock_status: 'lost' },
+    instrument_brief: { id: 'inst-1', sn: 'SN-2615-1', category_name: '吉他', level_name: '专业', cover_image: '/uploads/media/cover-1.webp', stock_status: 'lost' },
   },
   {
     id: 'rec-open-2', instrument_id: 'inst-2', responsible_party: 'logistics', user_ratio: 0,
     compensation_cents: 50000, user_burden_cents: 0, description: '物流丢件',
     photos: [], restored_at: null, restored_damaged: false,
     created_at: '2026-10-20T10:00:00Z',
-    instrument_brief: { id: 'inst-2', sn: 'SN-2615-2', category_name: '贝斯', level_name: '', cover_image: '', stock_status: 'lost' },
+    // 裸 file_key 形态（/upload 的 file_key 即裸文件名）
+    instrument_brief: { id: 'inst-2', sn: 'SN-2615-2', category_name: '贝斯', level_name: '', cover_image: 'cover-2.webp', stock_status: 'lost' },
   },
   {
     id: 'rec-done-1', instrument_id: 'inst-3', responsible_party: 'site', user_ratio: 0,
@@ -67,6 +80,8 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
+  // previewImage 的覆盖层直接挂在 body 上（不随 React 卸载），逐个清理避免串测
+  clearPreviewOverlays()
   vi.restoreAllMocks()
 })
 
@@ -101,6 +116,12 @@ describe('instrument loss list (#2615 R2)', () => {
       const bodyText = container.textContent
       token(`LOSS_LIST_SN_SHOWN=${bodyText.includes('SN: SN-2615-1') ? 1 : 0}`)
       token(`LOSS_LIST_TIME_SHOWN=${bodyText.includes('丢失于') ? 1 : 0}`)
+
+      // B2：封面缩略图必须经 photoSrc 归一化（相对路径与裸 file_key 两种情况）
+      const listSrcs = Array.from(container.querySelectorAll('img')).map((i) => i.getAttribute('src') || '')
+      const coverAbsolute = listSrcs.includes(mediaUrl('cover-1.webp')) && listSrcs.includes(mediaUrl('cover-2.webp'))
+      token(`LOSS_LIST_COVER_SRC_ABSOLUTE=${coverAbsolute ? 1 : 0}`)
+      token(`LOSS_LIST_COVER_RAW_INPUT=${listSrcs.filter((s) => s === 'cover-1.webp' || s === 'cover-2.webp').length}`)
 
       const badgeKinds = new Set()
       rows.forEach((row) => {
@@ -254,8 +275,16 @@ describe('instrument loss detail (#2615 R4)', () => {
         && text.includes('¥1000.00')
       token(`LOSS_DETAIL_FIELDS=${fieldsOK ? 1 : 0}`)
 
-      const imgs = Array.from(container.querySelectorAll('img')).filter((i) => ['k1', 'k2'].includes(i.getAttribute('src')))
-      token(`LOSS_DETAIL_PHOTOS=${imgs.length === 2 ? 1 : 0}`)
+      const imgs = Array.from(container.querySelectorAll('img')).map((i) => i.getAttribute('src') || '')
+      // B1：现场照片必须归一化（裸 key → origin + /uploads/media/<key>）
+      token(`LOSS_DETAIL_PHOTOS=${imgs.includes(mediaUrl('k1')) && imgs.includes(mediaUrl('k2')) ? 1 : 0}`)
+      token(`LOSS_DETAIL_PHOTO_SRC_ABSOLUTE=${imgs.includes(mediaUrl('k1')) && imgs.includes(mediaUrl('k2')) ? 1 : 0}`)
+      token(`LOSS_DETAIL_PHOTO_RAW_KEY=${imgs.filter((s) => s === 'k1' || s === 'k2').length}`)
+
+      // 预览 urls 同样必须是归一化 URL（点缩略图 → 覆盖层 img.src）
+      fireEvent.click(container.querySelectorAll('[data-testid="loss-photo"]')[0])
+      token(`LOSS_DETAIL_PHOTO_PREVIEW_URLS_ABSOLUTE=${previewOverlaySrcs().includes(mediaUrl('k1')) ? 1 : 0}`)
+      clearPreviewOverlays()
 
       const restoreBtn = container.querySelector('[data-testid="loss-open-restore"]')
       token(`LOSS_DETAIL_OPEN_HAS_RESTORE=${restoreBtn ? 1 : 0}`)
@@ -296,6 +325,14 @@ describe('instrument loss detail (#2615 R4)', () => {
       })
       const hasButton = container.querySelector('[data-testid="loss-open-restore"]')
       token(`LOSS_DETAIL_RESTORED_HIDES_RESTORE=${hasButton ? 0 : 1}`)
+
+      // B1：恢复照片同样归一化（src + preview urls）
+      const restoredSrcs = Array.from(container.querySelectorAll('img')).map((i) => i.getAttribute('src') || '')
+      token(`LOSS_DETAIL_RESTORE_PHOTO_SRC_ABSOLUTE=${restoredSrcs.includes(mediaUrl('r1')) ? 1 : 0}`)
+      token(`LOSS_DETAIL_RESTORE_PHOTO_RAW_KEY=${restoredSrcs.filter((s) => s === 'r1').length}`)
+      fireEvent.click(container.querySelector('[data-testid="loss-restore-photo"]'))
+      token(`LOSS_DETAIL_RESTORE_PHOTO_PREVIEW_URLS_ABSOLUTE=${previewOverlaySrcs().includes(mediaUrl('r1')) ? 1 : 0}`)
+      clearPreviewOverlays()
     } finally {
       restore()
     }

@@ -556,8 +556,15 @@ func lossRecordJSON(r models.InstrumentLossRecord, brief gin.H) gin.H {
 		"restored_damaged":    r.RestoredDamaged,
 		"restore_description": r.RestoreDescription,
 		"restore_photos":      lossPhotosArray(r.RestorePhotos),
-		"created_at":          r.CreatedAt,
-		"updated_at":          r.UpdatedAt,
-		"instrument_brief":    brief,
+		// ⛔ 冲正列已作废（LS-05a，2026-09-18）但**列保留以兼容历史行**：响应必须原样输出，
+		// 否则旧 `GET /instrument-loss` 的字段会静默消失（#2615 计划「原始字段全保留」）。
+		"reversed_at":           r.ReversedAt,
+		"reversed_amount_cents": r.ReversedAmountCents,
+		"deducted_damage_cents": r.DeductedDamageCents,
+		"deducted_idle_cents":   r.DeductedIdleCents,
+		"reverse_note":          r.ReverseNote,
+		"created_at":            r.CreatedAt,
+		"updated_at":            r.UpdatedAt,
+		"instrument_brief":      brief,
 	}
 }

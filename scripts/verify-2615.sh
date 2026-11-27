@@ -101,15 +101,16 @@ case "$MODE" in
       'LOSS_LIST_STATUS_OPEN=2' 'LOSS_LIST_STATUS_RESTORED=1' \
       'LOSS_LIST_BRIEF_SN=1' 'LOSS_LIST_PHOTOS_ARRAY=1' \
       'LOSS_GET_CODE=20000' 'LOSS_GET_BRIEF_SN=1' \
-      'LOSS_GET_MISSING_CODE=40400' 'LOSS_GET_CROSS_TENANT_CODE=40400' || RC=1
+      'LOSS_GET_MISSING_CODE=40400' 'LOSS_GET_CROSS_TENANT_CODE=40400' \
+      'LOSS_RESPONSE_KEEPS_REVERSED_FIELDS=1' || RC=1
     grep -q '^--- PASS: TestInstrumentLoss2615' "$LOG" || { echo "ASSERT_FAIL: backend test did not PASS" >&2; RC=1; }
     ;;
   r2|r3|r4)
     require_node22
     case "$MODE" in
-      r2) NAME="R2-list.txt";  REQ=('LOSS_LIST_ROWS=3' 'LOSS_LIST_SN_SHOWN=1' 'LOSS_LIST_TIME_SHOWN=1' 'LOSS_LIST_STATUS_BADGE=2' 'LOSS_LIST_DANGER_BUTTON_IN_ROW=0' 'LOSS_LIST_REGISTER_ENTRY=1' 'LOSS_LIST_ROW_NAV=1' 'LOSS_LIST_RENDER_FAIL=0') ;;
+      r2) NAME="R2-list.txt";  REQ=('LOSS_LIST_ROWS=3' 'LOSS_LIST_SN_SHOWN=1' 'LOSS_LIST_TIME_SHOWN=1' 'LOSS_LIST_STATUS_BADGE=2' 'LOSS_LIST_DANGER_BUTTON_IN_ROW=0' 'LOSS_LIST_REGISTER_ENTRY=1' 'LOSS_LIST_ROW_NAV=1' 'LOSS_LIST_RENDER_FAIL=0' 'LOSS_LIST_COVER_SRC_ABSOLUTE=1' 'LOSS_LIST_COVER_RAW_INPUT=0') ;;
       r3) NAME="R3-register.txt"; REQ=('LOSS_REG_SELECTOR_QUERY=1' 'LOSS_REG_PARTY_RATIO_DEFAULT=1' 'LOSS_REG_VALIDATE_NO_INSTRUMENT=1' 'LOSS_REG_VALIDATE_DESC_REQUIRED=1' 'LOSS_REG_SUBMIT_PAYLOAD=1' 'LOSS_REG_SUBMIT_BACK=1' 'LOSS_REG_RENDER_FAIL=0') ;;
-      r4) NAME="R4-detail.txt"; REQ=('LOSS_DETAIL_FIELDS=1' 'LOSS_DETAIL_PHOTOS=1' 'LOSS_DETAIL_OPEN_HAS_RESTORE=1' 'LOSS_DETAIL_RESTORED_HIDES_RESTORE=1' 'LOSS_DETAIL_RESTORE_PAYLOAD=1' 'LOSS_DETAIL_RENDER_FAIL=0') ;;
+      r4) NAME="R4-detail.txt"; REQ=('LOSS_DETAIL_FIELDS=1' 'LOSS_DETAIL_PHOTOS=1' 'LOSS_DETAIL_PHOTO_SRC_ABSOLUTE=1' 'LOSS_DETAIL_PHOTO_RAW_KEY=0' 'LOSS_DETAIL_PHOTO_PREVIEW_URLS_ABSOLUTE=1' 'LOSS_DETAIL_RESTORE_PHOTO_SRC_ABSOLUTE=1' 'LOSS_DETAIL_RESTORE_PHOTO_RAW_KEY=0' 'LOSS_DETAIL_RESTORE_PHOTO_PREVIEW_URLS_ABSOLUTE=1' 'LOSS_DETAIL_OPEN_HAS_RESTORE=1' 'LOSS_DETAIL_RESTORED_HIDES_RESTORE=1' 'LOSS_DETAIL_RESTORE_PAYLOAD=1' 'LOSS_DETAIL_RENDER_FAIL=0') ;;
     esac
     { printf '%s\n%s\n' "$PROV" "$HEAD_LINE"
       echo "RENDER_CMD=cd frontend-mobile && npx vitest run --config vitest.config.js scripts/page-smoke/instrument-loss-2615.test.jsx"
@@ -164,7 +165,7 @@ case "$MODE" in
       done
       echo "WEAPP_PAGE_WXML_PRODUCED=$PRODUCED"
 
-      echo "ESLINT_CMD=cd frontend-mobile && npx eslint <2609 changed files>"
+      echo "ESLINT_CMD=cd frontend-mobile && npx eslint src/pages/InstrumentLoss{Manage,Register,Detail}.jsx src/pages/instrument-loss-{register,detail}/index.tsx src/pages-weapp/instrument-loss-{register,detail}/index.tsx src/platform/navigation.js scripts/page-smoke/instrument-loss-2615.test.jsx"
       ESLINT_OUT="$REPO/tmp/verify-2615-eslint.log"
       ( cd "$REPO/frontend-mobile" && npx eslint \
           "src/pages/InstrumentLossManage.jsx" \
@@ -201,7 +202,10 @@ case "$MODE" in
       echo "NAV_MAP_ENTRIES=$(grep -cE "match: '/instrument-loss-(register|detail)'" "$REPO/frontend-mobile/src/platform/navigation.js")"
     } > "$LOG" 2>&1
     require_tokens "$LOG" 'LOSS_LIST_TOTAL=3' 'LOSS_GET_CROSS_TENANT_CODE=40400' \
-      'LOSS_LIST_DANGER_BUTTON_IN_ROW=0' 'LOSS_REG_SUBMIT_PAYLOAD=1' \
+      'LOSS_RESPONSE_KEEPS_REVERSED_FIELDS=1' \
+      'LOSS_LIST_DANGER_BUTTON_IN_ROW=0' 'LOSS_LIST_COVER_SRC_ABSOLUTE=1' \
+      'LOSS_REG_SUBMIT_PAYLOAD=1' \
+      'LOSS_DETAIL_PHOTO_SRC_ABSOLUTE=1' 'LOSS_DETAIL_RESTORE_PHOTO_SRC_ABSOLUTE=1' \
       'LOSS_DETAIL_RESTORED_HIDES_RESTORE=1' 'WEAPP_PAGES_REGISTERED=2' \
       'H5_PAGES_REGISTERED=2' 'NAV_MAP_ENTRIES=2' || RC=1
     grep -qE 'Tests +[0-9]+ passed' "$LOG" || { echo "ASSERT_FAIL: render suite did not pass" >&2; RC=1; }

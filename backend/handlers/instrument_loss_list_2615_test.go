@@ -174,6 +174,34 @@ func TestInstrumentLoss2615_ListAndGet(t *testing.T) {
 		t.Fatalf("brief/photos normalization broken: briefSN=%d photosArray=%d", briefSN, photosArray)
 	}
 
+	// ---- 响应字段全保留（含已作废的冲正列；#2615 计划「原始字段全保留」）----
+	reversedFields := []string{
+		"reversed_at", "reversed_amount_cents", "deducted_damage_cents",
+		"deducted_idle_cents", "reverse_note",
+	}
+	keepsReversed := 1
+	for _, item := range lossList2615(resp) {
+		row, _ := item.(map[string]interface{})
+		for _, k := range reversedFields {
+			if _, ok := row[k]; !ok {
+				keepsReversed = 0
+				t.Logf("list row drops legacy field %q: %v", k, row["id"])
+			}
+		}
+	}
+	_, detailResp := lossGet2615(t, f.router, "/instrument-loss/"+openID1)
+	detailRow := lossData2615(detailResp)
+	for _, k := range reversedFields {
+		if _, ok := detailRow[k]; !ok {
+			keepsReversed = 0
+			t.Logf("detail drops legacy field %q", k)
+		}
+	}
+	t.Logf("LOSS_RESPONSE_KEEPS_REVERSED_FIELDS=%d", keepsReversed)
+	if keepsReversed != 1 {
+		t.Fatalf("legacy reversed_* fields must be preserved in both list and detail")
+	}
+
 	// ---- 详情：命中 ----
 	code, getResp := lossGet2615(t, f.router, "/instrument-loss/"+openID1)
 	require.Equal(t, http.StatusOK, code)

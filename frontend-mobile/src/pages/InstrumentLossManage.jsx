@@ -6,6 +6,7 @@ import { apiFetch, resolveErrorMessage } from '../services/api'
 import { dialog, env, toWeappRoute, useDidShow } from '../platform'
 import { formatCents } from '../utils/money'
 import { formatBeijingDate } from '../utils/format'
+import { photoSrc } from '../utils/media'
 
 // #1959 阶段3 丢失-1：员工 weapp 丢失登记 / 找回 / 台账（LS-01/05/04）
 // #2615 信息架构收敛：本页 = **丢失记录列表**（第一类实体是 loss record）。
@@ -117,7 +118,7 @@ export default function InstrumentLossManage() {
               <View key={r.id} data-testid="loss-row" onClick={() => openDetail(r)} style={cardStyle}>
                 <View style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                   {brief.cover_image ? (
-                    <Image src={brief.cover_image} mode="aspectFill" style={thumbStyle} />
+                    <Image src={photoSrc(brief.cover_image)} mode="aspectFill" style={thumbStyle} />
                   ) : (
                     <View style={thumbStyle} />
                   )}
