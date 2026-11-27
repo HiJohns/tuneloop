@@ -88,6 +88,7 @@ mkdir -p "$GH_BODY_DIR"
 cat > "$TMP/fakebin/gh" <<'FAKEGH'
 #!/usr/bin/env bash
 # fake gh：记录每次调用；list 结果由 FAKE_GH_LIST_JSON 控制；create/comment 返回固定 URL。
+# FAKE_GH_CREATE_RC / FAKE_GH_COMMENT_RC 非 0 时模拟调用失败（401/403），用于负例。
 printf '%s\n' "$*" >> "$GH_LOG"
 cmd="${1:-}"; sub="${2:-}"
 case "$cmd $sub" in
@@ -105,6 +106,10 @@ case "$cmd $sub" in
     if [ -n "$body" ] && [ -d "$GH_BODY_DIR" ]; then
       cp "$body" "$GH_BODY_DIR/create-$(date +%s%N).md" 2>/dev/null || true
     fi
+    if [ "${FAKE_GH_CREATE_RC:-0}" != "0" ]; then
+      echo "HTTP 401: Bad credentials (fake)" >&2
+      exit "${FAKE_GH_CREATE_RC}"
+    fi
     printf 'https://github.com/fake/repo/issues/%s\n' "${FAKE_GH_CREATE_NUMBER:-777}"
     exit 0
     ;;
@@ -117,6 +122,10 @@ case "$cmd $sub" in
     done
     if [ -n "$body" ] && [ -d "$GH_BODY_DIR" ]; then
       cp "$body" "$GH_BODY_DIR/comment-$(date +%s%N).md" 2>/dev/null || true
+    fi
+    if [ "${FAKE_GH_COMMENT_RC:-0}" != "0" ]; then
+      echo "HTTP 403: Resource not accessible (fake)" >&2
+      exit "${FAKE_GH_COMMENT_RC}"
     fi
     exit 0
     ;;
@@ -199,6 +208,8 @@ run_runner() { # outfile args...
   FAKE_RECONCILE_MODE="${FAKE_RECONCILE_MODE:-zero}" \
   FAKE_GH_LIST_JSON="${FAKE_GH_LIST_JSON:-[]}" \
   FAKE_GH_CREATE_NUMBER="${FAKE_GH_CREATE_NUMBER:-777}" \
+  FAKE_GH_CREATE_RC="${FAKE_GH_CREATE_RC:-0}" \
+  FAKE_GH_COMMENT_RC="${FAKE_GH_COMMENT_RC:-0}" \
   bash "$RUNNER" "$@" > "$out" 2>&1
   printf '%s' "$?"
 }
@@ -325,6 +336,20 @@ r2)
   expect DRY_RUN_GH_CALLS 0 "$(tok "$Y_OUT" GH_CALLS)"
   expect DRY_RUN_NO_GH 0 "$(wc -l < "$GH_LOG" | tr -d ' ')"
   expect DRY_RUN_FILES_WRITTEN 0 "$(tok "$Y_OUT" FILES_WRITTEN)"
+
+  # 5) 【审计 B1 负例】gh issue create 失败（401）→ 必须显式失败，不得 RESULT: PASS / exit 0
+  : > "$GH_LOG"
+  rm -f "$ARCHIVE_DIR"/2026-12-05.*
+  CF_OUT="$TMP/r2-create-fail.txt"
+  CF_RC="$(FAKE_RECONCILE_MODE=diff3 FAKE_GH_CREATE_RC=1 run_runner "$CF_OUT" --date 2026-12-05)"
+  sed -n '1,30p' "$CF_OUT"
+  expect GH_CREATE_FAIL_EXIT 2 "$CF_RC"
+  expect GH_CREATE_FAIL_NO_PASS 0 "$(grep -c '^RESULT: PASS' "$CF_OUT")"
+  expect GH_CREATE_FAIL_ISSUE none "$(tok "$CF_OUT" ISSUE)"
+  expect GH_CREATE_FAIL_TOKEN 1 "$(tok "$CF_OUT" ISSUE_CREATE_FAILED)"
+  expect GH_CREATE_FAIL_NOT_SILENT 1 "$(grep -c '^RESULT: FAIL' "$CF_OUT")"
+  expect GH_CREATE_FAIL_RC_SHOWN 1 "$(grep -c '^ISSUE_CREATE_RC=1$' "$CF_OUT")"
+  expect GH_CREATE_FAIL_ARCHIVED 1 "$([ -f "$ARCHIVE_DIR/2026-12-05.json" ] && echo 1 || echo 0)"
   finish
   ;;
 
@@ -359,6 +384,29 @@ PREV
   expect FAILURE_NO_PASS 0 "$(grep -c '^RESULT: PASS' "$F_OUT")"
   FAIL_LINE="$(grep 'issue create' "$GH_LOG" | tail -n 1)"
   expect FAILURE_LABEL_EXACT 1 "$(printf '%s' "$FAIL_LINE" | grep -q -- '--label waitForConfirm' && ! printf '%s' "$FAIL_LINE" | grep -q -- '--label status:' && echo 1 || echo 0)"
+
+  # 失败单也没建成（gh create 401）→ 仍 exit 2，且必须能区分「告警也未送达」
+  : > "$GH_LOG"
+  FC_OUT="$TMP/r3-failure-create-fail.txt"
+  FC_RC="$(FAKE_RECONCILE_MODE=fail FAKE_GH_CREATE_RC=1 run_runner "$FC_OUT" --date 2026-12-03)"
+  sed -n '1,20p' "$FC_OUT"
+  expect FAILURE_CREATE_FAIL_EXIT 2 "$FC_RC"
+  expect FAILURE_CREATE_FAIL_TOKEN 1 "$(tok "$FC_OUT" FAILURE_ISSUE_CREATE_FAILED)"
+  expect FAILURE_CREATE_FAIL_ISSUE none "$(tok "$FC_OUT" FAILURE_ISSUE)"
+  expect FAILURE_CREATE_FAIL_NO_PASS 0 "$(grep -c '^RESULT: PASS' "$FC_OUT")"
+
+  # 【审计 B2 负例】升级评论失败（403）→ 必须显式失败，且不得声称已升级
+  : > "$GH_LOG"
+  rm -f "$GH_BODY_DIR"/*.md
+  EC_OUT="$TMP/r3-escalate-comment-fail.txt"
+  EC_RC="$(FAKE_RECONCILE_MODE=diff3 FAKE_GH_LIST_JSON='[{"number":777}]' FAKE_GH_COMMENT_RC=1 run_runner "$EC_OUT" --date 2026-11-28)"
+  sed -n '1,30p' "$EC_OUT"
+  expect GH_COMMENT_FAIL_EXIT 2 "$EC_RC"
+  expect ESCALATE_CLAIMED_ON_FAILURE 0 "$(grep -c '^ESCALATED=1' "$EC_OUT")"
+  expect ESCALATE_COMMENTS_ON_FAILURE 0 "$(grep -c '^ESCALATE_COMMENTS=1' "$EC_OUT")"
+  expect ESCALATE_FAIL_TOKEN 1 "$(tok "$EC_OUT" ESCALATE_FAILED)"
+  expect GH_COMMENT_FAIL_NO_PASS 0 "$(grep -c '^RESULT: PASS' "$EC_OUT")"
+  expect GH_COMMENT_FAIL_RC_SHOWN 1 "$(grep -c '^ESCALATE_COMMENT_RC=1$' "$EC_OUT")"
 
   # env 缺失：exit 2 且打印缺失项
   : > "$GH_LOG"

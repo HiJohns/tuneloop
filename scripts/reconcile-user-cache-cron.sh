@@ -44,6 +44,12 @@ ISSUE="none"
 FAILURE_ISSUE="none"
 ESCALATED=0
 ESCALATE_COMMENTS=0
+# 告警送达失败必须显式（红线：外部调用失败不得静默吞掉）。
+# 这些 token 用来区分「告警已送达」与「告警没送到」，运维可据此判断告警链是否健全。
+ISSUE_CREATE_FAILED=0
+ESCALATE_FAILED=0
+FAILURE_ISSUE_CREATE_FAILED=0
+GH_LIST_FAILED=0
 DIFFS=0
 ARCHIVE_JSON=""
 ARCHIVE_TEXT=""
@@ -81,10 +87,13 @@ issue_number_from() { # text (gh issue create prints URL) -> number
   printf '%s' "$1" | grep -oE '[0-9]+$' | head -n 1
 }
 
-find_issue_by_title() { # title-fragment -> number or ""
-  local out
-  out="$(gh_call issue list --search "${1} in:title" --state all --json number 2>/dev/null || true)"
-  printf '%s' "$out" | jq -r 'if type == "array" and length > 0 then (.[0].number | tostring) else "" end' 2>/dev/null || printf ''
+find_issue_by_title() { # title-fragment -> number on stdout；rc 2 = gh list / jq 失败（调用方必须显式记账）
+  local out num
+  out="$(gh_call issue list --search "${1} in:title" --state all --json number 2>/dev/null)"
+  [ "$?" = "0" ] || return 2
+  num="$(printf '%s' "$out" | jq -r 'if type == "array" and length > 0 then (.[0].number | tostring) else "" end' 2>/dev/null)" || return 2
+  printf '%s' "$num"
+  return 0
 }
 
 write_archive() { # json_body text_body
@@ -101,9 +110,13 @@ emit_tokens() { # result
   echo "DIFFS=$DIFFS"
   echo "GH_CALLS=$(gh_call_count)"
   echo "ISSUE=$ISSUE"
+  echo "ISSUE_CREATE_FAILED=$ISSUE_CREATE_FAILED"
   echo "ESCALATED=$ESCALATED"
   echo "ESCALATE_COMMENTS=$ESCALATE_COMMENTS"
+  echo "ESCALATE_FAILED=$ESCALATE_FAILED"
   echo "FAILURE_ISSUE=$FAILURE_ISSUE"
+  echo "FAILURE_ISSUE_CREATE_FAILED=$FAILURE_ISSUE_CREATE_FAILED"
+  echo "GH_LIST_FAILED=$GH_LIST_FAILED"
   echo "ARCHIVE=$ARCHIVE_JSON"
   echo "LAST_SUMMARY=$LAST_SUMMARY"
   echo "DRY_RUN=$DRY_RUN"
@@ -150,14 +163,25 @@ RESULT: FAIL ($reason)" >/dev/null 2>&1 || true
     emit_tokens FAIL
     exit 2
   fi
-  num="$(find_issue_by_title "$title")"
+  num="$(find_issue_by_title "$title")" || { GH_LIST_FAILED=1; num=""; }
   if [ -z "$num" ]; then
-    num="$(issue_number_from "$(gh_call issue create --title "$title" --body-file "$body" --label waitForConfirm 2>/dev/null || true)")"
+    CREATE_ERR="$(mktemp "${TMPDIR:-/tmp}/reconcile-fail-err.XXXXXX")"
+    CREATE_OUT="$(gh_call issue create --title "$title" --body-file "$body" --label waitForConfirm 2>"$CREATE_ERR")"
+    CREATE_RC=$?
+    num="$(issue_number_from "$CREATE_OUT")"
+    if [ "$CREATE_RC" != "0" ] || [ -z "$num" ]; then
+      # 失败单都没建成：仍 exit 2，但必须让运维区分「已建失败单」与「告警也没送出」。
+      FAILURE_ISSUE_CREATE_FAILED=1
+      num=""
+      echo "FAILURE_ISSUE_CREATE_RC=$CREATE_RC"
+      sed -n '1,5p' "$CREATE_ERR" 2>/dev/null
+    fi
+    rm -f "$CREATE_ERR"
   fi
   rm -f "$body"
-  FAILURE_ISSUE="${num:-unknown}"
+  FAILURE_ISSUE="${num:-none}"
   write_archive "{\"date\":\"$RECONCILE_DATE\",\"failed\":true,\"reason\":\"$reason\"}" "RECONCILE_DATE=$RECONCILE_DATE
-RESULT: FAIL ($reason)" >/dev/null 2>&1 || true
+RESULT: FAIL ($reason)" >/dev/null 2>&1 || echo "ARCHIVE_WRITE_FAILED=1"
   emit_tokens FAIL
   exit 2
 }
@@ -239,14 +263,32 @@ if [ "$DRY_RUN" = "1" ]; then
   exit 0
 fi
 
-EXISTING="$(find_issue_by_title "$TITLE")"
+# 归档先行：无论告警是否送达，对账报告都必须落盘（次日比较基准依赖它）。
+write_archive "$(jq -c . "$RAWS_OUT")" "$TEXT_REPORT" || { echo "RESULT: FAIL (cannot write archive)"; exit 2; }
+
+EXISTING="$(find_issue_by_title "$TITLE")" || { GH_LIST_FAILED=1; EXISTING=""; }
 if [ -n "$EXISTING" ]; then
   ISSUE="$EXISTING"
 else
-  ISSUE="$(issue_number_from "$(gh_call issue create --title "$TITLE" --body-file "$BODY_FILE" --label waitForConfirm 2>/dev/null || true)")"
-  [ -n "$ISSUE" ] || ISSUE="unknown"
+  CREATE_ERR="$(mktemp "${TMPDIR:-/tmp}/reconcile-diff-err.XXXXXX")" || exit 2
+  # 不能吞掉建单失败：差异存在但告警没送达 = 本单要防的静默故障。
+  CREATE_OUT="$(gh_call issue create --title "$TITLE" --body-file "$BODY_FILE" --label waitForConfirm 2>"$CREATE_ERR")"
+  CREATE_RC=$?
+  ISSUE="$(issue_number_from "$CREATE_OUT")"
+  if [ "$CREATE_RC" != "0" ] || [ -z "$ISSUE" ]; then
+    ISSUE="none"
+    ISSUE_CREATE_FAILED=1
+    echo "ISSUE_CREATE_RC=$CREATE_RC"
+    sed -n '1,5p' "$CREATE_ERR" 2>/dev/null
+  fi
+  rm -f "$CREATE_ERR"
 fi
 rm -f "$BODY_FILE"
+
+if [ "$ISSUE_CREATE_FAILED" = "1" ]; then
+  emit_tokens FAIL
+  exit 2
+fi
 
 # 连续 2 天不降 → 在既有单追加恰好 1 条升级评论（不新建第二单）
 PREV_ARCHIVE=""
@@ -272,6 +314,7 @@ fi
 
 if [ -n "$ESCALATE_REASON" ]; then
   ESCALATE_FILE="$(mktemp "${TMPDIR:-/tmp}/reconcile-escalate.XXXXXX")" || exit 2
+  ESCALATE_ERR="$(mktemp "${TMPDIR:-/tmp}/reconcile-escalate-err.XXXXXX")" || exit 2
   {
     echo "## 连续 2 天未下降（升级提醒）"
     echo ""
@@ -283,12 +326,25 @@ if [ -n "$ESCALATE_REASON" ]; then
     echo ""
     echo "请在人工处置后回评本单；自动化不会再建第二个 Issue。"
   } > "$ESCALATE_FILE"
-  gh_call issue comment "$ISSUE" --body-file "$ESCALATE_FILE" >/dev/null 2>&1 || true
+  gh_call issue comment "$ISSUE" --body-file "$ESCALATE_FILE" >/dev/null 2>"$ESCALATE_ERR"
+  COMMENT_RC=$?
   rm -f "$ESCALATE_FILE"
-  ESCALATED=1
-  ESCALATE_COMMENTS=1
+  if [ "$COMMENT_RC" = "0" ]; then
+    ESCALATED=1
+    ESCALATE_COMMENTS=1
+  else
+    # 升级评论没写进去就不能声称「已升级」：否则连续 2 天不降的升级机制会被静默架空。
+    ESCALATE_FAILED=1
+    echo "ESCALATE_COMMENT_RC=$COMMENT_RC"
+    sed -n '1,5p' "$ESCALATE_ERR" 2>/dev/null
+  fi
+  rm -f "$ESCALATE_ERR"
 fi
 
-write_archive "$(jq -c . "$RAWS_OUT")" "$TEXT_REPORT" || { echo "RESULT: FAIL (cannot write archive)"; exit 2; }
+if [ "$ESCALATE_FAILED" = "1" ]; then
+  emit_tokens FAIL
+  exit 2
+fi
+
 emit_tokens PASS
 exit 0

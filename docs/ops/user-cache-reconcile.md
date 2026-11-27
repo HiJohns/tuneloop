@@ -222,7 +222,18 @@ unit 内只出现 `EnvironmentFile=%h/.config/tuneloop/reconcile.env`，**不得
 | 有差异 | 归档 + 建 `[Ops] 用户缓存对账差异 <date>`（标签**仅** `waitForConfirm`，正文含汇总 token + 前 20 条明细 + 人工处置指引）；同日期已存在则复用，不重复建单 |
 | 连续 2 天不降 | 同类差异今日 >0 且不低于昨日 → 在既有单追加**恰好 1 条**升级评论，**不新建第二单** |
 | 对账失败（`exit != 0` / 输出非法 / 缺必需 token） | 建 `[Ops] 用户缓存对账失败 <date>`（`waitForConfirm`）并 `exit 2`；**禁止**静默或冒充「0 差异」 |
+| **告警送达失败**（`gh issue create` 失败） | `ISSUE=none` + `ISSUE_CREATE_FAILED=1` + `RESULT: FAIL` + `exit 2`（差异已归档，不会丢报告） |
+| **升级评论送达失败**（`gh issue comment` 失败） | `ESCALATE_FAILED=1`（**不**置 `ESCALATED=1`/`ESCALATE_COMMENTS=1`）+ `RESULT: FAIL` + `exit 2` |
+| **失败单自身建不成**（`gh issue create` 失败） | 仍 `exit 2`，额外 `FAILURE_ISSUE=none` + `FAILURE_ISSUE_CREATE_FAILED=1`，用于区分「已建失败单」与「告警也没送出」 |
+| **`gh issue list` 失败**（去重查询失败） | `GH_LIST_FAILED=1`，**继续建单**（宁可重复也不丢告警），退出码按建单结果；去重降级但告警不静默 |
 | 缺 `gh` / 缺 env / 归档目录不可写 | `exit 2` + 打印 `MISSING_ENV=<name>` |
+
+> **告警送达失败一律按失败处理**（`RESULT: FAIL` + `exit 2`）：systemd `oneshot` 会显示 failed，
+> 运维能从 unit 状态/日志发现「对账有差异但告警没送达」。`exit 0` 只代表**告警已送达或确认无需告警**。
+>
+> 告警阈值只含 6 类**差异**类别，`ORG_UNRESOLVED` / `IAM_MISSING` / `ROLE_UNVERIFIED` /
+> `CONTEXT_AMBIGUOUS` / `MEMBER_ONLY` 属 §3 定义的「只计数、不判差异」类别（判定口径 owner = #2623），
+> 它们仍写入归档与告警正文的汇总 token，但不单独触发建单；如需并入告警阈值，须先在 #2623 判定口径内裁定。
 
 归档位置：`${XDG_STATE_HOME:-$HOME/.local/state}/tuneloop/reconcile/<date>.json` 与 `.txt`
 （**不写仓库**，定时任务不产生 Git 变更）；`LAST_SUMMARY` token 指向当日 `.txt`。
