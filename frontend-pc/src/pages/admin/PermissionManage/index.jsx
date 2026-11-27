@@ -2,8 +2,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { Tabs, Table, Card, Modal, Form, Select, Checkbox, Tag, Button, Space, message, Spin, Popconfirm, Tooltip, Alert } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons'
 import { adminApi } from '../../../services/api'
-import FormConflictAlert from '../../../components/FormConflictAlert'
-import { conflictText, isBusinessCorrectableConflict } from '../../../utils/formConflict'
 
 const PERM_GROUPS = [
   {
@@ -76,8 +74,6 @@ function MemberPermissions() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [total, setTotal] = useState(0)
-  // #2489（沿用 #2480 D8）：业务可纠正冲突用表单内持久提示，不用 3 秒 toast。
-  const [formConflict, setFormConflict] = useState('')
 
   const fetchMembers = useCallback(async () => {
     setLoading(true)
@@ -111,7 +107,7 @@ function MemberPermissions() {
       title: '操作',
       key: 'action',
       render: (_, r) => (
-        <Button type="link" icon={<EditOutlined />} onClick={() => { setFormConflict(''); setEditModal(r) }}>编辑权限</Button>
+        <Button type="link" icon={<EditOutlined />} onClick={() => setEditModal(r)}>编辑权限</Button>
       ),
     },
   ]
@@ -135,38 +131,17 @@ function MemberPermissions() {
         <MemberPermissionEditModal
           member={editModal}
           visible={!!editModal}
-          conflict={formConflict}
-          onClose={() => { setFormConflict(''); setEditModal(null) }}
+          onClose={() => setEditModal(null)}
           onSave={async (roleCode, cusPermCodes) => {
             setSaving(true)
-            setFormConflict('') // #2489 D8：提交开始即清空陈旧冲突提示
             try {
               if (roleCode) {
                 const roleResp = await adminApi.setUserRole(editModal.user_id, roleCode)
-                if (roleResp.code !== 20000) {
-                  if (isBusinessCorrectableConflict(roleResp)) {
-                    setFormConflict(conflictText(roleResp, '角色更新失败，请调整后重试'))
-                    setSaving(false)
-                    return
-                  }
-                  message.error(roleResp.message || '更新失败')
-                  setSaving(false)
-                  return
-                }
+                if (roleResp.code !== 20000) { message.error(roleResp.message || '更新失败'); setSaving(false); return }
               }
               const permResp = await adminApi.setUserPermissions(editModal.user_id, cusPermCodes)
-              if (permResp.code !== 20000) {
-                if (isBusinessCorrectableConflict(permResp)) {
-                  setFormConflict(conflictText(permResp, '权限更新失败，请调整后重试'))
-                  setSaving(false)
-                  return
-                }
-                message.error(permResp.message || '更新失败')
-                setSaving(false)
-                return
-              }
+              if (permResp.code !== 20000) { message.error(permResp.message || '更新失败'); setSaving(false); return }
               message.success('权限已更新，该用户下次登录后生效')
-              setFormConflict('') // #2489 D8：成功后清空
               setEditModal(null)
               fetchMembers()
             } catch { message.error('更新失败') }
@@ -179,7 +154,7 @@ function MemberPermissions() {
   )
 }
 
-function MemberPermissionEditModal({ member, visible, conflict, onClose, onSave, saving }) {
+function MemberPermissionEditModal({ member, visible, onClose, onSave, saving }) {
   const [roleCode, setRoleCode] = useState(member.role_code || 'site_member')
   const [cusPermCodes, setCusPermCodes] = useState(member.cus_perm_codes || [])
   const [roles, setRoles] = useState([])
@@ -208,7 +183,6 @@ function MemberPermissionEditModal({ member, visible, conflict, onClose, onSave,
       confirmLoading={saving}
       width={520}
     >
-      <FormConflictAlert text={conflict} testId="permission-member-conflict" />
       <Form layout="vertical">
         <Form.Item label="角色">
           <Select value={roleCode} onChange={setRoleCode} style={{ width: '100%' }}>
@@ -249,8 +223,6 @@ function RoleManagement() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [total, setTotal] = useState(0)
-  // #2489（沿用 #2480 D8）：业务可纠正冲突用表单内持久提示。
-  const [formConflict, setFormConflict] = useState('')
 
   const fetchRoles = useCallback(async () => {
     setLoading(true)
@@ -293,7 +265,7 @@ function RoleManagement() {
       key: 'action',
       render: (_, r) => (
         <Space>
-          <Button type="link" icon={<EditOutlined />} onClick={() => { setFormConflict(''); setEditModal(r) }}>编辑</Button>
+          <Button type="link" icon={<EditOutlined />} onClick={() => setEditModal(r)}>编辑</Button>
           {!r.is_system && (
             <Popconfirm title="确定删除此角色？" onConfirm={() => handleDelete(r.id)}>
               <Button type="link" danger icon={<DeleteOutlined />}>删除</Button>
@@ -306,7 +278,7 @@ function RoleManagement() {
 
   return (
     <>
-      <Card extra={<Button type="primary" icon={<PlusOutlined />} onClick={() => { setFormConflict(''); setCreating(true) }}>新建角色</Button>}>
+      <Card extra={<Button type="primary" icon={<PlusOutlined />} onClick={() => setCreating(true)}>新建角色</Button>}>
         <Table
           columns={columns}
           dataSource={roles}
@@ -322,12 +294,9 @@ function RoleManagement() {
       <RoleFormModal
         visible={creating || !!editModal}
         editing={editModal}
-        conflict={formConflict}
-        onClearConflict={() => setFormConflict('')}
-        onClose={() => { setFormConflict(''); setEditModal(null); setCreating(false) }}
+        onClose={() => { setEditModal(null); setCreating(false) }}
         onSave={async (data) => {
           setSaving(true)
-          setFormConflict('') // #2489 D8：提交开始即清空陈旧冲突提示
           try {
             let resp
             if (editModal) {
@@ -335,18 +304,8 @@ function RoleManagement() {
             } else {
               resp = await adminApi.createRole(data)
             }
-            if (resp.code !== 20000) {
-              if (isBusinessCorrectableConflict(resp)) {
-                setFormConflict(conflictText(resp, '保存失败，请调整后重试'))
-                setSaving(false)
-                return
-              }
-              message.error(resp.message || '保存失败')
-              setSaving(false)
-              return
-            }
+            if (resp.code !== 20000) { message.error(resp.message || '保存失败'); setSaving(false); return }
             message.success(editModal ? '角色已更新' : '角色已创建')
-            setFormConflict('') // #2489 D8：成功后清空
             setEditModal(null); setCreating(false)
             fetchRoles()
           } catch { message.error('保存失败') }
@@ -358,7 +317,7 @@ function RoleManagement() {
   )
 }
 
-function RoleFormModal({ visible, editing, conflict, onClearConflict, onClose, onSave, saving }) {
+function RoleFormModal({ visible, editing, onClose, onSave, saving }) {
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
   const [cusPermCodes, setCusPermCodes] = useState([])
@@ -391,13 +350,12 @@ function RoleFormModal({ visible, editing, conflict, onClearConflict, onClose, o
       confirmLoading={saving}
       width={520}
     >
-      <FormConflictAlert text={conflict} testId="permission-role-conflict" />
       <Form layout="vertical">
         <Form.Item label="角色名称" required>
           <input
             className="ant-input"
             value={name}
-            onChange={e => { setName(e.target.value); if (conflict) onClearConflict?.() }}
+            onChange={e => setName(e.target.value)}
             placeholder="输入角色名称"
             disabled={!!editing}
           />
@@ -407,7 +365,7 @@ function RoleFormModal({ visible, editing, conflict, onClearConflict, onClose, o
             <input
               className="ant-input"
               value={code}
-              onChange={e => { setCode(e.target.value); if (conflict) onClearConflict?.() }}
+              onChange={e => setCode(e.target.value)}
               placeholder="输入角色代码（英文）"
             />
           </Form.Item>

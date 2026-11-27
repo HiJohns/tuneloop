@@ -153,13 +153,21 @@ const MerchantManagement = () => {
     setSaving(true);
     setFormConflict(''); // #2489 D8：提交开始即清空陈旧冲突提示
     try {
-      if (formMode === 'edit' && editingMerchant) {
-        await api.put(`/merchants/${editingMerchant.id}`, values);
-        message.success('商户更新成功');
-      } else {
-        await api.post('/merchants', values);
-        message.success('商户创建成功');
+      // #2489 R6 CODE_FIRST：传输层（#2563 services/apiError.js）对 409 返回对象，
+      // 不判 code 会直接落到下方 message.success —— 即「假成功」。
+      const resp = formMode === 'edit' && editingMerchant
+        ? await api.put(`/merchants/${editingMerchant.id}`, values)
+        : await api.post('/merchants', values);
+      if (resp && resp.code !== 20000) {
+        if (isBusinessCorrectableConflict(resp)) {
+          // #2489：商户重名等 409 业务冲突改为表单内持久提示（语义以 #2459 为准）。
+          setFormConflict(conflictText(resp, '操作失败，请调整后重试'))
+        } else {
+          message.error(resp.message || '操作失败')
+        }
+        return;
       }
+      message.success(formMode === 'edit' && editingMerchant ? '商户更新成功' : '商户创建成功');
       setFormConflict('');
       setViewMode('detail');
       fetchMerchants();
