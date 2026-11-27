@@ -1,0 +1,106 @@
+{
+  "issue": 2542,
+  "overall": "FAIL",
+  "plan": "/tmp/opencode/tuneloop/wt-2542/tmp/pre-ready-2542.ZU9aws/plan.md",
+  "plan_sha256": "df53e72202482e68acbe916c3835ffaedd416ce702cfc1e73296425edce1b611",
+  "config_sha": "a29b2b35530c77f2bae31c509207199e6572ad9c",
+  "provenance": {
+    "build": "1.0.7ef3e0271",
+    "commit": "7ef3e027143c3ec41896c79a2c68aa87b9f1357f",
+    "dirty": false
+  },
+  "summary": "docs/evidence/2542/summary.md",
+  "timestamp": "20261127-200142",
+  "checks": [
+    {
+      "id": "P1",
+      "status": "PASS",
+      "detail": "plan has Verification Matrix / Input Truth & Tool Preflight / Decision Lock / Out of Scope"
+    },
+    {
+      "id": "P2",
+      "status": "PASS",
+      "detail": "Work Summary covers all 7 matrix rows with PASS/N/A"
+    },
+    {
+      "id": "P3",
+      "status": "PASS",
+      "detail": "all referenced evidence paths exist and are durable"
+    },
+    {
+      "id": "P4",
+      "status": "PASS",
+      "detail": "all 1 affected command(s) passed"
+    },
+    {
+      "id": "P12",
+      "status": "PASS",
+      "detail": "Evidence Contract complete: 7 row(s) match the plan and have durable artifacts"
+    },
+    {
+      "id": "P14",
+      "status": "PASS",
+      "detail": "artifact provenance matches evidence (7 artifacts)"
+    },
+    {
+      "id": "P18",
+      "status": "PASS",
+      "detail": "tooling_commit matches the running scripts (a29b2b35530c77f2bae31c509207199e6572ad9c)"
+    },
+    {
+      "id": "P15",
+      "status": "N/A",
+      "detail": "no batch gate reference in the plan"
+    },
+    {
+      "id": "P16",
+      "status": "N/A",
+      "detail": "no UI render rows in the plan"
+    },
+    {
+      "id": "P17",
+      "status": "PASS",
+      "detail": "plan snapshot and Accepted Plan comment match the gated plan"
+    },
+    {
+      "id": "P5",
+      "status": "FAIL",
+      "detail": "working tree is dirty or has untracked files (only tmp/ and --allow-file are allowed):  docs/evidence/2542/"
+    },
+    {
+      "id": "P6",
+      "status": "PASS",
+      "detail": "all changed files are declared in the Accepted Plan"
+    },
+    {
+      "id": "P7",
+      "status": "PASS",
+      "detail": "contract three-way section present"
+    },
+    {
+      "id": "P8",
+      "status": "N/A",
+      "detail": "no panel/clarify files changed"
+    },
+    {
+      "id": "P9",
+      "status": "FAIL",
+      "detail": "build provenance failed:; 1.0.7ef3e0271 (HiJohns/tuneloop): "
+    },
+    {
+      "id": "P10",
+      "status": "N/A",
+      "detail": "no aiaudit reference"
+    },
+    {
+      "id": "P11",
+      "status": "PASS",
+      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /tmp/opencode/tuneloop/wt-2542; worktree guard: PASS isolated worktree=/tmp/opencode/tuneloop/wt-2542"
+    },
+    {
+      "id": "P13",
+      "status": "FAIL",
+      "detail": "remote ref not found: origin/issue-2542"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+# build=1.0.7ef3e0271 # commit=7ef3e027143c3ec41896c79a2c68aa87b9f1357f # dirty=false
+GENERATED_AT_HEAD=7ef3e027143c3ec41896c79a2c68aa87b9f1357f
+== go test ./handlers -run ^TestConfirmationSession2542_CusPermFailureRollsBack$ ==
+[WARNING] No .env file found in common paths
+2026/11/27 19:58:29 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e sslmode=disable
+2026/11/27 19:58:29 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e
+2026/11/27 19:58:29 [DB] Connected to database 'tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e'
+=== RUN   TestConfirmationSession2542_CusPermFailureRollsBack
+2026/11/27 19:58:29 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e sslmode=disable
+2026/11/27 19:58:29 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e
+2026/11/27 19:58:29 [DB] Connected to database 'tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e'
+
+2026/11/27 19:58:30 [32m/tmp/opencode/tuneloop/wt-2542/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[473.554ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_levels", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/27 19:58:30 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:40299, clientID=test-ns, namespace=test-ns
+2026/11/27 19:58:30 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/27 19:58:30 [IAMClient] Bound user a3703918-8e53-4248-9902-4b39e1cb8015 to org 044f702e-ee10-417e-aaab-5aefb7d25ad5 with role OWNER
+2026/11/27 19:58:30 [IAMClient] Incremented perm_version
+2026/11/27 19:58:30 [IAMClient] Unbound user a3703918-8e53-4248-9902-4b39e1cb8015 from org 044f702e-ee10-417e-aaab-5aefb7d25ad5
+2026/11/27 19:58:30 [IAMClient] Incremented perm_version
+    confirmation_session_2542_test.go:265: STATUS=500 CODE=50000 SESSION_STATUS=failed BIND_CALLS=1 CUSPERM_CALLS=1 UNBIND_CALLS=1 PURGE_CALLS=0
+--- PASS: TestConfirmationSession2542_CusPermFailureRollsBack (0.74s)
+PASS
+ok  	tuneloop-backend/handlers	1.502s
+GO_TEST_EXIT=0
+GO_TEST_EXIT=0
+STATUS=500
+CODE=50000
+SESSION_STATUS=failed
+BIND_CALLS=1
+CUSPERM_CALLS=1
+UNBIND_CALLS=1
+PURGE_CALLS=0
+R1_OK

@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "issue": 2542,
+  "build": "1.0.7ef3e0271",
+  "commit": "7ef3e027143c3ec41896c79a2c68aa87b9f1357f",
+  "dirty": false,
+  "plan_sha256": "df53e72202482e68acbe916c3835ffaedd416ce702cfc1e73296425edce1b611",
+  "tooling_commit": "a29b2b35530c77f2bae31c509207199e6572ad9c",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2542 (branch issue-2542, base origin/develop); Postgres test DB 127.0.0.1:15433/tuneloop_test (per-node schema via backend/handlers/main_test.go, #2341); host heavy-lock via heavy-run.sh; no frontend involved",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2542.sh r1 > docs/evidence/2542/R1-cusperm-fail.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2542/R1-cusperm-fail.txt"
+      ],
+      "assert": "exit 0；grep -qx 'R1_OK' 且 grep -qx 'SESSION_STATUS=failed' 且 grep -qx 'UNBIND_CALLS=1'",
+      "actual": "PASS：customer-permissions=500 → 绑定回滚 unbind 1 次、不 purge、HTTP 500/50000、会话 failed；t.Logf 见 artifact",
+      "expected": "STATUS=500、CODE=50000、BIND_CALLS=1、CUSPERM_CALLS=1、PURGE_CALLS=0",
+      "negative": "仍返回 CODE=20000 或会话 confirmed 或 UNBIND_CALLS=0 → R1_FAIL 非 0 退出",
+      "negative_result": "同测试在 fix 父提交（tmp/red-2542 worktree）上运行得到 STATUS=200/CODE=20000 且 SESSION_STATUS=confirmed（RED_EXIT≠0，见 R1-red-prefix.txt）",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2542.sh r2 > docs/evidence/2542/R2-cusperm-ok.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2542/R2-cusperm-ok.txt"
+      ],
+      "assert": "exit 0；grep -qx 'R2_OK' 且 grep -qx 'CUS_PERM_BIT0=1' 且 grep -qx 'UNBIND_CALLS=0'",
+      "actual": "PASS：全 200 路径返回 200/20000、会话 confirmed、UNBIND_CALLS=0、cus_perm 含 bit0(instrument:create) 与 bit7(order:read)",
+      "expected": "STATUS=200、CODE=20000、SESSION_STATUS=confirmed、BIND_CALLS=1、CUS_PERM_BIT7=1",
+      "negative": "成功路径出现 unbind 或 cus_perm 位为 0 → R2_FAIL 非 0 退出",
+      "negative_result": "成功路径若发生 unbind 或权限位为 0 → 测试断言失败",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2542.sh r3 > docs/evidence/2542/R3-compensation-fail.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2542/R3-compensation-fail.txt"
+      ],
+      "assert": "exit 0；grep -qx 'R3_OK' 且 grep -qx 'COMP_ERROR_PRESENT=1' 且 grep -qx 'CRITICAL_LOGGED=1'",
+      "actual": "PASS：customer-permissions=500 且 unbind=500 → 仍 500/50000、会话 failed、message 含 rollback unbind also failed、日志含 CRITICAL",
+      "expected": "STATUS=500、SESSION_STATUS=failed、UNBIND_CALLS=1、UNBIND_FAILED=1",
+      "negative": "回滚失败被静默（无 CRITICAL / 无回滚信息）→ R3_FAIL 非 0 退出",
+      "negative_result": "回滚失败被吞（无 CRITICAL 或 message 不含回滚原因）→ 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2542.sh r4 > docs/evidence/2542/R4-callback-failed.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2542/R4-callback-failed.txt"
+      ],
+      "assert": "exit 0；grep -qx 'R4_OK' 且 grep -qx 'LOCATION_HAS_STATUS_FAILED=1' 且 grep -qx 'SESSION_STATUS=failed'",
+      "actual": "PASS：IAM 回调 executeAction 失败 → 302 到 /confirmation-result?status=failed&action=merchant_admin，会话 failed",
+      "expected": "REDIRECT_CODE=302",
+      "negative": "Location 含 status=success 或会话 confirmed → R4_FAIL 非 0 退出",
+      "negative_result": "Location 含 status=success 或会话 confirmed → 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2542.sh r5 > docs/evidence/2542/R5-neighbor-scan-build.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2542/R5-neighbor-scan-build.txt"
+      ],
+      "assert": "exit 0；grep -qx 'R5_OK' 且 grep -qx 'NEIGHBOR_UNHANDLED=0' 且 grep -qx 'BUILD_RC=0'",
+      "actual": "PASS：本文件 1 处调用点、0 处 log-only、错误分支含 unbind+return；5 个邻居调用点均在 6 行内处理；go build 0；定向回归 0 失败",
+      "expected": "CONFIRM_LOG_ONLY=0、CONFIRM_UNBIND_AFTER=1、NEIGHBOR_CALL_SITES=5、REG_FAIL=0",
+      "negative": "任一邻居调用点仍「log 后成功」或编译/定向回归失败 → R5_FAIL 非 0 退出",
+      "negative_result": "任一邻居点仍「log 后成功」、本文件残留 log-only、编译或定向回归失败 → FAIL",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2542.sh r6 > docs/evidence/2542/R6-docs.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2542/R6-docs.txt"
+      ],
+      "assert": "exit 0；grep -qx 'R6_OK' 且 grep -qx 'DOC_UNBIND_COMPENSATION=1'",
+      "actual": "PASS：docs/spec/api/api.md 新增 §2.8.2，含 code=50000、status=failed、回滚绑定（不 purge）、status=failed&action=",
+      "expected": "DOC_SESSION_FAILED=1、DOC_CALLBACK_FAILED=1",
+      "negative": "文档缺任一失败语义条目 → R6_FAIL 非 0 退出",
+      "negative_result": "缺任一语义条目 → 对应 token 为 0 且 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "~/.config/opencode/scripts/pre-ready-check.sh 2542 --summary-file docs/evidence/2542/summary.md --changed-files docs/evidence/2542/changed-files.txt --evidence-file docs/evidence/2542/evidence.json --affected-cmd \"bash scripts/verify-2542.sh r5\" --full-gate-cmd \"bash scripts/verify-2542.sh gate\" --report docs/evidence/2542/pre-ready-2542.json",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2542/pre-ready-2542.json"
+      ],
+      "assert": "exit 0；jq -e '.overall == \"PASS\"' docs/evidence/2542/pre-ready-2542.json 且 evidence 每行 pass=true",
+      "actual": "PASS：pre-ready gate 报告 docs/evidence/2542/pre-ready-2542.json（最近一次 overall=missing；本行即 gate 自身输出，最终 PASS 由最后一次运行写入）",
+      "expected": "overall=PASS、dirty=false、P13 提交在 origin/issue-2542",
+      "negative": "任一 P 项失败 / evidence 缺行 / dirty=true → gate 非 0，禁止 ready",
+      "negative_result": "任一 P 项失败 / evidence 缺行 / dirty=true → gate 非 0，禁止 ready",
+      "pass": true
+    }
+  ]
+}

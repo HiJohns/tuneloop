@@ -1,0 +1,31 @@
+# build=1.0.2ed1e0f28 # commit=2ed1e0f287ada17c3ba8edcfa21ea0bf0ee11617 # dirty=false
+== red sample: pre-fix confirmation_session.go + same R1 test (expect FAIL) ==
+[WARNING] No .env file found in common paths
+2026/11/27 19:59:46 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e sslmode=disable
+2026/11/27 19:59:47 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e
+2026/11/27 19:59:47 [DB] Connected to database 'tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e'
+=== RUN   TestConfirmationSession2542_CusPermFailureRollsBack
+2026/11/27 19:59:47 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e sslmode=disable
+2026/11/27 19:59:47 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e
+2026/11/27 19:59:47 [DB] Connected to database 'tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e'
+
+2026/11/27 19:59:48 [32m/tmp/opencode/tuneloop/wt-2542/tmp/red-2542/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[678.482ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_levels", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/27 19:59:48 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:46813, clientID=test-ns, namespace=test-ns
+2026/11/27 19:59:48 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/27 19:59:48 [IAMClient] Bound user 9fa5970f-fab6-462f-ac1e-6aa2391e7a4c to org 39b58b00-567a-42fd-98f6-3067cc25b19c with role OWNER
+2026/11/27 19:59:48 [IAMClient] Incremented perm_version
+2026/11/27 19:59:48 [Confirm] SetUserCustomerPermissions failed: SetUserCustomerPermissions returned status 500: {"error":"permission bitmap unavailable"}
+    confirmation_session_2542_test.go:248: 
+        	Error Trace:	/tmp/opencode/tuneloop/wt-2542/tmp/red-2542/backend/handlers/confirmation_session_2542_test.go:248
+        	Error:      	Not equal: 
+        	            	expected: 500
+        	            	actual  : 200
+        	Test:       	TestConfirmationSession2542_CusPermFailureRollsBack
+        	Messages:   	{"code":20000,"message":"successfully confirmed and action executed"}
+--- FAIL: TestConfirmationSession2542_CusPermFailureRollsBack (1.02s)
+FAIL
+FAIL	tuneloop-backend/handlers	2.780s
+FAIL
+RED_EXIT=1
+RED_OK

@@ -1,0 +1,16 @@
+backend/handlers/confirmation_session.go
+backend/handlers/confirmation_session_2542_test.go
+scripts/verify-2542.sh
+docs/spec/api/api.md
+docs/evidence/2542/plan.md
+docs/evidence/2542/summary.md
+docs/evidence/2542/changed-files.txt
+docs/evidence/2542/R1-cusperm-fail.txt
+docs/evidence/2542/R1-red-prefix.txt
+docs/evidence/2542/R2-cusperm-ok.txt
+docs/evidence/2542/R3-compensation-fail.txt
+docs/evidence/2542/R4-callback-failed.txt
+docs/evidence/2542/R5-neighbor-scan-build.txt
+docs/evidence/2542/R6-docs.txt
+docs/evidence/2542/evidence.json
+docs/evidence/2542/pre-ready-2542.json
