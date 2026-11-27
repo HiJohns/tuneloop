@@ -1,0 +1,79 @@
+# build=1.0.a7452e064 # commit=a7452e064619d2f1105b97780ef5b4241cdca901 # dirty=false
+GENERATED_AT_HEAD=a7452e064619d2f1105b97780ef5b4241cdca901
+== R3 existing assertions (unchanged contracts) ==
+[WARNING] No .env file found in common paths
+2026/11/27 20:30:48 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e sslmode=disable
+2026/11/27 20:30:54 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e
+2026/11/27 20:30:54 [DB] Connected to database 'tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e'
+=== RUN   TestIAMMock_UserUpdate_EmailChange_ReturnsPending
+2026/11/27 20:30:54 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e sslmode=disable
+2026/11/27 20:30:54 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e
+2026/11/27 20:30:54 [DB] Connected to database 'tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e'
+
+2026/11/27 20:30:55 [32m/tmp/opencode/tuneloop/wt-2614/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[695.729ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_levels", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/27 20:30:55 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:33029, clientID=test-ns, namespace=test-ns
+2026/11/27 20:30:55 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/27 20:30:55 [IAMClient] Updated user: user_id=some-iam-id
+2026/11/27 20:30:55 [UpdateIAMUser] local cache update affected 0 rows for iam_sub=some-iam-id (row missing or unchanged)
+--- PASS: TestIAMMock_UserUpdate_EmailChange_ReturnsPending (1.13s)
+=== RUN   TestIAMProxy_UpdateIAMUser_ZeroTenant_2249
+
+2026/11/27 20:30:56 [32m/tmp/opencode/tuneloop/wt-2614/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[531.053ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "pricing_templates" RESTART IDENTITY CASCADE[0m
+2026/11/27 20:30:56 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:36137, clientID=test-ns, namespace=test-ns
+2026/11/27 20:30:56 [IAMClient] Obtained client credentials token, expires in 7200s
+2026/11/27 20:30:56 [IAMClient] Updated user: user_id=2b7933e0-915f-429e-a68f-52b2ad0a1126
+--- PASS: TestIAMProxy_UpdateIAMUser_ZeroTenant_2249 (0.77s)
+=== RUN   TestUpdateCurrentUser_2446_UsernameConflictAndValidation
+
+2026/11/27 20:30:57 [32m/tmp/opencode/tuneloop/wt-2614/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[548.452ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "pricing_templates", "users" RESTART IDENTITY CASCADE[0m
+2026/11/27 20:30:57 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:38125, clientID=test-ns, namespace=test-ns
+2026/11/27 20:30:57 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/27 20:30:57 [UpdateCurrentUser] IAM UpdateUser failed for 41e1e846-ec73-4363-91b9-5d95a750c18f: UpdateUser returned status 409: {"error":"username already exists"}
+2026/11/27 20:30:57 [IAMFailure] kind=conflict upstream_status=409 route=/users/me
+--- PASS: TestUpdateCurrentUser_2446_UsernameConflictAndValidation (0.82s)
+=== RUN   TestGetCurrentUser_2446_NeedsCredentials
+
+2026/11/27 20:30:58 [32m/tmp/opencode/tuneloop/wt-2614/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[552.548ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "pricing_templates", "users" RESTART IDENTITY CASCADE[0m
+2026/11/27 20:30:58 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:33863, clientID=test-ns, namespace=test-ns
+2026/11/27 20:30:58 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/27 20:30:58 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:33863, clientID=test-ns, namespace=test-ns
+2026/11/27 20:30:58 [IAMClient] Obtained client credentials token, expires in 3600s
+--- PASS: TestGetCurrentUser_2446_NeedsCredentials (0.79s)
+=== RUN   TestUpdateCurrentUser_IAMConflict_AbortsLocalUpdate
+
+2026/11/27 20:30:59 [32m/tmp/opencode/tuneloop/wt-2614/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[548.593ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "pricing_templates", "users" RESTART IDENTITY CASCADE[0m
+2026/11/27 20:30:59 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:34243, clientID=test-ns, namespace=test-ns
+2026/11/27 20:30:59 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/27 20:30:59 [UpdateCurrentUser] IAM UpdateUser failed for 70a4b48d-0aca-4696-8cf0-680a22b67933: UpdateUser returned status 409: {"code":40900,"message":"phone already registered"}
+2026/11/27 20:30:59 [IAMFailure] kind=conflict upstream_status=409 route=/api/users/me
+--- PASS: TestUpdateCurrentUser_IAMConflict_AbortsLocalUpdate (0.78s)
+=== RUN   TestUpdateCurrentUser_IAMSuccess_UpdatesLocalCache
+
+2026/11/27 20:30:59 [32m/tmp/opencode/tuneloop/wt-2614/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[521.695ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "pricing_templates", "users" RESTART IDENTITY CASCADE[0m
+2026/11/27 20:30:59 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:41793, clientID=test-ns, namespace=test-ns
+2026/11/27 20:30:59 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/27 20:30:59 [IAMClient] Updated user: user_id=06ed32d0-b79d-40db-9086-f4ae38c47a23
+--- PASS: TestUpdateCurrentUser_IAMSuccess_UpdatesLocalCache (0.81s)
+PASS
+ok  	tuneloop-backend/handlers	12.311s
+GO_TEST_EXIT=0
+REGRESSION_CONFLICT_ABORT=1
+REGRESSION_SUCCESS_CACHE=1
+REGRESSION_2446_USERNAME_TEXT=1
+REGRESSION_2446_CREDENTIALS=1
+REGRESSION_IAMMOCK_EMAIL=1
+REGRESSION_ZERO_TENANT=1
+GO_TEST_EXIT=0
+REGRESSION_CONFLICT_ABORT=1
+REGRESSION_SUCCESS_CACHE=1
+REGRESSION_2446_USERNAME_TEXT=1
+REGRESSION_2446_CREDENTIALS=1
+REGRESSION_IAMMOCK_EMAIL=1
+REGRESSION_ZERO_TENANT=1
+R3_OK

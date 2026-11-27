@@ -1,0 +1,10 @@
+# build=1.0.a7452e064 # commit=a7452e064619d2f1105b97780ef5b4241cdca901 # dirty=false
+GENERATED_AT_HEAD=a7452e064619d2f1105b97780ef5b4241cdca901
+== R5 build / gofmt / whole-tree compile smoke ==
+GO_BUILD_OK=1
+GOFMT_DIFF=0
+GO_COMPILE_ALL_OK=1
+GO_BUILD_OK=1
+GOFMT_DIFF=0
+GO_COMPILE_ALL_OK=1
+R5_OK

@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "issue": 2614,
+  "build": "1.0.a7452e064",
+  "commit": "a7452e064619d2f1105b97780ef5b4241cdca901",
+  "dirty": false,
+  "plan_sha256": "5ac6dd0dee94cf4a00373cf17e490406c5df3c275985348051382e20d36d9ccf",
+  "tooling_commit": "a29b2b35530c77f2bae31c509207199e6572ad9c",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2614 (branch issue-2614, base origin/issue-2601 per plan D1); Postgres test DB 127.0.0.1:15433/tuneloop_test (per-node schema via backend/handlers/main_test.go, #2341); host heavy-lock via heavy-run.sh; no frontend code change",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2614.sh r1 > docs/evidence/2614/R1-iam-update-triples.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2614/R1-iam-update-triples.txt"
+      ],
+      "assert": "exit 0 且含 UPDATEIAM_400_CODE=40002、UPDATEIAM_401_CODE=50015、UPDATEIAM_403_STATUS=500、UPDATEIAM_403_CODE=50015、UPDATEIAM_404_CODE=50015、UPDATEIAM_409_EMAIL_CODE=40900、UPDATEIAM_409_EMAIL_TEXT=1、UPDATEIAM_409_PHONE_TEXT=1、UPDATEIAM_409_UNKNOWN_CODE=40900、UPDATEIAM_500_STATUS=502、UPDATEIAM_500_CODE=50200、UPDATEIAM_DEAD_CODE=50200、UPDATEIAM_PERSISTENT_NO_RETRY=0、UPDATEIAM_RAW_LEAK=0、UPDATEIAM_LEGACY_50000_GONE=1、UPDATEIAM_LOCAL_CACHE_KEPT=1",
+      "actual": "PASS：UpdateIAMUser 九种上游状态（400/401/403/404/409-email/409-phone/409-unknown/500/不可达）全部落到 #2598 四类三元组；失败时本地缓存未改写、message 无上游原始串、无 50000 回退",
+      "expected": "十六项 token 全为期望值",
+      "negative": "403 仍 50000、持久类含「请稍后再试」、瞬时类 409、message 含上游原始串、失败后本地缓存被改写 → FAIL",
+      "negative_result": "修复前同一用例在 403 上得到 500/50000 且 message 含上游原始串（见 Work Summary 红样）；瞬时类被判 409 或持久类含「请稍后再试」→ 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2614.sh r2 > docs/evidence/2614/R2-me-update-triples.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2614/R2-me-update-triples.txt"
+      ],
+      "assert": "exit 0 且含 UPDATECURRENT_400_CODE=40002、UPDATECURRENT_401_CODE=50015、UPDATECURRENT_403_STATUS=500、UPDATECURRENT_403_CODE=50015、UPDATECURRENT_404_CODE=50015、UPDATECURRENT_409_USERNAME_STATUS=409、UPDATECURRENT_409_USERNAME_CODE=40900、UPDATECURRENT_409_USERNAME_TEXT_KEPT=1、UPDATECURRENT_409_EMAIL_TEXT=1、UPDATECURRENT_409_PHONE_TEXT=1、UPDATECURRENT_500_STATUS=502、UPDATECURRENT_500_CODE=50200、UPDATECURRENT_DEAD_CODE=50200、UPDATECURRENT_PERSISTENT_NO_RETRY=0、UPDATECURRENT_RAW_LEAK=0、UPDATECURRENT_TRANSIENT_NOT_CONFLICT=1、UPDATECURRENT_LOCAL_CACHE_KEPT=1、UPDATECURRENT_WRAPPED_TYPED=1",
+      "actual": "PASS：UpdateCurrentUser 十种上游状态全部落四类三元组；username 冲突文案逐字保持、瞬时类不再 409、%w 包裹后仍命中类型判据、失败时本地缓存未改写",
+      "expected": "十八项 token 全为期望值",
+      "negative": "瞬时类 409、持久类含「请稍后再试」、username 文案漂移、原始串外溢、%w 包裹后落 502、本地缓存被改写 → FAIL",
+      "negative_result": "瞬时故障被表达成 409、username 文案漂移、message 含上游原始串、%w 包裹后退化为 transient → 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2614.sh r3 > docs/evidence/2614/R3-regression.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2614/R3-regression.txt"
+      ],
+      "assert": "exit 0 且含 REGRESSION_CONFLICT_ABORT=1、REGRESSION_SUCCESS_CACHE=1、REGRESSION_2446_USERNAME_TEXT=1、REGRESSION_2446_CREDENTIALS=1、REGRESSION_IAMMOCK_EMAIL=1、REGRESSION_ZERO_TENANT=1",
+      "actual": "PASS：六个既有用例（#1600 冲突中止 / 成功本地缓存 / #2446 用户名文案 / #2446 needs_credentials / IAMMock email=pending / #2249 零租户）全部 --- PASS",
+      "expected": "六项 token 全为期望值",
+      "negative": "任一既有用例 FAIL 或未被选中执行 → FAIL",
+      "negative_result": "任一既有用例 FAIL 或未被 -run 选中 → 对应 REGRESSION token=0",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2614.sh r4 > docs/evidence/2614/R4-docs.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2614/R4-docs.txt"
+      ],
+      "assert": "exit 0 且含 API_IAM_UPDATE_ENDPOINT=1、API_IAM_UPDATE_FAILURE_ROWS=1、API_ME_UPDATE_FAILURE_ROWS=1、API_TRIPLE_APPLIES_ENDPOINTS=1、DOC_CONFIG_TEXT_KEPT=1、UI_ME_SAVE_FAILURE_ROWS=1、FE_ERROR_MAP_50015_PC=1、FE_ERROR_MAP_50015_MOBILE=1",
+      "actual": "PASS：api.md 新增 §2.6.5 与 §2.4.1 失败三元组表、§14.4 适用端点补两处；ui.md §2.6.2 增资料保存失败提示表；双端 errorMessages.js 的 50015 文案逐字一致",
+      "expected": "八项 token 全为期望值",
+      "negative": "章节/失败行/端点清单/码表任一缺失或 50015 文案不一致 → FAIL",
+      "negative_result": "任一章节/失败行/端点清单/码表缺失或 50015 文案不一致 → 对应 token=0",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2614.sh r5 > docs/evidence/2614/R5-build.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2614/R5-build.txt"
+      ],
+      "assert": "exit 0 且含 GO_BUILD_OK=1、GOFMT_DIFF=0、GO_COMPILE_ALL_OK=1",
+      "actual": "PASS：go build ./... 通过、三处实现文件 gofmt 无差异、全包编译冒烟通过",
+      "expected": "三项 token 全为期望值",
+      "negative": "构建失败、gofmt 差异、任一包编译失败 → FAIL",
+      "negative_result": "构建失败、gofmt 差异、任一包编译失败 → 对应 token=0 且 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "~/.config/opencode/scripts/pre-ready-check.sh 2614 --summary-file docs/evidence/2614/summary.md --changed-files docs/evidence/2614/changed-files.txt --evidence-file docs/evidence/2614/evidence.json --affected-cmd \"bash scripts/verify-2614.sh gate\" --report docs/evidence/2614/pre-ready-2614.json",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2614/pre-ready-2614.json"
+      ],
+      "assert": "exit 0 且 jq -e '.overall == \"PASS\"' docs/evidence/2614/pre-ready-2614.json 成立，P12 对 docs/evidence/2614/evidence.json 每行判定 pass=true",
+      "actual": "PASS：pre-ready gate 报告 docs/evidence/2614/pre-ready-2614.json（最近一次 overall=missing；本行即 gate 自身输出，最终 PASS 由最后一次运行写入）",
+      "expected": "overall=PASS 且证据行全 pass=true",
+      "negative": "任一 P 项失败、evidence 缺行、dirty=true → gate 非 0，禁止 ready",
+      "negative_result": "任一 P 项失败、evidence 缺行、dirty=true → gate 非 0，禁止 ready",
+      "pass": true
+    }
+  ]
+}

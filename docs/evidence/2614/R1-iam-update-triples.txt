@@ -1,0 +1,94 @@
+# build=1.0.a7452e064 # commit=a7452e064619d2f1105b97780ef5b4241cdca901 # dirty=false
+GENERATED_AT_HEAD=a7452e064619d2f1105b97780ef5b4241cdca901
+== go test ./handlers -run ^TestUpdateIAMUser2614_Triples$ ==
+[WARNING] No .env file found in common paths
+2026/11/27 20:29:34 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e sslmode=disable
+2026/11/27 20:29:45 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e
+2026/11/27 20:29:45 [DB] Connected to database 'tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e'
+=== RUN   TestUpdateIAMUser2614_Triples
+2026/11/27 20:29:46 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e sslmode=disable
+2026/11/27 20:29:46 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e
+2026/11/27 20:29:46 [DB] Connected to database 'tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e'
+
+2026/11/27 20:29:47 [32m/tmp/opencode/tuneloop/wt-2614/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[704.249ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_levels", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+=== RUN   TestUpdateIAMUser2614_Triples/400
+2026/11/27 20:29:47 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:40091, clientID=test-ns, namespace=test-ns
+2026/11/27 20:29:47 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/27 20:29:47 [UpdateIAMUser] IAM UpdateUser failed for c3e0576f-8079-4cdd-8181-31033dd57127: UpdateUser returned status 400: {"error":"invalid payload","trace":"UPSTREAM_RAW_MARKER_2614"}
+2026/11/27 20:29:47 [IAMFailure] kind=user_action upstream_status=400 route=/api/iam/users/:id
+=== RUN   TestUpdateIAMUser2614_Triples/401
+2026/11/27 20:29:47 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:45111, clientID=test-ns, namespace=test-ns
+2026/11/27 20:29:47 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/27 20:29:47 [IAMClient] API call returned 401, clearing token cache and retrying once
+2026/11/27 20:29:47 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/27 20:29:47 [UpdateIAMUser] IAM UpdateUser failed for c3e0576f-8079-4cdd-8181-31033dd57127: UpdateUser returned status 401: {"error":"unauthorized","trace":"UPSTREAM_RAW_MARKER_2614"}
+2026/11/27 20:29:47 [IAMFailure] kind=config upstream_status=401 route=/api/iam/users/:id
+=== RUN   TestUpdateIAMUser2614_Triples/403
+2026/11/27 20:29:47 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:34817, clientID=test-ns, namespace=test-ns
+2026/11/27 20:29:47 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/27 20:29:47 [UpdateIAMUser] IAM UpdateUser failed for c3e0576f-8079-4cdd-8181-31033dd57127: permission denied: {"error":"permission denied","trace":"UPSTREAM_RAW_MARKER_2614"}
+2026/11/27 20:29:47 [IAMFailure] kind=config upstream_status=403 route=/api/iam/users/:id
+=== RUN   TestUpdateIAMUser2614_Triples/404
+2026/11/27 20:29:47 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:42717, clientID=test-ns, namespace=test-ns
+2026/11/27 20:29:47 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/27 20:29:47 [UpdateIAMUser] IAM UpdateUser failed for c3e0576f-8079-4cdd-8181-31033dd57127: UpdateUser returned status 404: {"error":"user not found","trace":"UPSTREAM_RAW_MARKER_2614"}
+2026/11/27 20:29:47 [IAMFailure] kind=config upstream_status=404 route=/api/iam/users/:id
+=== RUN   TestUpdateIAMUser2614_Triples/409email
+2026/11/27 20:29:47 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:42831, clientID=test-ns, namespace=test-ns
+2026/11/27 20:29:47 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/27 20:29:47 [UpdateIAMUser] IAM UpdateUser failed for c3e0576f-8079-4cdd-8181-31033dd57127: UpdateUser returned status 409: {"error":"email already exists","trace":"UPSTREAM_RAW_MARKER_2614"}
+2026/11/27 20:29:47 [IAMFailure] kind=conflict upstream_status=409 route=/api/iam/users/:id
+=== RUN   TestUpdateIAMUser2614_Triples/409phone
+2026/11/27 20:29:47 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:43041, clientID=test-ns, namespace=test-ns
+2026/11/27 20:29:47 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/27 20:29:47 [UpdateIAMUser] IAM UpdateUser failed for c3e0576f-8079-4cdd-8181-31033dd57127: UpdateUser returned status 409: {"error":"phone already exists","trace":"UPSTREAM_RAW_MARKER_2614"}
+2026/11/27 20:29:47 [IAMFailure] kind=conflict upstream_status=409 route=/api/iam/users/:id
+=== RUN   TestUpdateIAMUser2614_Triples/409unknown
+2026/11/27 20:29:47 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:45397, clientID=test-ns, namespace=test-ns
+2026/11/27 20:29:47 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/27 20:29:47 [UpdateIAMUser] IAM UpdateUser failed for c3e0576f-8079-4cdd-8181-31033dd57127: UpdateUser returned status 409: {"error":"some other conflict","trace":"UPSTREAM_RAW_MARKER_2614"}
+2026/11/27 20:29:47 [IAMFailure] kind=conflict upstream_status=409 route=/api/iam/users/:id
+=== RUN   TestUpdateIAMUser2614_Triples/500
+2026/11/27 20:29:47 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:39501, clientID=test-ns, namespace=test-ns
+2026/11/27 20:29:47 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/27 20:29:47 [UpdateIAMUser] IAM UpdateUser failed for c3e0576f-8079-4cdd-8181-31033dd57127: UpdateUser returned status 500: {"error":"boom","trace":"UPSTREAM_RAW_MARKER_2614"}
+2026/11/27 20:29:47 [IAMFailure] kind=transient upstream_status=500 route=/api/iam/users/:id
+=== RUN   TestUpdateIAMUser2614_Triples/dead
+2026/11/27 20:29:47 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:41381, clientID=test-ns, namespace=test-ns
+2026/11/27 20:29:47 [UpdateIAMUser] IAM UpdateUser failed for c3e0576f-8079-4cdd-8181-31033dd57127: UpdateUser request failed: failed to get client token: failed to request client token: Post "http://127.0.0.1:41381/api/v1/auth/token": dial tcp 127.0.0.1:41381: connect: connection refused
+2026/11/27 20:29:47 [IAMFailure] kind=transient upstream_status=0 route=/api/iam/users/:id
+=== NAME  TestUpdateIAMUser2614_Triples
+    iam_user_update_failure_2614_test.go:254: UPDATEIAM_400_CODE=40002 UPDATEIAM_401_CODE=50015 UPDATEIAM_403_STATUS=500 UPDATEIAM_403_CODE=50015 UPDATEIAM_404_CODE=50015 UPDATEIAM_409_EMAIL_CODE=40900 UPDATEIAM_409_PHONE_CODE=40900 UPDATEIAM_409_UNKNOWN_CODE=40900 UPDATEIAM_500_STATUS=502 UPDATEIAM_500_CODE=50200 UPDATEIAM_DEAD_CODE=50200 UPDATEIAM_LOCAL_CACHE_KEPT=1
+    iam_user_update_failure_2614_test.go:280: UPDATEIAM_409_EMAIL_TEXT=1 UPDATEIAM_409_PHONE_TEXT=1 UPDATEIAM_RAW_LEAK=0 UPDATEIAM_LEGACY_50000_GONE=1 UPDATEIAM_PERSISTENT_NO_RETRY=0
+--- PASS: TestUpdateIAMUser2614_Triples (1.01s)
+    --- PASS: TestUpdateIAMUser2614_Triples/400 (0.00s)
+    --- PASS: TestUpdateIAMUser2614_Triples/401 (0.00s)
+    --- PASS: TestUpdateIAMUser2614_Triples/403 (0.00s)
+    --- PASS: TestUpdateIAMUser2614_Triples/404 (0.00s)
+    --- PASS: TestUpdateIAMUser2614_Triples/409email (0.00s)
+    --- PASS: TestUpdateIAMUser2614_Triples/409phone (0.00s)
+    --- PASS: TestUpdateIAMUser2614_Triples/409unknown (0.00s)
+    --- PASS: TestUpdateIAMUser2614_Triples/500 (0.00s)
+    --- PASS: TestUpdateIAMUser2614_Triples/dead (0.00s)
+PASS
+ok  	tuneloop-backend/handlers	12.802s
+GO_TEST_EXIT=0
+GO_TEST_EXIT=0
+UPDATEIAM_400_CODE=40002
+UPDATEIAM_401_CODE=50015
+UPDATEIAM_403_STATUS=500
+UPDATEIAM_403_CODE=50015
+UPDATEIAM_404_CODE=50015
+UPDATEIAM_409_EMAIL_CODE=40900
+UPDATEIAM_409_EMAIL_TEXT=1
+UPDATEIAM_409_PHONE_TEXT=1
+UPDATEIAM_409_UNKNOWN_CODE=40900
+UPDATEIAM_500_STATUS=502
+UPDATEIAM_500_CODE=50200
+UPDATEIAM_DEAD_CODE=50200
+UPDATEIAM_PERSISTENT_NO_RETRY=0
+UPDATEIAM_RAW_LEAK=0
+UPDATEIAM_LEGACY_50000_GONE=1
+UPDATEIAM_LOCAL_CACHE_KEPT=1
+R1_OK

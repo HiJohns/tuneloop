@@ -1,0 +1,17 @@
+backend/handlers/iam_user_conflict.go
+backend/handlers/iam_proxy.go
+backend/handlers/user_staff.go
+backend/handlers/iam_user_update_failure_2614_test.go
+scripts/verify-2614.sh
+docs/spec/api/api.md
+docs/spec/ui/ui.md
+docs/evidence/2614/plan.md
+docs/evidence/2614/summary.md
+docs/evidence/2614/changed-files.txt
+docs/evidence/2614/R1-iam-update-triples.txt
+docs/evidence/2614/R2-me-update-triples.txt
+docs/evidence/2614/R3-regression.txt
+docs/evidence/2614/R4-docs.txt
+docs/evidence/2614/R5-build.txt
+docs/evidence/2614/evidence.json
+docs/evidence/2614/pre-ready-2614.json
