@@ -5,8 +5,8 @@
   "commit": "7ef3e027143c3ec41896c79a2c68aa87b9f1357f",
   "dirty": false,
   "plan_sha256": "df53e72202482e68acbe916c3835ffaedd416ce702cfc1e73296425edce1b611",
-  "tooling_commit": "a29b2b35530c77f2bae31c509207199e6572ad9c",
-  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2542 (branch issue-2542, base origin/develop); Postgres test DB 127.0.0.1:15433/tuneloop_test (per-node schema via backend/handlers/main_test.go, #2341); host heavy-lock via heavy-run.sh; no frontend involved",
+  "tooling_commit": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
+  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2542 (branch issue-2542, base origin/develop); Postgres test DB 127.0.0.1:15433/tuneloop_test (per-node schema via backend/handlers/main_test.go, #2341); host heavy-lock via heavy-run.sh; no frontend involved",
   "rows": [
     {
       "id": "R1",
@@ -100,7 +100,7 @@
         "docs/evidence/2542/pre-ready-2542.json"
       ],
       "assert": "exit 0；jq -e '.overall == \"PASS\"' docs/evidence/2542/pre-ready-2542.json 且 evidence 每行 pass=true",
-      "actual": "PASS：pre-ready gate 报告 docs/evidence/2542/pre-ready-2542.json（最近一次 overall=missing；本行即 gate 自身输出，最终 PASS 由最后一次运行写入）",
+      "actual": "PASS：pre-ready gate 报告 docs/evidence/2542/pre-ready-2542.json（最近一次 overall=PASS；本行即 gate 自身输出，最终 PASS 由最后一次运行写入）",
       "expected": "overall=PASS、dirty=false、P13 提交在 origin/issue-2542",
       "negative": "任一 P 项失败 / evidence 缺行 / dirty=true → gate 非 0，禁止 ready",
       "negative_result": "任一 P 项失败 / evidence 缺行 / dirty=true → gate 非 0，禁止 ready",

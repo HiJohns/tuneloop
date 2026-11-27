@@ -16,7 +16,7 @@ executeAction（merchant_admin 分支）在 IAM customer-permissions 写入失�
 - scripts/verify-2542.sh（r1–r6 + gate + red + ledger）
 - 证据目录 `docs/evidence/2542/`（plan 快照、R1–R6 产物、红样、evidence.json、gate 报告）
 
-Commit Hash：7ef3e0271（fix）；证据提交见「Remote」小节。
+Commit Hash：7ef3e0271（fix）；26b9f806f（Round 2 审计 B1 文档路径修正）；证据提交见「Remote」小节。
 
 ## 验证层级
 
@@ -26,7 +26,7 @@ Commit Hash：7ef3e0271（fix）；证据提交见「Remote」小节。
 
 ## Remote
 
-remote: origin/issue-2542@7ef3e0271; fix=7ef3e0271 pushed=yes; evidence=docs/evidence/2542 pushed=yes
+remote: origin/issue-2542@7ef3e0271; fix=7ef3e0271 pushed=yes; evidence=docs/evidence/2542 pushed=yes; round2-docs=26b9f806f pushed=yes
 
 ## 红绿实证
 
@@ -127,6 +127,14 @@ build_version 的短码 7ef3e0271 即本轮 fix commit（git merge-base --is-anc
 ## 人工/部署侧
 
 - 无。本单所有矩阵行均可由 Developer 在测试库 + fake IAM 上完成；真实 beaconiam 端权限位效果由 #2506 的 services 单测与 beaconiam 端点承担（计划「工具盲区」）。
+
+## Round 2 修复（审计 Round 1 · B1）
+
+| 审计项 | 问题 | 修复 | 证据 |
+|---|---|---|---|
+| B1（High） | `docs/spec/api/api.md` §2.8.2 的「短信回调」行把入口写成 `GET /api/iam/confirmation-callback?token=<token>&reply=Y`；实际短信回调是 `GET /api/confirmation/callback/sms`（`backend/main.go:313` → `SMSCallback`，读 `token`/`reply`），而 IAM 回调（`main.go:316`）只读 `session`/`result`/`confirm_type` → 按旧行联调会命中 `sessionID == ""` → `302 /confirmation-result?status=error&message=missing_parameters`，短信确认永不生效 | 该行路径改为 `GET /api/confirmation/callback/sms?token=<token>&reply=Y`；同表另两行复核：`POST /api/confirmation-sessions/:id/confirm`（`main.go:309`，成功 200/20000、失败 500/50000）与 `GET /api/iam/confirmation-callback?session=&result=&confirm_type=`（`main.go:316`）与实现一致，未改 | `docs/spec/api/api.md`（§2.8.2 表格）；重生成 `docs/evidence/2542/R6-docs.txt` |
+
+**R6 形态声明（审计 B1 要求的选项说明）**：R6 目前是**存在性**断言（`DOC_SESSION_FAILED` / `DOC_UNBIND_COMPENSATION` / `DOC_CALLBACK_FAILED` 三个 token），**不**校验「文档路径 ↔ `main.go` 路由注册」是否一致——B1 正是从该盲区漏过的。把 R6 升级为「从 `backend/main.go` 抽取已注册 route，逐行断言 §2.8.2 表中每个 `METHOD /api/...` 都存在 + 负例」属**验收规则强化**，需 Architect 在计划 R6 行登记（`§6.5.2`）；本次按审计给出的最小路径执行：只做文档修正 + R6 重跑落盘 + 本声明，未自行加断言据以过关。路径正确性本轮由人工核对 `grep -n "confirmation" backend/main.go`（`main.go:307-316`）与 handler 入参（`SMSCallback` 读 `token`/`reply`）确认。
 
 ## Pre-ready gate
 
