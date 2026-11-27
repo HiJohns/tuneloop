@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2624,
-  "build": "1.0.bc543314a",
-  "commit": "bc543314a35c2df02969644b8bbf3b0213649395",
+  "build": "1.0.2715a4f8b",
+  "commit": "2715a4f8ba65bdd57674efe50d1ff2f7820df69f",
   "dirty": false,
   "plan_sha256": "06a876b646acb0add1c2f556fad1f1bf82aa803ceb0bc6d57ed5fae04106d448",
   "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2624 (branch issue-2624, stacked on origin/issue-2623 = L1); 一次性 PostgreSQL 127.0.0.1:15433（#2341 口径，库名 apply_2624_*）；未触碰 dev jobmaster-postgres 与预生产/生产库；未对任何真实库执行 --apply",
@@ -15,10 +15,10 @@
         "docs/evidence/2624/R1-apply-gates.txt"
       ],
       "assert": "exit 0 且含 TEST_EXIT=0 UNAUTHORIZED_APPLY=1 APPLY_CONFIRM_MISMATCH=1 REPAIR_ROWS=6 SKIPPED_ORPHAN=2 SKIPPED_MISSING_LOCAL=1 SKIPPED_ROLE_UNVERIFIED=1 DB_WRITES=0 SQL_HAS_CAS=1 SQL_HAS_AUDIT=6 SQL_HAS_POSTCHECK=1 SQL_ORDERED_BY_IAM_SUB=1",
-      "actual": "PASS：UNAUTHORIZED_EXIT=2 / UNAUTHORIZED_APPLY=1 / UNAUTHORIZED_NO_SQL=0 / APPLY_CONFIRM_MISMATCH=1 / SQL_ONLY_EXIT=0 / REPAIR_ROWS=6 / SKIPPED_ORPHAN=2 / SKIPPED_MISSING_LOCAL=1 / SKIPPED_ROLE_UNVERIFIED=1 / ROLE_APPLY_SKIPPED=1 / DB_WRITES=0 / SQL_HAS_CAS=1 / SQL_HAS_AUDIT=6 / SQL_HAS_POSTCHECK=1 / SQL_ORDERED_BY_IAM_SUB=1 / SQL_SINGLE_TRANSACTION=1 / ROLLBACK_ACTION_ROWS=6 / ROLLBACK_MIRRORS_OLD=1",
+      "actual": "PASS：UNAUTHORIZED_EXIT=2 / UNAUTHORIZED_APPLY=1 / UNAUTHORIZED_NO_SQL=0 / APPLY_CONFIRM_MISMATCH=1 / SQL_ONLY_EXIT=0 / REPAIR_ROWS=6 / SKIPPED_ORPHAN=2 / SKIPPED_MISSING_LOCAL=1 / SKIPPED_ROLE_UNVERIFIED=1 / ROLE_APPLY_SKIPPED=1 / DB_WRITES=0 / SQL_HAS_CAS=1 / SQL_HAS_AUDIT=6 / SQL_HAS_POSTCHECK=1 / SQL_ORDERED_BY_IAM_SUB=1 / SQL_SINGLE_TRANSACTION=1 / SQL_POSTCHECK_ASSERTS_TARGET=1 / SQL_POSTCHECK_LEGACY_MISMATCH_FORM=0 / ROLLBACK_ACTION_ROWS=6 / ROLLBACK_MIRRORS_OLD=1；Round 1 追加负例（同一 artifact）：R5 SKIPPED_DISABLED=1 / DISABLED_REPAIR_ROWS=5 / DISABLED_NOT_IN_SQL=1 / DISABLED_DB_WRITES=0 / DISABLED_CATEGORY_UNCHANGED=3；R6 SQL_WRITE_FAILED=1 / SQL_WRITE_FAIL_EXIT=2 / SQL_WRITE_FAIL_TOKEN=1 / SQL_WRITE_FAIL_DB_WRITES=0 / SQL_WRITE_FAIL_NO_PASS=0 / SQL_WRITE_FAIL_NO_FILE=0",
       "expected": "PASS（12 项 token 全为期望值）",
       "negative": "未授权写库、confirm 不符仍执行、跳过类被修、SQL 缺 CAS/审计/后置校验、未排序 → FAIL",
-      "negative_result": "负例已实测：未授权时 exit 2 + UNAUTHORIZED_APPLY=1 且未生成任何 SQL 文件；--confirm-rows 5（实际 6）→ APPLY_CONFIRM_MISMATCH=1 + exit 2 + DB_WRITES=0；ORPHAN(2)/MISSING(1)/ROLE_UNVERIFIED(1) 只计数不生成修复语句；SQL 每条 UPDATE 带 CAS 谓词（6/6）、审计 6 条、后置校验 6 段、按 iam_sub 升序。",
+      "negative_result": "负例已实测：未授权时 exit 2 + UNAUTHORIZED_APPLY=1 且未生成任何 SQL 文件；--confirm-rows 5（实际 6）→ APPLY_CONFIRM_MISMATCH=1 + exit 2 + DB_WRITES=0；ORPHAN(2)/MISSING(1)/ROLE_UNVERIFIED(1) 只计数不生成修复语句；SQL 每条 UPDATE 带 CAS 谓词（6/6，含 deleted_at IS NULL）、审计 6 条、后置校验 6 段且为 IF NOT EXISTS（断言达到新值），旧形态 IF EXISTS(…mismatch) 命中 0；按 iam_sub 升序。Round 1 新增负例：把 a-tenant-1 的 status 改为 disabled 后 REPAIR_ROWS 5（不含该行）、SKIPPED_DISABLED=1、fix.sql 中该 iam_sub 命中 0、只读分类 TENANT_MISMATCH 仍为 3（D1 未变）；--sql-out 指向 /proc/notallowed → exit 2 + SQL_WRITE_FAILED=1，无 RESULT: PASS、无文件产出。红样：同一 harness 跑在缺陷版 bc543314a → SQL_HAS_CAS / SQL_POSTCHECK_ASSERTS_TARGET / DISABLED_* / SQL_WRITE_FAIL_* 全部 MISMATCH（TEST_EXIT=1）。",
       "pass": true
     },
     {
@@ -29,10 +29,10 @@
         "docs/evidence/2624/R2-apply-pg.txt"
       ],
       "assert": "exit 0 且含 TEST_EXIT=0 DB_WRITES=6 AUDIT_ROWS=6 AUDIT_ACTION_USER_CACHE_RECONCILE=6 BATCH_ID_MATCH=1 RECHECK_TENANT_MISMATCH=0 RECHECK_ORG_MISMATCH=0 RECHECK_NIL_UUID=0 RECHECK_ORPHAN_LOCAL=2",
-      "actual": "PASS：一次性 PG 真修复 6 行；DB_WRITES=6 / AUDIT_ROWS=6 / AUDIT_ACTION_USER_CACHE_RECONCILE=6 / BATCH_ID_MATCH=1 / AUDIT_DETAILS_FIELDS=6 / RECHECK_TENANT_MISMATCH=0 / RECHECK_ORG_MISMATCH=0 / RECHECK_NIL_UUID=0 / RECHECK_ORPHAN_LOCAL=2 / RECHECK_DB_WRITES=0",
+      "actual": "PASS：一次性 PG 真修复 6 行；REPAIR_ROWS=6 / DB_WRITES=6 / AUDIT_ROWS=6 / AUDIT_ACTION_USER_CACHE_RECONCILE=6 / BATCH_ID_MATCH=1 / AUDIT_DETAILS_FIELDS=6 / RECHECK_TENANT_MISMATCH=0 / RECHECK_ORG_MISMATCH=0 / RECHECK_NIL_UUID=0 / RECHECK_ORPHAN_LOCAL=2 / RECHECK_DB_WRITES=0；Round 1 追加负例（同库二次 apply）：DISABLED_APPLY_EXIT=0 / SKIPPED_DISABLED=1 / DISABLED_REPAIR_ROWS=1 / DISABLED_DB_WRITES=1 / DISABLED_NOT_IN_SQL=1 / DISABLED_ROW_UNCHANGED=1 / DISABLED_AUDIT_ROWS=0",
       "expected": "PASS（9 项 token 全为期望值）",
       "negative": "修 ORPHAN、审计缺行/缺字段、复查残留差异、写入行数不符 → FAIL",
-      "negative_result": "负例未触发：ORPHAN 两行未被修（复查仍为 2）；审计每行带 category/old/new 且 batch_id 与 token 一致（6/6）；复查三类差异归零；只读复查 ADB_WRITES=0（未把只读路径变成写路径）。",
+      "negative_result": "负例未触发：ORPHAN 两行未被修（复查仍为 2）；审计每行带 category/old/new 且 batch_id 与 token 一致（6/6）；复查三类差异归零；只读复查 DB_WRITES=0（未把只读路径变成写路径）。Round 1 新增 disabled 负例实测：把 a-tenant-2 置 status='disabled' 且 tenant 改回漂移值、另把 a-org-1 也改回漂移值 → 本次 REPAIR_ROWS=1、SKIPPED_DISABLED=1、DB_WRITES=1；fix.sql 中 a-tenant-2 命中 0，执行后该行仍为 disabled|33333333-…（DISABLED_ROW_UNCHANGED=1），未新增审计（DISABLED_AUDIT_ROWS=0）。红样：缺陷版 bc543314a 同场景 DISABLED_REPAIR_ROWS=MISMATCH(expected=1 actual=2) 且 DISABLED_ROW_UNCHANGED 不成立（disabled 行被 UPDATE）。",
       "pass": true
     },
     {
@@ -43,10 +43,10 @@
         "docs/evidence/2624/R3-rollback-concurrency.txt"
       ],
       "assert": "exit 0 且含 TEST_EXIT=0 RESTORED_ROWS=6 ROLLBACK_AUDIT_ROWS=6 POST_ROLLBACK_TENANT_MATCH=6 CONCURRENT_ABORT=1 DB_WRITES=0 ROWS_CHANGED_AFTER_ABORT=0",
-      "actual": "PASS：回滚执行 exit 0 / RESTORED_ROWS=6 / ROLLBACK_AUDIT_ROWS=6 / POST_ROLLBACK_TENANT_MATCH=6；并发例（SQL 生成后篡改 1 行为第三值再执行）CONCURRENT_SQL_EXIT_NONZERO=1 / CONCURRENT_ABORT=1（psql: reconcile: concurrent change detected for aaaa0000-0000-4000-8000-000000000001）/ DB_WRITES=0 / ROWS_CHANGED_AFTER_ABORT=0 / NO_PARTIAL_WRITE=0 / FULL_TABLE_UNCHANGED_BY_ABORT=1",
+      "actual": "PASS：回滚执行 exit 0 / RESTORED_ROWS=6 / ROLLBACK_AUDIT_ROWS=6 / POST_ROLLBACK_TENANT_MATCH=6；改值型并发例 CONCURRENT_SQL_EXIT_NONZERO=1 / CONCURRENT_ABORT=1（psql: reconcile: concurrent change detected for aaaa0000-0000-4000-8000-000000000001 (row missing/soft-deleted/not at target)）/ DB_WRITES=0 / ROWS_CHANGED_AFTER_ABORT=0 / NO_PARTIAL_WRITE=0 / FULL_TABLE_UNCHANGED_BY_ABORT=1；Round 1 追加负例（R4 删除目标行）：DELETE_ROW_GEN_EXIT=0 / DELETE_ROW_GEN_DB_WRITES=0 / DELETE_ROW_SQL_EXIT_NONZERO=1 / DELETE_ROW_ABORT=1（psql: reconcile: concurrent change detected for aaaa…0006）/ DELETE_ROW_NO_PASS=0 / ROWS_CHANGED_AFTER_DELETE_ABORT=0 / DELETE_ROW_DB_WRITES=0 / DELETE_ROW_AUDIT_ROWS=0",
       "expected": "PASS（7 项 token 全为期望值）",
-      "negative": "回滚未还原、半修残留、并发非整体中止 → FAIL",
-      "negative_result": "负例已实测：并发场景下 CAS 命中 0 行 → 后置校验 RAISE EXCEPTION → 整个事务回滚，整表 hash 不变（ROWS_CHANGED_AFTER_ABORT=0）、审计行数不变（NO_PARTIAL_WRITE=0 表示「无新增」），不存在半修；回滚后 6 行全部还原到旧值且产生 6 条 ROLLBACK 审计。",
+      "negative": "回滚后任一行未还原、部分写入残留（半修）、并发场景非整体中止 → 任一即 FAIL",
+      "negative_result": "负例已实测：改值型并发（快照后把 1 行改成第三值）CAS 命中 0 行 → 后置校验 RAISE → 整表 hash 不变（ROWS_CHANGED_AFTER_ABORT=0）、审计行数不变（NO_PARTIAL_WRITE=0 表示「无新增」）；回滚后 6 行全部还原到旧值且产生 6 条 ROLLBACK 审计。Round 1 新增删除型并发（快照后 DELETE 掉 a-nil-1）：修复 SQL 非 0 退出、日志含 concurrent change detected、整表 hash 与审计行数均不变（DELETE_ROW_DB_WRITES=0 / DELETE_ROW_AUDIT_ROWS=0），不再出现「6 行里只更新 5 行却报 DB_WRITES=6 + 伪审计」。红样：缺陷版 bc543314a 同场景 DELETE_ROW_SQL_EXIT_NONZERO=MISMATCH(expected=1 actual=0)、ROWS_CHANGED_AFTER_DELETE_ABORT=MISMATCH(expected=0 actual=1)、DELETE_ROW_AUDIT_ROWS=MISMATCH(expected=0 actual=6)。",
       "pass": true
     }
   ]

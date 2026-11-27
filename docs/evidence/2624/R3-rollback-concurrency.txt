@@ -1,5 +1,5 @@
-# build=1.0.bc543314a # commit=bc543314a35c2df02969644b8bbf3b0213649395 # dirty=false
-GENERATED_AT_HEAD=bc543314a35c2df02969644b8bbf3b0213649395
+# build=1.0.2715a4f8b # commit=2715a4f8ba65bdd57674efe50d1ff2f7820df69f # dirty=false
+GENERATED_AT_HEAD=c010752d02469b0ab2f6da241645d28e1ddf9ad8
 APPLY_EXIT=0
 APPLY_DB_WRITES=6
 ROLLBACK_SQL_EXIT=0
@@ -8,12 +8,22 @@ ROLLBACK_AUDIT_ROWS=6
 POST_ROLLBACK_TENANT_MATCH=6
 CONCURRENT_GEN_EXIT=0
 DB_WRITES=0
-psql:/tmp/opencode/tuneloop/wt-2624/tmp/apply-2624.PEg2nX/r3-concurrent.sql:65: ERROR:  reconcile: concurrent change detected for aaaa0000-0000-4000-8000-000000000001
-CONTEXT:  PL/pgSQL function inline_code_block line 3 at RAISE
+psql:/tmp/opencode/tuneloop/wt-2624/tmp/apply-2624.LPTtu5/r3-concurrent.sql:69: ERROR:  reconcile: concurrent change detected for aaaa0000-0000-4000-8000-000000000001 (row missing/soft-deleted/not at target)
+CONTEXT:  PL/pgSQL function inline_code_block line 4 at RAISE
 CONCURRENT_SQL_EXIT_NONZERO=1
 CONCURRENT_ABORT=1
 ROWS_CHANGED_AFTER_ABORT=0
 NO_PARTIAL_WRITE=0
 FULL_TABLE_UNCHANGED_BY_ABORT=1
+DELETE_ROW_GEN_EXIT=0
+DELETE_ROW_GEN_DB_WRITES=0
+psql:/tmp/opencode/tuneloop/wt-2624/tmp/apply-2624.LPTtu5/r3-delete.sql:51: ERROR:  reconcile: concurrent change detected for aaaa0000-0000-4000-8000-000000000006 (row missing/soft-deleted/not at target)
+CONTEXT:  PL/pgSQL function inline_code_block line 4 at RAISE
+DELETE_ROW_SQL_EXIT_NONZERO=1
+DELETE_ROW_ABORT=1
+DELETE_ROW_NO_PASS=0
+ROWS_CHANGED_AFTER_DELETE_ABORT=0
+DELETE_ROW_DB_WRITES=0
+DELETE_ROW_AUDIT_ROWS=0
 TEST_EXIT=0
 RESULT: PASS

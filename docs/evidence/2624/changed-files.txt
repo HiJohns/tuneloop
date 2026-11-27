@@ -1,5 +1,0 @@
-docs/ops/user-cache-reconcile.md
-scripts/fixtures/reconcile-2624/iam.tsv
-scripts/fixtures/reconcile-2624/local.tsv
-scripts/reconcile-user-cache.sh
-scripts/tests/test_reconcile_user_cache_apply_2624.sh
