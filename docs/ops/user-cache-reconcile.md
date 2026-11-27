@@ -174,3 +174,69 @@ bash scripts/tests/test_reconcile_user_cache_2623.sh r3   # 一次性 PG 15433 �
   修复见 #2624（`ORPHAN_LOCAL` / `IAM_MISSING` 永不自动修复）。
 - 不通过 IAM HTTP API 枚举关系（只做只读 SQL）；若某环境 SQL 不可达，另立 Issue。
 - 存量回填与 `tenant_id` 体系整体口径（#2255 P3）不在本工具范围。
+
+## 9. 可选修复通道 `--apply`（#2624）
+
+> **红线**：AI 不得对 dev / 预生产 / 生产库执行 `--apply`。真实修复必须由 **Owner 授权**
+> 后交运维执行；本仓库证据只在一次性 PostgreSQL（`127.0.0.1:15433`）产生。
+> 判定逻辑与 token 契约的唯一 owner 仍是 #2623 —— 本节只描述**写通道**。
+
+### 9.1 命令
+
+```bash
+OWNER_APPROVED_USER_CACHE_RECONCILE=1 \
+bash scripts/reconcile-user-cache.sh --apply \
+  --confirm-rows <本次算出的 REPAIR_ROWS> \
+  --sql-out   /path/repair-<batch>.sql \
+  --rollback-file /path/rollback-<batch>.sql \
+  [--iam-fixture <file>] [--sql-only] [--include-role]
+```
+
+| 参数 | 语义 |
+|---|---|
+| `--apply` | 进入修复通道；**不加时行为与只读版完全一致**（不加即 L1 只读） |
+| `--confirm-rows <n>` | 必须与本次算出的 `REPAIR_ROWS` **逐字相等**，否则 `exit 2` + `DB_WRITES=0` |
+| `--sql-out` / `--rollback-file` | **必填**：分别写出「修复 SQL」「回滚 SQL」，两者都可独立执行（DBA 可复核后手动跑） |
+| `--sql-only` | 只生成两份 SQL，不连库执行（`DB_WRITES=0`，离线可断言） |
+| `--include-role` | 预留：只有角色映射表被锁定后才允许修 `ROLE_MISMATCH`；当前恒为 `ROLE_APPLY_SKIPPED=1` |
+
+### 9.2 修复范围（逐类计数，禁止静默）
+
+| 类别 | 处理 | token |
+|---|---|---|
+| `TENANT_MISMATCH` / `ORG_MISMATCH` / `NIL_UUID` | compare-and-set 修复 | 计入 `REPAIR_ROWS` |
+| `ORPHAN_LOCAL` | 跳过（离职/解绑语义，人工处理） | `SKIPPED_ORPHAN` |
+| `MISSING_LOCAL` | 跳过（是否建行属产品决策） | `SKIPPED_MISSING_LOCAL` |
+| `ROLE_MISMATCH` | 默认跳过（映射多对一，需先锁表） | `SKIPPED_ROLE` + `ROLE_APPLY_SKIPPED=1` |
+| `ROLE_UNVERIFIED` | 永不修 | `SKIPPED_ROLE_UNVERIFIED` |
+| 未知类别 / 明细缺 `local_id` / 非 uuid 值 | **fail-fast `exit 3`**，不生成 SQL | `UNKNOWN_CATEGORY=1` |
+
+### 9.3 两份 SQL 的形态（可逐行断言）
+
+- **单事务**：`BEGIN; … COMMIT;`，任一语句失败即整体回滚（`psql -v ON_ERROR_STOP=1 -f`）。
+- **compare-and-set**：`UPDATE users SET tenant_id=…, org_id=…, updated_at=now() WHERE id=… AND iam_sub=… AND tenant_id=<旧值> AND org_id=<旧值>;`
+  —— 目标行在生成与执行之间被改过 → 命中 0 行，不会覆盖并发写入。
+- **审计留痕**：每行一条 `audit_logs`（`action=USER_CACHE_RECONCILE`，`details={batch_id,category,old,new}`）；
+  回滚文件写 `action=USER_CACHE_RECONCILE_ROLLBACK`，`old`/`new` 互换。
+- **事务末后置校验**：每行一个 `DO $$ ... RAISE EXCEPTION 'reconcile: concurrent change detected for <id>' ... $$;`
+  —— 任一行未达预期值即中止整个事务（不可能「修一半」）。
+- 语句按 `iam_sub` 升序，`BATCH_ID=<UTC yyyyMMddTHHMMSSZ>-<6 hex>` 贯穿修复 SQL、审计 `details`、回滚 SQL 与输出 token。
+
+### 9.4 输出 token（新增，L1 token 不变）
+
+```
+REPAIR_ROWS SKIPPED_ORPHAN SKIPPED_MISSING_LOCAL SKIPPED_ROLE SKIPPED_ROLE_UNVERIFIED
+ROLE_APPLY_SKIPPED BATCH_ID AUDIT_ROWS DB_WRITES ROLLBACK_ROWS SQL_OUT ROLLBACK_FILE
+```
+
+失败语义：未授权 `UNAUTHORIZED_APPLY=1`；行数不符 `APPLY_CONFIRM_MISMATCH=1`；
+`REPAIR_ROWS=0` → `NOTHING_TO_REPAIR=1`（无事可做不是成功修复）；以上一律 `DB_WRITES=0` + `exit 2`。
+
+### 9.5 运维执行顺序（真实库）
+
+1. 只读跑一次拿到 `REPAIR_ROWS` 与明细；
+2. Owner 授权（`OWNER_APPROVED_USER_CACHE_RECONCILE=1`）；
+3. `--sql-only` 生成 SQL → DBA 复核 `--sql-out`；
+4. 执行修复 SQL（单事务）；
+5. 再跑只读对账 → 三类计数应归零；`ORPHAN_LOCAL` / `MISSING_LOCAL` / 角色类仍按原样跳过；
+6. 如需回退：执行 `--rollback-file`（同样单事务 + 反向审计）。

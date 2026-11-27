@@ -35,6 +35,12 @@ LIMIT="$DEFAULT_LIMIT"
 IAM_FIXTURE=""
 LOCAL_FIXTURE=""
 FIXTURE_DIR=""
+APPLY=0
+SQL_ONLY=0
+INCLUDE_ROLE=0
+CONFIRM_ROWS=""
+SQL_OUT=""
+ROLLBACK_FILE=""
 
 usage() {
   sed -n '2,30p' "$0"
@@ -47,6 +53,13 @@ while [ $# -gt 0 ]; do
     --fixture) FIXTURE_DIR="${2:-}"; shift 2 ;;
     --iam-fixture) IAM_FIXTURE="${2:-}"; shift 2 ;;
     --local-fixture) LOCAL_FIXTURE="${2:-}"; shift 2 ;;
+    # #2624：可选修复通道（不加 --apply 时行为与 L1 只读完全一致，D1）
+    --apply) APPLY=1; shift ;;
+    --sql-only) SQL_ONLY=1; shift ;;
+    --include-role) INCLUDE_ROLE=1; shift ;;
+    --confirm-rows) CONFIRM_ROWS="${2:-}"; shift 2 ;;
+    --sql-out) SQL_OUT="${2:-}"; shift 2 ;;
+    --rollback-file) ROLLBACK_FILE="${2:-}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "RESULT: FAIL (unknown argument: $1)" >&2; exit 2 ;;
   esac
@@ -379,6 +392,13 @@ declare -A COUNT=(
   [CONTEXT_AMBIGUOUS]=0 [MEMBER_ONLY]=0 [IAM_MISSING]=0 [ORG_UNRESOLVED]=0
 )
 DETAILS=()
+# #2624：可修复行（只含 TENANT_MISMATCH / ORG_MISMATCH / NIL_UUID）
+# 字段：iam_sub|local_id|category|old_tenant|old_org|new_tenant|new_org
+REPAIRS=()
+
+add_repair() { # sub local_id category old_tenant old_org new_tenant new_org
+  REPAIRS+=("$1|$2|$3|$4|$5|$6|$7")
+}
 
 add_detail() { # category sub local_desc iam_desc
   DETAILS+=("$2"$'\t'"$1"$'\t'"$3"$'\t'"$4")
@@ -428,18 +448,21 @@ classify_subject() { # sub
       COUNT[NIL_UUID]=$((COUNT[NIL_UUID] + 1))
       add_detail NIL_UUID "$sub" "tenant=$local_tenant org=$local_org role=$local_role" \
         "tenant=$expect_tenant org=$expect_org role=$rel_role"
+      add_repair "$sub" "$local_uid" NIL_UUID "$local_tenant" "$local_org" "$expect_tenant" "$expect_org"
       return 0
     fi
     if [ "$local_tenant" != "$expect_tenant" ]; then
       COUNT[TENANT_MISMATCH]=$((COUNT[TENANT_MISMATCH] + 1))
       add_detail TENANT_MISMATCH "$sub" "tenant=$local_tenant org=$local_org role=$local_role" \
         "tenant=$expect_tenant org=$expect_org role=$rel_role"
+      add_repair "$sub" "$local_uid" TENANT_MISMATCH "$local_tenant" "$local_org" "$expect_tenant" "$expect_org"
       return 0
     fi
     if [ "$local_org" != "$expect_org" ]; then
       COUNT[ORG_MISMATCH]=$((COUNT[ORG_MISMATCH] + 1))
       add_detail ORG_MISMATCH "$sub" "tenant=$local_tenant org=$local_org role=$local_role" \
         "tenant=$expect_tenant org=$expect_org role=$rel_role"
+      add_repair "$sub" "$local_uid" ORG_MISMATCH "$local_tenant" "$local_org" "$expect_tenant" "$expect_org"
       return 0
     fi
     allowed="$(allowed_local_roles "$rel_role" "$rel_froles")"
@@ -507,6 +530,197 @@ sort_details() {
   printf '%s\n' "${DETAILS[@]}" | LC_ALL=C sort -t$'\t' -k1,1
 }
 
+# ------------------------------------------------------------ 修复通道（#2624）
+# 只在 --apply 时生成/执行；不加 --apply 时下列 token 不输出，行为与 L1 只读完全一致（D1）。
+REPAIR_ROWS=0
+SKIPPED_ORPHAN="${COUNT[ORPHAN_LOCAL]:-0}"
+SKIPPED_MISSING_LOCAL="${COUNT[MISSING_LOCAL]:-0}"
+SKIPPED_ROLE="${COUNT[ROLE_MISMATCH]:-0}"
+SKIPPED_ROLE_UNVERIFIED="${COUNT[ROLE_UNVERIFIED]:-0}"
+ROLE_APPLY_SKIPPED=1
+AUDIT_ROWS=0
+ROLLBACK_ROWS=0
+BATCH_ID=""
+
+KNOWN_CATEGORIES=" TENANT_MISMATCH ORG_MISMATCH NIL_UUID MISSING_LOCAL ORPHAN_LOCAL ROLE_MISMATCH ROLE_UNVERIFIED CONTEXT_AMBIGUOUS MEMBER_ONLY IAM_MISSING ORG_UNRESOLVED "
+
+uuid_like() { # value -> 0 when it looks like a uuid (8-4-4-4-12 hex)
+  printf '%s' "$1" | grep -qE '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+}
+
+sql_quote() { # single-quote escaping for SQL literals
+  printf '%s' "$1" | sed "s/'/''/g"
+}
+
+repair_tokens() {
+  printf 'REPAIR_ROWS=%s\n' "$REPAIR_ROWS"
+  printf 'SKIPPED_ORPHAN=%s\n' "$SKIPPED_ORPHAN"
+  printf 'SKIPPED_MISSING_LOCAL=%s\n' "$SKIPPED_MISSING_LOCAL"
+  printf 'SKIPPED_ROLE=%s\n' "$SKIPPED_ROLE"
+  printf 'SKIPPED_ROLE_UNVERIFIED=%s\n' "$SKIPPED_ROLE_UNVERIFIED"
+  printf 'ROLE_APPLY_SKIPPED=%s\n' "$ROLE_APPLY_SKIPPED"
+  printf 'BATCH_ID=%s\n' "${BATCH_ID:-none}"
+  printf 'AUDIT_ROWS=%s\n' "$AUDIT_ROWS"
+  printf 'ROLLBACK_ROWS=%s\n' "$ROLLBACK_ROWS"
+  printf 'SQL_OUT=%s\n' "${SQL_OUT:-none}"
+  printf 'ROLLBACK_FILE=%s\n' "${ROLLBACK_FILE:-none}"
+}
+
+new_batch_id() {
+  local rand
+  if [ -r /dev/urandom ]; then
+    rand="$(od -An -N3 -tx1 /dev/urandom | tr -d ' \n')"
+  else
+    rand="$(printf '%06x' "$((RANDOM * RANDOM % 16777216))")"
+  fi
+  printf '%s-%s' "$(date -u +%Y%m%dT%H%M%SZ)" "$rand"
+}
+
+write_repair_sql() { # file action old_field new_field order
+  local file="$1" action="$2" old_name="$3" new_name="$4" order="$5"
+  local row sub uid cat old_tenant old_org new_tenant new_org
+  {
+    echo "-- #2624 user cache reconcile ${action} batch ${BATCH_ID}"
+    echo "-- generated from scripts/reconcile-user-cache.sh (single transaction)"
+    echo "BEGIN;"
+    while IFS='|' read -r sub uid cat old_tenant old_org new_tenant new_org; do
+      [ -n "$sub" ] || continue
+      local from_tenant="$old_tenant" from_org="$old_org" to_tenant="$new_tenant" to_org="$new_org"
+      if [ "$order" = "rollback" ]; then
+        from_tenant="$new_tenant"; from_org="$new_org"; to_tenant="$old_tenant"; to_org="$old_org"
+      fi
+      echo "-- iam_sub=$(sql_quote "$sub") category=$cat"
+      printf "UPDATE users SET tenant_id = '%s', org_id = '%s', updated_at = now()\n" \
+        "$(sql_quote "$to_tenant")" "$(sql_quote "$to_org")"
+      printf " WHERE id = '%s' AND iam_sub = '%s' AND tenant_id = '%s' AND org_id = '%s';\n" \
+        "$(sql_quote "$uid")" "$(sql_quote "$sub")" "$(sql_quote "$from_tenant")" "$(sql_quote "$from_org")"
+      printf "INSERT INTO audit_logs (id, tenant_id, org_id, user_id, actor_name, actor_role, action, resource_type, resource_id, status_code, status, details, ip_address, user_agent, created_at)\n"
+      printf "VALUES (gen_random_uuid(), '%s', '%s', '%s', 'reconcile-user-cache', 'ops', '%s', 'users', '%s', 0, 'success',\n" \
+        "$(sql_quote "$to_tenant")" "$(sql_quote "$to_org")" "$(sql_quote "$uid")" "$action" "$(sql_quote "$sub")"
+      printf "        '{\"batch_id\":\"%s\",\"category\":\"%s\",\"old\":{\"tenant_id\":\"%s\",\"org_id\":\"%s\"},\"new\":{\"tenant_id\":\"%s\",\"org_id\":\"%s\"}}'::jsonb,\n" \
+        "$BATCH_ID" "$cat" "$(sql_quote "$from_tenant")" "$(sql_quote "$from_org")" "$(sql_quote "$to_tenant")" "$(sql_quote "$to_org")"
+      printf "        '', '', now());\n"
+    done <<< "$SORTED_REPAIRS"
+    while IFS='|' read -r sub uid cat old_tenant old_org new_tenant new_org; do
+      [ -n "$sub" ] || continue
+      local to_tenant="$new_tenant" to_org="$new_org"
+      if [ "$order" = "rollback" ]; then to_tenant="$old_tenant"; to_org="$old_org"; fi
+      echo "DO \$\$ BEGIN"
+      printf "  IF EXISTS (SELECT 1 FROM users WHERE id = '%s' AND (tenant_id <> '%s' OR org_id <> '%s')) THEN\n" \
+        "$(sql_quote "$uid")" "$(sql_quote "$to_tenant")" "$(sql_quote "$to_org")"
+      printf "    RAISE EXCEPTION 'reconcile: concurrent change detected for %s';\n" "$(sql_quote "$uid")"
+      echo "  END IF;"
+      echo "END \$\$;"
+    done <<< "$SORTED_REPAIRS"
+    echo "COMMIT;"
+  } > "$file"
+}
+
+validate_repairs() {
+  local row sub uid cat old_tenant old_org new_tenant new_org bad=0
+  while IFS='|' read -r sub uid cat old_tenant old_org new_tenant new_org; do
+    [ -n "$sub" ] || continue
+    if [ -z "$uid" ]; then
+      echo "BAD_DETAIL=missing_local_id"
+      bad=1; continue
+    fi
+    for v in "$uid" "$old_tenant" "$old_org" "$new_tenant" "$new_org"; do
+      if ! uuid_like "$v"; then
+        echo "BAD_DETAIL=non_uuid_value($v)"
+        bad=1
+      fi
+    done
+  done <<< "$SORTED_REPAIRS"
+  [ "$bad" = "0" ]
+}
+
+SORTED_REPAIRS=""
+if [ "${#REPAIRS[@]}" -gt 0 ]; then
+  SORTED_REPAIRS="$(printf '%s\n' "${REPAIRS[@]}" | LC_ALL=C sort -t'|' -k1,1)"
+  REPAIR_ROWS="$(printf '%s\n' "$SORTED_REPAIRS" | sed '/^$/d' | wc -l | tr -d ' ')"
+fi
+
+if [ "$APPLY" = "1" ]; then
+  # 0) 未知类别 / 损坏明细 → fail-fast（不猜）
+  if [ "${#DETAILS[@]}" -gt 0 ]; then
+    while IFS=$'\t' read -r d_sub d_cat _d_local _d_iam; do
+      [ -n "$d_sub" ] || continue
+      case "$KNOWN_CATEGORIES" in
+        *" $d_cat "*) ;;
+        *) echo "UNKNOWN_CATEGORY=1"; fail_with 3 "unknown category '$d_cat' for '$d_sub' (refusing to guess)" ;;
+      esac
+    done < <(sort_details)
+  fi
+  if [ "$REPAIR_ROWS" -gt 0 ] && ! validate_repairs; then
+    echo "UNKNOWN_CATEGORY=0"
+    fail_with 3 "malformed repair detail (refusing to generate SQL)"
+  fi
+
+  # 1) Owner 审批闸门（未授权不得进入）
+  if [ "${OWNER_APPROVED_USER_CACHE_RECONCILE:-}" != "1" ]; then
+    echo "UNAUTHORIZED_APPLY=1"
+    DB_WRITES=0
+    repair_tokens
+    fail_with 2 "owner approval required: OWNER_APPROVED_USER_CACHE_RECONCILE=1"
+  fi
+
+  # 2) 必填产物路径
+  if [ -z "$SQL_OUT" ] || [ -z "$ROLLBACK_FILE" ]; then
+    echo "MISSING_APPLY_ARGS=1"
+    DB_WRITES=0
+    repair_tokens
+    fail_with 2 "--apply requires --sql-out and --rollback-file"
+  fi
+
+  # 3) 无事可做不是成功修复
+  if [ "$REPAIR_ROWS" -eq 0 ]; then
+    echo "NOTHING_TO_REPAIR=1"
+    DB_WRITES=0
+    repair_tokens
+    fail_with 2 "REPAIR_ROWS=0 (nothing to repair)"
+  fi
+
+  # 4) --confirm-rows 必须与本次算出的行数逐字相等（#2484 伪阳性防线）
+  if [ -z "$CONFIRM_ROWS" ] || [ "$CONFIRM_ROWS" != "$REPAIR_ROWS" ]; then
+    echo "APPLY_CONFIRM_MISMATCH=1"
+    DB_WRITES=0
+    repair_tokens
+    fail_with 2 "--confirm-rows (${CONFIRM_ROWS:-missing}) must equal REPAIR_ROWS=$REPAIR_ROWS"
+  fi
+
+  BATCH_ID="$(new_batch_id)"
+  mkdir -p "$(dirname "$SQL_OUT")" 2>/dev/null || true
+  mkdir -p "$(dirname "$ROLLBACK_FILE")" 2>/dev/null || true
+  write_repair_sql "$SQL_OUT" USER_CACHE_RECONCILE old new forward
+  write_repair_sql "$ROLLBACK_FILE" USER_CACHE_RECONCILE_ROLLBACK new old rollback
+  AUDIT_ROWS="$REPAIR_ROWS"
+  ROLLBACK_ROWS="$REPAIR_ROWS"
+
+  if [ "$SQL_ONLY" = "1" ]; then
+    DB_WRITES=0
+  else
+    [ -n "${LOCAL_DB:-}" ] || fail_with 2 "--apply needs a live local database (TUNELOOP_DB_NAME); use --sql-only for offline SQL"
+    command -v psql >/dev/null 2>&1 || fail_with 2 "psql not found; use --sql-only"
+    APPLY_TMP_DIR="${TMPDIR:-/tmp}"
+    mkdir -p "$APPLY_TMP_DIR" 2>/dev/null || true
+    APPLY_LOG="$(mktemp "$APPLY_TMP_DIR/reconcile-apply.XXXXXX")" || exit 2
+    PGPASSWORD="$LOCAL_PASSWORD" psql -X -q -v ON_ERROR_STOP=1 \
+      -h "$LOCAL_HOST" -p "$LOCAL_PORT" -U "$LOCAL_USER" -d "$LOCAL_DB" \
+      -f "$SQL_OUT" > "$APPLY_LOG" 2>&1
+    APPLY_RC=$?
+    if [ "$APPLY_RC" != "0" ]; then
+      echo "APPLY_SQL_EXIT=$APPLY_RC"
+      sed -n '1,20p' "$APPLY_LOG"
+      rm -f "$APPLY_LOG"
+      DB_WRITES=0
+      repair_tokens
+      fail_with 2 "repair transaction aborted (see APPLY_SQL_EXIT)"
+    fi
+    rm -f "$APPLY_LOG"
+    DB_WRITES="$REPAIR_ROWS"
+  fi
+fi
+
 TOKEN_ORDER=(
   RECONCILE_DATE RECONCILE_SOURCE USERS_LOCAL USERS_IAM_ACTIVE
   TENANT_MISMATCH ORG_MISMATCH NIL_UUID MISSING_LOCAL ORPHAN_LOCAL
@@ -544,6 +758,10 @@ if [ "$MODE_JSON" = "1" ]; then
   tokens_json="$(for name in "${TOKEN_ORDER[@]}"; do
       jq -n --arg k "$name" --arg v "$(token_value "$name")" '{($k): $v}'
     done | jq -s 'add')"
+  if [ "$APPLY" = "1" ]; then
+    repair_json="$(repair_tokens | awk -F= '{print $1"\t"$2}' | jq -R -s 'split("\n") | map(select(length > 0)) | map(split("\t") | {(.[0]): (.[1] // "")}) | add // {}')"
+    tokens_json="$(jq -n --argjson a "$tokens_json" --argjson b "$repair_json" '$a + $b')"
+  fi
   email_map="$(for sub in "${!LOCAL_BY_SUB[@]}"; do
       row="${LOCAL_BY_SUB[$sub]}"
       printf '%s\t%s\n' "$sub" "$(printf '%s' "$row" | awk -F'|' '{print $6}')"
@@ -556,6 +774,9 @@ fi
 for name in "${TOKEN_ORDER[@]}"; do
   printf '%s=%s\n' "$name" "$(token_value "$name")"
 done
+if [ "$APPLY" = "1" ]; then
+  repair_tokens
+fi
 printf 'DETAIL_COUNT=%s\n' "${#DETAILS[@]}"
 if [ "${#DETAILS[@]}" -gt 0 ]; then
   sort_details | while IFS=$'\t' read -r sub category local_desc iam_desc; do
