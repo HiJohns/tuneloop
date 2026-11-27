@@ -6,7 +6,7 @@
 
 Round 3 审计的 4 条 delta 全部属于**验收文本/证据记录层**（产品代码已被确认正确），本轮按 Rev.4 **逐字落地**，`frontend-pc/src/pages/admin/category/List.jsx` **零改动**：
 
-- **delta 1（红样锚点）**：`scripts/verify-2564.sh` 的 r2 红样仍为**动态推导**——「本 Issue 第一个 `fix(issue-2564)` 且触及 `List.jsx` 的 commit 的父提交」（`git log --format=%H --grep="^fix(issue-2564" --reverse -- "$SRC" | head -1` 取 `^`），**不手写 sha**，也**不再**使用 `git log -1 -- "$SRC"` 口径（第二次 fix 后该口径会前移到上一版绿样，红绿对照退化为「绿 vs 绿」）。产物输出 `RED_SAMPLE=5cd3c900a^:frontend-pc/src/pages/admin/category/List.jsx`。
+- **delta 1（红样锚点）**：`scripts/verify-2564.sh` 的 r2 红样仍为**动态推导**——「本 Issue 第一个 `fix(issue-2564)` 且触及 List.jsx 的 commit 的父提交」（`git log --format=%H --grep="^fix(issue-2564" --reverse -- "$SRC" | head -1` 取 `^`），**不手写 sha**，也**不再**使用 `git log -1 -- "$SRC"` 口径（第二次 fix 后该口径会前移到上一版绿样，红绿对照退化为「绿 vs 绿」）。产物输出 RED_SAMPLE 行（`frontend-pc/src/pages/admin/category/List.jsx` 的红样）。
 - **delta 2（夹具锚点）**：G0 R2 的夹具改为可执行锚点——`finalParentId` 计算块 + `if (response.data?.id && !finalParentId)` 守卫；脚本按正则定位并把**实际行号**写入产物（`ANCHOR_FINAL_PARENT_BLOCK=245-256`、`ANCHOR_CREATE_GUARD_LINE=281`），并新增 `ANCHOR_FINAL_PARENT_PRESENT=1` / `ANCHOR_CREATE_GUARD_PRESENT=1`（锚点缺失即 R2_FAIL）。不再引用「上层分类选择器默认值」这类页面上不存在的控件。
 - **delta 3（合同三处一致）**：`docs/evidence/2564/evidence.json` 的 R2 `expected` 逐字补登 `AUTOSELECT_TOPLEVEL_ONLY=1`、`CREATED_SUBCATEGORY_KEEPS_PARENT=1`、`GUARD_MUTATION_DETECTED=1`（含变异负例说明）、`RED_NO_AUTOSELECT_GUARD=1`，与矩阵/G0/合同三处一致。
 - **delta 4（R4 命令与实跑一致）**：R4 合同命令登记 `--affected-cmd "cd frontend-pc && npx eslint src/pages/admin/category/List.jsx"`，本报告 Pre-ready 段落的命令即该登记命令逐字；断言键同步为 `jq -e '.overall == "PASS"'`（旧 `.result` 键已删除）。
@@ -57,7 +57,7 @@ Round 3 审计的 4 条 delta 全部属于**验收文本/证据记录层**（产
 
 ### 验证层级
 
-- **子任务**（Issue body 含 `Parent: #2563`）：本单只跑**定向**命令——P4 `cd frontend-pc && npx eslint src/pages/admin/category/List.jsx`（改动文件静态检查）+ R3 `cd frontend-pc && npm run build`（PC 构建）；**全量 gate 由父任务 #2563 / 批次承担**（其 `pre-ready-2563.json` 已 PASS 且已合入 `origin/develop`），P5 因此为 `N/A (sub-task)`。
+- **子任务**（Issue body 含 `Parent: #2563`）：本单只跑**定向**命令——P4 `cd frontend-pc && npx eslint src/pages/admin/category/List.jsx`（改动文件静态检查）+ R3 `cd frontend-pc && npm run build`（PC 构建）；**全量 gate 由父任务 #2563 / 批次承担**（父任务 #2563 的 gate 报告已 PASS 且已合入 `origin/develop`），P5 因此为 `N/A (sub-task)`。
 - 证据形态：PC 无组件测试运行器，R1/R2 为**静态结构断言**（D4 Owner 豁免），真实点击/渲染回执由跟踪 Issue #2572 承载。
 - 无后端 / 无 migration / 无新增依赖。
 
@@ -76,10 +76,10 @@ Round 3 审计的 4 条 delta 全部属于**验收文本/证据记录层**（产
 | 审计项 | 矩阵行 | 修复后证据 |
 |---|---|---|
 | Round 1 Bug 1：子分类创建成功后把 level-2 id 写入 `selectedParentId`（右侧面板清空 + 「编辑」TypeError + 可建不可见孙级） | R2 | 创建分支增加 `!finalParentId` 守卫；`AUTOSELECT_TOPLEVEL_ONLY=1`、`CREATED_SUBCATEGORY_KEEPS_PARENT=1`、`GUARD_MUTATION_DETECTED=1`、`RED_NO_AUTOSELECT_GUARD=1` |
-| Round 2 Bug 1：R4 断言引用不存在的 `.result` 键 | R4 | `evidence.json` R4 `assert` 改为 `jq -e '.overall == "PASS"'` + `GATE_RESULT=PASS`；报告实际键为 `overall` |
+| Round 2 Bug 1：R4 断言引用不存在的 `.result` 键 | R4 | evidence.json R4 `assert` 改为 `jq -e '.overall == "PASS"'` + `GATE_RESULT=PASS`；报告实际键为 `overall` |
 | Round 2 Bug 2 / Round 3 P1：R2 红样锚点按 `git log -1` 口径会取到上一版绿样 | R2 | 红样锚点改为「首个 `fix(issue-2564)` 命中该文件的 commit 的父提交」动态推导；产物 `RED_SAMPLE=5cd3c900a^` |
 | Round 3 P2：G0 R2 夹具指向不存在的「上层分类选择器」 | R2 | 夹具改为可执行锚点：`finalParentId` 计算块 + `!finalParentId` 守卫；产物写入 `ANCHOR_FINAL_PARENT_BLOCK=245-256`、`ANCHOR_CREATE_GUARD_LINE=281` 与两项 `ANCHOR_*_PRESENT=1` |
-| Round 3 P3：4 个新判定键未进 Evidence Contract / evidence.json | R2 | `evidence.json` R2 `expected` 逐字补登 4 键（含 `GUARD_MUTATION_DETECTED` 变异负例说明），矩阵/G0/合同三处一致 |
+| Round 3 P3：4 个新判定键未进 Evidence Contract / evidence.json | R2 | evidence.json R2 `expected` 逐字补登 4 键（含 `GUARD_MUTATION_DETECTED` 变异负例说明），矩阵/G0/合同三处一致 |
 | Round 3 P4：R4 记录的命令与实际运行不一致（实际带 `--affected-cmd`） | R4 | R4 合同命令登记 `--affected-cmd "cd frontend-pc && npx eslint src/pages/admin/category/List.jsx"`；本节命令逐字一致，P4 实跑 PASS |
 | Round 3 Low：`验证层级` 误写「独立 Issue」 | — | 本节改为「子任务（`Parent: #2563`）：定向 eslint + PC build，全量 gate 归父/批次」 |
 

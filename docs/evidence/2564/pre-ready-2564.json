@@ -1,16 +1,16 @@
 {
   "issue": 2564,
-  "overall": "PASS",
-  "plan": "/home/coder/worktrees/tuneloop/wt-2564/tmp/pre-ready-2564.KbF9tb/plan.md",
-  "plan_sha256": "b0d4e3be3b99e40fb1eeb020b61191473dfc7e5a0b8c6ee672ab506617af692e",
-  "config_sha": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
+  "overall": "FAIL",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2564/tmp/pre-ready-2564.XZimsf/plan.md",
+  "plan_sha256": "d78df1b8be48f0c34af5ead6694c43edf3d694af964f0ea301ede260602682f5",
+  "config_sha": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
   "provenance": {
-    "build": "1.0.a30c6e250",
-    "commit": "a30c6e250f793678cedd79d54b8d8a41facda5d6",
+    "build": "1.0.ed9ffd279",
+    "commit": "ed9ffd27942fa583b0c315616633780b60a670bf",
     "dirty": false
   },
   "summary": "docs/evidence/2564/summary.md",
-  "timestamp": "20261126-161752",
+  "timestamp": "20261127-023252",
   "checks": [
     {
       "id": "P1",
@@ -24,18 +24,18 @@
     },
     {
       "id": "P3",
-      "status": "PASS",
-      "detail": "all referenced evidence paths exist and are durable"
+      "status": "FAIL",
+      "detail": "evidence paths do not exist: .result List.jsx RED_SAMPLE=5cd3c900a^:frontend-pc/src/pages/admin/category/List.jsx evidence.json pre-ready-2563.json"
     },
     {
       "id": "P4",
-      "status": "WARN",
-      "detail": "no --affected-cmd supplied; affected-package tests were not run"
+      "status": "PASS",
+      "detail": "all 1 affected command(s) passed"
     },
     {
       "id": "P12",
-      "status": "PASS",
-      "detail": "Evidence Contract complete: 4 row(s) match the plan and have durable artifacts"
+      "status": "FAIL",
+      "detail": "R2: expected does not match the plan contract; R2: negative does not match the plan contract"
     },
     {
       "id": "P14",
@@ -45,7 +45,7 @@
     {
       "id": "P18",
       "status": "PASS",
-      "detail": "tooling_commit matches the running scripts (a017a25d46fec75ebb30fd9e19eb220c51fb166a)"
+      "detail": "tooling_commit matches the running scripts (be61a790605b0b65759d0fd2be9b258bc6c41b49)"
     },
     {
       "id": "P15",
@@ -65,7 +65,7 @@
     {
       "id": "P5",
       "status": "N/A",
-      "detail": "sub-task: full gate belongs to the parent/batch gate"
+      "detail": "skipped: P12/P14/P15/P16 static checks failed (static checks run first)"
     },
     {
       "id": "P6",
