@@ -118,6 +118,83 @@ func TestAccountMergeReconcilesCache_2567(t *testing.T) {
 		gotY.Role, gotY.TenantID, gotY.OrgID, gotX.Status, gotX.Role, membershipRows, gotY.Role, membershipRows)
 }
 
+// R1（站点员工变体，Round 2 Audit 阻断项）：网点员工（site-only）被合并后，
+// A 的缓存三元组必须来自 `site_members` + `sites` 的 join —— 这是生产上最常见的
+// 「网点员工被吸收」形态，走的是 `resolveUserCache` 的**另一个**分支
+// （`user_cache.go:63-92`），与 merchant-direct 变体不共享任何取值代码。
+//
+// fixture 刻意让 `site_members.tenant_id` 指向一个**陈旧的**租户行（成员行租户历史漂移，
+// 且该列有 tenant FK 不能留空），使 tenant/org 只能由 `sites` 行提供——这正是
+// `resolveUserCache` 里 sites join 的意义：站点行是归属权威。若实现退化为只读
+// `sm.TenantID` 或丢掉 join，本用例必须红（A_SITE_TENANT_MATCH=0 / A_SITE_ORG_MATCH=0）。
+func TestAccountMergeSiteMemberReconcile_2567(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+	if db == nil {
+		t.Skip("test database unavailable")
+	}
+	tenantID := uuid.NewString()
+	orgID := uuid.NewString()
+	siteID := uuid.NewString()
+	testfixtures.SeedTenantFK(t, db, tenantID)
+	staleTenantID := uuid.NewString() // site_members 上的陈旧租户（FK 需要真实行）
+	testfixtures.SeedTenantFK(t, db, staleTenantID)
+	require.NoError(t, db.Create(&models.Site{
+		ID: siteID, TenantID: tenantID, OrgID: orgID, Name: "站点合并网点", Type: "normal", Status: "active",
+	}).Error)
+
+	// X = 纯网点员工：只有 site_members，没有任何 merchant_members 行。
+	x := models.User{
+		ID: uuid.NewString(), IAMSub: "iam-X-site-2567", TenantID: zeroUUID, OrgID: zeroUUID,
+		Name: "网点员工C", Username: "site-staff-2567", Phone: "13900001801",
+		Role: "site_admin", Status: "active",
+	}
+	// Y = 纯顾客（USER/nil/nil），与微信自助注册账户的合并前形态一致。
+	y := models.User{
+		ID: uuid.NewString(), IAMSub: "iam-Y-site-2567", TenantID: zeroUUID, OrgID: zeroUUID,
+		Name: "顾客A", Username: "site-cust-2567", Phone: "13900001802",
+		Role: "USER", Status: "active",
+	}
+	require.NoError(t, db.Create(&x).Error)
+	require.NoError(t, db.Create(&y).Error)
+	require.NoError(t, db.Create(&models.SiteMember{
+		ID: uuid.NewString(), TenantID: staleTenantID, SiteID: siteID, UserID: x.ID,
+		Role: "site_admin", Roles: []string{"site_admin"}, Status: "active",
+	}).Error)
+
+	require.NoError(t, migrateMergedAccountLocal(db, x.IAMSub, y.IAMSub))
+
+	var gotX, gotY models.User
+	require.NoError(t, db.Where("id = ?", x.ID).First(&gotX).Error)
+	require.NoError(t, db.Where("id = ?", y.ID).First(&gotY).Error)
+
+	// 命中的只能是站点分支：A 没有任何 merchant_members 行。
+	var merchantRows int64
+	require.NoError(t, db.Model(&models.MerchantMember{}).Where("user_id = ?", y.ID).Count(&merchantRows).Error)
+	assert.EqualValues(t, 0, merchantRows, "NO_MERCHANT_ROWS：站点变体不得带 merchant_members 行")
+
+	assert.Equal(t, "site_admin", gotY.Role, "A_SITE_ROLE（= site_members.roles[0]）")
+	assert.Equal(t, tenantID, gotY.TenantID, "A_SITE_TENANT（= sites.tenant_id）")
+	assert.Equal(t, orgID, gotY.OrgID, "A_SITE_ORG（= sites.org_id）")
+	assert.NotEqual(t, zeroUUID, gotY.OrgID, "SITE_ORG_NON_NIL")
+	assert.Equal(t, "active", gotY.Status, "A_SITE_STATUS")
+	assert.Equal(t, "obsolete", gotX.Status, "C_SITE_STATUS")
+	assert.Equal(t, "USER", gotX.Role, "C_SITE_ROLE")
+	assert.Equal(t, zeroUUID, gotX.TenantID, "C_SITE_TENANT_ZERO")
+	assert.Equal(t, zeroUUID, gotX.OrgID, "C_SITE_ORG_ZERO")
+
+	tenantMatch := boolToken(gotY.TenantID == tenantID)
+	orgMatch := boolToken(gotY.OrgID == orgID)
+	orgNonNil := boolToken(gotY.OrgID != zeroUUID)
+
+	assert.Equal(t, 1, tenantMatch, "A_SITE_TENANT_MATCH")
+	assert.Equal(t, 1, orgMatch, "A_SITE_ORG_MATCH")
+	assert.Equal(t, 1, orgNonNil, "SITE_ORG_NON_NIL")
+
+	t.Logf("A_SITE_ROLE=%s A_SITE_TENANT_MATCH=%d A_SITE_ORG_MATCH=%d SITE_ORG_NON_NIL=%d C_SITE_ROLE=%s C_SITE_TENANT_ZERO=%d C_SITE_ORG_ZERO=%d NO_MERCHANT_ROWS=%d",
+		gotY.Role, tenantMatch, orgMatch, orgNonNil, gotX.Role,
+		boolToken(gotX.TenantID == zeroUUID), boolToken(gotX.OrgID == zeroUUID), merchantRows)
+}
+
 // R2：成员列表只列存活账户——废止账户不再以「禁用」形态出现。
 func TestListStaffHidesObsolete_2567(t *testing.T) {
 	gin.SetMode(gin.TestMode)

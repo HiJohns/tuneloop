@@ -96,6 +96,7 @@ run_go_case() { # test-name expected-token...
 case "$ROW" in
   r1)
     echo "== R1 合并后缓存镜像（A 继承组织身份 / C 废止回落顾客态） =="
+    echo "-- 变体 1：C = 商户直属员工（merchant_members active） --"
     run_go_case TestAccountMergeReconcilesCache_2567 \
       "A_ROLE=merchant_staff" \
       "A_TENANT_NON_NIL=1" \
@@ -103,6 +104,15 @@ case "$ROW" in
       "C_STATUS=obsolete" \
       "C_ROLE=USER" \
       "MEMBERSHIP_ROWS=1"
+    echo "-- 变体 2：C = 网点员工（仅 site_members，无 merchant_members） --"
+    run_go_case TestAccountMergeSiteMemberReconcile_2567 \
+      "A_SITE_ROLE=site_admin" \
+      "A_SITE_TENANT_MATCH=1" \
+      "A_SITE_ORG_MATCH=1" \
+      "SITE_ORG_NON_NIL=1" \
+      "C_SITE_ROLE=USER" \
+      "C_SITE_TENANT_ZERO=1" \
+      "NO_MERCHANT_ROWS=0"
     echo "R1_OK"
     ;;
 
