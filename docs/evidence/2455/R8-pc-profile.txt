@@ -1,4 +1,4 @@
-# build=1.0.a18e0b1 # commit=a18e0b1df756312c1c3454c43b36478062b08c08 # dirty=false
+# build=1.0.9d0b22c # commit=9d0b22ce55eef31414b4aca95196301cab952ce5 # dirty=false
 SOURCE=frontend-pc/src/pages/UserProfile.jsx
 17:  const identityLabel = [user?.tenant_name, user?.site_name].filter(Boolean).join(' · ') || '-'
 144:          <Descriptions.Item label="关联网点">{identityLabel}</Descriptions.Item>

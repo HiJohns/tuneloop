@@ -1,29 +1,29 @@
-# build=1.0.a18e0b1 # commit=a18e0b1df756312c1c3454c43b36478062b08c08 # dirty=false
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s22-p22-fcd599 at_ms=1795607023665 wait_ms=648514
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s22-p22-fcd599 wait_ms=648514
+# build=1.0.9d0b22c # commit=9d0b22ce55eef31414b4aca95196301cab952ce5 # dirty=false
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 at_ms=1795816250753 wait_ms=167
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 wait_ms=167
 [WARNING] No .env file found in common paths
-2026/11/25 11:43:51 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-[test-template] migrations replayed: files=407 up=221 statements=1795 create_table=14 create_index=0 index_guard=283 dml_guard=54 alter_table=1013 add_column=6 version=20261123002
-Built test template tuneloop_test_template
-2026/11/25 11:44:02 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
-2026/11/25 11:44:02 [DB] Connected to database 'tuneloop_test_local'
+2026/11/27 21:50:55 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/27 21:50:55 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/27 21:50:55 [DB] Connected to database 'tuneloop_test_local'
 === RUN   TestUpdateSite_DuplicateNameRejectedBeforeIAM_2455
-2026/11/25 11:44:02 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/25 11:44:02 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
-2026/11/25 11:44:02 [DB] Connected to database 'tuneloop_test_local'
+2026/11/27 21:50:56 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/27 21:50:56 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/27 21:50:56 [DB] Connected to database 'tuneloop_test_local'
 
-2026/11/25 11:44:03 [32m/home/coder/worktrees/tuneloop/wt-2455/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[646.780ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_levels", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
-2026/11/25 11:44:03 [TenantScope][observe] auto-scope injected for table=sites (add explicit scope, then set ExplicitTenantScopeOnly)
-    site_name_unique_2455_test.go:379: HTTP=409
-    site_name_unique_2455_test.go:380: CODE=40900
-    site_name_unique_2455_test.go:381: IAM_CALLS=0
-    site_name_unique_2455_test.go:382: DB_NAME=北京中转站
---- PASS: TestUpdateSite_DuplicateNameRejectedBeforeIAM_2455 (0.89s)
+2026/11/27 21:50:57 [32m/home/coder/worktrees/tuneloop/wt-2455/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[726.197ms] [33m[rows:0][35m TRUNCATE TABLE "schema_migrations", "membership_levels", "coupons", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/27 21:50:57 [TenantScope][observe] auto-scope injected for table=sites (add explicit scope, then set ExplicitTenantScopeOnly)
+    site_name_unique_2455_test.go:453: HTTP=409
+    site_name_unique_2455_test.go:454: CODE=40900
+    site_name_unique_2455_test.go:455: MSG_ZH=1
+    site_name_unique_2455_test.go:456: IAM_CALLS=0
+    site_name_unique_2455_test.go:457: DB_NAME=北京中转站
+--- PASS: TestUpdateSite_DuplicateNameRejectedBeforeIAM_2455 (1.21s)
 PASS
-ok  	tuneloop-backend/handlers	11.874s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795607043369 hold_ms=19704
+ok  	tuneloop-backend/handlers	2.029s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795816257557 hold_ms=6804
 HTTP=409
 CODE=40900
+MSG_ZH=1
 IAM_CALLS=0
 DB_NAME=北京中转站

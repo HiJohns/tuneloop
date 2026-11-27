@@ -1,14 +1,14 @@
-# build=1.0.a18e0b1 # commit=a18e0b1df756312c1c3454c43b36478062b08c08 # dirty=false
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s22-p22-fcd599 at_ms=1795607767578 wait_ms=290302
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s22-p22-fcd599 wait_ms=290302
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795607781676 hold_ms=14098
+# build=1.0.9d0b22c # commit=9d0b22ce55eef31414b4aca95196301cab952ce5 # dirty=false
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 at_ms=1795816268962 wait_ms=213
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 wait_ms=213
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795816281881 hold_ms=12919
 --- go build ./... exit=0
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s22-p22-fcd599 at_ms=1795607866291 wait_ms=83143
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s22-p22-fcd599 wait_ms=83143
-ok  	tuneloop-backend/handlers	20.473s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795607894118 hold_ms=27827
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s22-p22-fcd599 at_ms=1795607895472 wait_ms=181
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s22-p22-fcd599 wait_ms=181
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 at_ms=1795816282146 wait_ms=166
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 wait_ms=166
+ok  	tuneloop-backend/handlers	10.979s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795816300328 hold_ms=18182
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 at_ms=1795816300321 wait_ms=187
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 wait_ms=187
 
 > frontend-pc@1.0.0 build
 > vite build
@@ -18,19 +18,19 @@ transforming...
 Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
   npx update-browserslist-db@latest
   Why you should do it regularly: https://github.com/browserslist/update-db#readme
-✓ 5422 modules transformed.
+✓ 4100 modules transformed.
 rendering chunks...
 computing gzip size...
 dist/index.html                     0.53 kB │ gzip:   0.34 kB
-dist/assets/index-B2wkjN-i.css     38.38 kB │ gzip:   7.13 kB
-dist/assets/index-BXyM3STg.js   2,623.57 kB │ gzip: 807.17 kB
+dist/assets/index-B9sZY7eW.css     38.17 kB │ gzip:   7.11 kB
+dist/assets/index-BUcI4Tz-.js   2,626.72 kB │ gzip: 809.71 kB
 
 (!) Some chunks are larger than 500 kB after minification. Consider:
 - Using dynamic import() to code-split the application
 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-✓ built in 44.98s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795607944304 hold_ms=48832
+✓ built in 35.31s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795816338807 hold_ms=38486
 BUILD_EXIT=0
 TESTS_EXIT=0
 TESTS_FAIL=0

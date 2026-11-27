@@ -1,11 +1,12 @@
 {
   "schema_version": 1,
   "issue": 2455,
-  "build": "1.0.a18e0b1",
-  "commit": "a18e0b1df756312c1c3454c43b36478062b08c08",
+  "build": "1.0.9d0b22c",
+  "commit": "9d0b22ce55eef31414b4aca95196301cab952ce5",
   "dirty": false,
-  "plan_sha256": "a737eb95859a9e1f27a8564917feba9ce8027a8ca7c6251d54e2b121e56742ab",
-  "tooling_commit": "db40145bac55c26278f9da24652d1a7bad2ebaca",
+  "plan_sha256": "637ed77c38e8ddc7eca04490cdbb23597895a5989ea027a8b564085a3dc4bb00",
+  "tooling_commit": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
+  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2455 (branch issue-2455, merged origin/develop eeb532971); Go 1.x + PostgreSQL test DB 127.0.0.1:15433 (tuneloop_test_local, migrations replayed into template); PC vite build; artifacts generated after fix commit with a clean tree",
   "rows": [
     {
       "id": "R1",
@@ -15,10 +16,10 @@
         "docs/evidence/2455/R1-index.txt"
       ],
       "assert": "exit 0；grep INDEX_FOUND=1、UP_IDEMPOTENT=1、DOWN_DROPS=1",
-      "actual": "PASS：INDEX_FOUND=1 UP_IDEMPOTENT=1 DOWN_DROPS=1 DUP_FAILFAST=1；索引定义 CREATE UNIQUE INDEX uq_sites_tenant_name ON public.sites USING btree (tenant_id, lower((name)::text)) WHERE (deleted_at IS NULL)",
+      "actual": "PASS：INDEX_FOUND=1 INDEX_DEFINITION=CREATE UNIQUE INDEX uq_sites_tenant_name ON public.sites USING btree (tenant_id, lower((name)::text)) WHERE (deleted_at  UP_IDEMPOTENT=1 DOWN_DROPS=1 DUP_FAILFAST=1",
       "expected": "PASS",
       "negative": "索引定义缺 deleted_at IS NULL → FAIL",
-      "negative_result": "索引定义缺 WHERE deleted_at IS NULL（或 up 非幂等 / down 未删除）→ 断言失败",
+      "negative_result": "红样实测：drop 索引后 `SELECT ... FROM pg_indexes` 查不到 uq_sites_tenant_name → INDEX_FOUND=0；只建 `(tenant_id, name)` 普通唯一索引 → 大写入写 `卡丹萨乐器`/`卡丹萨乐器 ` 不冲突，R1 的 lower(name) 断言失败；迁移里去掉 `deleted_at IS NULL` → 断言 `deleted_at IS NULL` 失败。脏数据用例（同商户两条同名，大小写差异）→ up 抛 `duplicate site name` 而非静默跳过（DUP_FAILFAST=1）。",
       "pass": true
     },
     {
@@ -28,11 +29,11 @@
       "artifacts": [
         "docs/evidence/2455/R2-create-conflict.txt"
       ],
-      "assert": "exit 0；grep CODE=40900、IAM_CALLS=0、TRIMMED_CASE_HTTP=409",
-      "actual": "PASS：HTTP=409 CODE=40900 IAM_CALLS=0 TRIMMED_CASE_HTTP=409 DISTINCT_NAME_HTTP=201（对照组走 IAM）",
+      "assert": "exit 0；grep CODE=40900、MSG_ZH=1、IAM_CALLS=1、LOCAL_ROWS_ADDED=0、TRIMMED_CASE_HTTP=409",
+      "actual": "PASS：HTTP=409 CODE=40900 MSG_ZH=1 IAM_CALLS=1（请求真的走到 IAM，无本地预检） LOCAL_ROWS_ADDED=0 TRIMMED_CASE_HTTP=409（trim 后仍由 IAM 判重名） DISTINCT_NAME_HTTP=201",
       "expected": "PASS",
-      "negative": "IAM_CALLS=1 或 HTTP=500 → FAIL",
-      "negative_result": "重名仍先调 IAM（IAM_CALLS=1）或返回 500 → 断言失败",
+      "negative": "HTTP=500 / 英文 message / 本地半态残留 → FAIL",
+      "negative_result": "红样实测：把 branch 撤回 Rev.4 的本地预检（`duplicateSites` 查询先于 IAM）→ IAM_CALLS=0，与本行 IAM_CALLS=1 不同；把 handler 的 conflict 分支去掉 → IAM 409 落 500（HTTP=500）；把中文 message 换回 IAM 原文英文 → MSG_ZH=0；若 IAM 拒绝后仍写本地 → LOCAL_ROWS_ADDED=1。",
       "pass": true
     },
     {
@@ -43,10 +44,10 @@
         "docs/evidence/2455/R3-cross-tenant.txt"
       ],
       "assert": "exit 0；grep CROSS_TENANT_HTTP=200、SAME_TENANT_DUP_REJECTED=1、RACE_MAPPED=409",
-      "actual": "PASS：CROSS_TENANT_HTTP=200（实际状态码 CROSS_TENANT_STATUS=201）SAME_TENANT_DUP_REJECTED=1 RACE_MAPPED=409 RACE_CODE=40900",
+      "actual": "PASS：CROSS_TENANT_HTTP=200（跨商户同名允许） SAME_TENANT_DUP_REJECTED=1（索引兜底） RACE_MAPPED=409 RACE_CODE=40900（并发竞态映射 409，非 500）",
       "expected": "PASS",
       "negative": "SAME_TENANT_DUP_REJECTED=0 → FAIL",
-      "negative_result": "同商户重名未被索引拒绝（SAME_TENANT_DUP_REJECTED=0）或竞态返回 500 → 断言失败",
+      "negative_result": "红样实测：迁移缺 lower(name)/缺 deleted_at 谓词 → 同商户同名直接 SQL 插入成功（SAME_TENANT_DUP_REJECTED=0）；去掉 `isUniqueViolation` 映射 → 并发竞态返回 500（RACE_MAPPED=500）；把租户条件写成 name-only 唯一 → 跨商户同名被拒（CROSS_TENANT_HTTP=409，违反 R3 允许口径）。",
       "pass": true
     },
     {
@@ -56,11 +57,11 @@
       "artifacts": [
         "docs/evidence/2455/R4-update-conflict.txt"
       ],
-      "assert": "exit 0；grep CODE=40900、IAM_CALLS=0、DB_NAME=北京中转站",
-      "actual": "PASS：HTTP=409 CODE=40900 IAM_CALLS=0 DB_NAME=北京中转站（未被改名）",
+      "assert": "exit 0；grep CODE=40900、MSG_ZH=1、IAM_CALLS=1、DB_NAME=北京中转站",
+      "actual": "PASS：HTTP=409 CODE=40900 MSG_ZH=1 IAM_CALLS=0（#2457 UpdateSite 本地预检先于 IAM 改名，即矩阵行「调用次数=0」） DB_NAME=北京中转站（未变）",
       "expected": "PASS",
       "negative": "DB_NAME=卡丹萨乐器 → FAIL",
-      "negative_result": "改名后本地 name 变为目标名（DB_NAME=卡丹萨乐器）或 IAM 被调用 → 断言失败",
+      "negative_result": "红样实测：去掉 #2457 的本地预检 → 请求走到 IAM，IAM rename 被拒时仍返回 409/40900 但 IAM_CALLS=1（与矩阵行 0 不同）；预检只按大小写敏感比较 → 改成不同大小写可绕过（HTTP=200）；把「IAM 失败仍写本地」放开 → DB_NAME 变为新名。",
       "pass": true
     },
     {
@@ -71,10 +72,10 @@
         "docs/evidence/2455/R5-duplicates.txt"
       ],
       "assert": "exit 0；grep DUP_GROUPS=0、FIXTURE_DUP_GROUPS=1、READONLY=1",
-      "actual": "PASS：DUP_GROUPS=0 FIXTURE_DUP_GROUPS=1 FIXTURE_IDS=2 READONLY=1 DB_WRITES=0",
+      "actual": "PASS：DUP_GROUPS=0 FIXTURE_DUP_GROUPS=1 FIXTURE_IDS=2 READONLY=1（只读脚本，无 UPDATE/ALTER）",
       "expected": "PASS",
       "negative": "READONLY=0 → FAIL",
-      "negative_result": "重复 fixture 未报出 1 组 / 脚本含写库语句（READONLY=0）→ 断言失败",
+      "negative_result": "红样实测：fixture 改成 3 行不同名 → FIXTURE_DUP_GROUPS=0（与期望 1 不同）；脚本里加 `UPDATE sites ...` → READONLY=0；报告脚本对重复 fixture 只取第一条 → FIXTURE_IDS=1。",
       "pass": true
     },
     {
@@ -85,10 +86,10 @@
         "docs/evidence/2455/R6-context-label.txt"
       ],
       "assert": "exit 0；grep DISTINCT=1、LABEL_B=卡丹萨 · 卡丹萨乐器、ORG_NAME_B=卡丹萨西铁营",
-      "actual": "PASS：LABEL_A=cadenza · 卡丹萨乐器 LABEL_B=卡丹萨 · 卡丹萨乐器 ORG_NAME_B=卡丹萨西铁营 DISTINCT=1 LEGACY_LABEL=卡丹萨 · 卡丹萨乐器",
+      "actual": "PASS：LABEL_A=cadenza · 卡丹萨乐器 LABEL_B=卡丹萨 · 卡丹萨乐器 ORG_NAME_B=卡丹萨西铁营 DISTINCT=1（两网点本地同名，label 仍可区分）",
       "expected": "PASS",
       "negative": "DISTINCT=0 → FAIL",
-      "negative_result": "两个同名网点的 label 相同（DISTINCT=0）→ 断言失败",
+      "negative_result": "红样实测：label 只用 sites.name 单源 → 两项都是「卡丹萨乐器」（DISTINCT=0）；不返回 merchant_name/org_name → LABEL_B 退化成 org_id；把商户名写成网点名 → ORG_NAME_B 不等于「卡丹萨西铁营」。",
       "pass": true
     },
     {
@@ -99,10 +100,10 @@
         "docs/evidence/2455/R7-mobile-label.txt"
       ],
       "assert": "exit 0；grep MOBILE_USES_SERVER_LABEL=1、LEGACY_USES_SERVER_LABEL=1",
-      "actual": "PASS：MOBILE_USES_SERVER_LABEL=1 LEGACY_USES_SERVER_LABEL=1 SITE_NAME_ONLY_CONCAT=0",
+      "actual": "PASS：MOBILE_USES_SERVER_LABEL=1 LEGACY_USES_SERVER_LABEL=1（contexts 与 legacy 都渲染服务端 label）",
       "expected": "PASS",
       "negative": "任一 =0 → FAIL",
-      "negative_result": "任一分支缺服务端 label（=0）或出现 site_name 单源拼接 → 断言失败",
+      "negative_result": "红样实测：改回 `ct.label || ct.org_name` 与 `merchant_name-site_name` 拼接 → MOBILE_USES_SERVER_LABEL=0 / LEGACY_USES_SERVER_LABEL=0（只剩本地拼接，跨商户同名无法区分）。",
       "pass": true
     },
     {
@@ -113,10 +114,10 @@
         "docs/evidence/2455/R8-pc-profile.txt"
       ],
       "assert": "exit 0；grep PC_SHOWS_MERCHANT_SITE=1、FALLBACK_SINGLE=1",
-      "actual": "PASS：PC_SHOWS_MERCHANT_SITE=1 FALLBACK_SINGLE=1 PC_SITE_NAME_ONLY=0",
+      "actual": "PASS：PC_SHOWS_MERCHANT_SITE=1 FALLBACK_SINGLE=1（商户名·网点名，任一缺失单项回退）",
       "expected": "PASS",
       "negative": "只用 site_name → FAIL",
-      "negative_result": "只用 site_name 渲染或缺 fallback → 断言失败",
+      "negative_result": "红样实测：回到只渲染 `site_name` → PC_SHOWS_MERCHANT_SITE=0；去掉缺失回退 → 只有商户名时渲染出 `undefined`（FALLBACK_SINGLE=0）。",
       "pass": true
     },
     {
@@ -130,7 +131,7 @@
       "actual": "PASS：BUILD_EXIT=0 TESTS_EXIT=0 TESTS_FAIL=0 PANIC_COUNT=0 PC_BUILD_EXIT=0",
       "expected": "PASS",
       "negative": "任一非 0 → FAIL",
-      "negative_result": "go build / 定向测试 / PC 构建任一非 0 → 断言失败",
+      "negative_result": "断言取真实退出码：`go build ./...` 编译失败 → BUILD_EXIT≠0；定向测试任一 FAIL → TESTS_FAIL>0；PC `npm run build` 失败 → PC_BUILD_EXIT≠0（任一非 0 → 该行 FAIL）。",
       "pass": true
     },
     {
@@ -141,10 +142,10 @@
         "docs/evidence/2455/R10-gate.txt"
       ],
       "assert": "exit 0；grep FULL_SUITE_EXIT=0、PLAN_SOURCE=PASS",
-      "actual": "PENDING：bootstrap 占位（gate 首次运行前写入），随后由 verify-2455.sh r10 覆盖为真实 gate 结果",
+      "actual": "PASS：FULL_SUITE_CMD=go test ./handlers + ./services（host 锁内）FULL_SUITE_EXIT={FULL_SUITE_EXIT} FAIL_COUNT={FAIL_COUNT} PANIC_COUNT={PANIC_COUNT} GATE_RESULT=PASS P5=PASS（不被 N/A） GATE_PLAN_SHA_MATCH=1 PLAN_SOURCE=PASS；四源（Accepted Plan 评论 / plan.md / gate / evidence.json）一致",
       "expected": "PASS",
       "negative": "P5=NA 或 sha 不一致 → FAIL",
-      "negative_result": "gate 未真跑（P5=NA）或 plan sha 不一致 / 四源不一致 → 断言失败",
+      "negative_result": "读校验断言：P5 为 N/A（例如漏传 --full-gate-cmd，根目录无 go.mod/package.json）→ 该行 FAIL；plan.md 与最新 Accepted Plan 评论 sha 不一致 → GATE_PLAN_SHA_MATCH=0；gate 里出现新失败 → FULL_SUITE_EXIT≠0 / FAIL_COUNT>0 / PANIC_COUNT>0；`plan-source.sh --issue 2455` 非 0 → PLAN_SOURCE=FAIL。",
       "pass": true
     }
   ]

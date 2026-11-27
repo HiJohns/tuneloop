@@ -1,4 +1,6 @@
-## Accepted Plan — #2455（v2：Owner 授权落地 + 依赖口径按 O1=A/O4 修正 + gate 行）
+## Accepted Plan — #2455（v3：Owner 授权落地 + 依赖口径按 O1=A/O4 修正 + gate 行）（Owner 2026-11-27 裁定 B：重名由 IAM 判定，不做本地预检）｜Rev.5
+
+> **v3 说明（修 Investigation Packet 的计划 Files 缺口）**：R1 把「同商户同名网点」定为非法后，既有用例 `TestSyncOrganizations_SiteTenantID` 的 fixture（在同 tenant 造两条同名 site 再断言 sync 纠正 tenant）前提失效 → `23505` 使全量套件出现新失败。按 **option 1**（最小、保留用例原意）：把 `backend/handlers/iam_proxy_test.go` 登记进 Files，并只修 fixture（改用独立 org 或先软删同 org 站点）；同时新增「被翻转的既有断言」小节。
 
 > **v2 变更（采纳 2026-11-24 Owner 裁定）**：
 > ① **O2 授权**：DDL（唯一部分索引）与存量对齐（方向 **IAM→本地**）**已获 Owner 批准**；D1/D3 由「待批准」转为 `owner_approved`；执行仍在部署侧（ops）。
@@ -9,12 +11,18 @@
 **分阶段 gate**：Phase A（R1–R5 数据完整性：索引/拦截/清单）必须先全绿，才允许进入 Phase B（R6–R9 身份上下文可辨识 + 构建回归）。
 **前置依赖**：#2457（`sites.name` = IAM 组织名镜像 + UpdateSite 先写 IAM）必须先落地；本单不改 IAM 同步逻辑。
 
+## 语义变更：被翻转的既有断言
+
+| 位置 | 旧断言 | 新预期 | 理由 |
+|---|---|---|---|
+| `backend/handlers/iam_proxy_test.go:475-500`（`TestSyncOrganizations_SiteTenantID/update_existing_site_with_wrong_tenant_id`） | 在**同一 tenant** 下造两条同名 `site`（`test-site`），断言 sync 把错租户那条的 `tenant_id` 纠正为商户 org | fixture 改为不产生「同 tenant 同名」：第二条站点使用独立 `org_id`，或先软删第一条（断言「纠正 tenant」的目标不变） | R1 的 `uq_sites_tenant_name` 明确禁止同商户同名，旧 fixture 前提非法（AGENTS.md §语义变更：必须翻转并登记） |
+
 ## Verification Matrix
 
 | 变更点 | 文件/组件 | 入口/路由 | 触发状态 | 目标平台 | 期望结果 | 证据（命令/日志/截图） |
 |---|---|---|---|---|---|---|
 | R1 同商户网点名唯一索引 | `backend/database/migrations/20261123002_site_name_unique_2455.up.sql` | 迁移执行（测试库显式执行 up/down） | 索引不存在 → 执行 up；重复执行 up；再执行 down | 后端 | `pg_indexes` 出现 `uq_sites_tenant_name`（`(tenant_id, lower(name)) WHERE deleted_at IS NULL`）；up 幂等（2 次均成功）；down 后索引消失 | R1 |
-| R2 创建网点同商户重名拦截（先于 IAM） | `backend/handlers/site.go` → `CreateSite` | `POST /api/merchant/sites` | 同 `tenant_id` 已存在同名（大小写不同亦算） | 后端 | HTTP 409 + code `40900` + message `同商户已存在同名网点`；fake IAM `CreateOrganization` 调用次数=0（不产生孤儿组织） | R2 |
+| R2 创建网点重名由 IAM 判定（Owner 裁 B） | `backend/handlers/site.go` → `CreateSite` | `POST /api/merchant/sites` | 同商户已存在同名网点（IAM 组织名唯一性拒绝） | 后端 | HTTP 409 + code `40900` + **中文** message（映射 IAM conflict，不暴露英文原文）；`IAM_CALLS=1`（不预检）；`LOCAL_ROWS_ADDED=0`（不产生本地半态）；`ORG_COUNT_UNCHANGED=1` | R2 |
 | R3 跨商户同名允许 + DB 层兜底 | `backend/database/migrations/20261123002_site_name_unique_2455.up.sql`、`backend/handlers/site.go` | 迁移索引 + `POST /api/merchant/sites` | tenant A 已有「卡丹萨乐器」，tenant B 建同名 | 后端 | tenant B 创建成功（HTTP 200）；tenant A 直接 SQL 再插同名被索引拒绝（`SAME_TENANT_DUP_REJECTED=1`）；并发竞态落入 `isUniqueViolation` → 409（非 500） | R3 |
 | R4 编辑网点同商户重名拦截（先于 IAM） | `backend/handlers/site.go` → `UpdateSite` | `PUT /api/merchant/sites/:id` | 同商户另一网点已占用目标名 | 后端 | HTTP 409 + code `40900`；fake IAM `UpdateOrganizationName` 调用次数=0；本地名称不变 | R4 |
 | R5 存量重复清单报告（只读） | `scripts/site-name-duplicates.sh`、`scripts/tests/test_site_name_duplicates.sh` | 脚本 fixture | 干净 fixture（3 行不同名）与重复 fixture（同商户 2 行同名） | 后端 | 干净 → `DUP_GROUPS=0`；重复 → 输出恰好 1 组、2 个 site id；脚本无写库语句（`READONLY=1`），不做任何改名 | R5 |
@@ -43,12 +51,13 @@
 | ID | 决策项 | 责任人 | 锁定条件 | 未锁定时的处理 |
 |---|---|---|---|---|
 | D1 | 唯一约束口径：`(tenant_id, lower(name)) WHERE deleted_at IS NULL` 的**唯一部分索引**（非表约束），普通 `CREATE UNIQUE INDEX`（迁移在事务内；`sites` 体量小）。**Owner 已批准 DDL（O2）** | Owner / Architect | owner_approved | 若 ops 要求 CONCURRENTLY → 需拆独立运维迁移，回 Architect |
-| D2 | 冲突语义：同商户重名 = 业务冲突 `40900`（HTTP 409），绝不允许 500；创建/编辑都必须**先预检**再调 IAM | Architect | 本计划锁定 | 阻塞实现 |
+| D2 | 冲突语义：同商户重名 = 业务冲突 `40900`（HTTP 409），绝不允许 500；**判定权威 = IAM**（`CreateOrganization` / 改名时的组织名唯一性），**不做本地预检**（Owner 2026-11-27 裁 B） | Architect | 本计划锁定 | 阻塞实现 |
 | D3 | 存量处理：迁移在发现同商户重复时 **fail-fast 并列出清单**（不得静默跳过）；`sites.name` ↔ IAM 组织名的存量对齐**方向 = IAM→本地，已获 Owner 批准（O2）**，执行由 ops 在预生产/生产按只读清单逐条核对（禁止静默改名） | Owner / ops | owner_approved（方向与授权） | 执行窗口与回执由 `[Ops-Followup of #2455]` 承载 |
 | D4 | 身份上下文标签：`merchants.name` 与 `sites.name` **各自**等于其 IAM 组织名（商户根组织 / 网点组织两个层级，Owner 澄清）；`label` = `商户名 · 网点名` **仅用于跨商户同名网点的区分**（商户名缺失时用 IAM `org_name`，都缺失回退 org_id）；`org_name` 单独返回供 UI 展示，不改 IAM | Architect | 本计划锁定 | 若要求只显示单一名字 → 回 Architect |
 | D5 | 权威源：`sites.name` 仍为 IAM 组织名镜像（#2457 D1）；本单不引入第二套命名来源 | Architect | 本计划锁定 | 阻塞实现 |
 | D6 | R7/R8 为纯前端渲染接线，PC 无测试运行器、小程序 vitest 仅收 `scripts/page-smoke/**` → 采用 `evidence_type: static` 源码结构断言 + 构建，**Owner 豁免**（Architect 授予） | Architect | 本计划锁定 | 若审计要求 render → 另立前端测试基建 Issue |
-| D7 | 本单不改 `CreateSite` 的 IAM 先行顺序（#2457 已覆盖），只新增前置预检 | Architect | 本计划锁定 | — |
+| D7 | **保留** `CreateSite` 的 IAM 先行顺序（#2457）；本单负责把 IAM conflict 映射成中文 409 并保证不产生本地半态；**不新增任何本地预检**（Owner 裁 B：重名判定唯一权威 = IAM） | Architect | 本计划锁定 | 若要求本地预检 → 与 B 冲突，回 Owner |
+| D7b | **唯一索引 ≠ 预检**：`uq_sites_tenant_name (tenant_id, lower(name)) WHERE deleted_at IS NULL` 作为**存储层不变量**保留（R1/D1 不变）：它不参与「是否允许创建」的判定（请求仍先发 IAM），只在 IAM 放行后兜底防并发/导入绕行；违反时把 PG `23505` 映射为同一 `409 40900 + 中文`（R3） | Architect | 本计划锁定（Rev.5：消除 D1/R1 与 D7 的自相矛盾；Owner 裁 B 只否定「预检」，不否定存储约束） | 若 Owner 要求连索引一起删 → 删 R1/Files/迁移并把 R3 的 `23505` 断言一并移除 |
 
 ### Evidence Types
 
@@ -72,7 +81,7 @@
 | 变更点 | fixture（输入/seed） | entry（生产入口） | artifact（路径/类型） |
 |---|---|---|---|
 | R1 | 测试库 `sites`（无 `uq_sites_tenant_name`）→ 执行 `20261123002_site_name_unique_2455.up.sql` 两次 → 执行 down | 迁移 SQL + `pg_indexes` 查询 | `docs/evidence/2455/R1-index.txt` |
-| R2 | tenant=`bfce6c6d…`；已存在 site name=`卡丹萨乐器`；请求 `{"name":"卡丹萨乐器"}`（另一请求 `{"name":" 卡丹萨乐器 "}`） | `SiteHandler.CreateSite` | `docs/evidence/2455/R2-create-conflict.txt` |
+| R2 | tenant=`bfce6c6d…`；已存在 site name=`卡丹萨乐器`；请求 `{"name":"卡丹萨乐器"}`（另一请求 `{"name":" 卡丹萨乐器 "}`） | `SiteHandler.CreateSite`（fake IAM 返回 conflict） | `docs/evidence/2455/R2-create-conflict.txt` |
 | R3 | tenant A 有 `卡丹萨乐器`；tenant B 无同名 | `CreateSite` + 直接 SQL 插入 | `docs/evidence/2455/R3-cross-tenant.txt` |
 | R4 | 同商户两个 site（`卡丹萨乐器`、`北京中转站`）；把后者改名为 `卡丹萨乐器` | `SiteHandler.UpdateSite` | `docs/evidence/2455/R4-update-conflict.txt` |
 | R5 | 干净 fixture（3 行不同名）/ 重复 fixture（同商户 2 行 `卡丹萨乐器`） | `scripts/site-name-duplicates.sh --report`（fixture DSN） | `docs/evidence/2455/R5-duplicates.txt` |
@@ -85,9 +94,9 @@
 ### Assertions
 
 - R1：`INDEX_FOUND=1`、`INDEX_DEFINITION=(tenant_id, lower(name))`、`UP_IDEMPOTENT=1`、`DOWN_DROPS=1`；负例：缺 `WHERE deleted_at IS NULL` → FAIL。
-- R2：`HTTP=409`、`CODE=40900`、`IAM_CALLS=0`、`TRIMMED_CASE_HTTP=409`；负例：`IAM_CALLS=1`（先建 IAM 组织）或 `HTTP=500` → FAIL。
+- R2：`HTTP=409`、`CODE=40900`、`MSG_ZH=1`、`IAM_CALLS=1`（由 IAM 判定）、`LOCAL_ROWS_ADDED=0`、`TRIMMED_CASE_HTTP=409`；负例：`HTTP=500`、message 为英文、或本地残留半态行 → FAIL。
 - R3：`CROSS_TENANT_HTTP=200`、`SAME_TENANT_DUP_REJECTED=1`、`RACE_MAPPED=409`；负例：`SAME_TENANT_DUP_REJECTED=0` 或 `RACE_MAPPED=500` → FAIL。
-- R4：`HTTP=409`、`CODE=40900`、`IAM_CALLS=0`、`DB_NAME=北京中转站`（未变）；负例：`DB_NAME=卡丹萨乐器` → FAIL。
+- R4：`HTTP=409`、`CODE=40900`、`MSG_ZH=1`、`IAM_CALLS=1`、`DB_NAME=北京中转站`（未变）；负例：`DB_NAME=卡丹萨乐器` → FAIL。
 - R5：`DUP_GROUPS=0`（干净）、`FIXTURE_DUP_GROUPS=1`、`FIXTURE_IDS=2`、`READONLY=1`；负例：`UPDATE`/`ALTER` 语句出现 → FAIL。
 - R6：`LABEL_A=cadenza · 卡丹萨乐器`、`LABEL_B=卡丹萨 · 卡丹萨乐器`、`ORG_NAME_B=卡丹萨西铁营`、`DISTINCT=1`；负例：两项 label 相同 → FAIL。
 - R7：`MOBILE_USES_SERVER_LABEL=1`、`LEGACY_USES_SERVER_LABEL=1`；负例：出现 `site_name`-only 拼接 → FAIL。
@@ -131,9 +140,9 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 | 行 ID | 命令 | 产物（仓库可见路径） | 断言（机器可判定） | 期望值 | 负例 | 责任人 |
 |---|---|---|---|---|---|---|
 | R1 | `bash scripts/verify-2455.sh r1` | `docs/evidence/2455/R1-index.txt` | exit 0；grep `INDEX_FOUND=1`、`UP_IDEMPOTENT=1`、`DOWN_DROPS=1` | PASS | 索引定义缺 `deleted_at IS NULL` → FAIL | dev |
-| R2 | `bash scripts/verify-2455.sh r2` | `docs/evidence/2455/R2-create-conflict.txt` | exit 0；grep `CODE=40900`、`IAM_CALLS=0`、`TRIMMED_CASE_HTTP=409` | PASS | `IAM_CALLS=1` 或 `HTTP=500` → FAIL | dev |
+| R2 | `bash scripts/verify-2455.sh r2` | `docs/evidence/2455/R2-create-conflict.txt` | exit 0；grep `CODE=40900`、`MSG_ZH=1`、`IAM_CALLS=1`、`LOCAL_ROWS_ADDED=0`、`TRIMMED_CASE_HTTP=409` | PASS | `HTTP=500` / 英文 message / 本地半态残留 → FAIL | dev |
 | R3 | `bash scripts/verify-2455.sh r3` | `docs/evidence/2455/R3-cross-tenant.txt` | exit 0；grep `CROSS_TENANT_HTTP=200`、`SAME_TENANT_DUP_REJECTED=1`、`RACE_MAPPED=409` | PASS | `SAME_TENANT_DUP_REJECTED=0` → FAIL | dev |
-| R4 | `bash scripts/verify-2455.sh r4` | `docs/evidence/2455/R4-update-conflict.txt` | exit 0；grep `CODE=40900`、`IAM_CALLS=0`、`DB_NAME=北京中转站` | PASS | `DB_NAME=卡丹萨乐器` → FAIL | dev |
+| R4 | `bash scripts/verify-2455.sh r4` | `docs/evidence/2455/R4-update-conflict.txt` | exit 0；grep `CODE=40900`、`MSG_ZH=1`、`IAM_CALLS=1`、`DB_NAME=北京中转站` | PASS | `DB_NAME=卡丹萨乐器` → FAIL | dev |
 | R5 | `bash scripts/verify-2455.sh r5` | `docs/evidence/2455/R5-duplicates.txt` | exit 0；grep `DUP_GROUPS=0`、`FIXTURE_DUP_GROUPS=1`、`READONLY=1` | PASS | `READONLY=0` → FAIL | dev |
 | R6 | `bash scripts/verify-2455.sh r6` | `docs/evidence/2455/R6-context-label.txt` | exit 0；grep `DISTINCT=1`、`LABEL_B=卡丹萨 · 卡丹萨乐器`、`ORG_NAME_B=卡丹萨西铁营` | PASS | `DISTINCT=0` → FAIL | dev |
 | R7 | `bash scripts/verify-2455.sh r7` | `docs/evidence/2455/R7-mobile-label.txt` | exit 0；grep `MOBILE_USES_SERVER_LABEL=1`、`LEGACY_USES_SERVER_LABEL=1` | PASS | 任一 `=0` → FAIL | dev |
@@ -154,6 +163,7 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 - `backend/handlers/site.go`
 - `backend/handlers/auth.go`
 - `backend/handlers/site_name_unique_2455_test.go`
+- `backend/handlers/iam_proxy_test.go`
 - `backend/handlers/wx_accounts_context_label_2455_test.go`
 - `frontend-mobile/src/pages-weapp/account-select/AccountSelect.jsx`
 - `frontend-pc/src/pages/UserProfile.jsx`
@@ -189,5 +199,8 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 - **部署侧**：存量对齐执行与回执由 `[Ops-Followup of #2455]`（`waitForConfirm`）承载。
 
 *Model: DeepSeek V4.1 Flash 1017*
+
+
+
 
 
