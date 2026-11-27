@@ -3,6 +3,7 @@ import { Card, Table, Tag, Row, Col, DatePicker, Button, message, Space, Statist
 import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons'
 import { formatBeijingDate } from '../../../utils/date'
 import api, { fetchBlob } from '../../../services/api'
+import { userFacingErrorMessage } from '../../../services/apiError';
 
 const { RangePicker } = DatePicker
 
@@ -67,7 +68,7 @@ export default function BillingDashboard() {
       window.URL.revokeObjectURL(url)
       message.success('导出成功')
     } catch (error) {
-      message.error(error.message || '导出失败')
+      message.error(userFacingErrorMessage(error, '导出失败'))
     }
   }
 

@@ -3,6 +3,7 @@ import { Table, Tag, Button, Card, Typography, Space, Modal, Descriptions, Steps
 import { TruckOutlined, CheckCircleOutlined, EyeOutlined, CameraOutlined, QrcodeOutlined, DownloadOutlined } from '@ant-design/icons';
 import { api, fetchBlob } from '../services/api';
 import { formatBeijingDateTimeShort } from '../utils/date';
+import { userFacingErrorMessage } from '../services/apiError';
 // import QrScanner from 'qr-scanner';  // Temporarily disabled - install dependency to enable
 
 const { Title } = Typography;
@@ -38,7 +39,7 @@ export default function WarehouseManagement() {
       window.URL.revokeObjectURL(url);
       message.success('导出成功');
     } catch (error) {
-      message.error(error.message || '导出失败');
+      message.error(userFacingErrorMessage(error, '导出失败'));
     }
   };
 
@@ -77,18 +78,12 @@ export default function WarehouseManagement() {
       });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        scannerRef.current = new QrScanner(
-          videoRef.current,
-          result => {
-            setScannedData(result.data);
-            handleScanResult(result.data);
-          },
-          { highlightScanRegion: true }
-        );
-        scannerRef.current.start();
+        // #2612：QrScanner 依赖未安装（第 7 行 import 已注释），原 `new QrScanner(...)` 会在
+        // 打开扫码弹窗时抛 ReferenceError（no-undef）。这里只保留相机预览，扫码走手动输入；
+        // 恢复自动扫码需先安装 qr-scanner 并解除第 7 行 import。
       }
     } catch (error) {
-      message.error("相机访问失败: " + error.message);
+      message.error(userFacingErrorMessage(error, '相机访问失败'));
     }
   };
 
@@ -114,7 +109,7 @@ export default function WarehouseManagement() {
       message.success("照片已上传");
       stream.getTracks().forEach(t => t.stop());
     } catch (error) {
-      message.error("拍照失败: " + error.message);
+      message.error(userFacingErrorMessage(error, '拍照失败'));
     }
   };
 
@@ -143,7 +138,7 @@ export default function WarehouseManagement() {
     } catch (error) {
       // #1793 T5: 非静默——展示后端错误（40002 核身拒绝 → resolveErrorMessage
       // 已翻译为「用户未完成实名核身…」）
-      message.error(error.message || '更新失败');
+      message.error(userFacingErrorMessage(error, '更新失败'));
     }
   };
 

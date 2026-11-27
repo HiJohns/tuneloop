@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Card, InputNumber, Switch, Button, message, Spin, Input, Space } from 'antd'
 import { api } from '../../../services/api'
+import { userFacingErrorMessage } from '../../../services/apiError';
 
 // #1908: 警告通知配置（合并为单一配置，不再分级）。
 // 收件邮箱可为任意邮箱（不限于本站用户）。
@@ -28,7 +29,7 @@ export default function WarningSettings() {
       } else {
         message.error(res.message || '加载警告配置失败')
       }
-    }).catch(err => message.error(err.message || '加载警告配置失败')).finally(() => setLoading(false))
+    }).catch(err => message.error(userFacingErrorMessage(err, '加载警告配置失败'))).finally(() => setLoading(false))
   }, [])
 
   const handleTestWebhook = async () => {
@@ -37,7 +38,7 @@ export default function WarningSettings() {
       const res = await api.post('/warning-settings/test-webhook', {})
       if (res.code === 20000) message.success('测试消息已发送到企业微信群')
       else message.error(res.message || '测试发送失败')
-    } catch (err) { message.error(err.message || '测试发送失败') }
+    } catch (err) { message.error(userFacingErrorMessage(err, '测试发送失败')) }
     setTesting(false)
   }
 
@@ -59,7 +60,7 @@ export default function WarningSettings() {
       })
       if (res.code === 20000) message.success('警告配置已保存')
       else message.error(res.message || '保存失败')
-    } catch (err) { message.error(err.message || '保存失败') }
+    } catch (err) { message.error(userFacingErrorMessage(err, '保存失败')) }
     setSaving(false)
   }
 

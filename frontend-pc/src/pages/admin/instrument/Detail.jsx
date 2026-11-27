@@ -11,6 +11,7 @@ import {
   instrumentImageSrc,
 } from '../../../utils/instrumentDisplay'
 import { buildAssetSummary } from '../../../utils/assetSummary'
+import { userFacingErrorMessage } from '../../../services/apiError';
 
 function parsePricing(pricing) {
   if (!pricing) return null
@@ -116,7 +117,7 @@ export default function InstrumentDetail() {
         instrumentsApi.getMedia(id).then(r => { if (r.code === 20000) setMediaDetail(r.data) })
       }
     } catch (e) {
-      message.error('删除失败: ' + e.message)
+      message.error(userFacingErrorMessage(e, '删除失败'))
     }
   }
 
@@ -129,7 +130,7 @@ export default function InstrumentDetail() {
         instrumentsApi.getMedia(id).then(r => { if (r.code === 20000) setMediaDetail(r.data) })
       }
     } catch (e) {
-      message.error('删除失败: ' + e.message)
+      message.error(userFacingErrorMessage(e, '删除失败'))
     }
   }
 
@@ -139,7 +140,7 @@ export default function InstrumentDetail() {
       message.success('视频已删除')
       fetchInstrument()
     } catch (e) {
-      message.error('删除失败: ' + (e.message || ''))
+      message.error(userFacingErrorMessage(e, '删除失败'))
     }
   }
 
@@ -151,7 +152,7 @@ export default function InstrumentDetail() {
         navigate(-1)
       }
     } catch (e) {
-      message.error('删除失败: ' + (e.message || ''))
+      message.error(userFacingErrorMessage(e, '删除失败'))
     }
   }
 
@@ -167,7 +168,7 @@ export default function InstrumentDetail() {
         message.error(result.message || '保存失败')
       }
     } catch (e) {
-      message.error('保存失败: ' + (e.message || ''))
+      message.error(userFacingErrorMessage(e, '保存失败'))
     } finally {
       setSavingCard(false)
     }
@@ -185,7 +186,7 @@ export default function InstrumentDetail() {
         message.error(res.message || '保存失败')
       }
     } catch (err) {
-      message.error('保存失败: ' + (err.message || ''))
+      message.error(userFacingErrorMessage(err, '保存失败'))
     }
     setPropsSaving(false)
   }
@@ -616,7 +617,7 @@ export default function InstrumentDetail() {
                               message.error(res.message || '上传失败')
                             }
                           } catch (err) {
-                            message.error('上传失败: ' + (err.message || ''))
+                            message.error(userFacingErrorMessage(err, '上传失败'))
                           }
                           e.target.value = ''
                         }}
@@ -654,7 +655,7 @@ export default function InstrumentDetail() {
                                   message.success('图片已删除')
                                   fetchInstrument()
                                 } catch (e) {
-                                  message.error('删除失败: ' + (e.message || ''))
+                                  message.error(userFacingErrorMessage(e, '删除失败'))
                                 }
                               }}>
                                 <Button size="small" danger className="absolute top-0 right-0 opacity-70 hover:opacity-100" style={{ borderRadius: '0 4px 0 4px' }}>×</Button>
@@ -685,7 +686,7 @@ export default function InstrumentDetail() {
                               message.success('封面图更新成功')
                               fetchInstrument()
                             } else { message.error(res?.message || '上传失败') }
-                          } catch (err) { message.error('上传失败: ' + (err.message || '')) }
+                          } catch (err) { message.error(userFacingErrorMessage(err, '上传失败')) }
                           e.target.value = ''
                         }} />
                     </label>
@@ -721,7 +722,7 @@ export default function InstrumentDetail() {
                               message.error(res?.message || '上传失败')
                             }
                           } catch (err) {
-                            message.error('上传失败: ' + (err.message || ''))
+                            message.error(userFacingErrorMessage(err, '上传失败'))
                           }
                           e.target.value = ''
                         }}
@@ -772,7 +773,7 @@ export default function InstrumentDetail() {
                               message.error(res?.message || '上传失败')
                             }
                           } catch (err) {
-                            message.error('上传失败: ' + (err.message || ''))
+                            message.error(userFacingErrorMessage(err, '上传失败'))
                           }
                           e.target.value = ''
                         }}

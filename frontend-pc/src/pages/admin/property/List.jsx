@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Card, Table, Button, Modal, Form, Input, InputNumber, Select, Tag, message, Space, Popconfirm, List, TreeSelect } from 'antd'
 import { PlusOutlined, EditOutlined, CheckOutlined, MergeOutlined, DeleteOutlined } from '@ant-design/icons'
 import { api } from '../../../services/api'
+import { userFacingErrorMessage } from '../../../services/apiError';
 
 const { Option } = Select
 
@@ -58,7 +59,7 @@ export default function PropertyList() {
       }
     } catch (err) {
       console.error('[DEBUG] Error loading properties:', err)
-      message.error('加载属性失败: ' + err.message)
+      message.error(userFacingErrorMessage(err, '加载属性失败'))
     } finally {
       setLoading(false)
     }
@@ -111,7 +112,7 @@ export default function PropertyList() {
       fetchProperties()
     } catch (err) {
       if (err.errorFields) return
-      message.error('操作失败: ' + err.message)
+      message.error(userFacingErrorMessage(err, '操作失败'))
     } finally {
       setSaving(false)
     }
@@ -125,7 +126,7 @@ export default function PropertyList() {
       message.success('添加成功')
       fetchProperties()
     } catch (err) {
-      message.error('添加失败: ' + err.message)
+      message.error(userFacingErrorMessage(err, '添加失败'))
     }
   }
 
@@ -135,7 +136,7 @@ export default function PropertyList() {
       message.success('核定成功')
       fetchProperties()
     } catch (err) {
-      message.error('核定失败: ' + err.message)
+      message.error(userFacingErrorMessage(err, '核定失败'))
     }
   }
 
@@ -157,7 +158,7 @@ export default function PropertyList() {
       fetchProperties()
     } catch (err) {
       if (err.errorFields) return
-      message.error('归并失败: ' + err.message)
+      message.error(userFacingErrorMessage(err, '归并失败'))
     }
   }
 
@@ -180,7 +181,7 @@ export default function PropertyList() {
       fetchProperties()
     } catch (err) {
       if (err.errorFields) return
-      message.error('修正失败: ' + err.message)
+      message.error(userFacingErrorMessage(err, '修正失败'))
     }
   }
 

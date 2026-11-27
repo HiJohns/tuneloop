@@ -3,6 +3,7 @@ import { formatCents } from '../utils/money'
 import { Table, Button, Input, Select, Space, Tag, Card, Modal, Form, InputNumber, message, Spin, Empty } from 'antd'
 import { PlusOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons'
 import { depositApi } from '../services/api'
+import { userFacingErrorMessage } from '../services/apiError';
 
 const typeOptions = [
   { label: '全部类型', value: '' },
@@ -56,7 +57,7 @@ export default function DepositFlow() {
       }
     } catch (err) {
       setError(err.message)
-      message.error('加载失败: ' + err.message)
+      message.error(userFacingErrorMessage(err, '加载失败'))
     } finally {
       setLoading(false)
     }
@@ -79,7 +80,7 @@ export default function DepositFlow() {
       form.resetFields()
       loadDeposits()
     } catch (err) {
-      message.error('创建失败: ' + err.message)
+      message.error(userFacingErrorMessage(err, '创建失败'))
     } finally {
       setSaving(false)
     }

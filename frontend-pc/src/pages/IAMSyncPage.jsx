@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Card, Button, Table, Tag, Spin, Space, message, Typography } from 'antd'
 import { SyncOutlined } from '@ant-design/icons'
 import { iamApi } from '../services/api'
+import { userFacingErrorMessage } from '../services/apiError';
 
 const resultColors = {
   added: 'green',
@@ -50,7 +51,7 @@ export default function IAMSyncPage() {
         message.error('用户同步失败: ' + (userRes.message || '未知错误'))
       }
     } catch (err) {
-      message.error('同步失败: ' + (err.message || ''))
+      message.error(userFacingErrorMessage(err, '同步失败'))
     }
     setLoading(false)
   }

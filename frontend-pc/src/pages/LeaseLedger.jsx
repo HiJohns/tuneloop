@@ -4,6 +4,7 @@ import { formatCents } from '../utils/money'
 import { Table, Button, Input, Select, Space, Tag, Card, Modal, Form, InputNumber, message, Spin, Empty } from 'antd'
 import { PlusOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons'
 import { leaseApi } from '../services/api'
+import { userFacingErrorMessage } from '../services/apiError';
 
 // #2005 S4: 业务日期（北京时间，与 Dashboard 卡片口径一致）
 const bjDateStr = (offsetDays = 0) =>
@@ -65,7 +66,7 @@ export default function LeaseLedger() {
       }
     } catch (err) {
       setError(err.message)
-      message.error('加载失败: ' + err.message)
+      message.error(userFacingErrorMessage(err, '加载失败'))
     } finally {
       setLoading(false)
     }
@@ -93,7 +94,7 @@ export default function LeaseLedger() {
       form.resetFields()
       loadLeases()
     } catch (err) {
-      message.error('创建失败: ' + err.message)
+      message.error(userFacingErrorMessage(err, '创建失败'))
     } finally {
       setSaving(false)
     }
@@ -105,7 +106,7 @@ export default function LeaseLedger() {
       message.success('租约已终止')
       loadLeases()
     } catch (err) {
-      message.error('操作失败: ' + err.message)
+      message.error(userFacingErrorMessage(err, '操作失败'))
     }
   }
 

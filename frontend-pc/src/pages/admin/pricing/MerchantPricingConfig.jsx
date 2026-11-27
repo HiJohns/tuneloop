@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Card, Table, Button, Input, InputNumber, Select, Form, Space, message, Modal, Popconfirm } from 'antd'
 import { PlusOutlined, DeleteOutlined, SaveOutlined, UndoOutlined } from '@ant-design/icons'
 import { api } from '../../../services/api'
+import { userFacingErrorMessage } from '../../../services/apiError';
 
 const DEFAULT_CONFIG = {
   tiers: [
@@ -45,7 +46,7 @@ export default function MerchantPricingConfig() {
         message.error('加载定价配置失败: ' + response.message)
       }
     } catch (error) {
-      message.error('加载定价配置失败: ' + error.message)
+      message.error(userFacingErrorMessage(error, '加载定价配置失败'))
     }
     setLoading(false)
   }
@@ -120,7 +121,7 @@ export default function MerchantPricingConfig() {
         message.error('保存失败: ' + response.message)
       }
     } catch (error) {
-      message.error('保存失败: ' + error.message)
+      message.error(userFacingErrorMessage(error, '保存失败'))
     }
     setLoading(false)
   }

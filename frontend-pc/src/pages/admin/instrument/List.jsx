@@ -18,6 +18,7 @@ import {
   INSTRUMENT_IMAGE_PLACEHOLDER,
   instrumentImageSrc,
 } from '../../../utils/instrumentDisplay'
+import { userFacingErrorMessage } from '../../../services/apiError';
 
 const { Option } = Select
 
@@ -113,7 +114,7 @@ export default function InstrumentList() {
         total: response?.data?.total || list.length || 0
       })
     } catch (error) {
-      message.error('加载乐器失败: ' + error.message)
+      message.error(userFacingErrorMessage(error, '加载乐器失败'))
       setInstruments([])
     } finally {
       setLoading(false)
@@ -144,10 +145,10 @@ export default function InstrumentList() {
           ...prev,
           [record.id]: { ...(prev[record.id] || {}), [direction]: true }
         }))
-        message.warning(error.message)
+        message.warning(userFacingErrorMessage(error, '排序失败'))
         return
       }
-      message.error(error.message || '排序失败')
+      message.error(userFacingErrorMessage(error, '排序失败'))
     }
   }
 
@@ -323,7 +324,7 @@ export default function InstrumentList() {
         throw new Error(result.message || '删除失败')
       }
     } catch (error) {
-      message.error(error.message || '删除失败')
+      message.error(userFacingErrorMessage(error, '删除失败'))
     }
   }
 
@@ -364,7 +365,7 @@ export default function InstrumentList() {
         throw new Error(result.message || '批量操作失败')
       }
     } catch (error) {
-      message.error(error.message || '批量操作失败')
+      message.error(userFacingErrorMessage(error, '批量操作失败'))
     }
   }
 
@@ -404,7 +405,7 @@ export default function InstrumentList() {
             throw new Error(result.message || '批量删除失败')
           }
         } catch (error) {
-          message.error(error.message || '批量删除失败')
+          message.error(userFacingErrorMessage(error, '批量删除失败'))
         }
       }
     })
@@ -447,7 +448,7 @@ export default function InstrumentList() {
         // Form validation error
         console.error('Validation failed:', error)
       } else {
-        message.error(error.message || '批量价格修改失败')
+        message.error(userFacingErrorMessage(error, '批量价格修改失败'))
       }
     }
   }
@@ -462,7 +463,7 @@ export default function InstrumentList() {
       link.click()
       message.success('模板下载成功')
     } catch (error) {
-      message.error(error.message || '下载模板失败')
+      message.error(userFacingErrorMessage(error, '下载模板失败'))
     }
   }
 
@@ -491,7 +492,7 @@ export default function InstrumentList() {
       setExportFieldModalVisible(false)
       message.success('导出成功')
     } catch (error) {
-      message.error(error.message || '导出失败')
+      message.error(userFacingErrorMessage(error, '导出失败'))
     }
   }
 

@@ -5,6 +5,7 @@ import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import api from '../services/api';
 import { formatBeijingDate } from '../utils/date';
 import MerchantMemberManagement from '../components/MerchantMemberManagement';
+import { userFacingErrorMessage } from '../services/apiError';
 
 const MerchantManagement = () => {
   const navigate = useNavigate();
@@ -131,7 +132,7 @@ const MerchantManagement = () => {
       message.success('分账配置保存成功')
     } catch (err) {
       if (err.errorFields) return // validation error
-      message.error('保存失败: ' + (err.response?.data?.message || err.message))
+      message.error(userFacingErrorMessage(err, '保存失败'))
     }
   };
 

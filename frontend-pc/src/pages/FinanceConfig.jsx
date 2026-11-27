@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Card, InputNumber, Button, message, Table, Tag, Tooltip, Input, Spin, Empty } from 'antd'
 import { api } from '../services/api'
+import { userFacingErrorMessage } from '../services/apiError';
 
 const levelColors = {
   "入门级": "default",
@@ -56,7 +57,7 @@ export default function FinanceConfig() {
       await api.put('/admin/finance-config', config)
       message.success('配置已更新，即时生效')
     } catch (error) {
-      message.error('保存失败: ' + error.message)
+      message.error(userFacingErrorMessage(error, '保存失败'))
     }
   }
 

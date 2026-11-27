@@ -4,6 +4,7 @@ import { Button, Checkbox, message, Card, Row, Col, Image, Divider } from 'antd'
 import { ArrowLeftOutlined } from '@ant-design/icons'
 import SignatureCanvas from 'react-signature-canvas'
 import { api } from '../../../services/api'
+import { userFacingErrorMessage } from '../../../services/apiError';
 
 export default function DamageAssessment() {
   const { orderId } = useParams()
@@ -33,7 +34,7 @@ export default function DamageAssessment() {
         message.error('获取数据失败: ' + result.message)
       }
     } catch (error) {
-      message.error('获取数据失败: ' + error.message)
+      message.error(userFacingErrorMessage(error, '获取数据失败'))
     } finally {
       setLoading(false)
     }
@@ -60,7 +61,7 @@ export default function DamageAssessment() {
         message.error('提交失败: ' + result.message)
       }
     } catch (error) {
-      message.error('提交失败: ' + error.message)
+      message.error(userFacingErrorMessage(error, '提交失败'))
     } finally {
       setLoading(false)
     }

@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { Card, Button, Form, Input, Select, AutoComplete, Alert, Space, message } from 'antd'
 import { staffApi, sitesApi } from '../services/api'
 import { resolveStaffFormMode, staffFormRules, isDualIdentity, resolveInitialRole } from '../utils/staffForm'
+import { userFacingErrorMessage } from '../services/apiError';
 
 function convertSitesToOptions(sites, parentPath = '') {
   let options = []
@@ -111,7 +112,7 @@ export default function StaffEdit() {
         message.error(result.message || '更新用户失败')
       }
     } catch (error) {
-      message.error('更新用户失败: ' + error.message)
+      message.error(userFacingErrorMessage(error, '更新用户失败'))
     }
     setLoading(false)
   }

@@ -8,6 +8,7 @@ import { Table, Card, Button, Space, Tag, Image, Modal, Input, Select, Tabs, mes
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
 import { faceReviewApi } from '../../../services/api'
 import { formatBeijingDateTimeShort } from '../../../utils/date'
+import { userFacingErrorMessage } from '../../../services/apiError';
 
 const { Text } = Typography
 
@@ -63,7 +64,7 @@ export default function FaceReviewPage() {
         message.error(resp.message || '加载审核队列失败')
       }
     } catch (error) {
-      message.error(error.message || '加载审核队列失败')
+      message.error(userFacingErrorMessage(error, '加载审核队列失败'))
     } finally {
       setLoading(false)
     }
@@ -87,7 +88,7 @@ export default function FaceReviewPage() {
         message.error(resp.message || '加载审核历史失败')
       }
     } catch (error) {
-      message.error(error.message || '加载审核历史失败')
+      message.error(userFacingErrorMessage(error, '加载审核历史失败'))
     } finally {
       setHistoryLoading(false)
     }
@@ -152,7 +153,7 @@ export default function FaceReviewPage() {
         message.error(resp.message || '操作失败')
       }
     } catch (error) {
-      message.error(error.message || '操作失败')
+      message.error(userFacingErrorMessage(error, '操作失败'))
     } finally {
       setSubmitting(false)
     }
@@ -175,7 +176,7 @@ export default function FaceReviewPage() {
         message.error(resp.message || '操作失败')
       }
     } catch (error) {
-      message.error(error.message || '操作失败')
+      message.error(userFacingErrorMessage(error, '操作失败'))
     } finally {
       setSubmitting(false)
     }

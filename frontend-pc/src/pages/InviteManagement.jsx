@@ -3,6 +3,7 @@ import { Card, Table, Button, Space, Tag, message, Modal, Input, Select, Typogra
 import { ReloadOutlined } from '@ant-design/icons'
 import { invitesApi } from '../services/api'
 import { formatBeijingDate } from '../utils/date'
+import { userFacingErrorMessage } from '../services/apiError';
 
 // #2114 邀请管理（子页）：网点管理员的加入申请 → 商户管理员审批。
 const STATUS_META = {
@@ -52,7 +53,7 @@ export default function InviteManagement() {
         message.error(resp.message || '加载邀请列表失败')
       }
     } catch (err) {
-      message.error('加载邀请列表失败: ' + (err.message || ''))
+      message.error(userFacingErrorMessage(err, '加载邀请列表失败'))
     } finally {
       setLoading(false)
     }
@@ -78,7 +79,7 @@ export default function InviteManagement() {
             message.error(resp.message || '操作失败')
           }
         } catch (err) {
-          message.error('操作失败: ' + (err.message || ''))
+          message.error(userFacingErrorMessage(err, '操作失败'))
         }
       },
     })
@@ -101,7 +102,7 @@ export default function InviteManagement() {
         message.error(resp.message || '操作失败')
       }
     } catch (err) {
-      message.error('操作失败: ' + (err.message || ''))
+      message.error(userFacingErrorMessage(err, '操作失败'))
     } finally {
       setSubmitting(false)
     }

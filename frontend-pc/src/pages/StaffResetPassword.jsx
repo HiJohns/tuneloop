@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { Card, Button, Form, Input, Radio, Checkbox, Space, message, Modal, Descriptions, Alert } from 'antd'
 import { staffApi, api } from '../services/api'
+import { userFacingErrorMessage } from '../services/apiError';
 
 export default function StaffResetPassword() {
   const { id } = useParams()
@@ -54,7 +55,7 @@ export default function StaffResetPassword() {
         message.error(result.message || '重置密码失败')
       }
     } catch (err) {
-      message.error('重置密码失败: ' + err.message)
+      message.error(userFacingErrorMessage(err, '重置密码失败'))
     }
     setLoading(false)
   }

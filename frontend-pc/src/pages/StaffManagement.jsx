@@ -15,6 +15,7 @@ import 'react-quill/dist/quill.snow.css'
 import { staffApi, sitesApi, personnelApi, invitesApi } from '../services/api'
 import { resolveErrorMessage } from '../services/errorMessages'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { userFacingErrorMessage } from '../services/apiError';
 
 const { Option } = Select
 
@@ -111,7 +112,7 @@ export default function StaffManagement() {
         })
       }
     } catch (error) {
-      message.error('加载人员列表失败: ' + error.message)
+      message.error(userFacingErrorMessage(error, '加载人员列表失败'))
     } finally {
       setLoading(false)
     }
@@ -362,7 +363,7 @@ export default function StaffManagement() {
         message.error(resolveErrorMessage(result, '创建员工失败，请稍后重试'))
       }
     } catch (error) {
-      message.error('创建员工失败: ' + error.message)
+      message.error(userFacingErrorMessage(error, '创建员工失败'))
     }
   }
 
@@ -377,7 +378,7 @@ export default function StaffManagement() {
         message.error(res.message || '删除失败')
       }
     } catch (err) {
-      message.error('删除失败: ' + (err.message || ''))
+      message.error(userFacingErrorMessage(err, '删除失败'))
     }
   }
 
@@ -391,7 +392,7 @@ export default function StaffManagement() {
         message.error(res.message || '激活失败')
       }
     } catch (err) {
-      message.error('激活失败: ' + (err.message || ''))
+      message.error(userFacingErrorMessage(err, '激活失败'))
     }
   }
 
@@ -425,7 +426,7 @@ export default function StaffManagement() {
         message.error(res.message || '重设密码失败')
       }
     } catch (err) {
-      message.error('重设密码失败: ' + (err.message || ''))
+      message.error(userFacingErrorMessage(err, '重设密码失败'))
     }
   }
 
@@ -452,7 +453,7 @@ export default function StaffManagement() {
             throw new Error(result.message || '批量删除失败')
           }
         } catch (error) {
-          message.error('批量删除失败: ' + error.message)
+          message.error(userFacingErrorMessage(error, '批量删除失败'))
         } finally {
           setBatchLoading(false)
         }

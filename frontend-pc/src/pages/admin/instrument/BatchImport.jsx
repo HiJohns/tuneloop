@@ -3,6 +3,7 @@ import { Steps, Button, Upload, message, Card, Table, Alert, Progress, Typograph
 import { UploadOutlined, CheckCircleOutlined, WarningOutlined, CloseCircleOutlined, EditOutlined, SwapOutlined, HomeOutlined, SettingOutlined } from '@ant-design/icons'
 import { instrumentsApi, propertiesApi, api, request, fetchBlob } from '../../../services/api'
 import { useNavigate } from 'react-router-dom'
+import { userFacingErrorMessage } from '../../../services/apiError';
 
 const { Title, Text } = Typography
 
@@ -14,7 +15,7 @@ async function downloadTemplate() {
     a.download = '乐器导入模板.csv'
     a.click()
   } catch (error) {
-    message.error(error.message || '下载模板失败')
+    message.error(userFacingErrorMessage(error, '下载模板失败'))
   }
 }
 
@@ -67,7 +68,7 @@ export default function BatchImport() {
         message.error(result.message || '校验失败')
       }
     } catch (err) {
-      message.error('校验失败: ' + err.message)
+      message.error(userFacingErrorMessage(err, '校验失败'))
     } finally {
       setLoading(false)
     }
@@ -98,7 +99,7 @@ export default function BatchImport() {
         message.error(result.message || '提交失败')
       }
     } catch (err) {
-      message.error('提交失败: ' + err.message)
+      message.error(userFacingErrorMessage(err, '提交失败'))
     } finally {
       setExecuting(false)
     }
@@ -443,7 +444,7 @@ function MediaUploader({ instrument, onUpdate }) {
       message.success('保存成功')
       onUpdate({ _images: images, _poster: poster, _video: video })
     } catch (e) {
-      message.error('保存失败: ' + (e.message || ''))
+      message.error(userFacingErrorMessage(e, '保存失败'))
     } finally {
       setSaving(false)
     }

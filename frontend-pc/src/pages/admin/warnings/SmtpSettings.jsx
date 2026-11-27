@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Card, Form, Input, InputNumber, Switch, Button, message, Spin, Alert, Space } from 'antd'
 import { api } from '../../../services/api'
+import { userFacingErrorMessage } from '../../../services/apiError';
 
 // #1910: 邮件服务配置（系统管理员）。界面配置（阿里云邮件推送）优先，
 // 未启用或发送失败自动回落到 .env 的个人邮箱；密码加密存储、不回显。
@@ -30,7 +31,7 @@ export default function SmtpSettings() {
       const res = await api.get('/admin/smtp-config')
       if (res.code === 20000) applyData(res.data)
       else message.error(res.message || '加载邮件配置失败')
-    } catch (err) { message.error(err.message || '加载邮件配置失败') }
+    } catch (err) { message.error(userFacingErrorMessage(err, '加载邮件配置失败')) }
     setLoading(false)
   }
 
@@ -48,7 +49,7 @@ export default function SmtpSettings() {
       } else {
         message.error(res.message || '保存失败')
       }
-    } catch (err) { message.error(err.message || '保存失败') }
+    } catch (err) { message.error(userFacingErrorMessage(err, '保存失败')) }
     setSaving(false)
   }
 
@@ -62,7 +63,7 @@ export default function SmtpSettings() {
       } else {
         message.error(res.message || '测试发送失败')
       }
-    } catch (err) { message.error(err.message || '测试发送失败') }
+    } catch (err) { message.error(userFacingErrorMessage(err, '测试发送失败')) }
     setTesting(false)
   }
 

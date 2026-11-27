@@ -6,6 +6,7 @@ import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalList
 import { CSS } from '@dnd-kit/utilities'
 import { api, categoriesApi } from '../../../services/api'
 import { isHidden, bySort, visibleOrdered, assignPayload } from './categoryLogic'
+import { userFacingErrorMessage } from '../../../services/apiError';
 
 const { Option } = Select
 
@@ -94,7 +95,7 @@ export default function CategoryList() {
         setSelectedParentId(data[0].id)
       }
     } catch (err) {
-      message.error('加载分类失败: ' + err.message)
+      message.error(userFacingErrorMessage(err, '加载分类失败'))
     } finally {
       setLoading(false)
     }
@@ -121,7 +122,7 @@ export default function CategoryList() {
       message.success('排序已更新')
       await fetchCategories()
     } catch (err) {
-      message.error('Failed to update sort: ' + err.message)
+      message.error(userFacingErrorMessage(err, '更新排序失败'))
       const parent = level1Categories.find(c => c.id === selectedParentId)
       if (parent && parent.sub_categories) {
         setSubCategories(bySort(parent.sub_categories))
@@ -140,7 +141,7 @@ export default function CategoryList() {
       message.success('排序已更新')
       await fetchCategories()
     } catch (err) {
-      message.error('更新失败: ' + err.message)
+      message.error(userFacingErrorMessage(err, '更新失败'))
     } finally {
       setSavingSort(false)
     }
@@ -155,7 +156,7 @@ export default function CategoryList() {
       message.success(willShow ? '已在首页显示' : '已从首页隐藏')
       await fetchCategories()
     } catch (err) {
-      message.error('更新失败: ' + err.message)
+      message.error(userFacingErrorMessage(err, '更新失败'))
     }
   }
 
@@ -224,7 +225,7 @@ export default function CategoryList() {
       message.success('删除成功')
       await fetchCategories()
     } catch (err) {
-      message.error('Failed to delete: ' + err.message)
+      message.error(userFacingErrorMessage(err, '删除失败'))
     }
   }
 
@@ -276,7 +277,7 @@ export default function CategoryList() {
       await fetchCategories()
     } catch (error) {
       if (!error.errorFields) {
-        message.error(error.message || 'Failed to submit')
+        message.error(userFacingErrorMessage(error, '提交失败'))
       }
     } finally {
       setSaving(false)

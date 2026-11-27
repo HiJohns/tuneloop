@@ -5,6 +5,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { Table, Card, Button, Space, Tag, Modal, Form, Input, Radio, Checkbox, message, Popconfirm } from 'antd'
 import { PlusOutlined, StopOutlined } from '@ant-design/icons'
 import { platformStaffApi } from '../../../services/api'
+import { userFacingErrorMessage } from '../../../services/apiError';
 
 export default function PlatformStaffPage() {
   const [list, setList] = useState([])
@@ -28,7 +29,7 @@ export default function PlatformStaffPage() {
         message.error(resp.message || '加载平台员工失败')
       }
     } catch (error) {
-      message.error(error.message || '加载平台员工失败')
+      message.error(userFacingErrorMessage(error, '加载平台员工失败'))
     } finally {
       setLoading(false)
     }
@@ -69,7 +70,7 @@ export default function PlatformStaffPage() {
         message.error(resp.message || '创建失败')
       }
     } catch (error) {
-      message.error(error.message || '创建失败')
+      message.error(userFacingErrorMessage(error, '创建失败'))
     } finally {
       setCreating(false)
     }
@@ -85,7 +86,7 @@ export default function PlatformStaffPage() {
         message.error(resp.message || '禁用失败')
       }
     } catch (error) {
-      message.error(error.message || '禁用失败')
+      message.error(userFacingErrorMessage(error, '禁用失败'))
     }
   }
 

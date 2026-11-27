@@ -4,6 +4,7 @@ import { Button, Card, Form, Input, Modal, Select, Space, Table, Tag, message, T
 import { PlusOutlined } from '@ant-design/icons'
 import { api } from '../../../services/api'
 import SiteMemberManagement from '../../../components/SiteMemberManagement'
+import { userFacingErrorMessage } from '../../../services/apiError';
 
 const { Text } = Typography
 
@@ -43,7 +44,7 @@ export default function TransitCenter() {
       // 后端已按 controlled 商户 + 非中转类型过滤，前端无需再筛
       if (cs.code === 20000) setControlledSites(cs.data?.list || [])
     } catch (e) {
-      message.error(e.message || '加载失败')
+      message.error(userFacingErrorMessage(e, '加载失败'))
     } finally {
       setLoading(false)
     }

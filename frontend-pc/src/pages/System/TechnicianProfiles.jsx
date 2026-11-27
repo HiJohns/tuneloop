@@ -6,6 +6,7 @@ import PhotoUploader from '../../components/PhotoUploader'
 import 'react-quill/dist/quill.snow.css'
 import { technicianApi, staffApi } from '../../services/api'
 import { formatBeijingDateTimeShort } from '../../utils/date'
+import { userFacingErrorMessage } from '../../services/apiError';
 // #1974 T4 维修师档案维护页（直属商户）：照片/介绍/专长年限 + 新增/编辑/停用
 // #2049：照片改走媒体管线端点 `/technician-profiles/:id/photo`（原图+缩略图）；
 //        简介 bio 为富文本（react-quill，前端渲染 RichContent/富文本）。
@@ -107,7 +108,7 @@ export default function TechnicianProfiles() {
         setPendingPhoto(null)
         fetchList()
       } else message.error(resp.message || '保存失败')
-    } catch (e) { message.error(e.message || '保存失败') }
+    } catch (e) { message.error(userFacingErrorMessage(e, '保存失败')) }
     setSubmitting(false)
   }
 

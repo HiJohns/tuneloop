@@ -4,6 +4,7 @@ import { Card, Table, Tag, Select, Button, message, DatePicker, Input, Space } f
 import { DownloadOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons'
 import { api, fetchBlob } from '../../../services/api'
 import { formatBeijingDate, formatBeijingDateTimeShort } from '../../../utils/date'
+import { userFacingErrorMessage } from '../../../services/apiError';
 
 const { RangePicker } = DatePicker
 
@@ -64,7 +65,7 @@ export default function PaymentList() {
       window.URL.revokeObjectURL(url)
       message.success('导出成功')
     } catch (error) {
-      message.error(error.message || '导出失败')
+      message.error(userFacingErrorMessage(error, '导出失败'))
     }
   }
 

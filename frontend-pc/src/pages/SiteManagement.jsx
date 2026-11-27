@@ -7,6 +7,7 @@ import Logger from '../utils/logger'
 import SiteMemberManagement from '../components/SiteMemberManagement'
 import FormConflictAlert from '../components/FormConflictAlert'
 import { conflictText, isBusinessCorrectableConflict } from '../utils/formConflict'
+import { userFacingErrorMessage } from '../services/apiError';
  
 const { Option } = Select
 
@@ -112,7 +113,7 @@ export default function SiteManagement() {
       }
     } catch (err) {
       Logger.error('SITE', 'fetchSiteTree error:', err)
-      message.error('加载网点数据失败: ' + err.message)
+      message.error(userFacingErrorMessage(err, '加载网点数据失败'))
     } finally {
       setLoading(false)
       Logger.state('SiteManagement', { status: 'fetchSiteTree', action: 'END' })
@@ -236,7 +237,7 @@ export default function SiteManagement() {
       setSelectedSite(null)
       fetchSiteTree()
     } catch (err) {
-      message.error('删除失败: ' + err.message)
+      message.error(userFacingErrorMessage(err, '删除失败'))
     }
   }
 
@@ -315,7 +316,7 @@ export default function SiteManagement() {
         setFormConflict(conflictText(err, '请修改后重新提交'))
         return
       }
-      message.error('操作失败: ' + err.message)
+      message.error(userFacingErrorMessage(err, '操作失败'))
     } finally {
       setSaving(false)
     }

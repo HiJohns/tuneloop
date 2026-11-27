@@ -10,6 +10,7 @@ import { resolveCreateFeedback } from '../utils/createFeedback'
 import { createIntentState } from '../utils/staffCreateIntent'
 import FormConflictAlert from '../components/FormConflictAlert'
 import { conflictText, isBusinessCorrectableConflict } from '../utils/formConflict'
+import { userFacingErrorMessage } from '../services/apiError';
 
 // #2114 直属成员管理（子页）：
 // - 商户管理员：管理/邀请本商户直属员工（merchant_staff）
@@ -62,7 +63,7 @@ export default function DirectMemberManagement() {
         setTotal(resp.data?.total || 0)
       }
     } catch (err) {
-      message.error('加载直属员工失败: ' + (err.message || ''))
+      message.error(userFacingErrorMessage(err, '加载直属员工失败'))
     } finally {
       setLoading(false)
     }
@@ -115,7 +116,7 @@ export default function DirectMemberManagement() {
       }
     } catch (err) {
       if (err?.errorFields) return
-      message.error('邀请失败: ' + (err.message || ''))
+      message.error(userFacingErrorMessage(err, '邀请失败'))
     } finally {
       setInviting(false)
     }
@@ -192,7 +193,7 @@ export default function DirectMemberManagement() {
       }
     } catch (err) {
       if (err?.errorFields) return
-      message.error('创建失败: ' + (err.message || ''))
+      message.error(userFacingErrorMessage(err, '创建失败'))
     } finally {
       setCreating(false)
     }

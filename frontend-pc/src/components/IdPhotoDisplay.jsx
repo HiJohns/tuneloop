@@ -4,6 +4,7 @@ import { PlusOutlined, DeleteOutlined } from '@ant-design/icons'
 import { api } from '../services/api'
 import { uploadToApi } from '../utils/upload'
 import { IMAGE_PLACEHOLDER } from '../utils/instrumentDisplay'
+import { userFacingErrorMessage } from '../services/apiError';
 
 // IdPhotoDisplay — PC 端身份证查看/替换/删除组件 (#1599)
 // Props:
@@ -33,7 +34,7 @@ export default function IdPhotoDisplay({ side, label: labelOverride = '', initia
         message.error('上传失败')
       }
     } catch (e) {
-      message.error(e.message || '上传失败')
+      message.error(userFacingErrorMessage(e, '上传失败'))
     } finally {
       setUploading(false)
       if (options.onSuccess) options.onSuccess()
@@ -50,7 +51,7 @@ export default function IdPhotoDisplay({ side, label: labelOverride = '', initia
         message.error(json?.message || '删除失败')
       }
     } catch (e) {
-      message.error(e.message || '删除失败')
+      message.error(userFacingErrorMessage(e, '删除失败'))
     }
   }
 

@@ -6,6 +6,7 @@ import { api, faceReviewApi, fetchBlob } from '../../services/api'
 import IdPhotoDisplay from '../../components/IdPhotoDisplay'
 import { formatBeijingDate, formatBeijingDateTimeShort } from '../../utils/date'
 import { shouldShowWarning, orphanTitle, orphanEmptyText, isEmptyState } from '../../utils/orphanPanel'
+import { userFacingErrorMessage } from '../../services/apiError';
 
 const { Text } = Typography
 
@@ -73,7 +74,7 @@ export default function UserManagement() {
         setTotal(resp.data.total || 0)
       }
     } catch (err) {
-      message.error('加载失败: ' + (err.message || ''))
+      message.error(userFacingErrorMessage(err, '加载失败'))
     }
     setLoading(false)
   }
@@ -91,7 +92,7 @@ export default function UserManagement() {
       window.URL.revokeObjectURL(url)
       message.success('导出成功')
     } catch (error) {
-      message.error(error.message || '导出失败')
+      message.error(userFacingErrorMessage(error, '导出失败'))
     }
   }
 
@@ -148,7 +149,7 @@ export default function UserManagement() {
         message.error(resp?.message || '保存失败')
       }
     } catch (err) {
-      message.error('保存失败: ' + (err.message || ''))
+      message.error(userFacingErrorMessage(err, '保存失败'))
     }
   }
 
@@ -170,7 +171,7 @@ export default function UserManagement() {
         message.error(resp?.message || '加赠失败')
       }
     } catch (err) {
-      message.error('加赠失败: ' + (err.message || ''))
+      message.error(userFacingErrorMessage(err, '加赠失败'))
     }
     setGranting(false)
   }
@@ -192,7 +193,7 @@ export default function UserManagement() {
       }
     } catch (err) {
       setOrphanError(err?.message || '网络异常')
-      message.error('加载 IAM 孤儿账号失败: ' + (err.message || ''))
+      message.error(userFacingErrorMessage(err, '加载孤儿账号失败'))
     }
     setOrphanLoading(false)
   }
@@ -227,7 +228,7 @@ export default function UserManagement() {
         message.error(resp?.message || '清理失败')
       }
     } catch (err) {
-      message.error('清理失败: ' + (err.message || ''))
+      message.error(userFacingErrorMessage(err, '清理失败'))
     }
     setOrphanPurging(false)
   }
@@ -316,7 +317,7 @@ export default function UserManagement() {
         message.error(resp?.message || '保存失败')
       }
     } catch (err) {
-      message.error('保存失败: ' + (err.message || ''))
+      message.error(userFacingErrorMessage(err, '保存失败'))
     }
   }
 
@@ -337,7 +338,7 @@ export default function UserManagement() {
             message.error(resp?.message || '操作失败')
           }
         } catch (err) {
-          message.error('操作失败: ' + (err.message || ''))
+          message.error(userFacingErrorMessage(err, '操作失败'))
         }
       },
     })

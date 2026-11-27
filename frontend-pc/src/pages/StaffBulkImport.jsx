@@ -3,6 +3,7 @@ import { Steps, Button, Upload, message, Card, Table, Alert, Space, Typography, 
 import { UploadOutlined, DownloadOutlined, ArrowLeftOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { bulkImportApi, getToken } from '../services/api'
+import { userFacingErrorMessage } from '../services/apiError';
 
 const { Title, Text } = Typography
 
@@ -39,7 +40,7 @@ export default function StaffBulkImport() {
         message.error(result.message || '校验失败')
       }
     } catch (err) {
-      message.error('校验失败: ' + err.message)
+      message.error(userFacingErrorMessage(err, '校验失败'))
     } finally {
       setLoading(false)
     }
@@ -63,7 +64,7 @@ export default function StaffBulkImport() {
       link.click()
       message.success('模板下载成功')
     } catch (err) {
-      message.error('下载模板失败: ' + err.message)
+      message.error(userFacingErrorMessage(err, '下载模板失败'))
     }
   }
 
@@ -82,7 +83,7 @@ export default function StaffBulkImport() {
         message.error(result.message || '导入失败')
       }
     } catch (err) {
-      message.error('导入失败: ' + err.message)
+      message.error(userFacingErrorMessage(err, '导入失败'))
     } finally {
       setExecuting(false)
     }

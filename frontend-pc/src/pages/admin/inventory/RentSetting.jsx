@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Table, InputNumber, Button, Space, Form, message, Card, Input, Select, Tabs, Tag } from 'antd'
 import { inventoryApi, api, categoriesApi, instrumentsApi } from '../../../services/api'
+import { userFacingErrorMessage } from '../../../services/apiError';
 
 const { Search } = Input
 const { TabPane } = Tabs
@@ -101,7 +102,7 @@ export default function InventoryRentSetting() {
         message.error('加载数据失败: ' + response.message)
       }
     } catch (error) {
-      message.error('加载数据失败: ' + error.message)
+      message.error(userFacingErrorMessage(error, '加载数据失败'))
     }
     setLoading(false)
   }
@@ -148,7 +149,7 @@ export default function InventoryRentSetting() {
         message.error('保存失败: ' + response.message)
       }
     } catch (error) {
-      message.error('保存失败: ' + error.message)
+      message.error(userFacingErrorMessage(error, '保存失败'))
     }
     setLoading(false)
   }
@@ -174,7 +175,7 @@ export default function InventoryRentSetting() {
         message.error('保存失败: ' + response.message)
       }
     } catch (error) {
-      message.error('保存失败: ' + error.message)
+      message.error(userFacingErrorMessage(error, '保存失败'))
     }
     setLoading(false)
   }
@@ -193,7 +194,7 @@ export default function InventoryRentSetting() {
         })))
       }
     } catch (error) {
-      message.error('加载数据失败: ' + error.message)
+      message.error(userFacingErrorMessage(error, '加载数据失败'))
     }
     setLoading(false)
   }

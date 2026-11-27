@@ -9,6 +9,7 @@ import { resolveCreateFeedback } from '../utils/createFeedback';
 import FormConflictAlert from './FormConflictAlert';
 import { conflictText, isBusinessCorrectableConflict } from '../utils/formConflict';
 import { transferCandidates, canRemoveMember, canTransferOwnership, transferConfirmText } from '../utils/merchantOwnership';
+import { userFacingErrorMessage } from '../services/apiError';
 
 // #2546 Low-2：后端 maxPageSize=100（backend/handlers/pagination_helpers.go），
 // 候选必须按此分页补拉，禁止一次要 200（会被静默截断）。
@@ -151,7 +152,7 @@ const MerchantMemberManagement = ({ merchantId, onRefresh, businessRole }) => {
         message.error(response?.message || '转让所有权失败');
       }
     } catch (error) {
-      message.error(error?.message || '转让所有权失败');
+      message.error(userFacingErrorMessage(error, '转让所有权失败'));
     } finally {
       setTransferring(false);
     }

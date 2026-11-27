@@ -4,6 +4,7 @@ import { DownloadOutlined, SearchOutlined, CheckCircleOutlined, CloseCircleOutli
 import { api, auditLogApi } from '../../services/api';
 import dayjs from 'dayjs';
 import { formatBeijingDateTimeShort } from '../../utils/date';
+import { userFacingErrorMessage } from '../../services/apiError';
 
 const actionDisplayMap = {
   CREATE: '创建', UPDATE: '更新', DELETE: '删除',
@@ -91,7 +92,7 @@ export default function AuditLogPage() {
       setLogs(resp?.data?.list || []);
       setTotal(resp?.data?.total || 0);
     } catch (e) {
-      message.error('获取日志失败: ' + (e.message || e));
+      message.error(userFacingErrorMessage(e, '获取日志失败'));
     } finally { setLoading(false); }
   };
 
@@ -108,7 +109,7 @@ export default function AuditLogPage() {
       a.href = url; a.download = 'audit_logs.csv'; a.click();
       window.URL.revokeObjectURL(url);
       message.success('导出成功');
-    } catch (e) { message.error('导出失败: ' + (e.message || e)); }
+    } catch (e) { message.error(userFacingErrorMessage(e, '导出失败')); }
   };
 
   const showDetail = (record) => { setDetailLog(record); setDetailVisible(true); };

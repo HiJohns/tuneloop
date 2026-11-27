@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, Table, Button, Modal, InputNumber, Switch, message, Space } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
 import { api } from '../../services/api';
+import { userFacingErrorMessage } from '../../services/apiError';
 
 // GiftPolicies — 乐币规则管理（#1945 Sub-B，原「赠点策略」#1605 L-05）
 // 分会员级别配置：pay_ratio（抵扣比例）+ referral_ratio（裂变比例）+ referral_reg_points（邀请奖乐币）
@@ -27,7 +28,7 @@ export default function GiftPolicies() {
       const res = await api.get('/admin/point-settings');
       if (res.code === 20000) setSettings(res.data || {});
     } catch (e) {
-      message.error(e.message || '读取全局参数失败');
+      message.error(userFacingErrorMessage(e, '读取全局参数失败'));
     }
   };
 
@@ -47,7 +48,7 @@ export default function GiftPolicies() {
       if (res.code === 20000) { message.success('已更新'); setEditVisible(false); fetchPolicies(); }
       else { message.error(res.message || '保存失败'); }
     } catch (e) {
-      message.error(e.message || '保存失败，请稍后重试');
+      message.error(userFacingErrorMessage(e, '保存失败，请稍后重试'));
     }
   };
 
@@ -63,7 +64,7 @@ export default function GiftPolicies() {
       if (res.code === 20000) { message.success('全局参数已保存'); fetchSettings(); }
       else { message.error(res.message || '保存失败'); }
     } catch (e) {
-      message.error(e.message || '保存失败，请稍后重试');
+      message.error(userFacingErrorMessage(e, '保存失败，请稍后重试'));
     } finally { setSavingSettings(false); }
   };
 

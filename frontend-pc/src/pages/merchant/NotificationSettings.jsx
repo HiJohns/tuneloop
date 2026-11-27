@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Card, Switch, Input, Button, message, Spin, Alert } from 'antd'
 import { api } from '../../services/api'
+import { userFacingErrorMessage } from '../../services/apiError';
 
 // #1909: 商户通知设置（商户管理员）。商户用自己的企业微信群机器人；
 // 未配置或推送失败时，警告仍会以站内通知送达。
@@ -22,7 +23,7 @@ export default function NotificationSettings() {
       } else {
         message.error(res.message || '加载通知设置失败')
       }
-    } catch (err) { message.error(err.message || '加载通知设置失败') }
+    } catch (err) { message.error(userFacingErrorMessage(err, '加载通知设置失败')) }
     setLoading(false)
   }
 
@@ -38,7 +39,7 @@ export default function NotificationSettings() {
       } else {
         message.error(res.message || '保存失败')
       }
-    } catch (err) { message.error(err.message || '保存失败') }
+    } catch (err) { message.error(userFacingErrorMessage(err, '保存失败')) }
     setSaving(false)
   }
 
@@ -48,7 +49,7 @@ export default function NotificationSettings() {
       const res = await api.post('/merchant/notification-webhook/test', {})
       if (res.code === 20000) message.success('测试消息已发送到企业微信群')
       else message.error(res.message || '测试发送失败')
-    } catch (err) { message.error(err.message || '测试发送失败') }
+    } catch (err) { message.error(userFacingErrorMessage(err, '测试发送失败')) }
     setTesting(false)
   }
 

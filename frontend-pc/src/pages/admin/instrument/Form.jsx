@@ -11,6 +11,7 @@ import { api, sitesApi, instrumentsApi, staffApi, propertiesApi } from '../../..
 import { toYuan } from '../../../utils/money'
 import { uploadToApi, antdUploadProps } from '../../../utils/upload'
 import { checkPermission } from '../../../config/menuPermissions'
+import { userFacingErrorMessage } from '../../../services/apiError';
 
 const { Option } = Select
 const { TextArea } = Input
@@ -1091,7 +1092,7 @@ const loadCategoryChildren = async (node) => {
       if (error.errorFields) {
         console.error('Validation failed:', error)
       } else {
-        message.error(error.message || '提交失败')
+        message.error(userFacingErrorMessage(error, '提交失败'))
       }
     } finally {
       setSubmitting(false)
@@ -1481,7 +1482,7 @@ const loadCategoryChildren = async (node) => {
             showUploadList={false}
             {...antdUploadProps(
               (result) => form.setFieldsValue({ poster: result.url }),
-              { onError: (e) => message.error(e.message || '上传失败') }
+              { onError: (e) => message.error(userFacingErrorMessage(e, '上传失败')) }
             )}
           >
             {form.getFieldValue('poster') ? (
