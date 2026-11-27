@@ -217,7 +217,24 @@ if [ "$RC" != "0" ]; then
 else
   echo "RESULT: PASS ($MODE)" >> "$LOG"
 fi
-if [ -n "$ART" ]; then
+# 每个渲染行只保留自己的 token（R2/R3/R4 共用同一个 vitest 文件，产物不得互相复用
+# 其它行的断言结果；断言校验已在上面针对完整 LOG 执行）。
+ROW_PREFIX=""
+case "$MODE" in
+  r2) ROW_PREFIX="LOSS_LIST_" ;;
+  r3) ROW_PREFIX="LOSS_REG_" ;;
+  r4) ROW_PREFIX="LOSS_DETAIL_" ;;
+esac
+if [ -n "$ART" ] && [ -n "$ROW_PREFIX" ]; then
+  awk -v p="$ROW_PREFIX" '
+    NR <= 3 { print; next }
+    index($0, p) > 0 { print; next }
+    /^RESULT: / { print; next }
+    /Tests +[0-9]+ passed/ { print; next }
+  ' "$LOG" > "$ART.row"
+  mv "$ART.row" "$ART"
+  echo "ARTIFACT=$ART (row-scoped: $ROW_PREFIX)" >&2
+elif [ -n "$ART" ]; then
   cp "$LOG" "$ART"
   echo "ARTIFACT=$ART" >&2
 fi
