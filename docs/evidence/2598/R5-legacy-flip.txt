@@ -1,0 +1,11 @@
+# build=1.0.18c81bd36 # commit=18c81bd365683226edebc86111fde80139cabe2e # dirty=false
+GENERATED_AT_HEAD=18c81bd365683226edebc86111fde80139cabe2e
+== R5 既有断言翻转与强化（merge 400 → 400/40002；bind 409 可行动） ==
+WXBIND_409_ACTIONABLE=1
+--- PASS: TestWxBindCurrentUser (1.09s)
+--- PASS: TestWxBindCurrentUser_NeedsMergePassthrough_2228 (0.00s)
+WXMERGE_400_STATUS=400
+LEGACY_FLIPPED=1
+--- PASS: TestWxMergeCurrentUser_IAMFailureMapped_2228 (0.00s)
+LEGACY_TESTS_FAIL=0
+R5_OK

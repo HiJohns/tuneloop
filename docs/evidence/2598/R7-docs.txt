@@ -1,0 +1,8 @@
+# build=1.0.18c81bd36 # commit=18c81bd365683226edebc86111fde80139cabe2e # dirty=false
+GENERATED_AT_HEAD=18c81bd365683226edebc86111fde80139cabe2e
+== R7 文档同步（新码 + 三元组口径 + 页面失败文案） ==
+API_CODE_50015=1
+API_TRIPLE_RULE=1
+UI_WXBIND_TEXTS=1
+UI_TRANSIT_NOTE=1
+R7_OK

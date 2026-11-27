@@ -1,0 +1,8 @@
+# build=1.0.18c81bd36 # commit=18c81bd365683226edebc86111fde80139cabe2e # dirty=false
+GENERATED_AT_HEAD=18c81bd365683226edebc86111fde80139cabe2e
+== R1 上游失败分类器：四类 + 状态提取 + Error() 文本保持 ==
+CLASSIFIER_CASES=13
+CLASSIFIER_MISMATCH=0
+HTTPERR_TEXT_KEPT=1
+--- PASS: TestClassifyIAMFailure2598 (0.00s)
+R1_OK

@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "issue": 2598,
+  "build": "1.0.18c81bd36",
+  "commit": "18c81bd365683226edebc86111fde80139cabe2e",
+  "dirty": false,
+  "plan_sha256": "3015d019764f78c5764ebdc7d3c727e5c3fa8ddec9acf76c94edff3910c44552",
+  "environment": "/home/coder/worktrees/tuneloop/wt-2598 (branch issue-2598, base origin/develop 00e8c7269); Postgres test DB 127.0.0.1:15433/tuneloop_test; fake IAM via httptest (services.SetIAMInternalURLForTesting); go build/test via host heavy-lock (heavy-run.sh); node --test for frontend pure functions",
+  "tooling_commit": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2598.sh r1 > docs/evidence/2598/R1-classifier.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2598/R1-classifier.txt"
+      ],
+      "assert": "exit 0 且含 CLASSIFIER_MISMATCH=0 CLASSIFIER_CASES=13 HTTPERR_TEXT_KEPT=1",
+      "actual": "PASS：CLASSIFIER_CASES=13（10 个上游状态 × 两种错误类型 + `%w` 包装链 + 传输层 + nil）、CLASSIFIER_MISMATCH=0（0/429/5xx→transient、409→conflict、400/422→userAction、401/403/404→config 全对）、HTTPERR_TEXT_KEPT=1（403 → `permission denied: <body>`；其余 → `CreateOrganization returned status <n>: <body>`，逐字未漂移）",
+      "expected": "PASS（三项 token 全为期望值）",
+      "negative": "任一状态分类错误、包装链失配、错误文本漂移 → FAIL",
+      "negative_result": "表驱动逐状态断言具体 kind + upstream status；包装场景用 `fmt.Errorf(\"CreateAdminTransitSite: %w\", &IAMAPIError{403})`，若 errors.As 失配则退化为 transient → MISMATCH>0；`IAMClientHTTPError.Error()` 与旧串字面量逐字比对，漂移即 KEPT=0",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2598.sh r2 > docs/evidence/2598/R2-transit-persistent.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2598/R2-transit-persistent.txt"
+      ],
+      "assert": "exit 0 且含 TRANSIT_REJECTED_STATUS=500 TRANSIT_REJECTED_CODE=50015 TRANSIT_REJECTED_MSG_ACTIONABLE=1 TRANSIT_REJECTED_MSG_NO_RETRY=0 TRANSIT_REJECTED_SITES_CREATED=0",
+      "actual": "PASS：fake IAM 400（rejected400）与 403（forbidden403）均 → HTTP 500 / code 50015、文案含「联系平台管理员」且不含「请稍后再试」、sites 行 0；两种上游状态同分流同码（测试内显式比对）",
+      "expected": "PASS（五项 token 全为期望值）",
+      "negative": "502/50200、含「请稍后再试」、建出站点 → FAIL",
+      "negative_result": "require 断言 500/50015 + NotContains 重试串 + sites=0；并断言 400 与 403 的 status/code 完全一致（不一致即 t.Errorf）；旧实现（fix^）红样实测为 502/50200",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2598.sh r3 > docs/evidence/2598/R3-transit-transient.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2598/R3-transit-transient.txt"
+      ],
+      "assert": "exit 0 且含 TRANSIT_TRANSIENT_STATUS=502 TRANSIT_TRANSIENT_CODE=50200 TRANSIT_TRANSIENT_MSG_RETRY=1 TRANSIT_TRANSIENT_NOT_CONFIG=1",
+      "actual": "PASS：上游 500（createMode=error）与「建组织一跳传输层失败」（连接被对端关闭，无上游状态）均 → 502/50200 + 「中转网点组织创建失败，请稍后再试」；两种瞬时形态都不出现配置提示、不建站点",
+      "expected": "PASS（四项 token 全为期望值）",
+      "negative": "50015/4xx、缺「请稍后再试」 → FAIL",
+      "negative_result": "对两种瞬时形态共同断言 status=502 / code=50200 / Contains「请稍后再试」/ msg != iamConfigErrorMessage；sites 计数为 0",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2598.sh r4 > docs/evidence/2598/R4-wx-paths.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2598/R4-wx-paths.txt"
+      ],
+      "assert": "exit 0 且含 WXBIND_400_CODE=40002 WXBIND_403_CODE=50015 WXBIND_409_CODE=40900 WX_TRANSIENT_STATUS=502 WX_TRANSIENT_CODE=50200 WXMERGE_400_CODE=40002 MERGEBIND_400_CODE=40002 PERSISTENT_NO_RETRY_HINT=0 WXBIND_NEEDS_MERGE=1",
+      "actual": "PASS：wx-bind 上游 400→400/40002、403→500/50015、409→409/40900（可行动文案）、不可达→502/50200；wx-merge 400→40002；wx-merge-confirm 400→40002；持久/重做类文案均不含「请稍后再试」（PERSISTENT_NO_RETRY_HINT=0）；needs_merge 仍 20000 + data.needs_merge=true",
+      "expected": "PASS（九项 token 全为期望值）",
+      "negative": "瞬时返 409、持久类含「稍后再试」、needs_merge 回归 → FAIL",
+      "negative_result": "矩阵驱动 fake IAM（400/403/409 + 端口关闭）；每条分支单独 require status/code/文案；needs_merge 分支断言 code=20000 且 data.needs_merge=true；旧实现（fix^）红样实测上游 400 返回 409（expected 400 actual 409）",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2598.sh r5 > docs/evidence/2598/R5-legacy-flip.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2598/R5-legacy-flip.txt"
+      ],
+      "assert": "exit 0 且含 WXMERGE_400_STATUS=400 LEGACY_FLIPPED=1 WXBIND_409_ACTIONABLE=1 LEGACY_TESTS_FAIL=0",
+      "actual": "PASS：`TestWxMergeCurrentUser_IAMFailureMapped_2228` 由旧期望 409 翻转为 400 + 40002 + 含「账户合并失败」+ 不含「请稍后再试」（LEGACY_FLIPPED=1）；`TestWxBindCurrentUser` 的 409 分支追加可行动断言（含「该微信已绑定其他账户」，WXBIND_409_ACTIONABLE=1）；套件 0 fail",
+      "expected": "PASS（四项 token 全为期望值）",
+      "negative": "merge 400 仍 409、文案不可行动、既有测试失败 → FAIL",
+      "negative_result": "翻转后的断言以具体状态/码字面量固定；旧实现在 fix^ 红样实测 expected 400 actual 409；LEGACY_TESTS_FAIL 由 `^--- FAIL` 计数得出（非零即 R5_FAIL）",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2598.sh r6 > docs/evidence/2598/R6-frontend-map.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2598/R6-frontend-map.txt"
+      ],
+      "assert": "exit 0 且含 PC_MAP_50015=1 MOBILE_MAP_50015=1 MAP_TEXT_MATCH=1 CONFIG_MSG_DRIFT=0 PARITY=1 NODE_TEST_FAIL=0",
+      "actual": "PASS：PC/mobile `ERROR_CODE_MAP[50015]` 均存在且文案一致「身份服务配置异常，请联系平台管理员处理」；后端 iamConfigErrorMessage 与双端码表逐字一致（DRIFT=0）；`node --test frontend-pc/tests/errorText-2598.test.mjs` 7 用例全绿（`# fail 0`）；跨包平价脚本 PARITY=1",
+      "expected": "PASS（六项 token 全为期望值）",
+      "negative": "缺码表条目、双端不一致、常量漂移、平价失败 → FAIL",
+      "negative_result": "码表文本用源文件静态抽取（不经实现）后三方比对；node --test 内含负例（50015 不得含「数据冲突」/「请稍后再试」、不得回显 `returned status`）；旧实现（fix^）红样为 6/7 用例失败、PC_MAP_50015=0",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2598.sh r7 > docs/evidence/2598/R7-docs.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2598/R7-docs.txt"
+      ],
+      "assert": "exit 0 且含 API_CODE_50015=1 API_TRIPLE_RULE=1 UI_WXBIND_TEXTS=1 UI_TRANSIT_NOTE=1",
+      "actual": "PASS：api.md §14.4 含 `| 50015 |` 行 + 「错误三元组一致性（#2598）」口径段（含 `500 / 50015`）；ui.md §2.6.2 含「失败提示（#2598）」表与逐字文案；§3.20 含「建组织失败提示（#2598）」",
+      "expected": "PASS（四项 token 全为期望值）",
+      "negative": "文档缺码/缺口径/缺文案 → FAIL",
+      "negative_result": "结构断言按行首/段落标题 + 关键码串匹配；fix^ 红样实测四项 token 全为 0（API_CODE_50015=0 API_TRIPLE_RULE=0 UI_WXBIND_TEXTS=0 UI_TRANSIT_NOTE=0）",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash scripts/verify-2598.sh r8 > docs/evidence/2598/R8-build-lint.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2598/R8-build-lint.txt"
+      ],
+      "assert": "exit 0 且含 GO_BUILD_OK=1 GOFMT_DIFF=0 ESLINT_NOUNDEF=0",
+      "actual": "PASS：`cd backend && go build ./...` exit 0；12 个改动 Go 文件 `gofmt -l` 无输出；PC/mobile 变更文件 ESLint exit 0 且 0 条 no-undef",
+      "expected": "PASS（三项 token 全为期望值）",
+      "negative": "构建失败/gofmt 差异/eslint no-undef → FAIL",
+      "negative_result": "分别 capture build rc / gofmt 行数 / eslint 输出中 no-undef 计数，任一非期望即 R8_FAIL；eslint 有效性以 no-undef 探针（未定义符号 → error 1）验证过",
+      "pass": true
+    }
+  ]
+}
