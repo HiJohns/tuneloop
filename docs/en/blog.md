@@ -460,3 +460,4 @@
 - 2026-11-27: Batch processing completed, including tasks: Resolved Issues: #2598
 - 2026-11-27: Batch processing completed, including tasks: Resolved Issues: #2603
 - 2026-11-27: Batch processing completed, including tasks: Resolved Issues: #2601（审计 PASS；fix/evidence 在 origin/issue-2601，代码待集成至 develop；Ops Follow-up #2613，Out-of-Scope 同类遗留 #2614）
+- 2026-11-27: Batch processing completed, including tasks: Resolved Issues: #2470, #2609 (audit PASS; fix/evidence live on origin/issue-2470 and origin/issue-2609, code pending integration into develop; #2609 is stacked on origin/issue-2488, merge order 2488 -> develop -> 2609; Ops follow-ups #2617 / #2618 / #2619); #2542 audit REJECTED (api.md §2.8.2 documented the SMS callback with the IAM callback path + R6 probe is existence-only)

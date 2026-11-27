@@ -481,3 +481,4 @@
 - 2026-11-27: 批量处理完成，包含任务: Resolved Issues: #2598
 - 2026-11-27: 批量处理完成，包含任务: Resolved Issues: #2603
 - 2026-11-27: 批量处理完成，包含任务: Resolved Issues: #2601（审计 PASS；fix/evidence 在 origin/issue-2601，代码待集成至 develop；Ops Follow-up #2613，Out-of-Scope 同类遗留 #2614）
+- 2026-11-27: 批量处理完成，包含任务: Resolved Issues: #2470, #2609（审计 PASS；fix/evidence 在 origin/issue-2470 与 origin/issue-2609，代码待集成至 develop；#2609 基座为 origin/issue-2488 堆叠分支，合并顺序 2488→develop→2609；Ops Follow-up #2617 / #2618 / #2619）；#2542 审计 REJECTED（api.md §2.8.2 短信回调路径写成 IAM 回调路径 + R6 仅存在性探针）
