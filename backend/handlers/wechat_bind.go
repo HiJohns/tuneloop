@@ -70,7 +70,9 @@ func (h *WechatBindHandler) GenBindToken(c *gin.Context) {
 	userID := middleware.GetUserID(ctx)
 
 	// Lookup user
-	db := database.GetDB().WithContext(ctx)
+	// #2620：身份自查询——users.tenant_id 是 IAM 关系缓存，可能不等于 JWT tid；
+	// 查「我自己那行」不得套用自动租户 scope（#2078 同款口径）。
+	db := database.GetDB().WithContext(database.IdentityCtx(ctx))
 	var user models.User
 	if err := db.Where("iam_sub = ?", userID).First(&user).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40004, "message": "user not found"})
@@ -185,7 +187,9 @@ func (h *WechatBindHandler) ConfirmBind(c *gin.Context) {
 
 	// Lookup user's iam_sub for IAM API call
 	ctx := c.Request.Context()
-	db := database.GetDB().WithContext(ctx)
+	// #2620：身份自查询——users.tenant_id 是 IAM 关系缓存，可能不等于 JWT tid；
+	// 查「我自己那行」不得套用自动租户 scope（#2078 同款口径）。
+	db := database.GetDB().WithContext(database.IdentityCtx(ctx))
 	var user models.User
 	if err := db.Where("id = ?", userID).First(&user).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40004, "message": "user not found"})
@@ -283,7 +287,9 @@ func (h *WechatBindHandler) MergeBind(c *gin.Context) {
 	bindTokensMu.Unlock()
 
 	ctx := c.Request.Context()
-	db := database.GetDB().WithContext(ctx)
+	// #2620：身份自查询——users.tenant_id 是 IAM 关系缓存，可能不等于 JWT tid；
+	// 查「我自己那行」不得套用自动租户 scope（#2078 同款口径）。
+	db := database.GetDB().WithContext(database.IdentityCtx(ctx))
 	var user models.User
 	if err := db.Where("id = ?", userID).First(&user).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40004, "message": "user not found"})
@@ -361,7 +367,9 @@ func (h *WechatBindHandler) Unbind(c *gin.Context) {
 	ctx := c.Request.Context()
 	userID := middleware.GetUserID(ctx)
 
-	db := database.GetDB().WithContext(ctx)
+	// #2620：身份自查询——users.tenant_id 是 IAM 关系缓存，可能不等于 JWT tid；
+	// 查「我自己那行」不得套用自动租户 scope（#2078 同款口径）。
+	db := database.GetDB().WithContext(database.IdentityCtx(ctx))
 	var user models.User
 	if err := db.Where("iam_sub = ?", userID).First(&user).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40004, "message": "user not found"})

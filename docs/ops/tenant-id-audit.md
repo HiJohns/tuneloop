@@ -140,6 +140,16 @@
 
 **A1 结论**：自动租户范围只能作为**粗筛**，不能承担商户隔离；归属必须由商户 org / membership 显式表达。`IdentityCtx` 的 23 处绕行是 P3 重构优先清单。
 
+### A1.1 身份自查询例外（#2620）
+
+| 项 | 内容 |
+|---|---|
+| 谓词 | 查询「我自己那行」（`users.iam_sub = JWT sub`，或由该行主键 / 我自己的 `referrals` 行定位到的 `users` 行）**不适用**自动租户 scope，必须用 `database.IdentityCtx` |
+| 依据 | `users.tenant_id` 是 IAM 关系的**本地缓存**，可与 JWT `tid` 不一致（平台级商户 / 多组织用户）；套用 `addTenantScope` 会把「查自己」变成 `WHERE tenant_id = tid` → 恒 404（#2078 / #2620） |
+| 已覆盖 | `/users/me`（#2078）、`/users/me/wechat-bind`、`/users/me/wechat-unbind`、`/users/me/promo-qrcode`、`/users/me/referrals`（含 referee 行查询，`referrals` 表无 `TenantID`） |
+| 未覆盖（→ #2621） | `/user/*` 家庭直连自查询（积分 / 地址 / 人脸 / 支付计算 / 押金减免 / 待处理订单 / customer_role）与共享解析器 `middleware.EnsureLocalUser` / `middleware.LocalUserID` |
+| 不适用 | 查询**他人数据**（列表、按 tenant/org 过滤）仍必须套用自动 scope；`POST /api/users/me/avatar` 只有 UPDATE（回调链不含 query 回调），不在此列 |
+
 ## A2 模型层分类（51 个含 TenantID 的模型）
 分类：**P**=平台级共享（tenant 仅创建者元数据，S6）；**M**=商户级（应锚商户 org）；**N**=命名空间/审计级。
 

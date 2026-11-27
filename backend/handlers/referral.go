@@ -21,7 +21,9 @@ func NewReferralHandler() *ReferralHandler {
 // GetPromoQR returns the current user's referral code and QR URLs.
 func (h *ReferralHandler) GetPromoQR(c *gin.Context) {
 	ctx := c.Request.Context()
-	db := database.GetDB().WithContext(ctx)
+	// #2620：身份自查询——users.tenant_id 是 IAM 关系缓存，可能不等于 JWT tid；
+	// 查「我自己那行」不得套用自动租户 scope（#2078 同款口径）。
+	db := database.GetDB().WithContext(database.IdentityCtx(ctx))
 	userID := middleware.GetUserID(ctx)
 
 	var user models.User
@@ -78,7 +80,9 @@ func (h *ReferralHandler) LandingPage(c *gin.Context) {
 // ListReferrals returns the referral list for the current user.
 func (h *ReferralHandler) ListReferrals(c *gin.Context) {
 	ctx := c.Request.Context()
-	db := database.GetDB().WithContext(ctx)
+	// #2620：身份自查询——users.tenant_id 是 IAM 关系缓存，可能不等于 JWT tid；
+	// 查「我自己那行」不得套用自动租户 scope（#2078 同款口径）。
+	db := database.GetDB().WithContext(database.IdentityCtx(ctx))
 	userID := middleware.GetUserID(ctx)
 
 	var user models.User
