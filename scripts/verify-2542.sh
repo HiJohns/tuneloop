@@ -46,7 +46,6 @@ EVIDENCE_DIR="docs/evidence/2542"
 FIX_COMMIT="${FIX_COMMIT:-$(git log --format=%H --grep='^fix(issue-2542)' -1 2>/dev/null || true)}"
 [ -n "$FIX_COMMIT" ] || FIX_COMMIT="$(git rev-parse HEAD)"
 FIX_COMMIT="$(git rev-parse "${FIX_COMMIT}^{commit}")"
-HEAD_SHA="$(git rev-parse HEAD)"
 BUILD="1.0.$(git rev-parse --short "$FIX_COMMIT")"
 DIRTY=false
 if [ -n "$(git status --porcelain --untracked-files=no -- . ':!docs/evidence')" ]; then
@@ -58,7 +57,6 @@ fail() { echo "${ROW^^}_FAIL: $*" >&2; exit 1; }
 
 art_header() {
   echo "$PROVENANCE"
-  echo "GENERATED_AT_HEAD=${HEAD_SHA}"
 }
 
 # tok <file> <KEY> — first value of KEY in file. The preceding character must be
