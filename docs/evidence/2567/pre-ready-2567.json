@@ -1,16 +1,16 @@
 {
   "issue": 2567,
   "overall": "PASS",
-  "plan": "/tmp/opencode/tuneloop/wt-2567/tmp/pre-ready-2567.mz3ZWw/plan.md",
+  "plan": "/tmp/opencode/tuneloop/wt-2567/tmp/pre-ready-2567.o8ZWWh/plan.md",
   "plan_sha256": "062b7066e9e69259fad12baf6252e6bf5d751f611969adde6e6db5224807bf0e",
-  "config_sha": "aa88df3c03c9ddfbf59ae953b1d184d541f473cb",
+  "config_sha": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
   "provenance": {
-    "build": "1.0.4935db7f4",
-    "commit": "4935db7f4a61d2579f668557caaf7e1a9a34b757",
+    "build": "1.0.24d833ecc",
+    "commit": "24d833eccca9e7a36a919a50caf1ca5c5ee160ff",
     "dirty": false
   },
   "summary": "tmp/work-summary-2567.md",
-  "timestamp": "20261127-002804",
+  "timestamp": "20261127-011818",
   "checks": [
     {
       "id": "P1",
@@ -45,7 +45,7 @@
     {
       "id": "P18",
       "status": "WARN",
-      "detail": "tooling_commit missing (legacy bundle); config_sha=aa88df3c03c9ddfbf59ae953b1d184d541f473cb"
+      "detail": "tooling_commit missing (legacy bundle); config_sha=be61a790605b0b65759d0fd2be9b258bc6c41b49"
     },
     {
       "id": "P15",
@@ -65,7 +65,7 @@
     {
       "id": "P5",
       "status": "PASS",
-      "detail": "full gate clean worktree; HEAD failures are a subset of baseline (758e447ed); source head=cache baseline=run"
+      "detail": "full gate clean worktree; HEAD failures are a subset of baseline (758e447ed62c6438bf437a4dd9659271a2494797); source head=cache baseline=cache"
     },
     {
       "id": "P6",
