@@ -1,7 +1,7 @@
 {
   "issue": 2564,
-  "overall": "FAIL",
-  "plan": "/home/coder/worktrees/tuneloop/wt-2564/tmp/pre-ready-2564.XZimsf/plan.md",
+  "overall": "PASS",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2564/tmp/pre-ready-2564.zNTua8/plan.md",
   "plan_sha256": "d78df1b8be48f0c34af5ead6694c43edf3d694af964f0ea301ede260602682f5",
   "config_sha": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
   "provenance": {
@@ -10,7 +10,7 @@
     "dirty": false
   },
   "summary": "docs/evidence/2564/summary.md",
-  "timestamp": "20261127-023252",
+  "timestamp": "20261127-023349",
   "checks": [
     {
       "id": "P1",
@@ -24,8 +24,8 @@
     },
     {
       "id": "P3",
-      "status": "FAIL",
-      "detail": "evidence paths do not exist: .result List.jsx RED_SAMPLE=5cd3c900a^:frontend-pc/src/pages/admin/category/List.jsx evidence.json pre-ready-2563.json"
+      "status": "PASS",
+      "detail": "all referenced evidence paths exist and are durable"
     },
     {
       "id": "P4",
@@ -34,8 +34,8 @@
     },
     {
       "id": "P12",
-      "status": "FAIL",
-      "detail": "R2: expected does not match the plan contract; R2: negative does not match the plan contract"
+      "status": "PASS",
+      "detail": "Evidence Contract complete: 4 row(s) match the plan and have durable artifacts"
     },
     {
       "id": "P14",
@@ -65,7 +65,7 @@
     {
       "id": "P5",
       "status": "N/A",
-      "detail": "skipped: P12/P14/P15/P16 static checks failed (static checks run first)"
+      "detail": "sub-task: full gate belongs to the parent/batch gate"
     },
     {
       "id": "P6",
