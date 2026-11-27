@@ -1,7 +1,7 @@
 {
   "issue": 2616,
-  "overall": "FAIL",
-  "plan": "/tmp/opencode/tuneloop/wt-2616/tmp/pre-ready-2616.y3dDe7/plan.md",
+  "overall": "PASS",
+  "plan": "/tmp/opencode/tuneloop/wt-2616/tmp/pre-ready-2616.asZIhI/plan.md",
   "plan_sha256": "6e33aa43f4541409c85be07ad56d9f8a7d372a5a159dcb36eaa6144c41224e64",
   "config_sha": "a29b2b35530c77f2bae31c509207199e6572ad9c",
   "provenance": {
@@ -10,7 +10,7 @@
     "dirty": false
   },
   "summary": "docs/evidence/2616/summary.md",
-  "timestamp": "20261127-203946",
+  "timestamp": "20261127-204022",
   "checks": [
     {
       "id": "P1",
@@ -24,23 +24,23 @@
     },
     {
       "id": "P3",
-      "status": "FAIL",
-      "detail": "evidence paths do not exist: Cart.jsx app.config.ts base.wxml docs/evidence/2616/pre-ready-2616.json env.isMiniProgram heavy-run.sh matrix_parser.sh menu.left pages-weapp/cart/index.config.ts pages-weapp/cart/index.config.ts:2 pages-weapp/home/index.config.ts:2 pre-ready-check.sh process.stdout src/platform/index.weapp verify-2616.sh vi.mock('../../src/platform')"
+      "status": "PASS",
+      "detail": "all referenced evidence paths exist and are durable"
     },
     {
       "id": "P4",
-      "status": "N/A",
-      "detail": "--dry-run: skipped 1 affected command(s)"
+      "status": "PASS",
+      "detail": "all 1 affected command(s) passed"
     },
     {
       "id": "P12",
-      "status": "FAIL",
-      "detail": "R4: artifact not found: docs/evidence/2616/pre-ready-2616.json"
+      "status": "PASS",
+      "detail": "Evidence Contract complete: 4 row(s) match the plan and have durable artifacts"
     },
     {
       "id": "P14",
-      "status": "FAIL",
-      "detail": "artifact missing: docs/evidence/2616/pre-ready-2616.json"
+      "status": "PASS",
+      "detail": "artifact provenance matches evidence (4 artifacts)"
     },
     {
       "id": "P18",
@@ -65,7 +65,7 @@
     {
       "id": "P5",
       "status": "N/A",
-      "detail": "skipped: P12/P14/P15/P16 static checks failed (static checks run first)"
+      "detail": "no go.mod/package.json and no --full-gate-cmd: full gate not applicable"
     },
     {
       "id": "P6",
@@ -99,8 +99,8 @@
     },
     {
       "id": "P13",
-      "status": "FAIL",
-      "detail": "artifacts not on origin/issue-2616: docs/evidence/2616/pre-ready-2616.json"
+      "status": "PASS",
+      "detail": "fix commit and evidence artifacts are on origin/issue-2616"
     }
   ]
 }
