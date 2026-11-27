@@ -475,3 +475,4 @@
 - 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2590（审计 PASS；fix/evidence 在 origin/issue-2590，代码待集成至 develop）
 - 2026-11-27: 批量处理完成，包含任务: Resolved Issues: #2586
 - 2026-11-27: 批量处理完成，包含任务: Resolved Issues: #2567（审计待办；fix/evidence 在 origin/issue-2567，代码待集成至 develop）；#2568/#2564/#2455 → analysis（计划缺口：依赖集成/验收文本矛盾）；#2459/#2429 → holdon（依赖未就绪）
+- 2026-11-27: 批量处理完成，包含任务: Resolved Issues: #2567

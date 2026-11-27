@@ -454,3 +454,4 @@
 - 2026-11-26: Batch processing completed, including tasks: Resolved Issues: #2590（审计 PASS；fix/evidence 在 origin/issue-2590，代码待集成至 develop）
 - 2026-11-27: Batch processing completed, including tasks: Resolved Issues: #2586
 - 2026-11-27: Batch processing completed, including tasks: Resolved Issues: #2567 (ready for audit; fix/evidence on origin/issue-2567, not yet integrated into develop); #2568/#2564/#2455 -> analysis (plan gaps: dependency integration / contradictory acceptance text); #2459/#2429 -> holdon (dependencies not ready)
+- 2026-11-27: Batch processing completed, including tasks: Resolved Issues: #2567
