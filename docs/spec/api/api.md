@@ -309,6 +309,17 @@ H5 未捕获 JS 错误（`window.onerror` / `unhandledrejection`）上报，仅�
 |---|---:|---:|---|---|
 | 首次绑定成功 | 200 | 20000 | — | `bound` |
 | 该微信已绑定其他存活账户 | 409 | 40900 | `{needs_merge:true, existing_user_id, target_user_id, openid, merge_ticket}` | `needs_merge` |
+| 上游 `400`/`422`（exchange_token 失效，用户可重做） | 400 | 40002 | — | 不变 |
+| 上游 `409`（绑定关系冲突） | 409 | 40900 | — | 不变 |
+| 上游 `401`/`403`/`404`（持久配置/权限/数据问题） | 500 | 50015 | — | 不变 |
+| 传输层失败 / 上游 `429`/`5xx`（瞬时） | 502 | 50200 | — | 不变 |
+
+**失败三元组（#2601）**：以上失败行与 `GET /api/auth/wx-accounts` 成功后的 `needs_merge` 分支**互斥**——`needs_merge` 是成功分支（`409/40900` + `data.needs_merge=true`），其余 `409` 是失败；口径见 §14.4「错误三元组一致性（#2598）」。文案不得拼接上游原始错误串（细节只进日志）。
+
+- `400 / 40002` → 「微信授权已失效，请重新进入页面重试」
+- `409 / 40900` → 「该微信已绑定其他账户，请让管理员重新生成绑定二维码」
+- `500 / 50015` → 「身份服务配置异常，请联系平台管理员处理」（与 PC/mobile `ERROR_CODE_MAP[50015]` 逐字一致）
+- `502 / 50200` → 「绑定失败，请稍后再试」
 
 #### `POST /api/wechat-bind/merge`（扫码冲突合并，#2445）
 
@@ -326,7 +337,14 @@ H5 未捕获 JS 错误（`window.onerror` / `unhandledrejection`）上报，仅�
 
 **IAM 内部端点**：`POST /api/v1/auth/wx-bind` 的 `needs_merge` 响应新增 `merge_ticket`；`POST /api/v1/auth/wx-merge-confirm` 凭 ticket 执行合并（单次消费）。
 | token 无效/已用/过期 | 400 | 40004 | — | — |
+| token 状态非 `needs_merge`（#2601） | 400 | 40002 | — | 不变 |
+| 上游 `400`/`422`（合并凭证失效） | 400 | 40002 | — | 不变 |
+| 上游 `409`（合并关系冲突） | 409 | 40900 | — | 不变 |
+| 上游 `401`/`403`/`404`（持久配置/权限） | 500 | 50015 | — | 不变 |
+| 传输层失败 / 上游 `429`/`5xx`（瞬时） | 502 | 50200 | — | 不变 |
 
+- **状态前置（#2601）**：token 状态非 `needs_merge` → `400 / 40002` +「绑定二维码已失效，请让管理员重新生成二维码后重试」（与相邻「invalid or expired merge ticket」同族；`409xx` 冲突码不得配 `400`）；内部状态串（`status=…`）只进日志，不得出现在 `message`。
+- 失败分类沿用 §14.4 三元组口径（`errors.As` 取上游状态，禁止字符串匹配）。
 - `needs_merge` 时**不得**创建第二绑定、不得把 token 置为 `bound`；Bind 页显示合并引导（见 `ui.md`），PC 轮询读到 `needs_merge` 后提示到手机端完成合并。
 
 #### `POST /api/auth/wx-login-select`（按上下文签发）
@@ -353,6 +371,17 @@ H5 未捕获 JS 错误（`window.onerror` / `unhandledrejection`）上报，仅�
 
 - 删除该用户对应的 `wx_user_bindings` 行（beaconiam `UpdateUser` 空 `wx_openid` 分支由 no-op 改为 DELETE）
 - 解绑后 `wx-accounts` 不再返回该上下文
+
+**失败三元组（#2601）**：解绑失败按上游状态类分流（口径见 §14.4），响应 `message` 不得拼接上游原始错误串：
+
+| 场景 | HTTP | code | 用户可见文案 |
+|---|---:|---:|---|
+| 上游 `400`/`422`（请求已失效） | 400 | 40002 | 「解绑请求已失效，请刷新页面后重试」 |
+| 上游 `409` | 409 | 40900 | 「解绑请求与当前数据状态冲突，请刷新页面后重试」 |
+| 上游 `401`/`403`/`404`（持久配置/权限/数据） | 500 | 50015 | 「身份服务配置异常，请联系平台管理员处理」（不可重试） |
+| 传输层失败 / 上游 `429`/`5xx`（瞬时） | 502 | 50200 | 「解绑失败，请稍后再试」 |
+
+> 实现前提：`IAMClient.UpdateUser` 的非 2xx 分支以 `*services.IAMClientHTTPError`（携带 `Status`）上抛，否则分类器拿不到上游状态、持久失败会退化成瞬时类。
 
 #### 添加成员复用（D2）
 
@@ -7491,7 +7520,7 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 > | 用户可重做 | 上游 `400` / `422` | `400 / 40002` | 指明用户动作（重新扫码/重新发起），**不含**「稍后再试」 |
 > | 持久配置/权限 | 上游 `401` / `403` / `404` / 其余 4xx | `500 / 50015` | 「身份服务配置异常，请联系平台管理员处理」（与 PC/mobile `ERROR_CODE_MAP[50015]` 逐字一致），**不含**「稍后再试」 |
 >
-> 适用端点：`POST /api/admin/transit-sites`（上游建组织失败）、`POST /api/users/me/wx-bind`、`POST /api/users/me/wx-merge`、`POST /api/wechat-bind/merge`。
+> 适用端点：`POST /api/admin/transit-sites`（上游建组织失败）、`POST /api/users/me/wx-bind`、`POST /api/users/me/wx-merge`、`POST /api/wechat-bind/confirm`（#2601）、`POST /api/wechat-bind/merge`、`POST /api/users/me/wechat-unbind`（#2601）。
 > 特例：服务端**代发起**的上游请求（如中转建组织）其上游 `400/422` 只能是本服务请求/配置缺陷 → 归「持久配置」（`500/50015`），不提示用户重做动作。
 > 瞬时类不新增 `50200` 到前端码表（全站影响另议）→ 前端落调用点 fallback，仍不含误导性「数据冲突」。
 

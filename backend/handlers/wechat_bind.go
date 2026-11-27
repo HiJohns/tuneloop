@@ -219,7 +219,15 @@ func (h *WechatBindHandler) ConfirmBind(c *gin.Context) {
 		return
 	}
 	if bindErr != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to bind: " + bindErr.Error()})
+		log.Printf("[ConfirmBind] IAM wx-bind failed for token=%s: %v", req.Token, bindErr)
+		// #2601：任何上游失败都曾压成 500/50000 +「请稍后再试」——IAM 403/404
+		// 这类必须改配置的持久错误被表达成可重试。改用 #2598 的统一出口，
+		// 细节只进日志（不得把上游原始串拼进 message）。
+		respondIAMFailure(c, bindErr, iamFailureTexts{
+			Transient:  "绑定失败，请稍后再试",
+			Conflict:   "该微信已绑定其他账户，请让管理员重新生成绑定二维码",
+			UserAction: "微信授权已失效，请重新进入页面重试",
+		})
 		return
 	}
 
@@ -271,7 +279,11 @@ func (h *WechatBindHandler) MergeBind(c *gin.Context) {
 	if entry.Status != "needs_merge" {
 		status := entry.Status
 		bindTokensMu.Unlock()
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40902, "message": "token is not waiting for merge (status=" + status + ")"})
+		log.Printf("[MergeBind] token not in needs_merge state: token=%s status=%s", req.Token, status)
+		// #2601：旧实现用 400 + 冲突码（409xx，码/状态家族不一致）且把内部状态串
+		// 透给前端。与相邻「invalid or expired merge ticket」同族：
+		// 400/40002 + 可行动中文文案；内部状态只进日志。
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "绑定二维码已失效，请让管理员重新生成二维码后重试"})
 		return
 	}
 	if entry.MergeTicket == "" || entry.MergeTicket != req.MergeTicket {
@@ -378,7 +390,14 @@ func (h *WechatBindHandler) Unbind(c *gin.Context) {
 	empty := ""
 	iamClient := services.NewIAMClient()
 	if err := iamClient.UpdateUser(user.IAMSub, &services.UpdateUserRequest{WxOpenid: &empty}); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "unbind failed: " + err.Error()})
+		log.Printf("[Unbind] IAM update user failed for %s: %v", user.IAMSub, err)
+		// #2601：同 ConfirmBind——任一失败一律 500/50000 + 原始串，把持久
+		// 配置/权限错误表达成可重试。走 #2598 统一出口。
+		respondIAMFailure(c, err, iamFailureTexts{
+			Transient:  "解绑失败，请稍后再试",
+			Conflict:   "解绑请求与当前数据状态冲突，请刷新页面后重试",
+			UserAction: "解绑请求已失效，请刷新页面后重试",
+		})
 		return
 	}
 	// #2016 S3: 本地 users.wx_openid 缓存列已废弃（IAM 绑定表为唯一来源）

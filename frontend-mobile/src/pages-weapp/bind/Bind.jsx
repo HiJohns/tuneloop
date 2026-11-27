@@ -4,6 +4,7 @@ import { View, Text, Button } from '@tarojs/components'
 import { wxLogin, storage, session, env, request, navigation } from '../../platform'
 import { maskOpenid } from '../../utils/wechatBind.mjs'
 import { resolveLogin } from '../../services/api'
+import { resolveErrorMessage } from '../../services/errorMessages'
 
 const primaryBtn = {
   backgroundColor: '#915F38',
@@ -33,6 +34,9 @@ export default function Bind() {
   const [bindToken, setBindToken] = useState('')
   const [mergeInfo, setMergeInfo] = useState(null)
   const [mergeResult, setMergeResult] = useState(null)
+  // #2601：失败态文案统一由解析层（services/errorMessages.js）给出，页面只保留
+  // 调用点 fallback；否则持久失败（500/50015 配置异常）会被写成可重试的「请重试」。
+  const [failText, setFailText] = useState('')
 
   useEffect(() => {
     const params = Taro.getCurrentInstance().router?.params || {}
@@ -77,6 +81,7 @@ export default function Bind() {
           setStatus('needs_merge')
           return
         }
+        setFailText(resolveErrorMessage(confResult, '绑定失败，请稍后重试'))
       }
       setStatus('error')
     } catch {
@@ -102,6 +107,7 @@ export default function Bind() {
         setStatus('merged')
         return
       }
+      setFailText(resolveErrorMessage(result, '合并失败，请稍后重试'))
       setStatus('merge_error')
     } catch {
       setStatus('merge_error')
@@ -196,8 +202,11 @@ export default function Bind() {
         <View style={{ alignItems: 'center' }}>
           <Text style={{ fontSize: 48, marginBottom: 16 }}>❌</Text>
           <Text style={{ fontSize: 18, fontWeight: '700', color: '#000', marginBottom: 8 }}>合并失败</Text>
+          <Text style={{ fontSize: 14, color: '#71717a', marginBottom: 8, textAlign: 'center', lineHeight: '22px' }}>
+            {failText || '合并失败，请稍后重试'}
+          </Text>
           <Text style={{ fontSize: 14, color: '#71717a', marginBottom: 24, textAlign: 'center', lineHeight: '22px' }}>
-            合并凭证可能已过期。请让管理员重新生成绑定二维码后再扫码。
+            请让管理员重新生成绑定二维码后再扫码。
           </Text>
           <Button onClick={() => navigation.safeBack()} style={primaryBtn}>返回</Button>
         </View>
@@ -207,7 +216,9 @@ export default function Bind() {
         <View style={{ alignItems: 'center' }}>
           <Text style={{ fontSize: 48, marginBottom: 16 }}>❌</Text>
           <Text style={{ fontSize: 18, fontWeight: '700', color: '#000', marginBottom: 8 }}>绑定失败</Text>
-          <Text style={{ fontSize: 14, color: '#71717a', marginBottom: 24 }}>请重试</Text>
+          <Text style={{ fontSize: 14, color: '#71717a', marginBottom: 24, textAlign: 'center', lineHeight: '22px' }}>
+            {failText || '绑定失败，请稍后重试'}
+          </Text>
           <Button onClick={() => navigation.safeBack()} style={primaryBtn}>返回</Button>
         </View>
       )}

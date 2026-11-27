@@ -1303,13 +1303,19 @@ func (c *IAMClient) UpdateUser(userID string, req *UpdateUserRequest) error {
 	}
 
 	if statusCode == http.StatusForbidden {
-		return fmt.Errorf("permission denied: %s", string(respBody))
+		// #2601：类型化（Status 供 services.ClassifyIAMFailure 用），Error() 文本
+		// 与改造前逐字一致（"permission denied: <body>"）。
+		return &IAMClientHTTPError{Op: "UpdateUser", Status: statusCode, Body: string(respBody)}
 	}
 	if statusCode == http.StatusNotFound {
-		return fmt.Errorf("user not found: %s", userID)
+		// #2601：旧文本 "user not found: <id>" 无法被 errors.As 取状态（Unbind 会退化
+		// 成瞬时类）。改为类型化；Error() 形如 "UpdateUser returned status 404: <body>"，
+		// 仅影响日志与 ASCII message（前端走码表），无测试/文档依赖旧串。
+		return &IAMClientHTTPError{Op: "UpdateUser", Status: statusCode, Body: string(respBody)}
 	}
 	if statusCode != http.StatusOK {
-		return fmt.Errorf("UpdateUser returned status %d: %s", statusCode, string(respBody))
+		// #2601：类型化；Error() 与旧串 "UpdateUser returned status <n>: <body>" 逐字一致。
+		return &IAMClientHTTPError{Op: "UpdateUser", Status: statusCode, Body: string(respBody)}
 	}
 
 	log.Printf("[IAMClient] Updated user: user_id=%s", userID)
