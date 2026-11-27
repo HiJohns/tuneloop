@@ -57,3 +57,15 @@ export function resolveHttpFailure(status, payload) {
   error.data = body.data
   return { kind: 'throw', value: error }
 }
+
+// #2609：把 catch 到的异常转成「用户可见文案」。
+// 只在传输层 ApiError（#2563 抛出，message 已经 resolveErrorMessage 中文化）时透传；
+// fetch 断网/跨域失败抛的是浏览器 TypeError（'Failed to fetch' /
+// 'NetworkError when attempting to fetch resource.'，ASCII 技术串），
+// 以及任何非 Error 抛出值一律回落调用点中文兜底（api.md §1.3：ASCII 机器串不外溢）。
+export function userFacingErrorMessage(error, fallback) {
+  if (error && error.name === 'ApiError' && typeof error.message === 'string' && error.message !== '') {
+    return error.message
+  }
+  return fallback
+}

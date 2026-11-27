@@ -43,6 +43,8 @@
 
 由此，业务可纠正冲突（`40002` / `40004` / `40005` / `40900`，白名单唯一 owner 为 `frontend-pc/src/utils/formConflict.js`）无论由 `409` 还是 `400` 送达，调用方都能在 **`catch`** 分支用 `isBusinessCorrectableConflict(err)` 判定并落到表单内持久提示（`FormConflictAlert`）。**禁止**把某个 4xx 私自改成「返回对象」形态绕过本契约——会让没有 `else` 分支的调用点变成静默成功。
 
+> **传输层网络错误（#2609）**：`request()` 的 `await fetch(...)` 自身 reject（断网、DNS 失败、跨域、代理中断）产生的是**浏览器原生 `TypeError`**（`Failed to fetch` / `NetworkError when attempting to fetch resource.` / `Load failed`），它**不经** `resolveHttpFailure`、**没有** `code`、`name !== 'ApiError'`——即上面「非 2xx 契约」的兜底也覆盖不到它。因此 PC 端用户可见文案**必须**经唯一出口 `frontend-pc/src/services/apiError.js` 的 `userFacingErrorMessage(err, fallback)`：仅 `name === 'ApiError'` 时透传已中文化的 `message`，其余（浏览器 `TypeError`、普通 `Error`、非对象抛出值）一律回落调用点中文兜底。**禁止**页面内联 `err?.message || '中文'`——断网时它把这个英文技术串直接弹给用户，与本节「ASCII 机器串不外溢」相反（存量域外写法已登记 #2612，由该 Issue 收敛）。
+
 ### 1.4 时间戳契约（#1759）
 - 所有时间字段（`created_at` / `updated_at` / 各事件时间戳）为 **ISO8601 UTC**，JSON 序列化带 `Z` 后缀（如 `"2026-08-22T16:02:01Z"`）
 - DB 存储为 `timestamptz`（迁移 `20260824002_timestamptz`：存量北京数值 → 正确 UTC）；业务时区 = Asia/Shanghai（Go 启动时显式 `time.Local`）

@@ -4,6 +4,7 @@ import { Table, Tag, Button, Space, Modal, Form, Input, InputNumber, Select, Rad
 import { EditOutlined, WarningOutlined, RollbackOutlined, FileTextOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { inventoryApi, lossApi, api, pricingApi, instrumentsApi, fetchBlob } from '../services/api'
+import { userFacingErrorMessage } from '../services/apiError'
 import FormConflictAlert from '../components/FormConflictAlert'
 import { conflictText, isBusinessCorrectableConflict } from '../utils/formConflict'
 import PermissionGate from '../components/PermissionGate'
@@ -274,7 +275,7 @@ export default function InstrumentStock() {
         setPriceConflict(conflictText(e, '批量修改价格失败，请调整后重试'))
         return
       }
-      message.error(e?.message || '批量修改价格失败')
+      message.error(userFacingErrorMessage(e, '批量修改价格失败'))
     }
   }
 
@@ -293,7 +294,7 @@ export default function InstrumentStock() {
       window.URL.revokeObjectURL(url)
       message.success('导出成功')
     } catch (e) {
-      message.error(e.message || '导出失败')
+      message.error(userFacingErrorMessage(e, '导出失败'))
     }
   }
 
@@ -381,7 +382,7 @@ export default function InstrumentStock() {
     } catch (e) {
       if (isBusinessCorrectableConflict(e)) {
         setLostConflict(conflictText(e, '登记失败，请调整后重试'))
-      } else message.error(e.message || '登记失败')
+      } else message.error(userFacingErrorMessage(e, '登记失败'))
     }
     setSubmitting(false)
   }
@@ -409,7 +410,7 @@ export default function InstrumentStock() {
     } catch (e) {
       if (isBusinessCorrectableConflict(e)) {
         setRestoreConflict(conflictText(e, '恢复失败，请调整后重试'))
-      } else message.error(e.message || '恢复失败')
+      } else message.error(userFacingErrorMessage(e, '恢复失败'))
     }
     setSubmitting(false)
   }

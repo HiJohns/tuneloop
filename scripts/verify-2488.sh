@@ -100,15 +100,17 @@ clear_metrics() {
 }
 
 # catch_metrics <page> —— 非业务 ApiError 是否透出后端 message（#2488 Rev.5 Bug B）
-#   CATCH_MESSAGE=1           catch 分支使用 `e instanceof ApiError && e.message ? e.message : …
+#   CATCH_MESSAGE=1           catch 分支经唯一出口 `userFacingErrorMessage`（仅 ApiError 透传）
 #   CATCH_NETWORK_FALLBACK=1  非 ApiError（网络/未知）仍有中文兜底，不直出技术串
+#
+# #2609：旧实现只 grep 字面量 `e?.message || '<中文>'`，与具体写法耦合——
+# 缺陷版本与修复版本恒为 1（不可证伪），且修后代码（改用守卫函数）反而变 0。
+# 判定口径统一收口到 scripts/scan-catch-guard-2609.sh（唯一实现，结构判定），
+# 本函数只做字段转发，不得再自行 grep 字面量。
 catch_metrics() {
-  local page="$1" msg=0 fb=0
-  # #2488 Rev.7 D9b：`ApiError` 类不再由 api.js 导出（唯一 owner = services/apiError.js），
-  # 页面 catch 只需「透传服务端 message + 中文兜底」，不再据 instanceof 判定。
-  grep -qE "e\?\.message \|\| '|e\.message \|\| '" "$page" && msg=1
-  grep -qE "e\?\.message \|\| '[^']+'" "$page" && fb=1
-  printf 'CATCH_MESSAGE=%s\nCATCH_NETWORK_FALLBACK=%s\n' "$msg" "$fb"
+  local page="$1"
+  bash "$REPO/scripts/scan-catch-guard-2609.sh" --files "$page" 2>/dev/null \
+    | grep -E '^(CATCH_MESSAGE|CATCH_NETWORK_FALLBACK)='
 }
 
 # wiring_metrics <page> —— 单页接线度量（静态）
@@ -141,10 +143,9 @@ page_row() { # name page [extra-required-token...]
   { printf '%s\n%s\n' "$PROV" "$TREE_LINE"
     wiring_metrics "$page"
     clear_metrics "$page"
-    case "$page" in
-      "$STOCK_PAGE") ;;
-      *) catch_metrics "$page" ;;
-    esac
+    # #2609：库存页同样纳入 catch 口径（旧版 `case "$STOCK_PAGE") ;;` 直接跳过，
+    # 导致该页的网络错误文案从未被断言）。
+    catch_metrics "$page"
     echo "PAGE=$page"
   } > "$LOG" 2>&1
   require_tokens "$LOG" 'SHARED_IMPORT=1' 'PERSIST_ALERT=1' 'CODE_FIRST=1' 'CONFLICT_TEXT=1' 'LOCAL_CODE_LIST=0' || RC=1
@@ -192,7 +193,8 @@ case "$MODE" in
     ;;
   r4)
     NAME="R4-stock.txt"
-    page_row r4 "$STOCK_PAGE" 'CLEAR_FIELDS=10/10' 'CLEAR_FORM_HOOK=3'
+    page_row r4 "$STOCK_PAGE" 'CLEAR_FIELDS=10/10' 'CLEAR_FORM_HOOK=3' \
+      'CATCH_MESSAGE=1' 'CATCH_NETWORK_FALLBACK=1'
     # #2488 D4（v4 修正）：库存冲突的真实可失败入口是 HTTP 409 + 40900（丢失登记/恢复），
     # 不再使用不存在的 40005 fixture；同时断言传输层抛出的错误也被同一 rubric 接住。
     state_conflict=0
