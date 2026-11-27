@@ -223,7 +223,16 @@ unit 内只出现 `EnvironmentFile=%h/.config/tuneloop/reconcile.env`，**不得
 |---|---|
 | 无差异（6 类计数全 0） | 只归档，**不建 Issue、不通知**（`GH_CALLS=0`） |
 | 有差异 | 归档 + 建 `[Ops] 用户缓存对账差异 <date>`（标签**仅** `waitForConfirm`，正文含汇总 token + 前 20 条明细 + 人工处置指引）；同日期已存在则复用，不重复建单 |
-| 连续 2 天不降 | 同类差异今日 >0 且不低于昨日 → 在既有单追加**恰好 1 条**升级评论，**不新建第二单** |
+| 同日差异单已存在（本地 marker） | `${ARCHIVE_DIR}/.<date>.issue` 纯数字命中 → `ISSUE_SOURCE=local-marker`，**跳过** `gh issue list`（`GH_CALLS=0`）；marker 内容非纯数字视为不存在 |
+| 同日差异单已存在（搜索兜底） | marker 缺失 → `gh issue list --search` 命中（`ISSUE_SOURCE=search`），**命中即写** marker |
+| 同日差异单不存在 | `ISSUE_SOURCE=create` 建单；**仅建单成功才写** marker（失败不写 → 次日仍会告警） |
+| 同日失败单（对称加固） | 同上三条规则，marker 为 `${ARCHIVE_DIR}/.<date>.failure-issue`，token 为 `FAILURE_ISSUE_SOURCE` |
+| marker 写入失败 | 不致命（去重降级），但必须显式 `MARKER_WRITE_FAILED=<issue\|failure-issue\|escalated>`，禁止静默 |
+| 同类差异未降（基准 = 昨日） | 在既有差异单追加**恰好 1 条**升级评论，**不新建第二单**；措辞「连续 2 天未下降」（`ESCALATE_BASELINE_GAP=0`） |
+| 同类差异未降（基准非昨日） | 归档缺口（例行任务漏跑 / 归档不可用）→ 仍升级，但措辞「较上次归档未下降」（`ESCALATE_BASELINE_GAP=1`）并打印基准间隔，**绝不冒充**「连续 2 天」 |
+| 无任何更早的有效归档 | `ESCALATE_BASELINE=none` + `ESCALATE_BASELINE_GAP=1`，**不升级**（无基准不得声称「未下降」）；仍建差异单且 `exit 0` |
+| 失败 / 损坏归档 | 不作为比较基准（`failed:true` 或缺 `tokens` 对象 → 跳过，继续找更早的有效归档） |
+| 当日已升级过 | `${ARCHIVE_DIR}/.<date>.escalated` 命中 → 跳过评论：`ESCALATE_SKIPPED=already-escalated` + `ESCALATED=0` + `ESCALATE_COMMENTS=0` + `GH_CALLS=0` + `RESULT: PASS` + `exit 0` |
 | 对账失败（`exit != 0` / 输出非法 / 缺必需 token） | 建 `[Ops] 用户缓存对账失败 <date>`（`waitForConfirm`）并 `exit 2`；**禁止**静默或冒充「0 差异」 |
 | **告警送达失败**（`gh issue create` 失败） | `ISSUE=none` + `ISSUE_CREATE_FAILED=1` + `RESULT: FAIL` + `exit 2`（差异已归档，不会丢报告） |
 | **升级评论送达失败**（`gh issue comment` 失败） | `ESCALATE_FAILED=1`（**不**置 `ESCALATED=1`/`ESCALATE_COMMENTS=1`）+ `RESULT: FAIL` + `exit 2` |
@@ -240,6 +249,7 @@ unit 内只出现 `EnvironmentFile=%h/.config/tuneloop/reconcile.env`，**不得
 
 归档位置：`${XDG_STATE_HOME:-$HOME/.local/state}/tuneloop/reconcile/<date>.json` 与 `.txt`
 （**不写仓库**，定时任务不产生 Git 变更）；`LAST_SUMMARY` token 指向当日 `.txt`。
+同一目录还存放当日去重 marker：`.<date>.issue`、`.<date>.failure-issue`、`.<date>.escalated`（见 §8.4）。
 
 `--dry-run` 只打印将执行的动作（`DRY_RUN=1`、`GH_CALLS=0`、`FILES_WRITTEN=0`）：
 
@@ -250,5 +260,21 @@ unit 内只出现 `EnvironmentFile=%h/.config/tuneloop/reconcile.env`，**不得
 ### 8.4 标签与升级规则
 
 - 告警单**只有** `waitForConfirm`，**不带**任何 `status:*` → 永不被 `find_issue.sh` 认领（不进流水线）。
-- 升级 = 在既有差异单追加 1 条评论（含 `ESCALATE_REASON=<类>:<昨日>-><今日>`），不新建 Issue。
+- 升级 = 在既有差异单追加 1 条评论（含 `ESCALATE_REASON=<类>:<上次归档值>-><今日值>`），不新建 Issue。
+- **升级措辞与基准严格对应**（不得混用）：
+  - 基准日期 = **昨日** → 标题 `## 连续 2 天未下降（升级提醒）`（`ESCALATE_BASELINE_GAP=0`）；
+  - 基准日期 **非昨日**（归档缺口）→ 标题 `## 较上次归档未下降（升级提醒）`（`ESCALATE_BASELINE_GAP=1`），
+    并追加「基准间隔：`<n>` 天（`<base>` → `<today>`）；昨日归档缺失或不可用，请检查例行任务是否漏跑」；
+  - 无有效基准 → `ESCALATE_BASELINE=none` + `ESCALATE_BASELINE_GAP=1`，**不升级**（无基准不得声称「未下降」）。
+- 基准只取「最近一份更早的**有效**归档」：`failed:true` 归档与无法解析（缺 `tokens` 对象）的归档一律跳过
+  （把失败归档当基准会让升级机制永远静默失效）。
+- token：`ESCALATE_BASELINE=<basename|none>`、`ESCALATE_BASELINE_DAYS=<n|unknown>`、`ESCALATE_BASELINE_GAP=<0|1>`。
+  宿主 `date` 不支持 `-d` → `DAYS=unknown` 且 `GAP=1`（保守措辞，不影响告警送达）。
+- **当日 marker**（`${ARCHIVE_DIR}/.<date>.*`，不写仓库；`--dry-run` 一律零写入）：
+  - `.<date>.escalated`：当日升级评论已送达（内容含 `date`/`issue`/`baseline`/`gap`/`reason`/`ts`）；
+    命中即跳过评论并输出 `ESCALATE_SKIPPED=already-escalated`。**只在评论成功后写入**，
+    评论失败不写 → 下轮仍会重试（`ESCALATE_FAILED=1` 语义不变）。
+  - `.<date>.issue` / `.<date>.failure-issue`：当日已建单号（纯数字）；本地 marker 优先于 `gh issue list` 搜索。
+- marker 为准：如需同日重新升级，删除 `.<date>.escalated`；自动化不做补偿（避免重复打扰）。
+- `FILES_WRITTEN` 只计归档文件（`<date>.json` + `<date>.txt`）；当日 marker 单独断言，不计入该 token。
 - 人工处置（修复）走 #2624，需 Owner 授权；自动化永远只读，`--apply` 永不进入定时任务。

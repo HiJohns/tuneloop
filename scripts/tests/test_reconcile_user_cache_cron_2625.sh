@@ -457,10 +457,13 @@ PREV
   expect FAILURE_CREATE_FAIL_NO_PASS 0 "$(grep -c '^RESULT: PASS' "$FC_OUT")"
 
   # 【审计 B2 负例】升级评论失败（403）→ 必须显式失败，且不得声称已升级
+  # 日期隔离说明（#2631 D7）：上一场景已在 2026-11-28 升级成功并写入当日 marker
+  # （`.<date>.escalated`），同日重跑会被「当日只升级一次」跳过，故本场景改用 2026-12-31，
+  # 仅隔离日期、不放宽任何断言。
   : > "$GH_LOG"
   rm -f "$GH_BODY_DIR"/*.md
   EC_OUT="$TMP/r3-escalate-comment-fail.txt"
-  EC_RC="$(FAKE_RECONCILE_MODE=diff3 FAKE_GH_LIST_JSON='[{"number":777}]' FAKE_GH_COMMENT_RC=1 run_runner "$EC_OUT" --date 2026-11-28)"
+  EC_RC="$(FAKE_RECONCILE_MODE=diff3 FAKE_GH_LIST_JSON='[{"number":777}]' FAKE_GH_COMMENT_RC=1 run_runner "$EC_OUT" --date 2026-12-31)"
   sed -n '1,30p' "$EC_OUT"
   expect GH_COMMENT_FAIL_EXIT 2 "$EC_RC"
   expect ESCALATE_CLAIMED_ON_FAILURE 0 "$(grep -c '^ESCALATED=1' "$EC_OUT")"
