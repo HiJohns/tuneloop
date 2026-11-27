@@ -138,6 +138,25 @@ build_version 短码 a7452e064 即本轮 fix commit（ancestor of HEAD 成立）
 
 ## Pre-ready gate
 
-见 `docs/evidence/2614/pre-ready-2614.json`；最终 RESULT: PASS 的关键输出在下方（gate 运行后补登）。
+见 `docs/evidence/2614/pre-ready-2614.json`（overall: PASS）。关键输出：
+
+```
+P1   PASS   plan has Verification Matrix / Input Truth & Tool Preflight / Decision Lock / Out of Scope
+P2   PASS   Work Summary covers all 6 matrix rows with PASS/N/A
+P3   PASS   all referenced evidence paths exist and are durable
+P4   PASS   all 1 affected command(s) passed
+P12  PASS   Evidence Contract complete: 6 row(s) match the plan and have durable artifacts
+P14  PASS   artifact provenance matches evidence (6 artifacts)
+P17  PASS   plan snapshot and Accepted Plan comment match the gated plan
+P5   N/A    no go.mod/package.json and no --full-gate-cmd: full gate not applicable
+P6   PASS   all changed files are declared in the Accepted Plan
+P7   PASS   contract three-way section present
+P9   PASS   build provenance verified for 1 version(s)
+P11  PASS   fix commit(s) are ancestors of HEAD; canonical worktree; worktree guard: PASS
+P13  PASS   fix commit and evidence artifacts are on origin/issue-2614
+RESULT: PASS
+```
+
+P5 N/A 说明：本计划的 R6 合同命令只给 --affected-cmd "bash scripts/verify-2614.sh gate"（gate 已含 go build ./... + 两条状态矩阵 + 6 个既有回归用例），未给 --full-gate-cmd；仓库根无 go.mod（backend/go.mod 在子目录）→ P5 按「不适用」处理，全包编译冒烟由 R5 的 GO_COMPILE_ALL_OK=1 承担。
 
 *Model: deepseek/deepseek-flash*
