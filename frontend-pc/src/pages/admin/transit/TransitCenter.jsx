@@ -3,9 +3,20 @@ import { useCallback, useEffect, useState } from 'react'
 import { Button, Card, Form, Input, Modal, Select, Space, Table, Tag, message, Typography } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { api } from '../../../services/api'
+import { resolveErrorMessage } from '../../../services/errorMessages'
 import SiteMemberManagement from '../../../components/SiteMemberManagement'
 
 const { Text } = Typography
+
+// #2597：本页所有失败提示走唯一出口（#2497/#2489 口径）——5xx 中文内部诊断不透传，
+// 业务码走 code_map、可读中文透传；ASCII 机器串不外溢。
+// 页面禁止直出 r.message / e.message（后端技术串会原样到达用户）。
+const showError = (err, fallback) => {
+  const isObject = err && typeof err === 'object'
+  const code = isObject ? err.code : undefined
+  const msg = isObject ? err.message : String(err || '')
+  message.error(resolveErrorMessage({ code, message: msg }, fallback))
+}
 
 // #1938: 中转成员角色仅两类，静态注入（不复用 /admin/roles——其权限门与中转中心不同）
 const TRANSIT_ROLES = [
@@ -43,7 +54,7 @@ export default function TransitCenter() {
       // 后端已按 controlled 商户 + 非中转类型过滤，前端无需再筛
       if (cs.code === 20000) setControlledSites(cs.data?.list || [])
     } catch (e) {
-      message.error(e.message || '加载失败')
+      showError(e, '加载失败，请重试')
     } finally {
       setLoading(false)
     }
@@ -65,22 +76,34 @@ export default function TransitCenter() {
 
   const handleSiteSubmit = async () => {
     const values = await siteForm.validateFields()
-    if (editingSite) {
-      await api.put(`/admin/transit-sites/${editingSite.id}`, values)
-      message.success('已更新')
-    } else {
-      const r = await api.post('/admin/transit-sites', values)
-      if (r.code !== 20000) { message.error(r.message || '创建失败'); return }
-      message.success('中转网点已创建')
+    try {
+      if (editingSite) {
+        const r = await api.put(`/admin/transit-sites/${editingSite.id}`, values)
+        // #2597：404/409 返回对象（不抛），必须判码，否则会把失败误报成功。
+        if (r.code !== 20000) { showError(r, '更新失败，请重试'); return }
+        message.success('已更新')
+      } else {
+        const r = await api.post('/admin/transit-sites', values)
+        if (r.code !== 20000) { showError(r, '创建失败，请重试'); return }
+        message.success('中转网点已创建')
+      }
+    } catch (e) {
+      // 5xx/4xx 由 apiError 抛 ApiError（含 code），必须接住，否则用户看不到任何提示。
+      showError(e, editingSite ? '更新失败，请重试' : '创建失败，请重试')
+      return
     }
     setSiteModalOpen(false)
     fetchAll()
   }
 
   const handleDeactivate = async (site) => {
-    const r = await api.delete(`/admin/transit-sites/${site.id}`)
-    if (r.code === 20000) { message.success('已停用'); fetchAll() }
-    else message.error(r.message || '停用失败（需先解除路由引用）')
+    try {
+      const r = await api.delete(`/admin/transit-sites/${site.id}`)
+      if (r.code === 20000) { message.success('已停用'); fetchAll() }
+      else showError(r, '停用失败，请先解除路由引用')
+    } catch (e) {
+      showError(e, '停用失败，请先解除路由引用')
+    }
   }
 
   const openMembers = (site) => {
@@ -90,21 +113,29 @@ export default function TransitCenter() {
 
   const handleRouteCreate = async () => {
     const values = await routeForm.validateFields()
-    const r = await api.post('/transit-routes', values)
-    if (r.code === 20000) {
-      message.success('路由已创建')
-      setRouteModalOpen(false)
-      routeForm.resetFields()
-      fetchAll()
-    } else {
-      message.error(r.message || '创建失败')
+    try {
+      const r = await api.post('/transit-routes', values)
+      if (r.code === 20000) {
+        message.success('路由已创建')
+        setRouteModalOpen(false)
+        routeForm.resetFields()
+        fetchAll()
+        return
+      }
+      showError(r, '创建路由失败，请重试')
+    } catch (e) {
+      showError(e, '创建路由失败，请重试')
     }
   }
 
   const handleRouteDelete = async (routeId) => {
-    const r = await api.delete(`/transit-routes/${routeId}`)
-    if (r.code === 20000) { message.success('路由已删除'); fetchAll() }
-    else message.error(r.message || '删除失败')
+    try {
+      const r = await api.delete(`/transit-routes/${routeId}`)
+      if (r.code === 20000) { message.success('路由已删除'); fetchAll() }
+      else showError(r, '删除路由失败，请重试')
+    } catch (e) {
+      showError(e, '删除路由失败，请重试')
+    }
   }
 
   return (

@@ -495,12 +495,41 @@ func (c *IAMClient) ListOrganizations() ([]Organization, error) {
 	return result.Organizations, nil
 }
 
+// PrimaryOrgConfigError 表示命名空间主组织不满足「恰好 1 个」的**持久配置不变量**
+// 违反（#2597）。它与传输层错误（`list organizations: %w`）互斥：配置类重试永不
+// 成功，调用方必须用 `errors.As` 分流到「需平台管理员修数据」的专用错误码，而不是
+// 压平成「请稍后再试」。
+//
+// 判定只用 `errors.As`，禁止字符串匹配；`Error()` 文本与 #2552 三串逐字一致
+// （零语义漂移，历史日志/断言口径不变）。
+type PrimaryOrgConfigError struct {
+	Detail string   // none | multiple | empty_id
+	Count  int      // 命中的 is_primary 组织数（0 / >1 / 1 但 id 为空）
+	OrgIDs []string // 命中的组织 id，仅用于服务端日志
+}
+
+// Error 保持 #2552 三串原文（调用方不得依赖文本分流，只用于日志可读性）。
+func (e *PrimaryOrgConfigError) Error() string {
+	if e == nil {
+		return "ResolveNamespacePrimaryOrg: primary organization config error"
+	}
+	switch e.Detail {
+	case "none":
+		return "ResolveNamespacePrimaryOrg: namespace has no primary organization"
+	case "multiple":
+		return fmt.Sprintf("ResolveNamespacePrimaryOrg: namespace has %d primary organizations (expected exactly 1)", e.Count)
+	default:
+		return "ResolveNamespacePrimaryOrg: primary organization has empty id"
+	}
+}
+
 // ResolveNamespacePrimaryOrg 解析命名空间的「主组织」（`is_primary=true`），
 // 用作中转网点 branch 子组织的父组织（#2552 / beaconiam#509）。
 //
 // 判定：`ListOrganizations()` 中 `IsPrimary` **恰好 1 个** 才算成功；
-// 0 个或多个 → 显式错误。不猜、不回落租户（回落会把父组织指到错误层级，
-// 且失败原因被掩盖）。
+// 0 个或多个 → `*PrimaryOrgConfigError`（持久配置类，#2597）。
+// 不猜、不回落租户（回落会把父组织指到错误层级，且失败原因被掩盖）。
+// 列表不可用/解析失败 → 普通 error（瞬时类，调用方可提示「稍后再试」）。
 func ResolveNamespacePrimaryOrg(client *IAMClient) (string, error) {
 	if client == nil {
 		return "", fmt.Errorf("ResolveNamespacePrimaryOrg: nil IAM client")
@@ -519,13 +548,17 @@ func ResolveNamespacePrimaryOrg(client *IAMClient) (string, error) {
 	case 1:
 		id := strings.TrimSpace(primaries[0].ID)
 		if id == "" {
-			return "", fmt.Errorf("ResolveNamespacePrimaryOrg: primary organization has empty id")
+			return "", &PrimaryOrgConfigError{Detail: "empty_id", Count: 1, OrgIDs: []string{primaries[0].ID}}
 		}
 		return id, nil
 	case 0:
-		return "", fmt.Errorf("ResolveNamespacePrimaryOrg: namespace has no primary organization")
+		return "", &PrimaryOrgConfigError{Detail: "none", Count: 0, OrgIDs: []string{}}
 	default:
-		return "", fmt.Errorf("ResolveNamespacePrimaryOrg: namespace has %d primary organizations (expected exactly 1)", len(primaries))
+		ids := make([]string, 0, len(primaries))
+		for _, org := range primaries {
+			ids = append(ids, org.ID)
+		}
+		return "", &PrimaryOrgConfigError{Detail: "multiple", Count: len(primaries), OrgIDs: ids}
 	}
 }
 

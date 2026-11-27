@@ -2988,6 +2988,11 @@ const handleSyncUsersFromIAM = async () => {
 - 新增路由 Modal：受控网点（下拉，来源 `GET /admin/controlled-sites`）| 中转网点（下拉，来源 `GET /admin/transit-sites`）| 设为默认（Select 是/否，默认「否」）
 - 端点：`GET/POST/DELETE /transit-routes`（`RequireSysPerm(SysPermTenantView)`）
 
+**失败提示（#2597）**
+- 创建/编辑/停用/新增路由/删除路由的失败**一律**走 `resolveErrorMessage` 唯一出口（#2497 口径：5xx 中文内部诊断不透传，业务码走 `code_map`）；页面**禁止**直出 `r.message` / `e.message`，且 5xx 抛出的 `ApiError` 必须被 `try/catch` 接住（否则用户看不到任何提示）。
+- 配置类错误（命名空间主组织数 ≠ 1）显示「命名空间主组织配置异常（应为 1 个），请联系平台管理员处理」（码 `50014`，不可重试）；瞬时类（IAM 不可达）只给「稍后再试」。
+- 编辑分支必须判 `r.code !== 20000`：404/409 由客户端返回对象（不抛），不判码会把失败误报为「已更新」。
+
 **成员管理区（复用的 `SiteMemberManagement`）**
 - 组件注入：`membersBase="/admin/transit-sites"`、`roles=[{code:'site_admin',name:'中转网点管理员'},{code:'site_member',name:'中转网点员工'}]`（**静态两类，不走 `/admin/roles`**——该端点权限门为 `SysPermPermissionCreate`，与中转中心 bit5 不同）、`onRefresh`
 - 端点契约：

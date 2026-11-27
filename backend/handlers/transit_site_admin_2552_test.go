@@ -499,7 +499,10 @@ func TestTransitSiteCreate2552_Contract(t *testing.T) {
 	require.NotNil(t, resp)
 }
 
-// R3：主组织不可解析（0 个 / 2 个 is_primary）→ 500/50000 且不建站。
+// R3：主组织不可解析（0 个 / 2 个 is_primary）→ 500/50014 且不建站。
+//
+// #2597 翻转：旧断言把「配置不变量违反」钉在 50000（与瞬时故障同码同文案），
+// 现改用专用码 50014 + 可行动文案（含「联系平台管理员」、不含「请稍后再试」）。
 func TestTransitSiteCreate2552_PrimaryUnresolved(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := testfixtures.SetupTestDB(t)
@@ -518,14 +521,21 @@ func TestTransitSiteCreate2552_PrimaryUnresolved(t *testing.T) {
 		var sites int64
 		require.NoError(t, db.Model(&models.Site{}).
 			Where("name = ?", fmt.Sprintf("主组织异常站%d", primaries)).Count(&sites).Error)
-		ok := status == http.StatusInternalServerError && len(creates) == 0 && sites == 0
+		// #2597：配置不变量违反使用专用码 50014；文案必须可行动（联系平台管理员），
+		// 且不得出现误导性的「请稍后再试」。组织 id / 计数只进日志，不进响应。
+		code, _ := resp["code"].(float64)
+		msg, _ := resp["message"].(string)
+		ok := status == http.StatusInternalServerError && len(creates) == 0 && sites == 0 &&
+			int(code) == 50014 &&
+			strings.Contains(msg, "联系平台管理员") &&
+			!strings.Contains(msg, "请稍后再试")
 		unresolvedToken := 0
 		if ok {
-			unresolvedToken = 50000
+			unresolvedToken = int(code)
 		}
 		fmt.Printf("PRIMARY_ORG_UNRESOLVED=%d\n", unresolvedToken)
 		fmt.Printf("PRIMARY_ORG_CASE primaries=%d status=%d\n", primaries, status)
-		require.True(t, ok, "is_primary 非恰好 1 个时必须 500/50000 且不建站/不建组织: %v", resp)
+		require.True(t, ok, "is_primary 非恰好 1 个时必须 500/50014 + 可行动文案且不建站/不建组织: %v", resp)
 		srv.Close()
 	}
 }

@@ -102,8 +102,19 @@ func CreateAdminTransitSite(c *gin.Context) {
 	iamClient := services.NewIAMClient()
 	parentOrgID, err := services.ResolveNamespacePrimaryOrg(iamClient)
 	if err != nil {
-		log.Printf("[CreateAdminTransitSite] resolve namespace primary org failed: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "无法解析命名空间主组织，请稍后再试"})
+		// #2597：把「持久配置不变量违反」与「瞬时故障」拆成两条可区分路径。
+		// 配置类（0 个 / ≥2 个 / 唯一主组织 id 为空）重试永不成功 → 专用码 50014 +
+		// 可行动文案（不含「请稍后再试」）；计数与组织 id 只进日志。
+		var cfgErr *services.PrimaryOrgConfigError
+		if errors.As(err, &cfgErr) {
+			log.Printf("[CreateAdminTransitSite] namespace primary org misconfigured detail=%s count=%d expected=1 org_ids=[%s]: %v",
+				cfgErr.Detail, cfgErr.Count, strings.Join(cfgErr.OrgIDs, ","), err)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50014,
+				"message": "命名空间主组织配置异常（应为 1 个），请联系平台管理员处理"})
+			return
+		}
+		log.Printf("[CreateAdminTransitSite] resolve namespace primary org transient failure: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "身份服务暂时不可用，请稍后再试"})
 		return
 	}
 	createdOrg, err := iamClient.CreateOrganization(&services.CreateOrganizationRequest{
@@ -206,7 +217,7 @@ func DeleteAdminTransitSite(c *gin.Context) {
 	if routeCount > 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
-			"message": "该中转网点仍被路由引用，请先解除相关路由（#1935 完整性约束）",
+			"message": "该中转网点仍被路由引用，请先解除相关路由",
 		})
 		return
 	}

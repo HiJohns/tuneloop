@@ -232,6 +232,8 @@ func TestDeleteTransitSiteRejectsWhenReferenced(t *testing.T) {
 	code, resp := del1935(t, router, "/api/admin/transit-sites/"+site.ID)
 	assert.Equal(t, 400, code)
 	assert.Contains(t, resp["message"], "路由引用")
+	// #2597：文案接入统一错误层后会真实到达用户，内部 Issue 号不得外溢。
+	assert.NotContains(t, resp["message"], "#1935")
 
 	// 解绑后 → 200（status=inactive 软停用）
 	database.GetDB().Where("id = ?", route.ID).Delete(&models.TransitRoute{})
