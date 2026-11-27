@@ -1,16 +1,16 @@
 {
   "issue": 2625,
   "overall": "PASS",
-  "plan": "/tmp/opencode/tuneloop/wt-2625/tmp/pre-ready-2625.fnIAzt/plan.md",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2625/tmp/pre-ready-2625.uR0dM7/plan.md",
   "plan_sha256": "92b1a823a919fa9dddacdfaa9542ba348827f92c98fd583b87d823cd47b05d0b",
-  "config_sha": "a29b2b35530c77f2bae31c509207199e6572ad9c",
+  "config_sha": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
   "provenance": {
-    "build": "1.0.fab810a8",
-    "commit": "fab810a8b0d6e337e4c44cb3e18699a5fece251d",
+    "build": "1.0.551079e0",
+    "commit": "551079e0f8085c61775bc470f7a0ef49fa3ec4f5",
     "dirty": false
   },
   "summary": "tmp/fix-summary-2625.md",
-  "timestamp": "20261127-205845",
+  "timestamp": "20261127-211126",
   "checks": [
     {
       "id": "P1",
@@ -45,7 +45,7 @@
     {
       "id": "P18",
       "status": "WARN",
-      "detail": "tooling_commit missing (legacy bundle); config_sha=a29b2b35530c77f2bae31c509207199e6572ad9c"
+      "detail": "tooling_commit missing (legacy bundle); config_sha=be61a790605b0b65759d0fd2be9b258bc6c41b49"
     },
     {
       "id": "P15",
@@ -95,7 +95,7 @@
     {
       "id": "P11",
       "status": "PASS",
-      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /tmp/opencode/tuneloop/wt-2625; worktree guard: PASS isolated worktree=/tmp/opencode/tuneloop/wt-2625"
+      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /home/coder/worktrees/tuneloop/wt-2625; worktree guard: PASS isolated worktree=/home/coder/worktrees/tuneloop/wt-2625"
     },
     {
       "id": "P13",
