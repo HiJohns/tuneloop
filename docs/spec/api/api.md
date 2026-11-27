@@ -29,6 +29,8 @@
 
 > **用户可见文案（#1675 / #2480 / #2504）**：后端 `message` 为机器可读标识（英文为主，**不得原样展示给用户**），前端统一由 `resolveErrorMessage` 解析（`frontend-mobile/src/services/errorMessages.js` / `frontend-pc/src/services/errorMessages.js`，层序 owner 为 `errorMessageResolution.mjs`）翻译为用户友好中文。五层回退：L1 `message_map` 精确匹配（高频错误，如 `order not found` → 「未找到订单」）→ L2 `human_message` 可读中文透传（含 CJK，优先于 code 家族，#2480）→ L3 `code_map` code 家族映射（如 40400 → 「未找到相关数据」、40303 → 「暂无权限访问该页面」）→ L4 `raw_message`（**已不可达**：含 CJK 的文案在 L2 已返回，本层仅保留层名以兼容历史断言/日志；#2504 D8）→ L5 调用点业务 fallback（ASCII 机器串不外溢）。完整错误码分类见 [`docs/archive/reports/backend_api_error_codes_report.md`](../../archive/reports/backend_api_error_codes_report.md)。新增后端错误消息时，如属用户可见高频错误，请同步补充 `ERROR_MESSAGE_MAP`；新增错误码请同时补 `ERROR_CODE_MAP`（PC + mobile，文案逐字一致）。
 
+> **请求体绑定失败（#2603）**：`c.ShouldBindJSON` 校验/解析失败时，`message` **必须**由唯一出口 `backend/bindmsg` 的 `bindmsg.Message(err)` 生成——中文点名「哪一项不能为空 / 格式不对 / 类型不正确」，或整体不可解析时给出「请求体格式不正确，请检查后重试」。**禁止**把 `err.Error()` 的 Go/JSON 原文（`invalid character '\x17' in string`、`invalid parameters: …`、`cannot unmarshal …`、`Field validation for …`）拼进 `message`：前端 L2 只透传含 CJK 的可读文案，英文技术串会被判「无具体原因」并降级为 L3/L5 通用兜底，用户因此看不到**哪个字段**错了。绑定失败沿用原 `code`（`40002`，`instrument` 状态更新分支为 `40001`）与 HTTP 400，不得改为其它 code 或 HTTP 200；`40002` 属业务可纠正冲突白名单（见 `frontend-pc/src/utils/formConflict.js`），可落表单内常驻提示（#2569 口径）。字段称呼表与文案模板的唯一 owner 为 `backend/bindmsg/bindmsg.go`，新增请求体字段须同步登记称呼（称呼不得含 ASCII 字母）。
+
 **PC 客户端非 2xx 契约（#2563）**：本节定义**服务端**响应格式；客户端如何消费非 2xx 由 `frontend-pc/src/services/apiError.js`（唯一 owner，纯函数 `resolveHttpFailure`）决定，不得在页面内联解析：
 
 | HTTP 状态 | 客户端形态 | 说明 |
