@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "issue": 2597,
+  "build": "1.0.3ef332a72",
+  "commit": "3ef332a72951b7072dcee21ae09ffffb236f8af8",
+  "dirty": false,
+  "plan_sha256": "ab7ca473549e320c72e3d1111fc3173cde943328bb5d55ab42f33934f4b591f8",
+  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2597 (branch issue-2597, base origin/develop 25750ed47); Postgres test DB 127.0.0.1:15433 (TUNELOOP_TEST_DB resolved by backend/handlers/main_test.go); fake IAM via httptest (services.SetIAMInternalURLForTesting); Go 1.22.5; Node v20.20.2 (node --test); host heavy-lock via heavy-run.sh",
+  "tooling_commit": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2597.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2597/R1-primary-config.txt"
+      ],
+      "assert": "exit 0 且含 PRIMARY_CONFIG_CODE=50014 PRIMARY_CONFIG_MSG_HAS_ACTIONABLE=1 PRIMARY_CONFIG_MSG_NO_RETRY=0 PRIMARY_CONFIG_ORGS_CREATED=0 PRIMARY_CONFIG_SITES_CREATED=0 PRIMARY_CONFIG_LOG_DETAIL=1",
+      "actual": "PASS：primaries=0 与 primaries=2 两例均 500/50014；文案「命名空间主组织配置异常（应为 1 个），请联系平台管理员处理」（含「联系平台管理员」、不含「请稍后再试」、不含英文内部串、不含组织 id）；未建组织（ORGS_CREATED=0）、未建站（SITES_CREATED=0）；日志含 count= 与 org_ids=",
+      "expected": "PASS（六项 token 全为期望值）",
+      "negative": "文案含「请稍后再试」/英文内部串/组织 id、返回 50000、建出组织或站点 → FAIL",
+      "negative_result": "红样实证：git stash 回退 backend/handlers/transit_site_admin.go 到 fix 前形态后重跑同一测试 → PRIMARY_CONFIG_CODE=0、PRIMARY_CONFIG_MSG_HAS_ACTIONABLE=0、PRIMARY_CONFIG_MSG_NO_RETRY=1、PRIMARY_CONFIG_LOG_DETAIL=0、--- FAIL（tmp/red-r1.txt）；修复后同一命令六项 token 全绿",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2597.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2597/R2-primary-transient.txt"
+      ],
+      "assert": "exit 0 且含 TRANSIENT_STATUS=500 TRANSIENT_CODE=50000 TRANSIENT_MSG_RETRY=1 TRANSIENT_NOT_CONFIG_CODE=1 TRANSIENT_SITES_CREATED=0",
+      "actual": "PASS：fake IAM 组织列表返回 500 → HTTP 500 / code 50000 / 文案含「稍后再试」/ 未返回 50014 / 未建站（SITES_CREATED=0）、未建组织",
+      "expected": "PASS（五项 token 全为期望值）",
+      "negative": "瞬时失败返回 50014、返回 4xx、建出站点、文案缺失「稍后再试」→ FAIL",
+      "negative_result": "errors.As 若被误用到传输层错误（handler 不区分类型直接判配置类），TRANSIENT_NOT_CONFIG_CODE 会变 0 且 TRANSIENT_CODE≠50000；测试同时断言 rec.createCount()=0，覆盖「瞬时失败仍去建组织」的回归",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2597.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2597/R3-legacy-flip.txt"
+      ],
+      "assert": "exit 0 且含 PRIMARY_ORG_UNRESOLVED=50014 HARNESS_FLIPPED=1 DEACTIVATE_MSG_NO_INTERNAL_REF=1",
+      "actual": "PASS：TestTransitSiteCreate2552_PrimaryUnresolved（0/2 primary）输出 PRIMARY_ORG_UNRESOLVED=50014；scripts/verify-2552.sh 期望值已翻转为 50014（旧期望 50000 命中 0 次）；停用被拒文案为「该中转网点仍被路由引用，请先解除相关路由」（保留「路由引用」关键词、不含 #1935）；#1935 既有回归 TestDeleteTransitSiteRejectsWhenReferenced exit 0",
+      "expected": "PASS（三项 token 全为期望值）",
+      "negative": "token 仍为 50000、verify-2552.sh 仍期望 50000、停用文案仍含 #1935、「路由引用」断言失败 → FAIL",
+      "negative_result": "红样实证：git stash 回退 handler 后重跑该测试 → PRIMARY_ORG_UNRESOLVED=0、--- FAIL（tmp/red-r3b.txt）。旧断言的 token 是硬编码常量 50000（从不读取响应 code），因此对旧实现恒绿——翻转后改为从响应 code 取值，缺陷版即红",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2597.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2597/R4-frontend-resolver.txt"
+      ],
+      "assert": "exit 0 且含 E50014_LAYER=code_map E50014_RETRY_HINT=0 HTTP_THROW_CODE=50014 ASCII_LEAK=0 HUMAN_40002=1 MOBILE_MAP_MATCH=1 NODE_TEST_FAIL=0",
+      "actual": "PASS：50014 层胜出 code_map（文案 = 后端 message 逐字一致，不含「请稍后再试」）；后端误传 ASCII 内部串时输出仍为中文（ASCII_LEAK=0，含无 code 回退 fallback）；resolveHttpFailure(500,{code:50014}) 抛 ApiError 且 code=50014；40002 中文串仍走 human_message；PC 与 mobile 的 50014 文案逐字一致；node --test 5/5 通过（# fail 0）",
+      "expected": "PASS（七项 token 全为期望值）",
+      "negative": "输出含英文内部串、含「请稍后再试」、层为 human_message/fallback、抛出链丢 code、双端文案不一致 → FAIL",
+      "negative_result": "负例断言在测试内显式执行：ASCII 内部串（namespace has 2 primary organizations (expected exactly 1)）在「带 code」与「无 code」两条路径上都不得出现在文案中；双端文案漂移会直接 assert.equal 失败",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2597.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2597/R5-page-wiring.txt"
+      ],
+      "assert": "exit 0 且含 RESOLVE_HELPER=1 RAW_MESSAGE_BRANCHES=0 TRY_CATCH_HANDLERS=5 EDIT_CODE_CHECK=1 PC_MAP_50014=1 MOBILE_MAP_50014=1",
+      "actual": "PASS：TransitCenter.jsx 存在单一 showError 出口并调用 resolveErrorMessage；message.error(r.message|e.message) 直出分支为 0；try/catch 计数 5（fetchAll + handleSiteSubmit + handleDeactivate + handleRouteCreate + handleRouteDelete）；编辑分支含 r.code !== 20000 判码；PC/mobile ERROR_CODE_MAP 均含 50014（文案逐字一致）",
+      "expected": "PASS（六项 token 全为期望值）",
+      "negative": "残留 message.error(r.message / e.message 直出、handler 缺 try/catch、编辑分支不判码、任一端缺 50014 → FAIL",
+      "negative_result": "修前实测：resolveErrorMessage 命中 0、try { 命中 1（仅 fetchAll）、5 处错误分支全部直取 r.message/e.message；修复后分别为 2（helper+调用）、5、0 —— 差异可复现（Input Truth 记录）",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2597.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2597/R6-docs.txt"
+      ],
+      "assert": "exit 0 且含 API_CODE_50014=1 API_TEXT_ACTIONABLE=1 UI_ERROR_LAYER=1",
+      "actual": "PASS：docs/spec/api/api.md §14.4 新增 `| 50014 | …不可重试 |` 行与「配置类失败用专用码 + 可行动文案」口径；docs/spec/ui/ui.md §3.20 新增失败提示（统一错误层 resolveErrorMessage、50014 文案、瞬时类只给「稍后再试」、编辑分支判码）",
+      "expected": "PASS（三项 token 全为期望值）",
+      "negative": "文档无 50014 行 / 未写「不可重试」语义 / UI 未写统一错误层口径 → FAIL",
+      "negative_result": "修前 api.md §14.4 错误码表止于 50000、ui.md §3.20 无失败提示章节；断言按行/按章节精确匹配，缺任一项即 token=0 并 fail",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2597.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2597/R7-build-lint.txt"
+      ],
+      "assert": "exit 0 且含 GO_BUILD_OK=1 GOFMT_DIFF=0 ESLINT_NOUNDEF=0",
+      "actual": "PASS：cd backend && go build ./... exit 0；gofmt -l 对 5 个改动 Go 文件输出为空；npx eslint src/pages/admin/transit/TransitCenter.jsx src/services/errorMessages.js 无 no-undef",
+      "expected": "PASS（三项 token 全为期望值）",
+      "negative": "构建失败、gofmt 有差异、eslint 报 no-undef → FAIL",
+      "negative_result": "构建/eslint 退出码直接进入判定（BUILD_RC/LINT_RC），gofmt 用 -l 列表长度判定；任一非零即 fail（不会以「构建通过」代替其它行）",
+      "pass": true
+    }
+  ]
+}

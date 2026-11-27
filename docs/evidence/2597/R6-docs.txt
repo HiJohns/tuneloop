@@ -1,0 +1,8 @@
+# build=1.0.3ef332a72 # commit=3ef332a72951b7072dcee21ae09ffffb236f8af8 # dirty=false
+GENERATED_AT_HEAD=3ef332a72951b7072dcee21ae09ffffb236f8af8
+== R6 文档同步（api.md 新码 + ui.md 失败提示口径） ==
+API_CODE_50014=1
+API_TEXT_ACTIONABLE=1
+UI_ERROR_LAYER=1
+R6_OK
+RESULT: PASS (r6)

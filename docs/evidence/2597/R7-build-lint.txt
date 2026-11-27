@@ -1,0 +1,14 @@
+# build=1.0.3ef332a72 # commit=3ef332a72951b7072dcee21ae09ffffb236f8af8 # dirty=false
+GENERATED_AT_HEAD=3ef332a72951b7072dcee21ae09ffffb236f8af8
+== R7 构建 / gofmt / eslint(no-undef) ==
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 at_ms=1795751218175 wait_ms=202
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 wait_ms=202
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795751228920 hold_ms=10745
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 at_ms=1795751229257 wait_ms=-649
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 wait_ms=-649
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795751232367 hold_ms=3110
+GO_BUILD_OK=1
+GOFMT_DIFF=0
+ESLINT_NOUNDEF=0
+R7_OK
+RESULT: PASS (r7)

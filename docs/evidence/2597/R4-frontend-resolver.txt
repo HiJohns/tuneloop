@@ -1,0 +1,15 @@
+# build=1.0.3ef332a72 # commit=3ef332a72951b7072dcee21ae09ffffb236f8af8 # dirty=false
+GENERATED_AT_HEAD=3ef332a72951b7072dcee21ae09ffffb236f8af8
+== R4 前端解析链（新码映射 / 内部串不外溢 / 真实抛出链） ==
+E50014_LAYER=code_map
+E50014_RETRY_HINT=0
+ASCII_LEAK=0
+HTTP_THROW_CODE=50014
+HUMAN_40002=1
+MOBILE_MAP_MATCH=1
+# tests 5
+# pass 5
+# fail 0
+NODE_TEST_FAIL=0
+R4_OK
+RESULT: PASS (r4)
