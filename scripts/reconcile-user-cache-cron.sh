@@ -73,7 +73,12 @@ command -v "$GH_BIN" >/dev/null 2>&1 || [ -x "$GH_BIN" ] || missing_env GH_BIN
 [ -n "${BEACONIAM_DB_NAME:-${BEACONIAM_DB:-}}" ] || missing_env BEACONIAM_DB_NAME
 [ -n "${TUNELOOP_DB_NAME:-${TUNELOOP_DB:-}}" ] || missing_env TUNELOOP_DB_NAME
 
-mkdir -p "$ARCHIVE_DIR" 2>/dev/null || { echo "RESULT: FAIL (cannot create archive dir: $ARCHIVE_DIR)"; exit 2; }
+# --dry-run 零写入：连归档目录都不创建（否则「只打印」的契约不成立）。
+if [ "$DRY_RUN" = "1" ]; then
+  :
+else
+  mkdir -p "$ARCHIVE_DIR" 2>/dev/null || { echo "RESULT: FAIL (cannot create archive dir: $ARCHIVE_DIR)"; exit 2; }
+fi
 
 # GH 调用计数落文件：gh_call 常在 $( ) 子 shell 里执行，变量自增不会传回父 shell。
 GH_CALLS_FILE="$(mktemp "${TMPDIR:-/tmp}/gh-calls.XXXXXX")" || exit 2
@@ -152,14 +157,16 @@ handle_failure() { # reason
     echo "判定与只读工具见 #2623；修复流程见 #2624（需 Owner 授权）。"
   } > "$body"
   if [ "$DRY_RUN" = "1" ]; then
+    # 审计 B3：dry-run 必须零写入。此处曾调用 write_archive 覆盖同日既有真实归档，
+    # 随后又把 FILES_WRITTEN 复位为 0（失真 token）；被覆盖的归档使次日「连续 2 天不降」
+    # 比较基准读不到 token → 升级机制静默失效。dry-run 只打印动作，不落盘。
+    echo "DRY_RUN=1"
     echo "DRY_RUN_ACTION=create-issue title=$title"
     rm -f "$body"
     FAILURE_ISSUE="would-create"
-    write_archive "{\"date\":\"$RECONCILE_DATE\",\"failed\":true,\"reason\":\"$reason\"}" "RECONCILE_DATE=$RECONCILE_DATE
-RESULT: FAIL ($reason)" >/dev/null 2>&1 || true
-    FILES_WRITTEN=0
     ARCHIVE_JSON="(dry-run)"
     ARCHIVE_TEXT="(dry-run)"
+    FILES_WRITTEN=0
     emit_tokens FAIL
     exit 2
   fi

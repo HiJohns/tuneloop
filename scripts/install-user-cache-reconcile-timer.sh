@@ -24,6 +24,7 @@ AT="03:30"
 BACKEND="auto"
 REQUESTED_BACKEND="auto"
 MODE="print"
+TIMER_ENABLED=0
 
 usage() {
   sed -n '2,20p' "$0" >&2
@@ -143,9 +144,13 @@ apply_systemd() {
   mkdir -p "$SYSTEMD_DIR" || return 1
   service_content > "$SERVICE" || return 1
   timer_content > "$TIMER" || return 1
+  # unit 写盘成功 ≠ 定时生效：`enable --now` 失败必须显式（同族「外部调用失败仍称成功」）。
+  TIMER_ENABLED=0
   if command -v systemctl >/dev/null 2>&1; then
     systemctl --user daemon-reload >/dev/null 2>&1 || true
-    systemctl --user enable --now "$UNIT_NAME.timer" >/dev/null 2>&1 || true
+    if systemctl --user enable --now "$UNIT_NAME.timer" >/dev/null 2>&1; then
+      TIMER_ENABLED=1
+    fi
   fi
   echo "SERVICE_SHA=$(sha256sum "$SERVICE" | awk '{print $1}')"
   echo "TIMER_SHA=$(sha256sum "$TIMER" | awk '{print $1}')"
@@ -183,18 +188,24 @@ apply)
   echo "BACKEND=$BACKEND"
   echo "AT=$AT"
   if [ "$BACKEND" = "systemd" ]; then
-    if apply_systemd; then
+    if apply_systemd && [ "$TIMER_ENABLED" = "1" ]; then
       echo "FILES_WRITTEN=2"
       C=2
     elif [ "$REQUESTED_BACKEND" = "auto" ]; then
-      echo "WARN:systemd-install-failed-fallback-cron" >&2
+      echo "WARN:systemd-timer-not-enabled-fallback-cron" >&2
+      # 不留两份调度：unit 已写但未启用时删掉，改由 cron 承担。
+      rm -f "$SERVICE" "$TIMER"
+      TIMER_ENABLED=0
       apply_cron || { echo "ERROR: failed to install cron entry" >&2; exit 2; }
       BACKEND="cron"
       echo "BACKEND=$BACKEND"
       echo "FILES_WRITTEN=1"
       C=1
     else
-      echo "ERROR: failed to install systemd timer" >&2
+      # unit 写盘成功但定时器没启用 = 定时任务不会跑，禁止报 PASS。
+      echo "TIMER_ENABLED=$TIMER_ENABLED"
+      echo "ERROR: systemd timer not enabled (systemctl --user enable --now failed): $TIMER" >&2
+      echo "RESULT: FAIL (timer not enabled)"
       exit 2
     fi
   else
@@ -222,6 +233,7 @@ apply)
     fi
   fi
   next_elapse
+  echo "TIMER_ENABLED=$TIMER_ENABLED"
   echo "RESULT: PASS"
   ;;
 uninstall)

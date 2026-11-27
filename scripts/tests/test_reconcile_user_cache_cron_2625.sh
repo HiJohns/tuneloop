@@ -137,6 +137,15 @@ chmod +x "$TMP/fakebin/gh"
 cat > "$TMP/fakebin/systemctl" <<'FAKESYSTEMCTL'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "${SYSTEMCTL_LOG:-/dev/null}"
+for a in "$@"; do
+  if [ "$a" = "enable" ]; then
+    if [ "${FAKE_SYSTEMCTL_ENABLE_RC:-0}" != "0" ]; then
+      echo "Failed to enable unit: fake failure" >&2
+      exit "${FAKE_SYSTEMCTL_ENABLE_RC}"
+    fi
+    exit 0
+  fi
+done
 case "$*" in
   *show-environment*) exit 0 ;;
   *--property=NextElapseUSecRealtime*) echo "Fri 2026-11-28 03:30:00 CST"; exit 0 ;;
@@ -194,6 +203,7 @@ run_installer() { # outfile args...
   local out="$1"; shift
   HOME="$SANDBOX_HOME" XDG_STATE_HOME="$SANDBOX_STATE" \
   PATH="$TMP/fakebin:$PATH" SYSTEMCTL_LOG="$TMP/systemctl.log" CRON_FILE="$CRON_FILE" \
+  FAKE_SYSTEMCTL_ENABLE_RC="${FAKE_SYSTEMCTL_ENABLE_RC:-0}" \
   bash "$INSTALLER" "$@" > "$out" 2>&1
   printf '%s' "$?"
 }
@@ -242,6 +252,7 @@ r1)
   expect UNIT_ENVFILE 1 "$(grep -c '^EnvironmentFile=%h/.config/tuneloop/reconcile.env$' "$SERVICE")"
   expect UNIT_NO_SECRET 1 "$( [ "$(grep -Eic 'PASSWORD|SECRET|TOKEN' "$SERVICE")" = "0" ] && echo 1 || echo 0)"
   expect UNIT_LOG_APPEND 1 "$(grep -c "^StandardOutput=append:$SANDBOX_STATE/tuneloop/user-cache-reconcile.log" "$SERVICE")"
+  expect APPLY_TIMER_ENABLED 1 "$(tok "$A_OUT" TIMER_ENABLED)"
 
   # 3) 幂等：重复 --apply 内容不变
   SERVICE_SHA_BEFORE="$(sha256sum "$SERVICE" | awk '{print $1}')"
@@ -257,6 +268,26 @@ r1)
   expect UNINSTALL_EXIT 0 "$U_RC"
   at_least UNINSTALL_REMOVED 1 "$(tok "$U_OUT" REMOVED)"
   expect UNINSTALL_UNIT_GONE 1 "$([ ! -f "$SERVICE" ] && [ ! -f "$TIMER" ] && echo 1 || echo 0)"
+
+  # 4b) 【Round2 非阻断建议落盘】`systemctl --user enable --now` 失败 → 不得报 PASS
+  TE_OUT="$TMP/r1-timer-enable-fail.txt"
+  TE_RC="$(FAKE_SYSTEMCTL_ENABLE_RC=1 run_installer "$TE_OUT" --apply --backend systemd)"
+  sed -n '1,20p' "$TE_OUT"
+  expect TIMER_ENABLE_FAIL_EXIT 2 "$TE_RC"
+  expect TIMER_ENABLE_FAIL_TOKEN 0 "$(tok "$TE_OUT" TIMER_ENABLED)"
+  expect TIMER_ENABLE_FAIL_NO_PASS 0 "$(grep -c '^RESULT: PASS' "$TE_OUT")"
+  expect TIMER_ENABLE_FAIL_EXPLICIT 1 "$(grep -c '^RESULT: FAIL' "$TE_OUT")"
+
+  # 4c) 同一失败在 --backend auto 下回退 cron：不报假 PASS、不留两份调度
+  TF_OUT="$TMP/r1-timer-enable-fallback.txt"
+  TF_RC="$(FAKE_SYSTEMCTL_ENABLE_RC=1 run_installer "$TF_OUT" --apply --backend auto)"
+  sed -n '1,20p' "$TF_OUT"
+  expect TIMER_FALLBACK_EXIT 0 "$TF_RC"
+  expect TIMER_FALLBACK_WARN 1 "$(grep -c 'WARN:systemd-timer-not-enabled-fallback-cron' "$TF_OUT")"
+  expect TIMER_FALLBACK_TIMER_ENABLED 0 "$(tok "$TF_OUT" TIMER_ENABLED)"
+  expect TIMER_FALLBACK_UNIT_REMOVED 1 "$([ ! -f "$SERVICE" ] && [ ! -f "$TIMER" ] && echo 1 || echo 0)"
+  expect TIMER_FALLBACK_CRON_LINE 1 "$(grep -Fxc '# opencode-user-cache-reconcile' "$CRON_FILE")"
+  run_installer "$TMP/r1-cron-prewash.txt" --uninstall >/dev/null
 
   # 5) cron backend：marker 幂等
   C1_OUT="$TMP/r1-cron1.txt"
@@ -350,6 +381,36 @@ r2)
   expect GH_CREATE_FAIL_NOT_SILENT 1 "$(grep -c '^RESULT: FAIL' "$CF_OUT")"
   expect GH_CREATE_FAIL_RC_SHOWN 1 "$(grep -c '^ISSUE_CREATE_RC=1$' "$CF_OUT")"
   expect GH_CREATE_FAIL_ARCHIVED 1 "$([ -f "$ARCHIVE_DIR/2026-12-05.json" ] && echo 1 || echo 0)"
+
+  # 6) 【审计 B3 负例】--dry-run + 对账失败：零写入，不得覆盖同日既有归档，
+  #    且被保护下来的归档必须让次日「连续 2 天不降」升级仍能触发。
+  DF_DATE="2026-12-09"
+  mkdir -p "$ARCHIVE_DIR"
+  rm -f "$ARCHIVE_DIR/$DF_DATE".*
+  printf '%s\n' '{"tokens":{"RECONCILE_DATE":"2026-12-09","TENANT_MISMATCH":"2","ORG_MISMATCH":"1"}}' > "$ARCHIVE_DIR/$DF_DATE.json"
+  printf '%s\n' 'TENANT_MISMATCH=2' 'ORG_MISMATCH=1' > "$ARCHIVE_DIR/$DF_DATE.txt"
+  DF_SHA_BEFORE="$(sha256sum "$ARCHIVE_DIR/$DF_DATE.json" | awk '{print $1}')"
+  DF_LIST_BEFORE="$(ls -1 "$ARCHIVE_DIR" | LC_ALL=C sort | tr '\n' ' ')"
+  : > "$GH_LOG"
+  DF_OUT="$TMP/r2-dry-run-fail.txt"
+  DF_RC="$(FAKE_RECONCILE_MODE=fail run_runner "$DF_OUT" --date "$DF_DATE" --dry-run)"
+  sed -n '1,25p' "$DF_OUT"
+  expect DRY_RUN_FAIL_EXIT 2 "$DF_RC"
+  expect DRY_RUN_FAIL_NO_PASS 0 "$(grep -c '^RESULT: PASS' "$DF_OUT")"
+  expect DRY_RUN_FAIL_FILES_WRITTEN 0 "$(tok "$DF_OUT" FILES_WRITTEN)"
+  expect DRY_RUN_FAIL_GH_CALLS 0 "$(tok "$DF_OUT" GH_CALLS)"
+  expect DRY_RUN_FAIL_DRY_RUN_TOKEN 1 "$(tok "$DF_OUT" DRY_RUN)"
+  expect DRY_RUN_FAIL_NO_FILES 1 "$([ "$(ls -1 "$ARCHIVE_DIR" | LC_ALL=C sort | tr '\n' ' ')" = "$DF_LIST_BEFORE" ] && echo 1 || echo 0)"
+  expect DRY_RUN_FAIL_ARCHIVE_PRESERVED 1 "$([ "$(sha256sum "$ARCHIVE_DIR/$DF_DATE.json" | awk '{print $1}')" = "$DF_SHA_BEFORE" ] && echo 1 || echo 0)"
+  expect DRY_RUN_FAIL_ARCHIVE_TOKEN_DRYRUN "(dry-run)" "$(tok "$DF_OUT" ARCHIVE)"
+  # 次日真实差异运行：归档完好 → 升级仍触发（缺陷版此处会被覆盖成 failed:true → ESCALATED=0）
+  : > "$GH_LOG"
+  DR_OUT="$TMP/r2-post-dry-run-escalate.txt"
+  DR_RC="$(FAKE_RECONCILE_MODE=diff3 FAKE_GH_LIST_JSON='[{"number":777}]' run_runner "$DR_OUT" --date 2026-12-10)"
+  sed -n '1,25p' "$DR_OUT"
+  expect POST_DRY_RUN_ESCALATE_EXIT 0 "$DR_RC"
+  expect POST_DRY_RUN_ESCALATED 1 "$(tok "$DR_OUT" ESCALATED)"
+  expect POST_DRY_RUN_ESCALATE_COMMENTS 1 "$(tok "$DR_OUT" ESCALATE_COMMENTS)"
   finish
   ;;
 

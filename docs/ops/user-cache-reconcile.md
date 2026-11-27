@@ -200,6 +200,9 @@ bash scripts/install-user-cache-reconcile-timer.sh --uninstall
 - unit 名称 `opencode-user-cache-reconcile.{service,timer}`，位于 `~/.config/systemd/user/`；
   cron 兜底使用 marker `# opencode-user-cache-reconcile`（一行，幂等，不重复追加）。
 - `ExecStart` 指向 `scripts/reconcile-user-cache-cron.sh`，**不含** `--apply`（自动化只读）。
+- `--apply` 结束打印 `TIMER_ENABLED=<0|1>`：`systemctl --user enable --now` 失败时 `TIMER_ENABLED=0`，
+  `--backend systemd` 显式请求 → `RESULT: FAIL` + `exit 2`（unit 写盘 ≠ 定时生效）；
+  `--backend auto` → 删除未启用的 unit 并回退 cron（不保留两份调度）。
 
 ### 8.2 env 文件字段（凭据不进 unit）
 
@@ -238,7 +241,11 @@ unit 内只出现 `EnvironmentFile=%h/.config/tuneloop/reconcile.env`，**不得
 归档位置：`${XDG_STATE_HOME:-$HOME/.local/state}/tuneloop/reconcile/<date>.json` 与 `.txt`
 （**不写仓库**，定时任务不产生 Git 变更）；`LAST_SUMMARY` token 指向当日 `.txt`。
 
-`--dry-run` 只打印将执行的动作（`DRY_RUN=1`、`GH_CALLS=0`、`FILES_WRITTEN=0`）。
+`--dry-run` 只打印将执行的动作（`DRY_RUN=1`、`GH_CALLS=0`、`FILES_WRITTEN=0`）：
+
+- **所有分支一律零写入**，包括「对账失败」分支——不创建归档目录、不写、更不覆盖同日既有归档
+  （`FILES_WRITTEN=0` 必须与事实一致）；失败分支仍 `exit 2` 并打印 `DRY_RUN_ACTION=create-issue`。
+- 覆盖同日归档会抹掉次日「连续 2 天不降」的比较基准，使升级机制静默失效，因此该零写入约束是硬性的。
 
 ### 8.4 标签与升级规则
 
