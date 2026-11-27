@@ -85,19 +85,50 @@
 
 ### 第 14 项 — 网点 400 分支（#2569）
 
-> 这一项**正常填表是打不出来的**：表单必填校验在前端就拦住了，后端 `site.go` 的 400 分支需要「参数不合法」才触发。所以按下面 A 做（浏览器改包，模拟一次坏请求），目的只是验证**前端拿到 400 时也走表单内常驻**，不是验证业务。
+> **正常填表打不出来**：前端必填校验先拦住了。要在 UI 上触发，必须让「**应用自己发出的请求**」是坏的。
+>
+> ❌ **不要用 DevTools 的 Edit and Resend**：那条请求绕过了应用的 JS，响应没有任何代码处理，界面**必然**没反应（2026-11-27 实测踩过，与代码缺陷无关）。
+> ✅ 正确做法：在 Console 打一个补丁，拦截**出站 fetch**，把 body 里的 `name` 删掉，然后**正常点提交**——这样响应仍由页面逻辑处理。
 
-**做法 A（推荐，2 分钟）**
+**做法（2 分钟，PC 后台 Console 执行，刷新即失效）**
 
-1. 打开 `平台管理` → `网点管理` → 新建网点，`F12` 打开开发者工具 → **Network（网络）** 面板；
-2. 名称填 `复验400-1127`（随便，不会真的建成），点提交；
-3. 在 Network 里找到那条 `POST .../api/merchant/sites` 请求 → 右键 → **Edit and Resend（编辑并重发）**；
-4. 把请求体里的 `"name":"复验400-1127"` **整段删掉** → Send；
-5. 看界面对这次 400 的展示（注意：这次是「重发」，界面可能不会自动弹提示，此时看 Console 里 `response` 即可，**并记录界面是否有常驻提示**）。
+1. `平台管理` → `网点管理` → 新建网点，名称随便填（如 `复验400-1128`），先不要提交；
+2. `F12` → **Console**，粘贴执行：
 
-**期望**：`HTTP 400 + code 40002`，界面提示在**表单内常驻**；文案为中文具体原因（#2603 起）：JSON 被改坏 → `请求体格式不正确，请检查后重试`；仅删字段而 JSON 仍合法 → `参数不合法：名称不能为空`。
+```js
+(() => {
+  if (window.__probe400) return console.log('probe400 already installed');
+  window.__probe400 = true;
+  const orig = window.fetch;
+  window.fetch = async (input, init = {}) => {
+    const url = typeof input === 'string' ? input : (input && input.url) || '';
+    const method = String(init.method || (input && input.method) || 'GET').toUpperCase();
+    if (url.includes('/api/merchant/sites') && method === 'POST' && typeof init.body === 'string') {
+      try {
+        const obj = JSON.parse(init.body);
+        if (obj && 'name' in obj) {
+          delete obj.name;                       // 只删 name，保持 JSON 合法
+          init = { ...init, body: JSON.stringify(obj) };
+          console.log('[probe400] dropped name →', init.body);
+        }
+      } catch (e) { console.warn('[probe400] body not JSON, untouched'); }
+    }
+    return orig(input, init);
+  };
+  console.log('[probe400] installed：现在正常点「提交」');
+})();
+```
 
-**要给我的**：`HTTP 状态 + code + 界面表现`。若你不想动 DevTools，回一句「第 14 项跳过，改由静态断言覆盖」也可以——我会把 #2569 的证据降级为代码级并在单里说明。
+3. 回到表单，点「提交」（正常走应用逻辑）。
+
+**期望**：
+- Network 里这条 `POST /api/merchant/sites` 返回 `HTTP 400 + code 40002`；
+- 界面弹出**表单内**提示并常驻（等 5 秒仍在）；改字段后消失；
+- 文案为中文具体原因（#2603 起）：`参数不合法：名称不能为空`（本补丁只删 name、JSON 仍合法）。
+
+**判定**：提示在表单内且常驻 → PASS；仍是 3 秒 toast → FAIL（我改前端接线）。
+
+**备选（不想动 Console）**：回一句「14 跳过」，我把本项标记为「静态接线覆盖」（`frontend-pc/tests/siteFormConflictWiring.test.mjs` 已锁死 400 族 → rubric → `formConflict` → `FormConflictAlert` 的接线）。
 
 ---
 
