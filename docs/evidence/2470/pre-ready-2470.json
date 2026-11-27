@@ -1,16 +1,16 @@
 {
   "issue": 2470,
   "overall": "PASS",
-  "plan": "/home/coder/worktrees/tuneloop/wt-2470/tmp/pre-ready-2470.5bMouA/plan.md",
-  "plan_sha256": "cc4aa7775116c68767ce90e2884aaf8518c844084bd385fd597e5981c4b8855c",
-  "config_sha": "17d6543870675e1d8070740c7ba3e08ab908adf7",
+  "plan": "/tmp/opencode/tuneloop/wt-2470/tmp/pre-ready-2470.MQwv2x/plan.md",
+  "plan_sha256": "bedead8578ec7fe646ed8257051f77fdb82c2ec55f7a38fc49e03c3a019571b4",
+  "config_sha": "a29b2b35530c77f2bae31c509207199e6572ad9c",
   "provenance": {
-    "build": "1.0.5daa8f17",
-    "commit": "5daa8f17d2ce949aaf344ba8ce6bd06b4b5b516a",
+    "build": "1.0.ceea4038",
+    "commit": "ceea4038e3f2c85f2df7196ceed9d210721836f9",
     "dirty": false
   },
   "summary": "tmp/work-summary-2470.md",
-  "timestamp": "20261126-231246",
+  "timestamp": "20261127-195610",
   "checks": [
     {
       "id": "P1",
@@ -45,7 +45,7 @@
     {
       "id": "P18",
       "status": "PASS",
-      "detail": "tooling_commit matches the running scripts (17d6543870675e1d8070740c7ba3e08ab908adf7)"
+      "detail": "tooling_commit matches the running scripts (a29b2b35530c77f2bae31c509207199e6572ad9c)"
     },
     {
       "id": "P15",
@@ -79,8 +79,8 @@
     },
     {
       "id": "P8",
-      "status": "N/A",
-      "detail": "no panel/clarify files changed"
+      "status": "PASS",
+      "detail": "answer-consumption section and test reference present"
     },
     {
       "id": "P9",
@@ -95,7 +95,7 @@
     {
       "id": "P11",
       "status": "PASS",
-      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /home/coder/worktrees/tuneloop/wt-2470; worktree guard: PASS isolated worktree=/home/coder/worktrees/tuneloop/wt-2470"
+      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /tmp/opencode/tuneloop/wt-2470; worktree guard: PASS isolated worktree=/tmp/opencode/tuneloop/wt-2470"
     },
     {
       "id": "P13",
