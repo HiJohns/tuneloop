@@ -1,7 +1,7 @@
 {
   "issue": 2624,
-  "overall": "FAIL",
-  "plan": "/tmp/opencode/tuneloop/wt-2624/tmp/pre-ready-2624.Mfkot3/plan.md",
+  "overall": "PASS",
+  "plan": "/tmp/opencode/tuneloop/wt-2624/tmp/pre-ready-2624.9RWw0Q/plan.md",
   "plan_sha256": "06a876b646acb0add1c2f556fad1f1bf82aa803ceb0bc6d57ed5fae04106d448",
   "config_sha": "a29b2b35530c77f2bae31c509207199e6572ad9c",
   "provenance": {
@@ -10,7 +10,7 @@
     "dirty": false
   },
   "summary": "docs/evidence/2624/summary.md",
-  "timestamp": "20261127-210821",
+  "timestamp": "20261127-210829",
   "checks": [
     {
       "id": "P1",
@@ -24,8 +24,8 @@
     },
     {
       "id": "P3",
-      "status": "FAIL",
-      "detail": "evidence paths do not exist: docs/evidence/2624/pre-ready-2624.json"
+      "status": "PASS",
+      "detail": "all referenced evidence paths exist and are durable"
     },
     {
       "id": "P4",
