@@ -480,3 +480,4 @@
 - 2026-11-27: 批量处理完成，包含任务: Resolved Issues: #2597
 - 2026-11-27: 批量处理完成，包含任务: Resolved Issues: #2598
 - 2026-11-27: 批量处理完成，包含任务: Resolved Issues: #2603
+- 2026-11-27: 批量处理完成，包含任务: Resolved Issues: #2601（审计 PASS；fix/evidence 在 origin/issue-2601，代码待集成至 develop；Ops Follow-up #2613，Out-of-Scope 同类遗留 #2614）
