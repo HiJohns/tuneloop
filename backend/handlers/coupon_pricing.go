@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/database"
 	"tuneloop-backend/models"
 
@@ -61,7 +62,7 @@ type validateCouponRequest struct {
 func ValidateCoupon(c *gin.Context) {
 	var req validateCouponRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid parameters: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": bindmsg.Message(err)})
 		return
 	}
 	if req.AmountCents < 0 {

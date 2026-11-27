@@ -1,63 +1,104 @@
+// Package bindmsg renders request-body binding failures as user-facing Chinese
+// messages.
+//
+// It is the single exit for `c.ShouldBindJSON` failures (#2603): handlers must
+// never concatenate `err.Error()` (Go `encoding/json` / validator wording) into
+// an API response. The raw text leaks internal phrasing such as
+// `invalid character '\x17' in string`, which the PC/H5 clients treat as "no
+// specific reason" and replace with a generic fallback — the user then cannot
+// tell which field is wrong.
+//
+// The package is a leaf (no gin dependency) so it can be unit-tested directly.
 package bindmsg
-
-// #2603：请求体绑定失败的用户可读文案（包内唯一出口，纯函数、无外部依赖）。
-//
-// 背景：大量 handler 用 `"invalid parameters: " + err.Error()` 直接回传 Go 绑定层原文，
-// 例如预生产实测（2026-11-27，网点新建）：
-//
-//	{"code":40002,"message":"invalid parameters: invalid character '\x17' in string"}
-//
-// 问题有两层：
-//  1. 对用户毫无意义（Go 标准库/sql 层措辞）；
-//  2. PC 端 resolveErrorMessage 的「含 CJK 原样透传」口径（#2480）判其无具体原因，
-//     于是降级成通用文案 `信息不完整，请补充必填项` —— 用户不知道是哪个字段错。
-//
-// 本文件提供 `Message(err)`：把 validator/encoding-json 错误翻译成中文，
-// 并尽量点名字段（`required` / 类型不匹配 / JSON 语法错误）。
 
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"strings"
+	"unicode"
 
 	"github.com/go-playground/validator/v10"
 )
 
-// bindFieldLabels 把常见 JSON 字段名映射为界面上的字段称呼（未登记则原样回显字段名）。
-var bindFieldLabels = map[string]string{
-	"name":             "名称",
-	"address":          "地址",
-	"phone":            "联系电话",
-	"type":             "类型",
-	"postal_code":      "邮编",
-	"business_hours":   "营业时间",
-	"parent_id":        "父级网点",
-	"merchant_id":      "商户",
-	"transit_site_id":  "中转网点",
-	"manager_id":       "管理员",
-	"manager_name":     "管理员姓名",
-	"manager_username": "管理员账号",
-	"manager_email":    "管理员邮箱",
-	"manager_phone":    "管理员手机号",
-	"latitude":         "纬度",
-	"longitude":        "经度",
-	"description":      "说明",
-	"images":           "图片",
-	"photos":           "照片",
-	"reason":           "原因",
-	"comment":          "评论",
-	"status":           "状态",
-	"role":             "角色",
-	"user_id":          "用户",
-	"user_ids":         "用户列表",
-	"amount":           "金额",
-	"quantity":         "数量",
+const (
+	// messagePrefix opens every field-scoped message.
+	messagePrefix = "参数不合法："
+	// SyntaxMessage is used for malformed JSON bodies (control characters,
+	// truncation, stray commas). It never names a field because the body as a
+	// whole is unusable.
+	SyntaxMessage = "请求体格式不正确，请检查后重试"
+	// FallbackMessage is used when the error carries nothing we can name
+	// (empty body, nil error, unknown decoder errors).
+	FallbackMessage = "参数不合法，请检查后重试"
+)
+
+// Message translates a request-body binding error into a Chinese message that
+// names the offending field. It never returns the original error text.
+//
+// Mapping (locked by #2603 Decision Lock D2):
+//
+//	validator `required`                        → 参数不合法：<称呼>不能为空
+//	validator `email`                           → 参数不合法：<称呼>格式不正确
+//	validator `uuid` / `uuid4`                  → 参数不合法：<称呼>不是合法的唯一标识
+//	validator numeric tags (`gte`/`lte`/…)      → 参数不合法：<称呼>取值不合法
+//	validator `oneof`                           → 参数不合法：<称呼>取值不在允许范围内
+//	validator other tags                        → 参数不合法：<称呼>不合法
+//	*json.UnmarshalTypeError                    → 参数不合法：<称呼>类型不正确
+//	*json.SyntaxError                           → 请求体格式不正确，请检查后重试
+//	anything else (io.EOF, unexpected EOF, nil) → 参数不合法，请检查后重试
+func Message(err error) string {
+	if err == nil {
+		return FallbackMessage
+	}
+
+	var validationErrs validator.ValidationErrors
+	if errors.As(err, &validationErrs) && len(validationErrs) > 0 {
+		fe := validationErrs[0]
+		label := FieldLabel(fe.Field())
+		switch fe.Tag() {
+		case "required":
+			return messagePrefix + label + "不能为空"
+		case "email":
+			return messagePrefix + label + "格式不正确"
+		case "uuid", "uuid4":
+			return messagePrefix + label + "不是合法的唯一标识"
+		case "numeric", "number", "gte", "lte", "gt", "lt", "min", "max":
+			return messagePrefix + label + "取值不合法"
+		case "oneof":
+			return messagePrefix + label + "取值不在允许范围内"
+		default:
+			return messagePrefix + label + "不合法"
+		}
+	}
+
+	var typeErr *json.UnmarshalTypeError
+	if errors.As(err, &typeErr) {
+		field := strings.TrimSpace(typeErr.Field)
+		if field == "" {
+			return FallbackMessage
+		}
+		return messagePrefix + FieldLabel(field) + "类型不正确"
+	}
+
+	var syntaxErr *json.SyntaxError
+	if errors.As(err, &syntaxErr) {
+		return SyntaxMessage
+	}
+
+	return FallbackMessage
 }
 
-// bindFieldLabel 把 validator 给出的 **Go 结构体字段名**（如 ManagerPhone / TransitSiteID）
-// 还原成 JSON 字段名（manager_phone / transit_site_id）再查中文称呼。
-func bindFieldLabel(field string) string {
+// FieldLabel returns the user-facing Chinese name of a request field.
+//
+// `field` may be a JSON name (`instrument_sn`) or a Go struct field name
+// (`InstrumentSN`); both resolve to the same label. Unregistered fields fall
+// back to the JSON snake_case name so that a freshly added field still reads as
+// an API name — never as a Go identifier such as `ManagerPhone`.
+func FieldLabel(field string) string {
+	field = strings.TrimSpace(field)
+	if field == "" {
+		return ""
+	}
 	if label, ok := bindFieldLabels[field]; ok {
 		return label
 	}
@@ -65,78 +106,141 @@ func bindFieldLabel(field string) string {
 	if label, ok := bindFieldLabels[snake]; ok {
 		return label
 	}
-	if snake != "" {
-		return snake
-	}
-	return field
+	return snake
 }
 
-// camelToSnake 把 Go 字段名转为 JSON snake_case：ManagerPhone→manager_phone、
-// TransitSiteID→transit_site_id、UserIDs→user_ids、Name→name。
+// bindFieldLabels is the single owner of field→称呼 mapping (#2603 D1/D3).
+// Every label must be free of ASCII letters: the response is consumed by
+// Chinese users and asserted by R1/R2 with `[A-Za-z]` counting 0.
+var bindFieldLabels = map[string]string{
+	// 组织 / 网点（site.go）
+	"name":             "名称",
+	"address":          "地址",
+	"type":             "类型",
+	"latitude":         "纬度",
+	"longitude":        "经度",
+	"phone":            "手机号",
+	"postal_code":      "邮编",
+	"business_hours":   "营业时间",
+	"parent_id":        "父级网点",
+	"manager_id":       "管理员",
+	"manager_name":     "管理员姓名",
+	"manager_username": "管理员账号",
+	"manager_email":    "管理员邮箱",
+	"manager_phone":    "管理员手机号",
+	"transit_site_id":  "中转网点",
+	"merchant_id":      "商户",
+
+	// 账户 / 组织（iam_proxy.go）
+	"email":           "邮箱",
+	"username":        "账号",
+	"password":        "密码",
+	"role":            "角色",
+	"skip_activation": "跳过激活",
+	"id":              "编号",
+
+	// 乐器（instrument.go）
+	"stock_status": "库存状态",
+	"quantity":     "数量",
+
+	// 仓储（warehouse.go）
+	"tracking_number":         "物流单号",
+	"company":                 "物流公司",
+	"shipped_at":              "发货时间",
+	"shipping_fee":            "物流费",
+	"delivered_at":            "收货时间",
+	"instrument_sn":           "乐器序列号",
+	"scan_time":               "验收时间",
+	"condition":               "乐器状况",
+	"notes":                   "备注",
+	"damage_amount":           "定损金额",
+	"damage_description":      "损坏说明",
+	"overdue_fee":             "逾期费",
+	"additional_shipping_fee": "追加物流费",
+	"photos":                  "照片",
+
+	// 库存（inventory.go）
+	"asset_id":                "资产",
+	"from_site_id":            "调出网点",
+	"to_site_id":              "调入网点",
+	"items":                   "乐器列表",
+	"daily_rent":              "日租金",
+	"deposit":                 "押金",
+	"deposit_reduced_enabled": "减免押金开关",
+	"deposit_reduced":         "减免后押金",
+	"overdue_daily_fee":       "逾期日租金",
+	"reason":                  "原因",
+
+	// 申诉（appeal.go）
+	"decision":         "处理决定",
+	"adjust_amount":    "调整金额",
+	"comment":          "意见",
+	"damage_report_id": "定损单",
+	"appeal_reason":    "申诉原因",
+
+	// 属性（property.go）
+	"property_type":       "属性类型",
+	"unit":                "单位",
+	"description":         "描述",
+	"options":             "可选值",
+	"scope_type":          "取值范围",
+	"related_category_id": "关联分类",
+	"related_property_id": "关联属性",
+	"property_id":         "属性",
+	"property_name":       "属性名称",
+	"value":               "属性值",
+	"new_value":           "新值",
+	"source_value":        "原值",
+	"target_value":        "目标值",
+
+	// 内容（banner.go / mall_image.go）
+	"image_url":  "图片地址",
+	"link_url":   "链接地址",
+	"title":      "标题",
+	"sort_order": "排序",
+	"status":     "状态",
+	"bg_color":   "背景色",
+
+	// 支付 / 营销（wechatpay_prepay.go / renewal.go / coupon_pricing.go / payment_calculate.go）
+	"order_id":        "订单",
+	"order_type":      "订单类型",
+	"amount":          "金额",
+	"open_id":         "微信身份标识",
+	"gift_used":       "乐币抵扣",
+	"session_id":      "支付会话",
+	"coupon_code":     "优惠码",
+	"deposit_tier":    "押金档位",
+	"guarantor_ids":   "担保人列表",
+	"out_trade_no":    "商户订单号",
+	"additional_days": "续租天数",
+	"code":            "优惠码",
+	"amount_cents":    "金额",
+}
+
+// camelToSnake converts a Go struct field name into its JSON snake_case name.
+//
+// Run-scoped acronyms are kept as one token: `RelatedCategoryID` →
+// `related_category_id`, `InstrumentSN` → `instrument_sn`.
 func camelToSnake(s string) string {
 	if s == "" {
 		return ""
 	}
 	runes := []rune(s)
 	var b strings.Builder
+	b.Grow(len(s) + 4)
 	for i, r := range runes {
-		if r >= 'A' && r <= 'Z' {
-			prevLower := i > 0 && (runes[i-1] >= 'a' && runes[i-1] <= 'z' || runes[i-1] >= '0' && runes[i-1] <= '9')
-			nextLower := i+1 < len(runes) && runes[i+1] >= 'a' && runes[i+1] <= 'z'
-			if i > 0 && (prevLower || nextLower) {
-				b.WriteRune('_')
+		if unicode.IsUpper(r) {
+			if i > 0 {
+				prev := runes[i-1]
+				nextIsLower := i+1 < len(runes) && unicode.IsLower(runes[i+1])
+				if unicode.IsLower(prev) || unicode.IsDigit(prev) || (unicode.IsUpper(prev) && nextIsLower) {
+					b.WriteRune('_')
+				}
 			}
-			b.WriteRune(r + ('a' - 'A'))
+			b.WriteRune(unicode.ToLower(r))
 			continue
 		}
 		b.WriteRune(r)
 	}
 	return b.String()
-}
-
-// Message 把 c.ShouldBindJSON 的错误翻译成中文（绝不含 Go/JSON 内部措辞）。
-// Message 把 c.ShouldBindJSON 的错误翻译成中文（绝不含 Go/JSON 内部措辞）。
-func Message(err error) string {
-	if err == nil {
-		return "参数不合法，请检查后重试"
-	}
-
-	// 1) 字段校验失败（binding:"required" 等）
-	var verrs validator.ValidationErrors
-	if errors.As(err, &verrs) && len(verrs) > 0 {
-		msgs := make([]string, 0, len(verrs))
-		for _, fe := range verrs {
-			label := bindFieldLabel(fe.Field())
-			switch fe.Tag() {
-			case "required":
-				msgs = append(msgs, fmt.Sprintf("%s不能为空", label))
-			case "email":
-				msgs = append(msgs, fmt.Sprintf("%s格式不正确", label))
-			case "uuid", "uuid4":
-				msgs = append(msgs, fmt.Sprintf("%s不是合法的唯一标识", label))
-			case "numeric", "number", "gte", "lte", "gt", "lt":
-				msgs = append(msgs, fmt.Sprintf("%s取值不合法", label))
-			case "oneof":
-				msgs = append(msgs, fmt.Sprintf("%s取值不在允许范围内", label))
-			default:
-				msgs = append(msgs, fmt.Sprintf("%s不合法", label))
-			}
-		}
-		return "参数不合法：" + strings.Join(msgs, "；")
-	}
-
-	// 2) JSON 类型不匹配（如把数字填成字符串）
-	var typeErr *json.UnmarshalTypeError
-	if errors.As(err, &typeErr) && typeErr.Field != "" {
-		return fmt.Sprintf("参数不合法：%s类型不正确", bindFieldLabel(typeErr.Field))
-	}
-
-	// 3) JSON 语法错误（含控制字符 / 截断 / 多余的逗号）
-	var syntaxErr *json.SyntaxError
-	if errors.As(err, &syntaxErr) {
-		return "请求体格式不正确，请检查后重试"
-	}
-
-	// 4) 其余（含 EOF、未知解码错误）→ 通用中文，绝不外泄原文
-	return "参数不合法，请检查后重试"
 }
