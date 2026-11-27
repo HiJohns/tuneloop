@@ -1,7 +1,7 @@
-# build=1.0.4935db7f4 # commit=4935db7f4a61d2579f668557caaf7e1a9a34b757 # dirty=false
-GENERATED_AT_HEAD=4935db7f4a61d2579f668557caaf7e1a9a34b757
+# build=1.0.24d833ecc # commit=24d833eccca9e7a36a919a50caf1ca5c5ee160ff # dirty=false
+GENERATED_AT_HEAD=24d833eccca9e7a36a919a50caf1ca5c5ee160ff
 == R6 C 的本地待办/邀请关闭（不触碰 IAM 库） ==
---- PASS: TestAccountMergeClosesLocalTodo_2567 (0.90s)
-    account_merge_2567_test.go:414: LOCAL_INVITES_CLOSED=1 CONFIRM_SESSIONS_CLOSED=1 IAM_DB_TOUCHED=0
+--- PASS: TestAccountMergeClosesLocalTodo_2567 (0.88s)
+    account_merge_2567_test.go:491: LOCAL_INVITES_CLOSED=1 CONFIRM_SESSIONS_CLOSED=1 IAM_DB_TOUCHED=0
 IAM_SQL_HITS=0
 R6_OK

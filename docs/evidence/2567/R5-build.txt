@@ -1,28 +1,29 @@
-# build=1.0.4935db7f4 # commit=4935db7f4a61d2579f668557caaf7e1a9a34b757 # dirty=false
-GENERATED_AT_HEAD=4935db7f4a61d2579f668557caaf7e1a9a34b757
+# build=1.0.24d833ecc # commit=24d833eccca9e7a36a919a50caf1ca5c5ee160ff # dirty=false
+GENERATED_AT_HEAD=24d833eccca9e7a36a919a50caf1ca5c5ee160ff
 == R5 构建/测试（go build + 定向 go test + weapp build + eslint） ==
---- PASS: TestAccountMergeReconcilesCache_2567 (0.94s)
---- PASS: TestListStaffHidesObsolete_2567 (0.78s)
---- PASS: TestPersonnelMerchantViewHidesObsolete_2567 (0.78s)
---- PASS: TestAccountMergeWritesAudit_2567 (0.77s)
---- PASS: TestAccountMergeAuditAttribution_2567 (0.76s)
---- PASS: TestAccountMergeClosesLocalTodo_2567 (0.76s)
---- PASS: TestListStaff_SiteNames_2449 (0.88s)
---- PASS: TestPersonnel2065_MerchantView (0.91s)
---- PASS: TestPersonnel_MerchantView_TenantIsolation2336 (0.78s)
---- PASS: TestPersonnel2065_SiteView (0.84s)
---- PASS: TestPersonnel2065_SystemView (0.85s)
---- PASS: TestPersonnel2065_CustomerDenied (0.79s)
---- PASS: TestPersonnel2065_MerchantSearchAndSiteFilter (0.78s)
---- PASS: TestPersonnel2067_MembershipAnchorAndDirect (0.80s)
---- PASS: TestPersonnel2072_NewestFirst (0.80s)
---- PASS: TestListStaffDirectRole_2462 (0.75s)
+--- PASS: TestAccountMergeReconcilesCache_2567 (0.89s)
+--- PASS: TestAccountMergeSiteMemberReconcile_2567 (0.75s)
+--- PASS: TestListStaffHidesObsolete_2567 (0.70s)
+--- PASS: TestPersonnelMerchantViewHidesObsolete_2567 (0.75s)
+--- PASS: TestAccountMergeWritesAudit_2567 (0.74s)
+--- PASS: TestAccountMergeAuditAttribution_2567 (0.74s)
+--- PASS: TestAccountMergeClosesLocalTodo_2567 (0.77s)
+--- PASS: TestListStaff_SiteNames_2449 (0.80s)
+--- PASS: TestPersonnel2065_MerchantView (0.71s)
+--- PASS: TestPersonnel_MerchantView_TenantIsolation2336 (0.75s)
+--- PASS: TestPersonnel2065_SiteView (0.74s)
+--- PASS: TestPersonnel2065_SystemView (0.75s)
+--- PASS: TestPersonnel2065_CustomerDenied (0.75s)
+--- PASS: TestPersonnel2065_MerchantSearchAndSiteFilter (0.76s)
+--- PASS: TestPersonnel2067_MembershipAnchorAndDirect (0.76s)
+--- PASS: TestPersonnel2072_NewestFirst (0.76s)
+--- PASS: TestListStaffDirectRole_2462 (0.71s)
 PASS
-ok  	tuneloop-backend/handlers	13.823s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795735469684 hold_ms=17629
-[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s107-p107-350703 at_ms=1795735469814 wait_ms=75
-[heavy-lock] acquired scope=host slot=0 node=node-opencode-s107-p107-350703 wait_ms=75
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795735485768 hold_ms=15954
+ok  	tuneloop-backend/handlers	13.685s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795740810710 hold_ms=17749
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s108-p108-ae307a at_ms=1795740810831 wait_ms=69
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s108-p108-ae307a wait_ms=69
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795740822125 hold_ms=11294
   145:112  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
   149:38   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
   154:27   warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
@@ -32,7 +33,7 @@ ok  	tuneloop-backend/handlers	13.823s
 
 ✖ 48 problems (0 errors, 48 warnings)
 
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795735489596 hold_ms=3624
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795740825634 hold_ms=3380
 
 Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
   npx update-browserslist-db@latest
@@ -40,9 +41,9 @@ Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
 Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
   npx update-browserslist-db@latest
   Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795735529081 hold_ms=39372
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795740865446 hold_ms=39685
 GO_TEST_OK=1
-GO_TEST_PASS_COUNT=16
+GO_TEST_PASS_COUNT=17
 GO_TEST_FAIL_COUNT=0
 GO_BUILD_OK=1
 MOBILE_BUILD_OK=1

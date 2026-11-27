@@ -1,6 +1,6 @@
-# build=1.0.4935db7f4 # commit=4935db7f4a61d2579f668557caaf7e1a9a34b757 # dirty=false
-GENERATED_AT_HEAD=4935db7f4a61d2579f668557caaf7e1a9a34b757
+# build=1.0.24d833ecc # commit=24d833eccca9e7a36a919a50caf1ca5c5ee160ff # dirty=false
+GENERATED_AT_HEAD=24d833eccca9e7a36a919a50caf1ca5c5ee160ff
 == R7 审计组织归属 + legacy iam_sub 追溯（Rev.3） ==
---- PASS: TestAccountMergeAuditAttribution_2567 (0.92s)
-    account_merge_2567_test.go:364: AUDIT_ORG_ID=NON_NIL AUDIT_TO_IAM_SUB=NON_EMPTY LEGACY_FROM_IAM_SUB_EMPTY=1 RECONCILE_SOURCE=membership FROM_LOCAL_TRACEABLE=1
+--- PASS: TestAccountMergeAuditAttribution_2567 (0.87s)
+    account_merge_2567_test.go:441: AUDIT_ORG_ID=NON_NIL AUDIT_TO_IAM_SUB=NON_EMPTY LEGACY_FROM_IAM_SUB_EMPTY=1 RECONCILE_SOURCE=membership FROM_LOCAL_TRACEABLE=1
 R7_OK

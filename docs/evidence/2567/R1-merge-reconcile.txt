@@ -1,6 +1,10 @@
-# build=1.0.4935db7f4 # commit=4935db7f4a61d2579f668557caaf7e1a9a34b757 # dirty=false
-GENERATED_AT_HEAD=4935db7f4a61d2579f668557caaf7e1a9a34b757
+# build=1.0.24d833ecc # commit=24d833eccca9e7a36a919a50caf1ca5c5ee160ff # dirty=false
+GENERATED_AT_HEAD=24d833eccca9e7a36a919a50caf1ca5c5ee160ff
 == R1 合并后缓存镜像（A 继承组织身份 / C 废止回落顾客态） ==
---- PASS: TestAccountMergeReconcilesCache_2567 (0.93s)
-    account_merge_2567_test.go:117: A_ROLE=merchant_staff A_TENANT=a5ea6d77-4cf0-4a8d-b31a-298a0fa513cc A_ORG=a5ea6d77-4cf0-4a8d-b31a-298a0fa513cc A_TENANT_NON_NIL=1 C_STATUS=obsolete C_ROLE=USER MEMBERSHIP_ROWS=1 IDEMPOTENT_ROLE=merchant_staff IDEMPOTENT_MEMBERSHIP_ROWS=1
+-- 变体 1：C = 商户直属员工（merchant_members active） --
+--- PASS: TestAccountMergeReconcilesCache_2567 (0.86s)
+    account_merge_2567_test.go:117: A_ROLE=merchant_staff A_TENANT=39a18b5f-9d9b-436b-8854-354e3759e46e A_ORG=39a18b5f-9d9b-436b-8854-354e3759e46e A_TENANT_NON_NIL=1 C_STATUS=obsolete C_ROLE=USER MEMBERSHIP_ROWS=1 IDEMPOTENT_ROLE=merchant_staff IDEMPOTENT_MEMBERSHIP_ROWS=1
+-- 变体 2：C = 网点员工（仅 site_members，无 merchant_members） --
+--- PASS: TestAccountMergeSiteMemberReconcile_2567 (0.91s)
+    account_merge_2567_test.go:193: A_SITE_ROLE=site_admin A_SITE_TENANT_MATCH=1 A_SITE_ORG_MATCH=1 SITE_ORG_NON_NIL=1 C_SITE_ROLE=USER C_SITE_TENANT_ZERO=1 C_SITE_ORG_ZERO=1 NO_MERCHANT_ROWS=0
 R1_OK

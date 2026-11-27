@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2567,
-  "build": "1.0.4935db7f4",
-  "commit": "4935db7f4a61d2579f668557caaf7e1a9a34b757",
+  "build": "1.0.24d833ecc",
+  "commit": "24d833eccca9e7a36a919a50caf1ca5c5ee160ff",
   "dirty": false,
   "plan_sha256": "062b7066e9e69259fad12baf6252e6bf5d751f611969adde6e6db5224807bf0e",
   "environment": "isolated worktree wt-2567 (branch issue-2567, base origin/develop 0d32a283e); backend go build ./... + handlers 定向 go test (Postgres 127.0.0.1:15433/tuneloop_test_2567, docs/ops/test-db-lifecycle.md); frontend-mobile Node v22.22.3 npm run build:weapp + npx eslint; no production calls",
@@ -15,10 +15,10 @@
         "docs/evidence/2567/R1-merge-reconcile.txt"
       ],
       "assert": "exit 0；含 C_STATUS=obsolete、MEMBERSHIP_ROWS=1",
-      "actual": "PASS：A_ROLE=merchant_staff / A_TENANT_NON_NIL=1 / A_ORG=<merchant org>=A_TENANT / C_STATUS=obsolete / C_ROLE=USER / MEMBERSHIP_ROWS=1（二次执行 IDEMPOTENT_ROLE=merchant_staff、IDEMPOTENT_MEMBERSHIP_ROWS=1）；R1_OK",
+      "actual": "PASS（两个成员关系变体全覆盖）：变体 1 merchant-direct → A_ROLE=merchant_staff / A_TENANT_NON_NIL=1 / A_ORG=<merchant org>=A_TENANT / C_STATUS=obsolete / C_ROLE=USER / MEMBERSHIP_ROWS=1（二次执行 IDEMPOTENT_ROLE=merchant_staff、IDEMPOTENT_MEMBERSHIP_ROWS=1）；变体 2 网点员工（site-only，无 merchant_members，Round 2 Audit 阻断项）→ A_SITE_ROLE=site_admin （= site_members.roles[0]）/ A_SITE_TENANT_MATCH=1（= sites.tenant_id，成员行携带陈旧租户）/A_SITE_ORG_MATCH=1（= sites.org_id）/ SITE_ORG_NON_NIL=1 / C_SITE_ROLE=USER / C_SITE_TENANT_ZERO=1 / C_SITE_ORG_ZERO=1 / NO_MERCHANT_ROWS=0；R1_OK",
       "expected": "PASS",
       "negative": "缓存未镜像 → FAIL",
-      "negative_result": "红实证（tmp/red-2567.txt，将 account_merge.go 回退到 017bc5619^ 后跑同一用例）：A_ROLE=USER、A_TENANT=00000000-0000-0000-0000-000000000000、C_ROLE=merchant_staff → --- FAIL；恢复修复后 A_ROLE=merchant_staff、C_ROLE=USER → PASS（红绿可证）",
+      "negative_result": "红实证 1（merchant 变体，tmp/red-2567.txt，把 account_merge.go 回退到 017bc5619^ 后跑同一用例）：A_ROLE=USER、A_TENANT=00000000-0000-0000-0000-000000000000、C_ROLE=merchant_staff → --- FAIL；恢复修复后 A_ROLE=merchant_staff、C_ROLE=USER → PASS。红实证 2（站点变体，本轮新增，tmp/red-site-A.log / tmp/red-site-B.log，仅临时改 user_cache.go 后还原）：① tenant := sm.TenantID（丢掉 sites 租户权威）→ A_SITE_TENANT_MATCH=0 → --- FAIL；② 删掉 sites join（三元组退回成员行 + nil org）→ A_SITE_TENANT_MATCH=0 / A_SITE_ORG_MATCH=0 / SITE_ORG_NON_NIL=0 → --- FAIL；还原后 A_SITE_ROLE=site_admin、A_SITE_TENANT_MATCH=1、A_SITE_ORG_MATCH=1 → PASS",
       "pass": true
     },
     {
@@ -71,7 +71,7 @@
         "docs/evidence/2567/R5-build.txt"
       ],
       "assert": "exit 0；含 GO_TEST_OK=1、MOBILE_BUILD_OK=1",
-      "actual": "PASS：GO_TEST_OK=1（GO_TEST_PASS_COUNT=16、GO_TEST_FAIL_COUNT=0，含 Rev.3 新增 TestAccountMergeAuditAttribution_2567）/ GO_BUILD_OK=1 / MOBILE_BUILD_OK=1 / ESLINT_OK=1 / WEAPP_NATIVE_TAG_HITS=0；R5_OK",
+      "actual": "PASS：GO_TEST_OK=1（GO_TEST_PASS_COUNT=17、GO_TEST_FAIL_COUNT=0，含 Rev.3 的 TestAccountMergeAuditAttribution_2567 与本轮新增 TestAccountMergeSiteMemberReconcile_2567）/ GO_BUILD_OK=1 / MOBILE_BUILD_OK=1 / ESLINT_OK=1 / WEAPP_NATIVE_TAG_HITS=0；R5_OK",
       "expected": "PASS",
       "negative": "任一失败 → FAIL",
       "negative_result": "红实证：本轮首跑 weapp 构建在无 node_modules 的隔离 worktree 中 `sh: 1: taro: not found` → MOBILE_BUILD_OK=0、exit 1（tmp 日志）；链接依赖并以 Node v22.22.3 重跑后 MOBILE_BUILD_OK=1 → PASS",

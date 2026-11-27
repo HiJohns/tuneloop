@@ -1,8 +1,8 @@
-# build=1.0.4935db7f4 # commit=4935db7f4a61d2579f668557caaf7e1a9a34b757 # dirty=false
-GENERATED_AT_HEAD=4935db7f4a61d2579f668557caaf7e1a9a34b757
+# build=1.0.24d833ecc # commit=24d833eccca9e7a36a919a50caf1ca5c5ee160ff # dirty=false
+GENERATED_AT_HEAD=24d833eccca9e7a36a919a50caf1ca5c5ee160ff
 == R2 成员列表（/api/staff）+ 人员管理（/api/admin/personnel）可见性 ==
---- PASS: TestListStaffHidesObsolete_2567 (0.92s)
-    account_merge_2567_test.go:183: A_IN_LIST=1 C_IN_LIST=0 OBSOLETE_ROWS=0 DISABLED_ROWS=0 PENDING_ROWS=1
---- PASS: TestPersonnelMerchantViewHidesObsolete_2567 (1.03s)
-    account_merge_2567_test.go:248: PERSONNEL_A_IN_LIST=1 PERSONNEL_C_IN_LIST=0 PERSONNEL_OBSOLETE_ROWS=0
+--- PASS: TestListStaffHidesObsolete_2567 (0.88s)
+    account_merge_2567_test.go:260: A_IN_LIST=1 C_IN_LIST=0 OBSOLETE_ROWS=0 DISABLED_ROWS=0 PENDING_ROWS=1
+--- PASS: TestPersonnelMerchantViewHidesObsolete_2567 (0.84s)
+    account_merge_2567_test.go:325: PERSONNEL_A_IN_LIST=1 PERSONNEL_C_IN_LIST=0 PERSONNEL_OBSOLETE_ROWS=0
 R2_OK
