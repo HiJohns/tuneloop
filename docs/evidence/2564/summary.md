@@ -63,7 +63,7 @@ Round 3 审计的 4 条 delta 全部属于**验收文本/证据记录层**（产
 
 ### Remote
 
-- remote: `origin/issue-2564`；fix `5cd3c900a` / `5463d3d98` / `869bd336c` / `a30c6e250` / `ed9ffd279` pushed=yes；evidence `docs(evidence): issue-2564` pushed=yes（gate 前完成 push）。
+- remote: `origin/issue-2564`；fix `5cd3c900a` / `5463d3d98` / `869bd336c` / `a30c6e250` / `ed9ffd279` pushed=yes；evidence `644df0684`（Rev.4 对齐）/ `194939be4`（合同字符串对齐）/ `2bc6e432a`（摘要 token 清理）/ `11e5053bb`（gate PASS 报告）pushed=yes（ready 前已完成 push）。
 
 ### 红绿实证
 
