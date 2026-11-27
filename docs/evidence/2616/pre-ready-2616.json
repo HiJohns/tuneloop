@@ -1,0 +1,106 @@
+{
+  "issue": 2616,
+  "overall": "FAIL",
+  "plan": "/tmp/opencode/tuneloop/wt-2616/tmp/pre-ready-2616.y3dDe7/plan.md",
+  "plan_sha256": "6e33aa43f4541409c85be07ad56d9f8a7d372a5a159dcb36eaa6144c41224e64",
+  "config_sha": "a29b2b35530c77f2bae31c509207199e6572ad9c",
+  "provenance": {
+    "build": "1.0.eba2d0da",
+    "commit": "eba2d0daf55a5d648cf920d2b4fdc524951260fe",
+    "dirty": false
+  },
+  "summary": "docs/evidence/2616/summary.md",
+  "timestamp": "20261127-203946",
+  "checks": [
+    {
+      "id": "P1",
+      "status": "PASS",
+      "detail": "plan has Verification Matrix / Input Truth & Tool Preflight / Decision Lock / Out of Scope"
+    },
+    {
+      "id": "P2",
+      "status": "PASS",
+      "detail": "Work Summary covers all 4 matrix rows with PASS/N/A"
+    },
+    {
+      "id": "P3",
+      "status": "FAIL",
+      "detail": "evidence paths do not exist: Cart.jsx app.config.ts base.wxml docs/evidence/2616/pre-ready-2616.json env.isMiniProgram heavy-run.sh matrix_parser.sh menu.left pages-weapp/cart/index.config.ts pages-weapp/cart/index.config.ts:2 pages-weapp/home/index.config.ts:2 pre-ready-check.sh process.stdout src/platform/index.weapp verify-2616.sh vi.mock('../../src/platform')"
+    },
+    {
+      "id": "P4",
+      "status": "N/A",
+      "detail": "--dry-run: skipped 1 affected command(s)"
+    },
+    {
+      "id": "P12",
+      "status": "FAIL",
+      "detail": "R4: artifact not found: docs/evidence/2616/pre-ready-2616.json"
+    },
+    {
+      "id": "P14",
+      "status": "FAIL",
+      "detail": "artifact missing: docs/evidence/2616/pre-ready-2616.json"
+    },
+    {
+      "id": "P18",
+      "status": "WARN",
+      "detail": "tooling_commit missing (legacy bundle); config_sha=a29b2b35530c77f2bae31c509207199e6572ad9c"
+    },
+    {
+      "id": "P15",
+      "status": "N/A",
+      "detail": "no batch gate reference in the plan"
+    },
+    {
+      "id": "P16",
+      "status": "PASS",
+      "detail": "UI rows use render evidence or a recorded static exemption"
+    },
+    {
+      "id": "P17",
+      "status": "PASS",
+      "detail": "plan snapshot and Accepted Plan comment match the gated plan"
+    },
+    {
+      "id": "P5",
+      "status": "N/A",
+      "detail": "skipped: P12/P14/P15/P16 static checks failed (static checks run first)"
+    },
+    {
+      "id": "P6",
+      "status": "PASS",
+      "detail": "all changed files are declared in the Accepted Plan"
+    },
+    {
+      "id": "P7",
+      "status": "N/A",
+      "detail": "no contract-affecting files changed"
+    },
+    {
+      "id": "P8",
+      "status": "N/A",
+      "detail": "no panel/clarify files changed"
+    },
+    {
+      "id": "P9",
+      "status": "N/A",
+      "detail": "no session/build_version/aiaudit/.rpt/.dat evidence referenced"
+    },
+    {
+      "id": "P10",
+      "status": "N/A",
+      "detail": "no aiaudit reference"
+    },
+    {
+      "id": "P11",
+      "status": "PASS",
+      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /tmp/opencode/tuneloop/wt-2616; worktree guard: PASS isolated worktree=/tmp/opencode/tuneloop/wt-2616"
+    },
+    {
+      "id": "P13",
+      "status": "FAIL",
+      "detail": "artifacts not on origin/issue-2616: docs/evidence/2616/pre-ready-2616.json"
+    }
+  ]
+}
