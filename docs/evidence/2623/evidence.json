@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "issue": 2623,
+  "build": "1.0.2ad70e7b",
+  "commit": "2ad70e7bafc8eb42dd02b5ffd5317d70e49a709c",
+  "dirty": false,
+  "plan_sha256": "3a74a9bc425d0806925929acff9d5a7af6e18976e6fb7c10f1a6c85e803bc6e7",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2623 (branch issue-2623, base origin/develop bdd14b69d); fixture 离线 + 一次性 PostgreSQL 127.0.0.1:15433（scripts/lib-2341-env.sh 口径）；未触碰 jobmaster-postgres 与预生产/生产库",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/tests/test_reconcile_user_cache_2623.sh r1 > docs/evidence/2623/R1-classification.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2623/R1-classification.txt"
+      ],
+      "assert": "exit 0 且含 TEST_EXIT=0 TENANT_MISMATCH=2 ORG_MISMATCH=2 NIL_UUID=1 MISSING_LOCAL=1 ORPHAN_LOCAL=1 ROLE_MISMATCH=2 ROLE_UNVERIFIED=1 CONTEXT_AMBIGUOUS=1 MEMBER_ONLY=1 ROWS_SORTED=1 JSON_TOKENS_MATCH=1 DB_WRITES=0",
+      "actual": "PASS：TOOL_EXIT=0；TENANT_MISMATCH=2 / ORG_MISMATCH=2 / NIL_UUID=1 / MISSING_LOCAL=1 / ORPHAN_LOCAL=1 / ROLE_MISMATCH=2 / ROLE_UNVERIFIED=1 / CONTEXT_AMBIGUOUS=1 / MEMBER_ONLY=1 / ROWS_SORTED=1 / JSON_TOKENS_MATCH=1 / DB_WRITES=0；COUNT_SUM_MATCHES_ROWS=12、SIX_CLASS_ROWS=9、CUSTOMER_ZERO_UUID_NOT_FLAGGED=0、MULTI_CONTEXT_NOT_FLAGGED_AS_CONTEXT_DIFF=0、ORG_CYCLE_UNRESOLVED=1",
+      "expected": "PASS（13 项 token 全为期望值）",
+      "negative": "顾客零 UUID 判为差异、多上下文判差异、角色集合误判、计数与明细不符、未排序 → FAIL",
+      "negative_result": "负例未触发：顾客零 UUID（u-customer）不出现在明细；多上下文用户（u-context-multi）未被判 TENANT/ORG；ADMIN+site_admin、STAFF+merchant_staff、OWNER+merchant_admin 均判一致；六类差异行数与 token 相等；rows 按 iam_sub 升序；成环父链计入 ORG_UNRESOLVED 且不死循环。",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/tests/test_reconcile_user_cache_2623.sh r2 > docs/evidence/2623/R2-readonly-negative.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2623/R2-readonly-negative.txt"
+      ],
+      "assert": "exit 0 且含 TEST_EXIT=0 FORBIDDEN_SQL_STMTS=0 READONLY_DSN_GUARD=1 BAD_FIXTURE_EXIT=3 UNREACHABLE_EXIT=2 UNREACHABLE_RESULT_FAIL=1 MISSING_ENV_EXIT=2 FALSE_ZERO_DIFF=0",
+      "actual": "PASS：FORBIDDEN_SQL_STMTS=0 / READONLY_DSN_GUARD=1 / BAD_FIXTURE_EXIT=3 / BAD_FIXTURE_FIELDS_REPORTED=1 / BAD_ENUM_EXIT=3 / UNREACHABLE_EXIT=2 / UNREACHABLE_RESULT_FAIL=1 / MISSING_ENV_EXIT=2 / FALSE_ZERO_DIFF=0",
+      "expected": "PASS（8 项 token 全为期望值）",
+      "negative": "含写语句、不可达仍 PASS、畸形行跳过、缺 env 静默 → FAIL",
+      "negative_result": "负例已实测：5 列 fixture → exit 3 + ROW_FIELDS=5；is_active=2 → exit 3；库不可达（127.0.0.1:1）→ exit 2 + RESULT: FAIL；env 缺失 → exit 2 + RESULT: FAIL；四种失败路径均无 RESULT: PASS 与 USERS_LOCAL=0 组合（FALSE_ZERO_DIFF=0）。",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/tests/test_reconcile_user_cache_2623.sh r3 > docs/evidence/2623/R3-live-db-readonly.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2623/R3-live-db-readonly.txt"
+      ],
+      "assert": "exit 0 且含 TEST_EXIT=0 DB_WRITES=0 TENANT_MISMATCH=1 CASE_2620_DETECTED=1 EXIT_0_WITH_DIFF=1 READONLY_TXN_OK=1",
+      "actual": "PASS：一次性 PG 127.0.0.1:15433；LIVE_EXIT=0 / RECONCILE_SOURCE=live / TENANT_MISMATCH=1 / CASE_2620_DETECTED=1 / CASE_2620_EMAIL=a-2623@example.test / EXIT_0_WITH_DIFF=1 / DB_WRITES=0 / READONLY_TXN_OK=1 / FIXTURE_PARITY=1",
+      "expected": "PASS（6 项 token 全为期望值）",
+      "negative": "真实库写入、#2620 形态漏检、只读事务未生效 → FAIL",
+      "negative_result": "负例已实测：只读会话内 INSERT 被 PG 拒绝（cannot execute INSERT in a read-only transaction）→ READONLY_TXN_OK=1；脚本运行前后 users 行数不变 → DB_WRITES=0；#2620 形态行（本地 tenant=平台组织、IAM=商户 ADMIN）被识别为 TENANT_MISMATCH 并带 email 出现在 --json 明细。",
+      "pass": true
+    }
+  ]
+}
