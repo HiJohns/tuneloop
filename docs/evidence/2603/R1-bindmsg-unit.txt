@@ -1,0 +1,17 @@
+# build=1.0.7bbdca8a0 # commit=7bbdca8a026c4ae39c8aaf1b13cddb6815555cb1 # dirty=false
+GENERATED_AT_HEAD=a22a180ffcb2c25109de183a857b08d63a688e75
+# backend/bindmsg：9 条文案模板 + 称呼表覆盖 26 端点字段全集（无 ASCII）
+bindmsg_test.go:163: BMSG_REQUIRED=参数不合法：名称不能为空
+bindmsg_test.go:164: BMSG_EMAIL=参数不合法：邮箱格式不正确
+bindmsg_test.go:165: BMSG_UUID=参数不合法：编号不是合法的唯一标识
+bindmsg_test.go:166: BMSG_RANGE=参数不合法：数量取值不合法
+bindmsg_test.go:167: BMSG_ONEOF=参数不合法：状态取值不在允许范围内
+bindmsg_test.go:168: BMSG_OTHER=参数不合法：名称不合法
+bindmsg_test.go:169: BMSG_TYPE=参数不合法：纬度类型不正确
+bindmsg_test.go:170: BMSG_SYNTAX=请求体格式不正确，请检查后重试
+bindmsg_test.go:171: BMSG_FALLBACK=参数不合法，请检查后重试
+bindmsg_test.go:237: LABEL_TABLE_SIZE=85
+bindmsg_test.go:238: LABEL_COVERAGE_FIELDS=84
+bindmsg_test.go:239: LABEL_COVERAGE_MISSING=0
+bindmsg_test.go:240: LABEL_ASCII_LEAK=0
+BINDMSG_UNIT_EXIT=0
