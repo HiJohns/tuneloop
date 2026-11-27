@@ -1,16 +1,16 @@
 {
   "issue": 2542,
   "overall": "PASS",
-  "plan": "/tmp/opencode/tuneloop/wt-2542/tmp/pre-ready-2542.kXOMlK/plan.md",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2542/tmp/pre-ready-2542.8IKbFs/plan.md",
   "plan_sha256": "df53e72202482e68acbe916c3835ffaedd416ce702cfc1e73296425edce1b611",
-  "config_sha": "a29b2b35530c77f2bae31c509207199e6572ad9c",
+  "config_sha": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
   "provenance": {
     "build": "1.0.7ef3e0271",
     "commit": "7ef3e027143c3ec41896c79a2c68aa87b9f1357f",
     "dirty": false
   },
   "summary": "docs/evidence/2542/summary.md",
-  "timestamp": "20261127-200859",
+  "timestamp": "20261127-203844",
   "checks": [
     {
       "id": "P1",
@@ -45,7 +45,7 @@
     {
       "id": "P18",
       "status": "PASS",
-      "detail": "tooling_commit matches the running scripts (a29b2b35530c77f2bae31c509207199e6572ad9c)"
+      "detail": "tooling_commit matches the running scripts (be61a790605b0b65759d0fd2be9b258bc6c41b49)"
     },
     {
       "id": "P15",
@@ -95,7 +95,7 @@
     {
       "id": "P11",
       "status": "PASS",
-      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /tmp/opencode/tuneloop/wt-2542; worktree guard: PASS isolated worktree=/tmp/opencode/tuneloop/wt-2542"
+      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /home/coder/worktrees/tuneloop/wt-2542; worktree guard: PASS isolated worktree=/home/coder/worktrees/tuneloop/wt-2542"
     },
     {
       "id": "P13",
