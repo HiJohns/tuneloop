@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "issue": 2624,
+  "build": "1.0.bc543314a",
+  "commit": "bc543314a35c2df02969644b8bbf3b0213649395",
+  "dirty": false,
+  "plan_sha256": "06a876b646acb0add1c2f556fad1f1bf82aa803ceb0bc6d57ed5fae04106d448",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2624 (branch issue-2624, stacked on origin/issue-2623 = L1); 一次性 PostgreSQL 127.0.0.1:15433（#2341 口径，库名 apply_2624_*）；未触碰 dev jobmaster-postgres 与预生产/生产库；未对任何真实库执行 --apply",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/tests/test_reconcile_user_cache_apply_2624.sh r1 > docs/evidence/2624/R1-apply-gates.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2624/R1-apply-gates.txt"
+      ],
+      "assert": "exit 0 且含 TEST_EXIT=0 UNAUTHORIZED_APPLY=1 APPLY_CONFIRM_MISMATCH=1 REPAIR_ROWS=6 SKIPPED_ORPHAN=2 SKIPPED_MISSING_LOCAL=1 SKIPPED_ROLE_UNVERIFIED=1 DB_WRITES=0 SQL_HAS_CAS=1 SQL_HAS_AUDIT=6 SQL_HAS_POSTCHECK=1 SQL_ORDERED_BY_IAM_SUB=1",
+      "actual": "PASS：UNAUTHORIZED_EXIT=2 / UNAUTHORIZED_APPLY=1 / UNAUTHORIZED_NO_SQL=0 / APPLY_CONFIRM_MISMATCH=1 / SQL_ONLY_EXIT=0 / REPAIR_ROWS=6 / SKIPPED_ORPHAN=2 / SKIPPED_MISSING_LOCAL=1 / SKIPPED_ROLE_UNVERIFIED=1 / ROLE_APPLY_SKIPPED=1 / DB_WRITES=0 / SQL_HAS_CAS=1 / SQL_HAS_AUDIT=6 / SQL_HAS_POSTCHECK=1 / SQL_ORDERED_BY_IAM_SUB=1 / SQL_SINGLE_TRANSACTION=1 / ROLLBACK_ACTION_ROWS=6 / ROLLBACK_MIRRORS_OLD=1",
+      "expected": "PASS（12 项 token 全为期望值）",
+      "negative": "未授权写库、confirm 不符仍执行、跳过类被修、SQL 缺 CAS/审计/后置校验、未排序 → FAIL",
+      "negative_result": "负例已实测：未授权时 exit 2 + UNAUTHORIZED_APPLY=1 且未生成任何 SQL 文件；--confirm-rows 5（实际 6）→ APPLY_CONFIRM_MISMATCH=1 + exit 2 + DB_WRITES=0；ORPHAN(2)/MISSING(1)/ROLE_UNVERIFIED(1) 只计数不生成修复语句；SQL 每条 UPDATE 带 CAS 谓词（6/6）、审计 6 条、后置校验 6 段、按 iam_sub 升序。",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/tests/test_reconcile_user_cache_apply_2624.sh r2 > docs/evidence/2624/R2-apply-pg.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2624/R2-apply-pg.txt"
+      ],
+      "assert": "exit 0 且含 TEST_EXIT=0 DB_WRITES=6 AUDIT_ROWS=6 AUDIT_ACTION_USER_CACHE_RECONCILE=6 BATCH_ID_MATCH=1 RECHECK_TENANT_MISMATCH=0 RECHECK_ORG_MISMATCH=0 RECHECK_NIL_UUID=0 RECHECK_ORPHAN_LOCAL=2",
+      "actual": "PASS：一次性 PG 真修复 6 行；DB_WRITES=6 / AUDIT_ROWS=6 / AUDIT_ACTION_USER_CACHE_RECONCILE=6 / BATCH_ID_MATCH=1 / AUDIT_DETAILS_FIELDS=6 / RECHECK_TENANT_MISMATCH=0 / RECHECK_ORG_MISMATCH=0 / RECHECK_NIL_UUID=0 / RECHECK_ORPHAN_LOCAL=2 / RECHECK_DB_WRITES=0",
+      "expected": "PASS（9 项 token 全为期望值）",
+      "negative": "修 ORPHAN、审计缺行/缺字段、复查残留差异、写入行数不符 → FAIL",
+      "negative_result": "负例未触发：ORPHAN 两行未被修（复查仍为 2）；审计每行带 category/old/new 且 batch_id 与 token 一致（6/6）；复查三类差异归零；只读复查 ADB_WRITES=0（未把只读路径变成写路径）。",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/tests/test_reconcile_user_cache_apply_2624.sh r3 > docs/evidence/2624/R3-rollback-concurrency.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2624/R3-rollback-concurrency.txt"
+      ],
+      "assert": "exit 0 且含 TEST_EXIT=0 RESTORED_ROWS=6 ROLLBACK_AUDIT_ROWS=6 POST_ROLLBACK_TENANT_MATCH=6 CONCURRENT_ABORT=1 DB_WRITES=0 ROWS_CHANGED_AFTER_ABORT=0",
+      "actual": "PASS：回滚执行 exit 0 / RESTORED_ROWS=6 / ROLLBACK_AUDIT_ROWS=6 / POST_ROLLBACK_TENANT_MATCH=6；并发例（SQL 生成后篡改 1 行为第三值再执行）CONCURRENT_SQL_EXIT_NONZERO=1 / CONCURRENT_ABORT=1（psql: reconcile: concurrent change detected for aaaa0000-0000-4000-8000-000000000001）/ DB_WRITES=0 / ROWS_CHANGED_AFTER_ABORT=0 / NO_PARTIAL_WRITE=0 / FULL_TABLE_UNCHANGED_BY_ABORT=1",
+      "expected": "PASS（7 项 token 全为期望值）",
+      "negative": "回滚未还原、半修残留、并发非整体中止 → FAIL",
+      "negative_result": "负例已实测：并发场景下 CAS 命中 0 行 → 后置校验 RAISE EXCEPTION → 整个事务回滚，整表 hash 不变（ROWS_CHANGED_AFTER_ABORT=0）、审计行数不变（NO_PARTIAL_WRITE=0 表示「无新增」），不存在半修；回滚后 6 行全部还原到旧值且产生 6 条 ROLLBACK 审计。",
+      "pass": true
+    }
+  ]
+}
