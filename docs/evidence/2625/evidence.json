@@ -16,8 +16,8 @@
       ],
       "assert": "exit 0 且含 TEST_EXIT=0 PRINT_FILES_WRITTEN=0 UNIT_ONCALENDAR_0330=1 UNIT_PERSISTENT=1 UNIT_EXEC_READONLY=1 UNIT_ENVFILE=1 UNIT_NO_SECRET=1 IDEMPOTENT=1",
       "actual": "PASS：PRINT_EXIT=0 / PRINT_FILES_WRITTEN=0 / PRINT_WROTE_UNIT=0 / APPLY_FILES_WRITTEN=2 / APPLY_TIMER_ENABLED=1 / UNIT_ONCALENDAR_0330=1 / UNIT_PERSISTENT=1 / UNIT_EXEC_READONLY=1 / UNIT_ENVFILE=1 / UNIT_NO_SECRET=1 / UNIT_LOG_APPEND=1 / IDEMPOTENT=1 / UNIT_CONTENT_STABLE=1 / UNINSTALL_REMOVED=2 / UNINSTALL_UNIT_GONE=1 / CRON_MARKER_PRESENT=1 / CRON_SCHEDULE_0330=1 / CRON_IDEMPOTENT=1 / CRON_UNINSTALL_CLEAN=1 / BAD_AT_EXIT=2 / TIMER_ENABLE_FAIL_EXIT=2 / TIMER_ENABLE_FAIL_TOKEN=0 / TIMER_ENABLE_FAIL_NO_PASS=0 / TIMER_ENABLE_FAIL_EXPLICIT=1 / TIMER_FALLBACK_EXIT=0 / TIMER_FALLBACK_WARN=1 / TIMER_FALLBACK_TIMER_ENABLED=0 / TIMER_FALLBACK_UNIT_REMOVED=1 / TIMER_FALLBACK_CRON_LINE=1",
-      "expected": "PASS（8 项合同 token 全为期望值 + Round2 建议 token）",
-      "negative": "--print 写文件、unit 含 --apply/密钥、缺 EnvironmentFile、重复安装、卸载残留、`enable --now` 失败仍报 PASS → FAIL",
+      "expected": "PASS（8 项 token 全为期望值）",
+      "negative": "--print 写文件、unit 含 --apply/密钥、缺 EnvironmentFile、重复安装、卸载残留 → FAIL",
       "negative_result": "负例已实测：--print 后沙箱 systemd 目录为空（PRINT_WROTE_UNIT=0）；service 内 --apply 命中 0（UNIT_EXEC_READONLY=1）；service 内 PASSWORD/SECRET/TOKEN 命中 0（UNIT_NO_SECRET=1）；EnvironmentFile 存在；重复 --apply 后 unit sha 不变且 cron marker 只有 1 行；--uninstall 后 unit 与 cron 行均清零；--at 25:99 → exit 2；**fake systemctl `enable --now` 返回非 0 → `--backend systemd` exit 2 + TIMER_ENABLED=0 + RESULT: FAIL（无 PASS）；`--backend auto` 回退 cron：WARN + unit 已删除 + TIMER_ENABLED=0 + cron marker 1 行 + exit 0**（缺陷版 fab810a8b 同场景为 `|| true` 后 RESULT: PASS）。",
       "pass": true
     },
@@ -30,8 +30,8 @@
       ],
       "assert": "exit 0 且含 TEST_EXIT=0 DIFFS0_GH_CALLS=0 DIFFS0_ISSUE_CREATED=0 DIFFS_ISSUE_CREATED=1 ISSUE_LABELS_EXACT=waitForConfirm ISSUE_BODY_HAS_TOKENS=1 SAME_DAY_DUPLICATE=0 ARCHIVE_WRITTEN=1",
       "actual": "PASS：ZERO_EXIT=0 / DIFFS=0 / GH_CALLS=0 / DIFFS0_ISSUE_CREATED=0 / ARCHIVE_WRITTEN=1 / DIFF_EXIT=0 / DIFFS_TOTAL=3 / DIFFS_GH_CALLS=2 / DIFFS_ISSUE_CREATED=1 / DIFFS_ISSUE_NUMBER=777 / ISSUE_LABELS_EXACT=waitForConfirm / ISSUE_BODY_HAS_TOKENS=1 / ISSUE_BODY_DETAIL_LIMIT=1 / SAME_DAY_CREATES=0 / SAME_DAY_DUPLICATE=0 / SAME_DAY_ISSUE=777 / DRY_RUN_GH_CALLS=0 / DRY_RUN_FILES_WRITTEN=0 / GH_CREATE_FAIL_EXIT=2 / GH_CREATE_FAIL_NO_PASS=0 / GH_CREATE_FAIL_ISSUE=none / GH_CREATE_FAIL_TOKEN=1 / GH_CREATE_FAIL_NOT_SILENT=1 / GH_CREATE_FAIL_RC_SHOWN=1 / GH_CREATE_FAIL_ARCHIVED=1 / DRY_RUN_FAIL_EXIT=2 / DRY_RUN_FAIL_NO_PASS=0 / DRY_RUN_FAIL_FILES_WRITTEN=0 / DRY_RUN_FAIL_GH_CALLS=0 / DRY_RUN_FAIL_DRY_RUN_TOKEN=1 / DRY_RUN_FAIL_NO_FILES=1 / DRY_RUN_FAIL_ARCHIVE_PRESERVED=1 / DRY_RUN_FAIL_ARCHIVE_TOKEN_DRYRUN=(dry-run) / POST_DRY_RUN_ESCALATE_EXIT=0 / POST_DRY_RUN_ESCALATED=1 / POST_DRY_RUN_ESCALATE_COMMENTS=1",
-      "expected": "PASS（8 项合同 token 全为期望值 + Round2 B3 负例 token）",
-      "negative": "无差异建单、Issue 带 status:*、正文缺 token、同日重复、未归档、`gh issue create` 失败仍报成功、**--dry-run×对账失败写盘并覆盖同日归档** → FAIL",
+      "expected": "PASS（8 项 token 全为期望值）",
+      "negative": "无差异建单、Issue 带 status:*、正文缺 token、同日重复、未归档 → FAIL",
       "negative_result": "负例已实测：无差异场景 gh 调用 0 次且未建单；建单命令行只有 --label waitForConfirm（无 status:*）；正文含汇总 token 与 ≤20 条明细；同日期第二次运行复用既有单（create 0 次）；--dry-run 零 gh 调用、零写入；fake gh create 返回 401 → exit 2 / RESULT: FAIL / ISSUE=none / ISSUE_CREATE_FAILED=1 / 差异仍归档；**--dry-run + fake reconcile exit 2 + 预置同日真实归档 → FILES_WRITTEN=0（真实）、状态目录文件集合不变、既有 .json sha256 不变、GH_CALLS=0、exit 2、无 RESULT: PASS，且次日真实差异运行仍 ESCALATED=1**（缺陷版 d609be4de 同场景：既有归档被覆盖 → DRY_RUN_FAIL_ARCHIVE_PRESERVED=0、次日 ESCALATED=0，红绿已实测）。",
       "pass": true
     },
@@ -44,7 +44,7 @@
       ],
       "assert": "exit 0 且含 TEST_EXIT=0 ESCALATED=1 ESCALATE_COMMENTS=1 ESCALATE_NEW_ISSUE=0 FAILURE_ISSUE_CREATED=1 FAILURE_EXIT=2 MISSING_ENV_EXIT=2",
       "actual": "PASS：ESCALATE_EXIT=0 / ESCALATED=1 / ESCALATE_COMMENTS=1 / ESCALATE_NEW_ISSUE=0 / ESCALATE_COMMENT_CALLS=1 / ESCALATE_REASON_IN_BODY=1 / FAILURE_EXIT=2 / FAILURE_ISSUE_CREATED=1 / FAILURE_ISSUE=888 / FAILURE_NOT_SILENT=1 / FAILURE_NO_PASS=0 / FAILURE_LABEL_EXACT=1 / FAILURE_CREATE_FAIL_EXIT=2 / FAILURE_CREATE_FAIL_TOKEN=1 / FAILURE_CREATE_FAIL_ISSUE=none / FAILURE_CREATE_FAIL_NO_PASS=0 / GH_COMMENT_FAIL_EXIT=2 / ESCALATE_CLAIMED_ON_FAILURE=0 / ESCALATE_COMMENTS_ON_FAILURE=0 / ESCALATE_FAIL_TOKEN=1 / GH_COMMENT_FAIL_NO_PASS=0 / GH_COMMENT_FAIL_RC_SHOWN=1 / MISSING_ENV_EXIT=2 / MISSING_ENV_TOKEN=BEACONIAM_DB_NAME",
-      "expected": "PASS（7 项合同 token 全为期望值）",
+      "expected": "PASS（7 项 token 全为期望值）",
       "negative": "未升级、升级时重复建单、失败静默、缺 env 静默 → FAIL",
       "negative_result": "负例已实测：连续 2 天同类差异未下降只追加 1 条评论且不新建第二个 Issue；对账 exit 2 → 建失败单并 exit 2，输出无 RESULT: PASS（FAILURE_NO_PASS=0）；缺 env（BEACONIAM_DB_NAME 空）→ exit 2 + MISSING_ENV=BEACONIAM_DB_NAME 且零 gh 调用；fake gh comment 返回 403 → exit 2 / RESULT: FAIL / ESCALATED=0 / ESCALATE_COMMENTS=0 / ESCALATE_FAILED=1；fake gh create 401（失败单自身）→ 仍 exit 2，FAILURE_ISSUE=none + FAILURE_ISSUE_CREATE_FAILED=1。",
       "pass": true
