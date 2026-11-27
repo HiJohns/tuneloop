@@ -293,7 +293,14 @@ func (h *WechatBindHandler) MergeBind(c *gin.Context) {
 	result, mergeErr := services.NewIAMService().WxMergeByTicket(req.MergeTicket)
 	if mergeErr != nil {
 		log.Printf("[MergeBind] IAM wx-merge-confirm failed for token=%s: %v", req.Token, mergeErr)
-		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "账户合并失败，请稍后重试"})
+		// #2598 项 4：同批扫描发现的同类点（旧实现任意失败 → 409/40900 +
+		//「账户合并失败，请稍后重试」）。按上游状态类分流，不依赖具体错误串
+		// （本地 beaconiam 检出不含 wx-merge-confirm，只能按状态类判定）。
+		respondIAMFailure(c, mergeErr, iamFailureTexts{
+			Transient:  "账户合并失败，请稍后再试",
+			Conflict:   "账户合并失败：绑定状态已变更，请让管理员重新生成绑定二维码",
+			UserAction: "合并凭证已失效，请让管理员重新生成绑定二维码",
+		})
 		return
 	}
 	if result.FromUserID != user.IAMSub {

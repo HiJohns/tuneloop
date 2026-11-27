@@ -8,6 +8,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -143,6 +144,19 @@ func TestWxMergeCurrentUser_IAMFailureMapped_2228(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer user-X-token")
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusConflict, w.Code, "IAM 拒绝 → 409 如实返回（不得静默成功）")
-	assert.Contains(t, w.Body.String(), "账户合并失败")
+	// #2598（被翻转的既有断言）：上游 400 是**请求被拒**（用户需重做动作），
+	// 不是数据冲突。旧断言把「任意失败 → 409」钉死，导致 409 语义被污染。
+	// 新期望：400/40002 + 保留「账户合并失败」关键词 + 不得提示「请稍后再试」。
+	require.Equal(t, http.StatusBadRequest, w.Code,
+		"IAM 400 拒绝了请求 → 400 如实返回（不得伪装成 409 数据冲突）: %s", w.Body.String())
+	var resp struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, 40002, resp.Code)
+	require.Contains(t, resp.Message, "账户合并失败", "文案必须保留「账户合并失败」关键词")
+	require.NotContains(t, resp.Message, "请稍后再试", "上游 400 不是瞬时故障")
+	fmt.Printf("WXMERGE_400_STATUS=%d\n", w.Code)
+	fmt.Printf("LEGACY_FLIPPED=1\n")
 }

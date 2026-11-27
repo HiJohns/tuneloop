@@ -59,7 +59,8 @@ type transitIAMRecorder struct {
 	creates     []map[string]interface{}
 	createdOrgs []string
 	primaryID   string
-	// createMode: "ok" | "conflict" | "error"
+	// createMode: "ok" | "conflict" | "error" | "rejected400" | "forbidden403"
+	// rejected400 / forbidden403 由 #2598 用于锁定「持久失败不得压平为瞬时」。
 	createMode string
 	// primaries 决定 ListOrganizations 返回几条 is_primary（0/1/2）。
 	primaries int
@@ -171,6 +172,16 @@ func (f *transitIAMRecorder) handler() http.Handler {
 			case "error":
 				w.WriteHeader(http.StatusInternalServerError)
 				_, _ = w.Write([]byte(`{"message":"boom"}`))
+				return
+			case "rejected400":
+				// #2598：上游 400（父组织非法 / 参数契约不符）——持久配置缺陷。
+				w.WriteHeader(http.StatusBadRequest)
+				_, _ = w.Write([]byte(`{"code":40000,"message":"parent organization cannot host branches"}`))
+				return
+			case "forbidden403":
+				// #2598：上游 403（权限/角色模板缺失）——持久权限缺陷。
+				w.WriteHeader(http.StatusForbidden)
+				_, _ = w.Write([]byte(`{"message":"permission denied: missing org:create"}`))
 				return
 			}
 			f.mu.Lock()

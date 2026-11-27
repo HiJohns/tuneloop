@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -1216,6 +1217,8 @@ func TestWxBindCurrentUser(t *testing.T) {
 
 	t.Run("bind failure surfaces 409 not swallowed", func(t *testing.T) {
 		w := doBind("bad-code")
+		// #2598：该分支现在只在**真冲突**（上游 409）出现；瞬时故障改走 502/50200。
+		// 旧断言（409/40900 + 含「微信绑定失败」）仍成立，只追加可行动性断言，不得改弱。
 		require.Equal(t, http.StatusConflict, w.Code)
 		var resp struct {
 			Code    int    `json:"code"`
@@ -1224,5 +1227,10 @@ func TestWxBindCurrentUser(t *testing.T) {
 		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 		require.Equal(t, 40900, resp.Code)
 		require.Contains(t, resp.Message, "微信绑定失败")
+		require.Contains(t, resp.Message, "该微信已绑定其他账户",
+			"409 文案必须指明冲突对象（#2598 可行动性）")
+		require.NotContains(t, resp.Message, "请稍后再试",
+			"真冲突不得提示重试（瞬时与持久必须可分，#2598）")
+		fmt.Printf("WXBIND_409_ACTIONABLE=1\n")
 	})
 }

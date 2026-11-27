@@ -124,7 +124,15 @@ func CreateAdminTransitSite(c *gin.Context) {
 			return
 		}
 		log.Printf("[CreateAdminTransitSite] create org failed name=%s: %v", orgName, err)
-		c.JSON(http.StatusBadGateway, gin.H{"code": 50200, "message": "中转网点组织创建失败，请稍后再试"})
+		// #2598 项 1：上游 4xx（父组织非法 / 权限模板缺失 / 命名空间不存在）是**持久**
+		// 配置问题，必须 500/50015 +「联系平台管理员」；只有网络/超时/5xx 才是
+		// 502/50200 +「请稍后再试」（旧实现把两者压平成一个码）。
+		// 中转建组织是服务端代发起，上游 400/422 只能是我们的请求/配置缺陷
+		// （UserActionAsConfig），因此同样归持久配置。
+		respondIAMFailure(c, err, iamFailureTexts{
+			Transient:          "中转网点组织创建失败，请稍后再试",
+			UserActionAsConfig: true,
+		})
 		return
 	}
 

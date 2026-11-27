@@ -71,6 +71,32 @@ var ErrIAMOrgNotFound = errors.New("iam organization not found")
 // handlers 用 errors.Is 映射，禁止字符串匹配。
 var ErrOrganizationNameConflict = ErrIAMOrgNameConflict
 
+// IAMClientHTTPError（#2598）：IAMClient 非 2xx 响应的类型化出口。
+//
+// 动机：`CreateOrganization` 旧实现把 400/403/404 等**持久**失败与网络/5xx
+// **瞬时**失败都压成普通 error，调用方只能一律 502/50200 +「请稍后再试」，
+// 于是「必须改配置」被表达成「可以重试」（#2598 项 1）。
+// 带上 Status 后，services.ClassifyIAMFailure 可用 errors.As 分流，禁止字符串匹配。
+//
+// Error() 文本与改造前三串**逐字一致**，历史日志/断言口径不变：
+//   - Status == 403 → "permission denied: <body>"
+//   - 其余          → "<Op> returned status <n>: <body>"
+type IAMClientHTTPError struct {
+	Op     string
+	Status int
+	Body   string
+}
+
+func (e *IAMClientHTTPError) Error() string {
+	if e == nil {
+		return "<nil>"
+	}
+	if e.Status == http.StatusForbidden {
+		return "permission denied: " + e.Body
+	}
+	return fmt.Sprintf("%s returned status %d: %s", e.Op, e.Status, e.Body)
+}
+
 // userAuthState (#1735): IAM-authoritative subject validity snapshot used by
 // the auth middleware (token_version + account status).
 type userAuthState struct {
@@ -323,10 +349,12 @@ func (c *IAMClient) CreateOrganization(req *CreateOrganizationRequest) (*CreateO
 		return nil, fmt.Errorf("%w: %s", ErrOrganizationNameConflict, string(respBody))
 	}
 	if statusCode == http.StatusForbidden {
-		return nil, fmt.Errorf("permission denied: %s", string(respBody))
+		// #2598：类型化错误（Error() 仍产出 "permission denied: <body>"）。
+		return nil, &IAMClientHTTPError{Op: "CreateOrganization", Status: statusCode, Body: string(respBody)}
 	}
 	if statusCode != http.StatusOK && statusCode != http.StatusCreated {
-		return nil, fmt.Errorf("CreateOrganization returned status %d: %s", statusCode, string(respBody))
+		// #2598：类型化错误（Error() 仍产出 "CreateOrganization returned status <n>: <body>"）。
+		return nil, &IAMClientHTTPError{Op: "CreateOrganization", Status: statusCode, Body: string(respBody)}
 	}
 
 	var parsed CreateOrganizationResponse
@@ -363,10 +391,12 @@ func (c *IAMClient) CreateOrganizationWithToken(token string, req *CreateOrganiz
 		return nil, fmt.Errorf("%w: %s", ErrOrganizationNameConflict, string(respBody))
 	}
 	if statusCode == http.StatusForbidden {
-		return nil, fmt.Errorf("permission denied: %s", string(respBody))
+		// #2598：类型化错误（Error() 仍产出 "permission denied: <body>"）。
+		return nil, &IAMClientHTTPError{Op: "CreateOrganization", Status: statusCode, Body: string(respBody)}
 	}
 	if statusCode != http.StatusOK && statusCode != http.StatusCreated {
-		return nil, fmt.Errorf("CreateOrganization returned status %d: %s", statusCode, string(respBody))
+		// #2598：类型化错误（Error() 仍产出 "CreateOrganization returned status <n>: <body>"）。
+		return nil, &IAMClientHTTPError{Op: "CreateOrganization", Status: statusCode, Body: string(respBody)}
 	}
 
 	var parsed CreateOrganizationResponse

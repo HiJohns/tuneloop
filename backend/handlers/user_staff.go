@@ -2266,9 +2266,14 @@ func (h *UserStaffHandler) WxBindCurrentUser(c *gin.Context) {
 			return
 		}
 		log.Printf("[WxBindCurrentUser] bind failed for user %s: %v", userID, err)
-		c.JSON(http.StatusConflict, gin.H{
-			"code":    40900,
-			"message": "微信绑定失败，请稍后再试",
+		// #2598 项 2：旧实现把 WxBind 的**任何**错误（含 IAM 不可达/超时）都写成
+		// 409/40900，于是瞬时故障被伪装成「数据冲突」（监控/重试策略全按冲突处理）。
+		// 现按上游状态类分流：409 真冲突、400/422 需用户重做、401/403/404 需运维、
+		// 传输层/429/5xx 才 502/50200。
+		respondIAMFailure(c, err, iamFailureTexts{
+			Transient:  "微信绑定失败，请稍后再试",
+			Conflict:   "微信绑定失败：该微信已绑定其他账户，请确认合并后重试",
+			UserAction: "微信授权已失效，请重新进入页面重试",
 		})
 		return
 	}
@@ -2312,7 +2317,13 @@ func (h *UserStaffHandler) WxMergeCurrentUser(c *gin.Context) {
 	if err := services.NewIAMService().WxMerge(userToken, userID, req.ToUserID, req.OpenID); err != nil {
 		// #2497：detail 只进日志（单一来源，避免同一次失败打两遍）。
 		log.Printf("[WxMergeCurrentUser] merge failed for user %s -> %s: %v", userID, req.ToUserID, err)
-		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "账户合并失败，请稍后再试"})
+		// #2598 项 3：与项 2 同构——旧实现把任意失败（含 IAM 不可达）写成
+		// 409/40900 +「请稍后再试」。现按上游状态类分流。
+		respondIAMFailure(c, err, iamFailureTexts{
+			Transient:  "账户合并失败，请稍后再试",
+			Conflict:   "账户合并失败：微信绑定关系已变更，请重新发起绑定",
+			UserAction: "账户合并失败：绑定信息已失效，请重新发起绑定",
+		})
 		return
 	}
 
