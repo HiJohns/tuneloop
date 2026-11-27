@@ -1,0 +1,47 @@
+# build=1.0.474380094 # commit=47438009407d09344feb5c764fffd42d0921a0c0 # dirty=false
+GENERATED_AT_HEAD=47438009407d09344feb5c764fffd42d0921a0c0
+WEAPP_PAGES_REGISTERED=2
+H5_PAGES_REGISTERED=2
+H5_ROUTES_REGISTERED=2
+NAV_MAP_ENTRIES=2
+WEAPP_BUILD_CMD=cd frontend-mobile && npm run build:weapp
+WEAPP_BUILD_OK=1
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795812880893 hold_ms=51537
+H5_BUILD_CMD=cd frontend-mobile && npm run build:h5
+H5_BUILD_OK=1
+[39m[22m
+
+webpack 5.91.0 compiled with [1m[33m2 warnings[39m[22m in 150127 ms
+
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795813056945 hold_ms=175774
+WXML_SCAN_FILES:
+WXML_NATIVE_TAG=0
+WEAPP_PAGE_WXML_PRODUCED=3
+ESLINT_CMD=cd frontend-mobile && npx eslint <2609 changed files>
+  170:97  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+  174:64  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+  179:38  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+  192:71  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+  194:38  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+  197:38  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+  200:38  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+  203:38  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+  204:88  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+  206:38  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+  206:58  warning  UI 文案须经 t()（见 docs/topics/i18n-strategy.md §闸 3）  i18n/no-hardcoded-ui-string
+
+/home/coder/worktrees/tuneloop/wt-2615/frontend-mobile/src/pages/instrument-loss-detail/index.tsx
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/home/coder/worktrees/tuneloop/wt-2615/frontend-mobile/src/pages/instrument-loss-register/index.tsx
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+✖ 54 problems (0 errors, 54 warnings)
+
+ESLINT_EXIT=0
+ESLINT_NOUNDEF=0
+RESULT: PASS (r5)

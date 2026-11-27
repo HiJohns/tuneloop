@@ -1,0 +1,13 @@
+# build=1.0.474380094 # commit=47438009407d09344feb5c764fffd42d0921a0c0 # dirty=false
+GENERATED_AT_HEAD=47438009407d09344feb5c764fffd42d0921a0c0
+RENDER_CMD=cd frontend-mobile && npx vitest run --config vitest.config.js scripts/page-smoke/instrument-loss-2615.test.jsx
+LOSS_LIST_ROWS=3
+LOSS_LIST_SN_SHOWN=1
+LOSS_LIST_TIME_SHOWN=1
+LOSS_LIST_STATUS_BADGE=2
+LOSS_LIST_DANGER_BUTTON_IN_ROW=0
+LOSS_LIST_REGISTER_ENTRY=1
+LOSS_LIST_ROW_NAV=1
+LOSS_LIST_RENDER_FAIL=0
+      Tests  4 passed (4)
+RESULT: PASS (r2)

@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "issue": 2615,
+  "build": "1.0.474380094",
+  "commit": "47438009407d09344feb5c764fffd42d0921a0c0",
+  "dirty": false,
+  "plan_sha256": "8b498d33a2cf1be3630d55233fdf7d4686fdfd7adaf2abd36f20a4e8b2f1d0a5",
+  "tooling_commit": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
+  "environment": {
+    "os": "linux",
+    "node": "22",
+    "go": "1.25",
+    "db": "postgres:127.0.0.1:15433"
+  },
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2615.sh r1 > docs/evidence/2615/R1-api.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2615/R1-api.txt"
+      ],
+      "assert": "exit 0 且含 LOSS_LIST_TOTAL=3、LOSS_LIST_PAGE_LEN=2、LOSS_LIST_STATUS_OPEN=2、LOSS_LIST_STATUS_RESTORED=1、LOSS_LIST_BRIEF_SN=1、LOSS_LIST_PHOTOS_ARRAY=1、LOSS_GET_CODE=20000、LOSS_GET_BRIEF_SN=1、LOSS_GET_MISSING_CODE=40400、LOSS_GET_CROSS_TENANT_CODE=40400",
+      "actual": "R1 tokens: LOSS_GET_BRIEF_SN=1,LOSS_GET_CODE=20000 LOSS_GET_CROSS_TENANT_CODE=40400,LOSS_GET_MISSING_CODE=40400 LOSS_LIST_BRIEF_SN=1,LOSS_LIST_PAGE_LEN=2 LOSS_LIST_PHOTOS_ARRAY=1,LOSS_LIST_STATUS_OPEN=2 LOSS_LIST_STATUS_RESTORED=1,LOSS_LIST_TOTAL=3",
+      "expected": "十项 token 全为期望值",
+      "negative": "分页失效、total 非真实计数、photos 仍字符串、brief 缺失、跨租户 200 → FAIL",
+      "negative_result": "负例断言通过：status=bogus → 400/40002；缺失/非法 id/跨租户 → 404/40400（LOSS_GET_MISSING_CODE=40400、LOSS_GET_CROSS_TENANT_CODE=40400）",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2615.sh r2 > docs/evidence/2615/R2-list.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2615/R2-list.txt"
+      ],
+      "assert": "exit 0 且含 LOSS_LIST_ROWS=3、LOSS_LIST_SN_SHOWN=1、LOSS_LIST_TIME_SHOWN=1、LOSS_LIST_STATUS_BADGE=2、LOSS_LIST_DANGER_BUTTON_IN_ROW=0、LOSS_LIST_REGISTER_ENTRY=1、LOSS_LIST_ROW_NAV=1、LOSS_LIST_RENDER_FAIL=0",
+      "actual": "R2 tokens: LOSS_LIST_DANGER_BUTTON_IN_ROW=0,LOSS_LIST_REGISTER_ENTRY=1 LOSS_LIST_RENDER_FAIL=0,LOSS_LIST_ROWS=3 LOSS_LIST_ROW_NAV=1,LOSS_LIST_SN_SHOWN=1 LOSS_LIST_STATUS_BADGE=2,LOSS_LIST_TIME_SHOWN=1",
+      "expected": "八项 token 全为期望值",
+      "negative": "行内危险按钮、缺 SN/时间、点行不跳详情、无登记入口 → FAIL",
+      "negative_result": "负例断言通过：行内 button 计数为 0（LOSS_LIST_DANGER_BUTTON_IN_ROW=0），且仅 1 个登记入口（LOSS_LIST_REGISTER_ENTRY=1）",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2615.sh r3 > docs/evidence/2615/R3-register.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2615/R3-register.txt"
+      ],
+      "assert": "exit 0 且含 LOSS_REG_SELECTOR_QUERY=1、LOSS_REG_PARTY_RATIO_DEFAULT=1、LOSS_REG_VALIDATE_NO_INSTRUMENT=1、LOSS_REG_VALIDATE_DESC_REQUIRED=1、LOSS_REG_SUBMIT_PAYLOAD=1、LOSS_REG_SUBMIT_BACK=1、LOSS_REG_RENDER_FAIL=0",
+      "actual": "R3 tokens: LOSS_REG_PARTY_RATIO_DEFAULT=1,LOSS_REG_RENDER_FAIL=0 LOSS_REG_SELECTOR_QUERY=1,LOSS_REG_SUBMIT_BACK=1 LOSS_REG_SUBMIT_PAYLOAD=1,LOSS_REG_VALIDATE_DESC_REQUIRED=1 LOSS_REG_VALIDATE_NO_INSTRUMENT=1",
+      "expected": "七项 token 全为期望值",
+      "negative": "缺校验、提交体字段缺失、提交后未返回 → FAIL",
+      "negative_result": "负例断言通过：未选乐器提交不发请求（LOSS_REG_VALIDATE_NO_INSTRUMENT=1）、描述为空被拦截（LOSS_REG_VALIDATE_DESC_REQUIRED=1）",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2615.sh r4 > docs/evidence/2615/R4-detail.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2615/R4-detail.txt"
+      ],
+      "assert": "exit 0 且含 LOSS_DETAIL_FIELDS=1、LOSS_DETAIL_PHOTOS=1、LOSS_DETAIL_OPEN_HAS_RESTORE=1、LOSS_DETAIL_RESTORED_HIDES_RESTORE=1、LOSS_DETAIL_RESTORE_PAYLOAD=1、LOSS_DETAIL_RENDER_FAIL=0",
+      "actual": "R4 tokens: LOSS_DETAIL_FIELDS=1,LOSS_DETAIL_OPEN_HAS_RESTORE=1 LOSS_DETAIL_PHOTOS=1,LOSS_DETAIL_RENDER_FAIL=0 LOSS_DETAIL_RESTORED_HIDES_RESTORE=1,LOSS_DETAIL_RESTORE_PAYLOAD=1",
+      "expected": "六项 token 全为期望值",
+      "negative": "字段缺失、照片不渲染、已恢复仍可恢复、恢复载荷缺字段 → FAIL",
+      "negative_result": "负例断言通过：已恢复记录不渲染恢复按钮（LOSS_DETAIL_RESTORED_HIDES_RESTORE=1）",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2615.sh r5 > docs/evidence/2615/R5-build-wiring.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2615/R5-build-wiring.txt"
+      ],
+      "assert": "exit 0 且含 WEAPP_PAGES_REGISTERED=2、H5_PAGES_REGISTERED=2、NAV_MAP_ENTRIES=2、WEAPP_BUILD_OK=1、H5_BUILD_OK=1、WXML_NATIVE_TAG=0、ESLINT_NOUNDEF=0",
+      "actual": "R5 tokens: ESLINT_EXIT=0,ESLINT_NOUNDEF=0 H5_BUILD_OK=1,H5_PAGES_REGISTERED=2 H5_ROUTES_REGISTERED=2,NAV_MAP_ENTRIES=2 WEAPP_BUILD_OK=1,WEAPP_PAGES_REGISTERED=2 WEAPP_PAGE_WXML_PRODUCED=3,WXML_NATIVE_TAG=0",
+      "expected": "七项 token 全为期望值",
+      "negative": "页面未注册、构建失败、wxml 含原生标签、eslint no-undef → FAIL",
+      "negative_result": "负例断言通过：新页 wxml 无原生 HTML 标签（WXML_NATIVE_TAG=0）、eslint 无 no-undef（ESLINT_NOUNDEF=0）",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "~/.config/opencode/scripts/pre-ready-check.sh 2615 --summary-file docs/evidence/2615/summary.md --changed-files docs/evidence/2615/changed-files.txt --evidence-file docs/evidence/2615/evidence.json --affected-cmd \"bash scripts/verify-2615.sh gate\" --report docs/evidence/2615/pre-ready-2615.json",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2615/pre-ready-2615.json"
+      ],
+      "assert": "exit 0 且 jq -e '.overall == \"PASS\"' docs/evidence/2615/pre-ready-2615.json 成立；P12 对 docs/evidence/2615/evidence.json 每行 pass=true",
+      "actual": "overall=PASS（P1–P17 见 docs/evidence/2615/pre-ready-2615.json）",
+      "expected": "overall=PASS 且证据行全 pass=true",
+      "negative": "任一 P 项失败 / evidence 缺行 / dirty=true / plan 快照不一致 → gate 非 0，禁止 ready",
+      "negative_result": "无 FAIL 项；dirty=false；P13 提交已在 origin/issue-2615",
+      "pass": true
+    }
+  ]
+}

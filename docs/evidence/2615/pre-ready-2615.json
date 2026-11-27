@@ -1,0 +1,106 @@
+{
+  "issue": 2615,
+  "overall": "FAIL",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2615/tmp/pre-ready-2615.OCP3bY/plan.md",
+  "plan_sha256": "8b498d33a2cf1be3630d55233fdf7d4686fdfd7adaf2abd36f20a4e8b2f1d0a5",
+  "config_sha": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
+  "provenance": {
+    "build": "1.0.474380094",
+    "commit": "47438009407d09344feb5c764fffd42d0921a0c0",
+    "dirty": false
+  },
+  "summary": "docs/evidence/2615/summary.md",
+  "timestamp": "20261127-210011",
+  "checks": [
+    {
+      "id": "P1",
+      "status": "PASS",
+      "detail": "plan has Verification Matrix / Input Truth & Tool Preflight / Decision Lock / Out of Scope"
+    },
+    {
+      "id": "P2",
+      "status": "PASS",
+      "detail": "Work Summary covers all 6 matrix rows with PASS/N/A"
+    },
+    {
+      "id": "P3",
+      "status": "FAIL",
+      "detail": "evidence paths do not exist: App-H5.jsx Taro.chooseImage app.config.ts c.DefaultQuery(\"page\"/\"pageSize\"/\"status\"/\"instrument_id\"/\"open\") d.data d.data.list d.data.total docs/evidence/2615/pre-ready-2615.json index.config.ts middleware.GetTenantID platform.uploadFile platform/navigation.js useSearchParams().get('id')"
+    },
+    {
+      "id": "P4",
+      "status": "N/A",
+      "detail": "--dry-run: skipped 1 affected command(s)"
+    },
+    {
+      "id": "P12",
+      "status": "FAIL",
+      "detail": "R6: pass must be true (got: false); R6: exit must be 0 (got: 1); R6: artifact not found: docs/evidence/2615/pre-ready-2615.json"
+    },
+    {
+      "id": "P14",
+      "status": "FAIL",
+      "detail": "artifact missing: docs/evidence/2615/pre-ready-2615.json"
+    },
+    {
+      "id": "P18",
+      "status": "WARN",
+      "detail": "tooling_commit missing (legacy bundle); config_sha=be61a790605b0b65759d0fd2be9b258bc6c41b49"
+    },
+    {
+      "id": "P15",
+      "status": "N/A",
+      "detail": "no batch gate reference in the plan"
+    },
+    {
+      "id": "P16",
+      "status": "N/A",
+      "detail": "no UI render rows in the plan"
+    },
+    {
+      "id": "P17",
+      "status": "PASS",
+      "detail": "plan snapshot and Accepted Plan comment match the gated plan"
+    },
+    {
+      "id": "P5",
+      "status": "N/A",
+      "detail": "skipped: P12/P14/P15/P16 static checks failed (static checks run first)"
+    },
+    {
+      "id": "P6",
+      "status": "PASS",
+      "detail": "all changed files are declared in the Accepted Plan"
+    },
+    {
+      "id": "P7",
+      "status": "PASS",
+      "detail": "contract three-way section present"
+    },
+    {
+      "id": "P8",
+      "status": "N/A",
+      "detail": "no panel/clarify files changed"
+    },
+    {
+      "id": "P9",
+      "status": "N/A",
+      "detail": "no session/build_version/aiaudit/.rpt/.dat evidence referenced"
+    },
+    {
+      "id": "P10",
+      "status": "N/A",
+      "detail": "no aiaudit reference"
+    },
+    {
+      "id": "P11",
+      "status": "PASS",
+      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /home/coder/worktrees/tuneloop/wt-2615; worktree guard: PASS isolated worktree=/home/coder/worktrees/tuneloop/wt-2615"
+    },
+    {
+      "id": "P13",
+      "status": "FAIL",
+      "detail": "remote ref not found: origin/issue-2615"
+    }
+  ]
+}
