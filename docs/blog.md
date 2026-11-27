@@ -485,3 +485,4 @@
 - 2026-11-27: 批量处理完成，包含任务: Resolved Issues: #2616, #2614, #2542（Round 2 复审）, #2623（审计 PASS；fix/evidence 分别在 origin/issue-2616 / issue-2614 / issue-2542 / issue-2623，代码待集成至 develop；合并顺序 2598→2601→2614、2542→2543、2623 优先（L1 foundation）；Ops Follow-up #2627 / #2628）
 - 2026-11-27: 批量处理完成，包含任务: 同批追加记录：Resolved Issues #2616 / #2614 / #2542（Round 2 复审）/ #2623 已 PASS 并关闭（fix/evidence 分别在 origin/issue-2616 / issue-2614 / issue-2542 / issue-2623，待集成 develop）；#2625 审计 REJECTED（告警运行器在 gh 建单/评论失败时仍 RESULT: PASS + exit 0，已退回 fixreview）；Ops Follow-up #2627（#2616 真机复验）/ #2628（#2623 预生产只读跑）
 - 2026-11-27: 批量处理完成，包含任务: Resolved Issues: #2620
+- 2026-11-27: 批量处理完成，包含任务: Resolved Issues: #2625
