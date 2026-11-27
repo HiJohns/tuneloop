@@ -147,6 +147,14 @@ FAIL(r8): vitest bind-failure-2601 (expired rows) exit=1
   --report docs/evidence/2601/pre-ready-2601.json
 ```
 
-- 结果：见 Issue 评论内 gate 输出（`RESULT: PASS`）。
+- 结果：
+
+```
+RESULT: PASS
+REPORT: docs/evidence/2601/pre-ready-2601.json
+P1/P2/P3/P4/P6/P7/P11/P12/P13/P14/P17/P18 = PASS；P5 = N/A（无 go.mod/package.json 于根，全量由批次 gate 承担）；P8/P9/P10/P15/P16 = N/A
+```
+
+- plan_sha256 = `7c98a6652062115762d681826c976c94fd4dc1374f6ee4d82298838e8aa64515`（Accepted Plan Rev.2 评论，plan-source FRESH）。
 
 *Model: DeepSeek V4.1 Flash 1017*

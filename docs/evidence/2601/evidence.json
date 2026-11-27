@@ -46,7 +46,7 @@
       "assert": "exit 0 且含 MERGEBIND_STATE_STATUS=400、MERGEBIND_STATE_CODE=40002、MERGEBIND_STATE_MSG_ACTIONABLE=1、MERGEBIND_STATE_INTERNAL_LEAK=0、MERGEBIND_IDEMPOTENT_KEPT=1",
       "actual": "PASS：MERGEBIND_STATE_STATUS=400、STATE_CODE=40002、STATE_MSG_ACTIONABLE=1、STATE_INTERNAL_LEAK=0、IDEMPOTENT_KEPT=1",
       "expected": "五项 token 全为期望值",
-      "negative": "仍 40902、message 含 `status=`、幂等分支回归 → FAIL",
+      "negative": "仍 40902、message 含 status=、幂等分支回归 → FAIL",
       "negative_result": "负例方向：仍返回 40902、message 含 `status=` 内部串或 merged 幂等分支回归 → FAIL。",
       "pass": true
     },
@@ -101,8 +101,8 @@
       ],
       "assert": "exit 0 且 jq -e '.overall == \"PASS\"' docs/evidence/2601/pre-ready-2601.json 成立，P12 对 docs/evidence/2601/evidence.json 每行判定 pass=true",
       "actual": "PASS：pre-ready-check.sh 2601 报告 overall=PASS，P12 八行 evidence 记录均 pass=true，P13 fix commit 在 origin/issue-2601，P17 plan sha256 与最新 Accepted Plan 一致",
-      "expected": "`overall=PASS` 且证据行全 `pass=true`",
-      "negative": "任一 P 项失败、evidence 缺行、`dirty=true` → gate 非 0，禁止 ready",
+      "expected": "overall=PASS 且证据行全 pass=true",
+      "negative": "任一 P 项失败、evidence 缺行、dirty=true → gate 非 0，禁止 ready",
       "negative_result": "负例方向：任一 P 项失败、evidence 缺行/字段缺失或 dirty=true → gate 非 0，禁止 ready。",
       "pass": true
     },
