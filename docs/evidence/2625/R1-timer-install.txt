@@ -1,10 +1,10 @@
-# build=1.0.72ca1bcb # commit=72ca1bcbcb22645de848b33d86e89a8706cf6daa # dirty=false
-GENERATED_AT_HEAD=72ca1bcbcb22645de848b33d86e89a8706cf6daa
+# build=1.0.fab810a8 # commit=fab810a8b0d6e337e4c44cb3e18699a5fece251d # dirty=false
+GENERATED_AT_HEAD=fab810a8b0d6e337e4c44cb3e18699a5fece251d
 BACKEND=systemd
 AT=03:30
-SERVICE=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.GFG5ii/home/.config/systemd/user/opencode-user-cache-reconcile.service
-TIMER=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.GFG5ii/home/.config/systemd/user/opencode-user-cache-reconcile.timer
-LOG=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.GFG5ii/state/tuneloop/user-cache-reconcile.log
+SERVICE=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.E80g2N/home/.config/systemd/user/opencode-user-cache-reconcile.service
+TIMER=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.E80g2N/home/.config/systemd/user/opencode-user-cache-reconcile.timer
+LOG=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.E80g2N/state/tuneloop/user-cache-reconcile.log
 ENV_FILE=%h/.config/tuneloop/reconcile.env
 --- service ---
 [Unit]
@@ -16,8 +16,8 @@ WorkingDirectory=/tmp/opencode/tuneloop/wt-2625
 Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
 EnvironmentFile=%h/.config/tuneloop/reconcile.env
 ExecStart=/tmp/opencode/tuneloop/wt-2625/scripts/reconcile-user-cache-cron.sh
-StandardOutput=append:/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.GFG5ii/state/tuneloop/user-cache-reconcile.log
-StandardError=append:/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.GFG5ii/state/tuneloop/user-cache-reconcile.log
+StandardOutput=append:/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.E80g2N/state/tuneloop/user-cache-reconcile.log
+StandardError=append:/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.E80g2N/state/tuneloop/user-cache-reconcile.log
 --- timer ---
 [Unit]
 Description=Nightly TuneLoop user cache reconcile
@@ -36,7 +36,7 @@ PRINT_WROTE_UNIT=0
 PRINT_ONCALENDAR=1
 BACKEND=systemd
 AT=03:30
-SERVICE_SHA=e6107d2d3a3d9364b6e6bbd708ea93003370e34b714e2ff46253357db5694147
+SERVICE_SHA=f1f05433dba7af18cde1e3268de36565db2705370312e23acbf65472dbb8f11b
 TIMER_SHA=0c82ae6c1766a12b7b8fa10839edc86b290cdf487d77e59213440b6fd16fafcf
 FILES_WRITTEN=2
 IDEMPOTENT=1

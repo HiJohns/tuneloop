@@ -1,14 +1,18 @@
-# build=1.0.72ca1bcb # commit=72ca1bcbcb22645de848b33d86e89a8706cf6daa # dirty=false
-GENERATED_AT_HEAD=72ca1bcbcb22645de848b33d86e89a8706cf6daa
+# build=1.0.fab810a8 # commit=fab810a8b0d6e337e4c44cb3e18699a5fece251d # dirty=false
+GENERATED_AT_HEAD=fab810a8b0d6e337e4c44cb3e18699a5fece251d
 RECONCILE_DATE=2026-11-28
 DIFFS=3
 GH_CALLS=2
 ISSUE=777
+ISSUE_CREATE_FAILED=0
 ESCALATED=1
 ESCALATE_COMMENTS=1
+ESCALATE_FAILED=0
 FAILURE_ISSUE=none
-ARCHIVE=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.eMXrav/state/tuneloop/reconcile/2026-11-28.json
-LAST_SUMMARY=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.eMXrav/state/tuneloop/reconcile/2026-11-28.txt
+FAILURE_ISSUE_CREATE_FAILED=0
+GH_LIST_FAILED=0
+ARCHIVE=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.CHNJ9j/state/tuneloop/reconcile/2026-11-28.json
+LAST_SUMMARY=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.CHNJ9j/state/tuneloop/reconcile/2026-11-28.txt
 DRY_RUN=0
 FILES_WRITTEN=2
 RESULT: PASS
@@ -22,11 +26,15 @@ RECONCILE_DATE=2026-12-01
 DIFFS=0
 GH_CALLS=2
 ISSUE=none
+ISSUE_CREATE_FAILED=0
 ESCALATED=0
 ESCALATE_COMMENTS=0
+ESCALATE_FAILED=0
 FAILURE_ISSUE=888
-ARCHIVE=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.eMXrav/state/tuneloop/reconcile/2026-12-01.json
-LAST_SUMMARY=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.eMXrav/state/tuneloop/reconcile/2026-12-01.txt
+FAILURE_ISSUE_CREATE_FAILED=0
+GH_LIST_FAILED=0
+ARCHIVE=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.CHNJ9j/state/tuneloop/reconcile/2026-12-01.json
+LAST_SUMMARY=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.CHNJ9j/state/tuneloop/reconcile/2026-12-01.txt
 DRY_RUN=0
 FILES_WRITTEN=2
 RESULT: FAIL
@@ -36,6 +44,52 @@ FAILURE_ISSUE=888
 FAILURE_NOT_SILENT=1
 FAILURE_NO_PASS=0
 FAILURE_LABEL_EXACT=1
+RECONCILE_DATE=2026-12-03
+FAILURE_ISSUE_CREATE_RC=1
+HTTP 401: Bad credentials (fake)
+DIFFS=0
+GH_CALLS=2
+ISSUE=none
+ISSUE_CREATE_FAILED=0
+ESCALATED=0
+ESCALATE_COMMENTS=0
+ESCALATE_FAILED=0
+FAILURE_ISSUE=none
+FAILURE_ISSUE_CREATE_FAILED=1
+GH_LIST_FAILED=0
+ARCHIVE=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.CHNJ9j/state/tuneloop/reconcile/2026-12-03.json
+LAST_SUMMARY=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.CHNJ9j/state/tuneloop/reconcile/2026-12-03.txt
+DRY_RUN=0
+FILES_WRITTEN=2
+RESULT: FAIL
+FAILURE_CREATE_FAIL_EXIT=2
+FAILURE_CREATE_FAIL_TOKEN=1
+FAILURE_CREATE_FAIL_ISSUE=none
+FAILURE_CREATE_FAIL_NO_PASS=0
+RECONCILE_DATE=2026-11-28
+ESCALATE_COMMENT_RC=1
+HTTP 403: Resource not accessible (fake)
+DIFFS=3
+GH_CALLS=2
+ISSUE=777
+ISSUE_CREATE_FAILED=0
+ESCALATED=0
+ESCALATE_COMMENTS=0
+ESCALATE_FAILED=1
+FAILURE_ISSUE=none
+FAILURE_ISSUE_CREATE_FAILED=0
+GH_LIST_FAILED=0
+ARCHIVE=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.CHNJ9j/state/tuneloop/reconcile/2026-11-28.json
+LAST_SUMMARY=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.CHNJ9j/state/tuneloop/reconcile/2026-11-28.txt
+DRY_RUN=0
+FILES_WRITTEN=2
+RESULT: FAIL
+GH_COMMENT_FAIL_EXIT=2
+ESCALATE_CLAIMED_ON_FAILURE=0
+ESCALATE_COMMENTS_ON_FAILURE=0
+ESCALATE_FAIL_TOKEN=1
+GH_COMMENT_FAIL_NO_PASS=0
+GH_COMMENT_FAIL_RC_SHOWN=1
 MISSING_ENV_EXIT=2
 MISSING_ENV_TOKEN=BEACONIAM_DB_NAME
 MISSING_ENV_NO_GH=0

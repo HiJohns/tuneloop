@@ -1,14 +1,18 @@
-# build=1.0.72ca1bcb # commit=72ca1bcbcb22645de848b33d86e89a8706cf6daa # dirty=false
-GENERATED_AT_HEAD=72ca1bcbcb22645de848b33d86e89a8706cf6daa
+# build=1.0.fab810a8 # commit=fab810a8b0d6e337e4c44cb3e18699a5fece251d # dirty=false
+GENERATED_AT_HEAD=fab810a8b0d6e337e4c44cb3e18699a5fece251d
 RECONCILE_DATE=2026-11-28
 DIFFS=0
 GH_CALLS=0
 ISSUE=none
+ISSUE_CREATE_FAILED=0
 ESCALATED=0
 ESCALATE_COMMENTS=0
+ESCALATE_FAILED=0
 FAILURE_ISSUE=none
-ARCHIVE=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.Ayc56S/state/tuneloop/reconcile/2026-11-28.json
-LAST_SUMMARY=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.Ayc56S/state/tuneloop/reconcile/2026-11-28.txt
+FAILURE_ISSUE_CREATE_FAILED=0
+GH_LIST_FAILED=0
+ARCHIVE=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.ikCTA9/state/tuneloop/reconcile/2026-11-28.json
+LAST_SUMMARY=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.ikCTA9/state/tuneloop/reconcile/2026-11-28.txt
 DRY_RUN=0
 FILES_WRITTEN=2
 RESULT: PASS
@@ -22,11 +26,15 @@ RECONCILE_DATE=2026-11-29
 DIFFS=3
 GH_CALLS=2
 ISSUE=777
+ISSUE_CREATE_FAILED=0
 ESCALATED=0
 ESCALATE_COMMENTS=0
+ESCALATE_FAILED=0
 FAILURE_ISSUE=none
-ARCHIVE=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.Ayc56S/state/tuneloop/reconcile/2026-11-29.json
-LAST_SUMMARY=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.Ayc56S/state/tuneloop/reconcile/2026-11-29.txt
+FAILURE_ISSUE_CREATE_FAILED=0
+GH_LIST_FAILED=0
+ARCHIVE=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.ikCTA9/state/tuneloop/reconcile/2026-11-29.json
+LAST_SUMMARY=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.ikCTA9/state/tuneloop/reconcile/2026-11-29.txt
 DRY_RUN=0
 FILES_WRITTEN=2
 RESULT: PASS
@@ -49,5 +57,30 @@ DRY_RUN_EXIT=0
 DRY_RUN_GH_CALLS=0
 DRY_RUN_NO_GH=0
 DRY_RUN_FILES_WRITTEN=0
+RECONCILE_DATE=2026-12-05
+ISSUE_CREATE_RC=1
+HTTP 401: Bad credentials (fake)
+DIFFS=3
+GH_CALLS=2
+ISSUE=none
+ISSUE_CREATE_FAILED=1
+ESCALATED=0
+ESCALATE_COMMENTS=0
+ESCALATE_FAILED=0
+FAILURE_ISSUE=none
+FAILURE_ISSUE_CREATE_FAILED=0
+GH_LIST_FAILED=0
+ARCHIVE=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.ikCTA9/state/tuneloop/reconcile/2026-12-05.json
+LAST_SUMMARY=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.ikCTA9/state/tuneloop/reconcile/2026-12-05.txt
+DRY_RUN=0
+FILES_WRITTEN=2
+RESULT: FAIL
+GH_CREATE_FAIL_EXIT=2
+GH_CREATE_FAIL_NO_PASS=0
+GH_CREATE_FAIL_ISSUE=none
+GH_CREATE_FAIL_TOKEN=1
+GH_CREATE_FAIL_NOT_SILENT=1
+GH_CREATE_FAIL_RC_SHOWN=1
+GH_CREATE_FAIL_ARCHIVED=1
 TEST_EXIT=0
 RESULT: PASS

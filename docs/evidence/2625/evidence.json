@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
   "issue": 2625,
-  "build": "1.0.72ca1bcb",
-  "commit": "72ca1bcbcb22645de848b33d86e89a8706cf6daa",
+  "build": "1.0.fab810a8",
+  "commit": "fab810a8b0d6e337e4c44cb3e18699a5fece251d",
   "dirty": false,
   "plan_sha256": "92b1a823a919fa9dddacdfaa9542ba348827f92c98fd583b87d823cd47b05d0b",
-  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2625 (branch issue-2625, base origin/develop bdd14b69d); 全离线：沙箱 HOME/XDG_STATE_HOME + fake gh/systemctl/crontab + fake reconcile；未触碰真实 systemd/crontab、未创建真实 Issue、未连任何数据库",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2625 (branch issue-2625, base origin/develop bdd14b69d)；fix = fab810a8b（Round 1 audit B1/B2 修复）；全离线：沙箱 HOME/XDG_STATE_HOME + fake gh(create/comment 失败注入)/systemctl/crontab + fake reconcile；未触碰真实 systemd/crontab、未创建真实 Issue、未连任何数据库",
   "rows": [
     {
       "id": "R1",
@@ -28,11 +28,11 @@
       "artifacts": [
         "docs/evidence/2625/R2-cron-alert-branches.txt"
       ],
-      "assert": "exit 0 且含 TEST_EXIT=0 DIFFS0_GH_CALLS=0 DIFFS0_ISSUE_CREATED=0 DIFFS_ISSUE_CREATED=1 ISSUE_LABELS_EXACT=waitForConfirm ISSUE_BODY_HAS_TOKENS=1 SAME_DAY_DUPLICATE=0 ARCHIVE_WRITTEN=1",
-      "actual": "PASS：ZERO_EXIT=0 / DIFFS=0 / GH_CALLS=0 / DIFFS0_ISSUE_CREATED=0 / ARCHIVE_WRITTEN=1 / DIFF_EXIT=0 / DIFFS_TOTAL=3 / DIFFS_GH_CALLS=2 / DIFFS_ISSUE_CREATED=1 / DIFFS_ISSUE_NUMBER=777 / ISSUE_LABELS_EXACT=waitForConfirm / ISSUE_BODY_HAS_TOKENS=1 / ISSUE_BODY_DETAIL_LIMIT=1 / SAME_DAY_CREATES=0 / SAME_DAY_DUPLICATE=0 / SAME_DAY_ISSUE=777 / DRY_RUN_GH_CALLS=0 / DRY_RUN_FILES_WRITTEN=0",
-      "expected": "PASS（8 项 token 全为期望值）",
-      "negative": "无差异建单、Issue 带 status:*、正文缺 token、同日重复、未归档 → FAIL",
-      "negative_result": "负例已实测：无差异场景 gh 调用 0 次且未建单；建单命令行只有 --label waitForConfirm（无 status:*）；正文含汇总 token 与 ≤20 条明细；同日期第二次运行复用既有单（create 0 次）；--dry-run 零 gh 调用、零写入。",
+      "assert": "exit 0 且含 TEST_EXIT=0 DIFFS0_GH_CALLS=0 DIFFS0_ISSUE_CREATED=0 DIFFS_ISSUE_CREATED=1 ISSUE_LABELS_EXACT=waitForConfirm ISSUE_BODY_HAS_TOKENS=1 SAME_DAY_DUPLICATE=0 ARCHIVE_WRITTEN=1 GH_CREATE_FAIL_EXIT=2 GH_CREATE_FAIL_NO_PASS=0 GH_CREATE_FAIL_ISSUE=none GH_CREATE_FAIL_TOKEN=1",
+      "actual": "PASS：ZERO_EXIT=0 / DIFFS=0 / GH_CALLS=0 / DIFFS0_ISSUE_CREATED=0 / ARCHIVE_WRITTEN=1 / DIFF_EXIT=0 / DIFFS_TOTAL=3 / DIFFS_GH_CALLS=2 / DIFFS_ISSUE_CREATED=1 / DIFFS_ISSUE_NUMBER=777 / ISSUE_LABELS_EXACT=waitForConfirm / ISSUE_BODY_HAS_TOKENS=1 / ISSUE_BODY_DETAIL_LIMIT=1 / SAME_DAY_CREATES=0 / SAME_DAY_DUPLICATE=0 / SAME_DAY_ISSUE=777 / DRY_RUN_GH_CALLS=0 / DRY_RUN_FILES_WRITTEN=0 / GH_CREATE_FAIL_EXIT=2 / GH_CREATE_FAIL_NO_PASS=0 / GH_CREATE_FAIL_ISSUE=none / GH_CREATE_FAIL_TOKEN=1 / GH_CREATE_FAIL_NOT_SILENT=1 / GH_CREATE_FAIL_RC_SHOWN=1 / GH_CREATE_FAIL_ARCHIVED=1",
+      "expected": "PASS（原 8 项 token + 审计 B1 负例 4 项 token 全为期望值）",
+      "negative": "无差异建单、Issue 带 status:*、正文缺 token、同日重复、未归档、**gh issue create 失败仍 exit 0/RESULT: PASS** → FAIL",
+      "negative_result": "负例已实测：无差异场景 gh 调用 0 次且未建单；建单命令行只有 --label waitForConfirm（无 status:*）；正文含汇总 token 与 ≤20 条明细；同日期第二次运行复用既有单（create 0 次）；--dry-run 零 gh 调用、零写入；**fake gh create 返回 401 → exit 2 / RESULT: FAIL / ISSUE=none / ISSUE_CREATE_FAILED=1 / 差异仍归档**（缺陷版 72ca1bcbc 同命令为 exit 0 + RESULT: PASS + ISSUE=unknown）。",
       "pass": true
     },
     {
@@ -42,11 +42,11 @@
       "artifacts": [
         "docs/evidence/2625/R3-escalation-and-failure.txt"
       ],
-      "assert": "exit 0 且含 TEST_EXIT=0 ESCALATED=1 ESCALATE_COMMENTS=1 ESCALATE_NEW_ISSUE=0 FAILURE_ISSUE_CREATED=1 FAILURE_EXIT=2 MISSING_ENV_EXIT=2",
-      "actual": "PASS：ESCALATE_EXIT=0 / ESCALATED=1 / ESCALATE_COMMENTS=1 / ESCALATE_NEW_ISSUE=0 / ESCALATE_COMMENT_CALLS=1 / ESCALATE_REASON_IN_BODY=1 / FAILURE_EXIT=2 / FAILURE_ISSUE_CREATED=1 / FAILURE_ISSUE=888 / FAILURE_NOT_SILENT=1 / FAILURE_NO_PASS=0 / FAILURE_LABEL_EXACT=1 / MISSING_ENV_EXIT=2 / MISSING_ENV_TOKEN=BEACONIAM_DB_NAME",
-      "expected": "PASS（7 项 token 全为期望值）",
-      "negative": "未升级、升级时重复建单、失败静默、缺 env 静默 → FAIL",
-      "negative_result": "负例已实测：连续 2 天同类差异未下降只追加 1 条评论且不新建第二个 Issue；对账 exit 2 → 建失败单并 exit 2，输出无 RESULT: PASS（FAILURE_NO_PASS=0）；缺 env（BEACONIAM_DB_NAME 空）→ exit 2 + MISSING_ENV=BEACONIAM_DB_NAME 且零 gh 调用。",
+      "assert": "exit 0 且含 TEST_EXIT=0 ESCALATED=1 ESCALATE_COMMENTS=1 ESCALATE_NEW_ISSUE=0 FAILURE_ISSUE_CREATED=1 FAILURE_EXIT=2 MISSING_ENV_EXIT=2 GH_COMMENT_FAIL_EXIT=2 ESCALATE_CLAIMED_ON_FAILURE=0 ESCALATE_FAIL_TOKEN=1",
+      "actual": "PASS：ESCALATE_EXIT=0 / ESCALATED=1 / ESCALATE_COMMENTS=1 / ESCALATE_NEW_ISSUE=0 / ESCALATE_COMMENT_CALLS=1 / ESCALATE_REASON_IN_BODY=1 / FAILURE_EXIT=2 / FAILURE_ISSUE_CREATED=1 / FAILURE_ISSUE=888 / FAILURE_NOT_SILENT=1 / FAILURE_NO_PASS=0 / FAILURE_LABEL_EXACT=1 / FAILURE_CREATE_FAIL_EXIT=2 / FAILURE_CREATE_FAIL_TOKEN=1 / FAILURE_CREATE_FAIL_ISSUE=none / FAILURE_CREATE_FAIL_NO_PASS=0 / GH_COMMENT_FAIL_EXIT=2 / ESCALATE_CLAIMED_ON_FAILURE=0 / ESCALATE_COMMENTS_ON_FAILURE=0 / ESCALATE_FAIL_TOKEN=1 / GH_COMMENT_FAIL_NO_PASS=0 / GH_COMMENT_FAIL_RC_SHOWN=1 / MISSING_ENV_EXIT=2 / MISSING_ENV_TOKEN=BEACONIAM_DB_NAME",
+      "expected": "PASS（原 7 项 token + 审计 B2 负例 3 项 + 失败单负面 2 项全为期望值）",
+      "negative": "未升级、升级时重复建单、失败静默、缺 env 静默、**升级评论失败仍声称 ESCALATED=1 且 exit 0** → FAIL",
+      "negative_result": "负例已实测：连续 2 天同类差异未下降只追加 1 条评论且不新建第二个 Issue；对账 exit 2 → 建失败单并 exit 2，输出无 RESULT: PASS（FAILURE_NO_PASS=0）；缺 env（BEACONIAM_DB_NAME 空）→ exit 2 + MISSING_ENV=BEACONIAM_DB_NAME 且零 gh 调用；**fake gh comment 返回 403 → exit 2 / RESULT: FAIL / ESCALATED=0 / ESCALATE_COMMENTS=0 / ESCALATE_FAILED=1**（缺陷版同命令为 exit 0 + RESULT: PASS + ESCALATED=1）；**fake gh create 401（失败单自身）→ 仍 exit 2，FAILURE_ISSUE=none + FAILURE_ISSUE_CREATE_FAILED=1**。",
       "pass": true
     }
   ]
