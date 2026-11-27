@@ -245,7 +245,13 @@ r8)
     ;;
 r9)
     # R9：接口/镜像语义文档（api.md 端点小节 + iam-notes 上游孤儿端点契约）。
-    echo "== R9 docs: tuneloop endpoint + upstream orphan contract =="
+    #
+    # Rev.4 起 R9 从「token 存在性」升级为「契约值可判定」：
+    #   DOC_TOKENS=3        —— §2.6.5 三项语义存在（存在性，保留）
+    #   DOC_ERRCODE_40300=1 —— 权限拒绝必须写 403 + 40300，不得写成 40102/40303/40002
+    #   DOC_NOTES_ARRAY=1   —— purge 响应 notes 必须声明为字符串数组，不得写成字符串
+    # 每条都带负例自检（把正确写法 sed 成错误写法，断言必须转 0），证明断言真的能拦住错值。
+    echo "== R9 docs: tuneloop endpoint + upstream orphan contract (contract values) =="
     API_DOC="docs/spec/api/api.md"
     IAM_NOTES="docs/topics/iam/iam-notes.md"
     DOC_TOKENS=0
@@ -263,10 +269,60 @@ r9)
     emit "DOC_API_SECTION=${API_SECTION}"
     emit "DOC_NOTES_SECTION=${NOTES_SECTION}"
     emit "DOC_TOKENS=${DOC_TOKENS}"
+
+    # ---- §2.6.5 段落切片（从 2.6.5 标题到下一个 ### 标题）----
+    SECTION_FILE="$(mktemp)"
+    awk '/^#### 2\.6\.5 /{f=1} f && /^### 2\.7 /{f=0} f' "$API_DOC" > "$SECTION_FILE"
+
+    # 契约值断言 1：权限拒绝行必须含 40300，且同一行不得出现 40102。
+    # 负例：doc_errcode_40300<file> 对「写成 40102」的变体必须返回 0。
+    doc_errcode_40300() { # file
+        local deny_line
+        deny_line="$(grep -F '非系统管理员' "$1" | head -1)"
+        [ -n "$deny_line" ] || { echo 0; return; }
+        case "$deny_line" in
+            *40102*) echo 0 ; return ;;
+            *40300*) echo 1 ; return ;;
+            *)       echo 0 ; return ;;
+        esac
+    }
+    DOC_ERRCODE_40300="$(doc_errcode_40300 "$SECTION_FILE")"
+
+    # 契约值断言 2：purge 响应 notes 必须是数组形态 `"notes": [`，不得是 `"notes": "`。
+    doc_notes_array() { # file
+        local array_hit string_hit
+        array_hit=0; string_hit=0
+        grep -Fq '"notes": [' "$1" && array_hit=1
+        grep -Fq '"notes": "' "$1" && string_hit=1
+        if [ "$array_hit" = "1" ] && [ "$string_hit" = "0" ]; then echo 1; else echo 0; fi
+    }
+    DOC_NOTES_ARRAY="$(doc_notes_array "$SECTION_FILE")"
+
+    # ---- 负例自检（红绿实证）：故意写错 → 断言必须为 0 ----
+    NEG_FILE="$(mktemp)"
+    sed 's/`40300`：非系统管理员/`40102`：非系统管理员/' "$SECTION_FILE" > "$NEG_FILE"
+    NEG_ERRCODE_DETECTED=0
+    [ "$(doc_errcode_40300 "$NEG_FILE")" = "0" ] && NEG_ERRCODE_DETECTED=1
+    sed 's/"notes": \[/"notes": "/' "$SECTION_FILE" > "$NEG_FILE"
+    NEG_NOTES_DETECTED=0
+    [ "$(doc_notes_array "$NEG_FILE")" = "0" ] && NEG_NOTES_DETECTED=1
+    rm -f "$NEG_FILE" "$SECTION_FILE"
+
+    emit "DOC_ERRCODE_40300=${DOC_ERRCODE_40300}"
+    emit "DOC_NOTES_ARRAY=${DOC_NOTES_ARRAY}"
+    emit "NEGATIVE_ERRCODE_DETECTED=${NEG_ERRCODE_DETECTED}"
+    emit "NEGATIVE_NOTES_DETECTED=${NEG_NOTES_DETECTED}"
+
     [ "$API_SECTION" = "1" ] || RC=1
     [ "$NOTES_SECTION" = "1" ] || RC=1
     [ "$DOC_TOKENS" = "3" ] || RC=1
+    [ "$DOC_ERRCODE_40300" = "1" ] || RC=1
+    [ "$DOC_NOTES_ARRAY" = "1" ] || RC=1
+    [ "$NEG_ERRCODE_DETECTED" = "1" ] || RC=1
+    [ "$NEG_NOTES_DETECTED" = "1" ] || RC=1
     require "DOC_TOKENS=3"
+    require "DOC_ERRCODE_40300=1"
+    require "DOC_NOTES_ARRAY=1"
     finish R9-docs.txt || RC=1
     ;;
 *)

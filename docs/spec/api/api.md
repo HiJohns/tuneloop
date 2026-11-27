@@ -745,8 +745,8 @@ HTTP 401。H5（`client_type=wx`）与小程序 `/api/auth/wx-login` 令牌没�
 **背景**：创建用户时本地事务失败 → PurgeUser 被 IAM 拒绝（仅 namespace admin 可 purge），
 会在 IAM 留下 `pending` 且**没有任何组织关系**的孤儿账号，同邮箱/用户名重试永久 409。
 IAM 的 `GET /users?status=pending` 对非全局管理员**按活跃组织关系过滤**，这类无关系孤儿
-永远不返回，因此本面板改走 IAM 专用端点（上游契约见
-[`docs/topics/iam/iam-notes.md`](../../topics/iam/iam-notes.md) 的「IAM 孤儿查询端点」小节）。
+永远不返回，因此本面板改走 IAM 专用端点 `GET /api/v1/users/orphans?min_age_minute=…`
+（上游契约见 [`docs/topics/iam/iam-notes.md`](../../topics/iam/iam-notes.md) 的「IAM 孤儿查询端点」小节）。
 
 **孤儿判定（四条缺一不可）**：IAM `status=pending` **且** `org_id` 空 **且** 本地 `users`
 无该 `iam_sub` 行 **且** 创建时间早于 `min_age_minute`（服务端常量 60 分钟，用于避开正在进行的创建流程）。
@@ -798,8 +798,8 @@ IAM 的 `GET /users?status=pending` 对非全局管理员**按活跃组织关系
 
 **错误码**：
 
-- `40100`：缺少用户 token；
-- `40102`：非系统管理员（`requireSystemAdmin` 拦截）；
+- `40100`：缺少用户 token（HTTP 401）；
+- `40300`：非系统管理员（HTTP 403，`requireSystemAdmin` 拦截，且不触发 IAM 调用）；
 - `50200`：调用 IAM 失败（含协议错误），`message` 为该次调用失败原因。
 
 ##### `POST /api/admin/iam-orphans/purge`
@@ -821,10 +821,18 @@ IAM 的 `GET /users?status=pending` 对非全局管理员**按活跃组织关系
   "data": {
     "purged": 1,
     "failed": [{ "user_id": "…", "error": "not an orphan (pending/org/age check failed)" }],
-    "notes": "IAM purge 不会清理 user_task_queues …"
+    "notes": ["IAM purge 不会清理 user_task_queues …"]
   }
 }
 ```
+
+**字段说明（purge 响应）**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `purged` | number | IAM 删除成功的账号数 |
+| `failed` | array | 未清理项，每项含 `user_id` 与 `error` |
+| `notes` | string[] | 后续动作提示（**字符串数组**，不是单个字符串） |
 
 **语义（D5，List/Purge 同源）**：清理前用与 `List` **同一**候选来源（同一新端点、同一回退）
 实时复核；回退路径下对「不在旧列表」的 ID 逐条 `GetUser` 复算四条判定：

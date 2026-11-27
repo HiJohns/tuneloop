@@ -191,7 +191,8 @@ func (h *IAMOrphanHandler) List(c *gin.Context) {
 // Purge handles POST /admin/iam-orphans/purge.
 //
 // 请求：{"user_ids": ["...", "..."]}
-// 响应：{"code":20000,"data":{"purged":n,"failed":[{"user_id","error"}],"notes":"..."}}
+// 响应：{"code":20000,"data":{"purged":n,"failed":[{"user_id","error"}],"notes":["..."]}}
+//   notes 是字符串数组（旧注释误写为字符串，已在 #2470 Rev.4 更正为契约实际形态）。
 //
 // D5：任何在本地 users 中存在的 ID 一律拒绝（即使 IAM 侧仍为 pending）；
 // 非孤儿 ID 不进 purged，而是进 failed（逐条可见，不静默跳过）。
