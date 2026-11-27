@@ -209,28 +209,39 @@ bash scripts/reconcile-user-cache.sh --apply \
 | `MISSING_LOCAL` | 跳过（是否建行属产品决策） | `SKIPPED_MISSING_LOCAL` |
 | `ROLE_MISMATCH` | 默认跳过（映射多对一，需先锁表） | `SKIPPED_ROLE` + `ROLE_APPLY_SKIPPED=1` |
 | `ROLE_UNVERIFIED` | 永不修 | `SKIPPED_ROLE_UNVERIFIED` |
+| 目标行 `status='disabled'` | **跳过**（Issue 硬性闸门 #5：禁用账号禁止触碰）；差异类别照常计数 | `SKIPPED_DISABLED` |
+| 目标行 `deleted_at` 非空 | 不进入判定（L1 只读 SQL 已 `WHERE deleted_at IS NULL`），也不进入修复谓词 | — |
 | 未知类别 / 明细缺 `local_id` / 非 uuid 值 | **fail-fast `exit 3`**，不生成 SQL | `UNKNOWN_CATEGORY=1` |
+
+> 跳过只影响**写通道**：`status='disabled'` 的漂移行仍计入 `TENANT_MISMATCH`/`ORG_MISMATCH`/`NIL_UUID`
+> （只读分类与 token 契约唯一 owner 仍是 #2623）；`REPAIR_ROWS` 不含它，SQL 里也不会出现该行。
 
 ### 9.3 两份 SQL 的形态（可逐行断言）
 
 - **单事务**：`BEGIN; … COMMIT;`，任一语句失败即整体回滚（`psql -v ON_ERROR_STOP=1 -f`）。
-- **compare-and-set**：`UPDATE users SET tenant_id=…, org_id=…, updated_at=now() WHERE id=… AND iam_sub=… AND tenant_id=<旧值> AND org_id=<旧值>;`
-  —— 目标行在生成与执行之间被改过 → 命中 0 行，不会覆盖并发写入。
+- **compare-and-set**：`UPDATE users SET tenant_id=…, org_id=…, updated_at=now() WHERE id=… AND iam_sub=… AND tenant_id=<旧值> AND org_id=<旧值> AND deleted_at IS NULL;`
+  —— 目标行在生成与执行之间被改过 / 被软删除 → 命中 0 行，不会覆盖并发写入。
 - **审计留痕**：每行一条 `audit_logs`（`action=USER_CACHE_RECONCILE`，`details={batch_id,category,old,new}`）；
   回滚文件写 `action=USER_CACHE_RECONCILE_ROLLBACK`，`old`/`new` 互换。
-- **事务末后置校验**：每行一个 `DO $$ ... RAISE EXCEPTION 'reconcile: concurrent change detected for <id>' ... $$;`
-  —— 任一行未达预期值即中止整个事务（不可能「修一半」）。
+- **事务末后置校验（断言「达到新值」）**：每行一个
+  `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM users WHERE id=<id> AND iam_sub=<sub> AND tenant_id=<新> AND org_id=<新> AND deleted_at IS NULL) THEN RAISE EXCEPTION 'reconcile: concurrent change detected for <id> (row missing/soft-deleted/not at target)'; END IF; END $$;`
+  —— 该行被改值、被**硬删除**、被软删除、或更新未命中，都会 `RAISE` 并中止整个事务（不可能「修一半」，
+  也不会以「不匹配」为假而漏检行消失）。
 - 语句按 `iam_sub` 升序，`BATCH_ID=<UTC yyyyMMddTHHMMSSZ>-<6 hex>` 贯穿修复 SQL、审计 `details`、回滚 SQL 与输出 token。
+- **产物必须落盘**：`--sql-out` / `--rollback-file` 写不出来（目录不可建、不可写、文件为空）→ `SQL_WRITE_FAILED=1` + `exit 2`，
+  绝不进入执行阶段、也不打印 `RESULT: PASS`。
 
 ### 9.4 输出 token（新增，L1 token 不变）
 
 ```
-REPAIR_ROWS SKIPPED_ORPHAN SKIPPED_MISSING_LOCAL SKIPPED_ROLE SKIPPED_ROLE_UNVERIFIED
-ROLE_APPLY_SKIPPED BATCH_ID AUDIT_ROWS DB_WRITES ROLLBACK_ROWS SQL_OUT ROLLBACK_FILE
+REPAIR_ROWS SKIPPED_ORPHAN SKIPPED_MISSING_LOCAL SKIPPED_DISABLED SKIPPED_ROLE
+SKIPPED_ROLE_UNVERIFIED ROLE_APPLY_SKIPPED BATCH_ID AUDIT_ROWS DB_WRITES ROLLBACK_ROWS
+SQL_OUT ROLLBACK_FILE
 ```
 
 失败语义：未授权 `UNAUTHORIZED_APPLY=1`；行数不符 `APPLY_CONFIRM_MISMATCH=1`；
-`REPAIR_ROWS=0` → `NOTHING_TO_REPAIR=1`（无事可做不是成功修复）；以上一律 `DB_WRITES=0` + `exit 2`。
+`REPAIR_ROWS=0` → `NOTHING_TO_REPAIR=1`（无事可做不是成功修复）；
+SQL 产物写失败 → `SQL_WRITE_FAILED=1`；以上一律 `DB_WRITES=0` + `exit 2`。
 
 ### 9.5 运维执行顺序（真实库）
 
@@ -238,5 +249,5 @@ ROLE_APPLY_SKIPPED BATCH_ID AUDIT_ROWS DB_WRITES ROLLBACK_ROWS SQL_OUT ROLLBACK_
 2. Owner 授权（`OWNER_APPROVED_USER_CACHE_RECONCILE=1`）；
 3. `--sql-only` 生成 SQL → DBA 复核 `--sql-out`；
 4. 执行修复 SQL（单事务）；
-5. 再跑只读对账 → 三类计数应归零；`ORPHAN_LOCAL` / `MISSING_LOCAL` / 角色类仍按原样跳过；
+5. 再跑只读对账 → 三类计数应归零；若本次 `SKIPPED_DISABLED>0`，被跳过的 disabled 行仍会留在对应差异类别里（预期，需人工处理）；`ORPHAN_LOCAL` / `MISSING_LOCAL` / 角色类仍按原样跳过；
 6. 如需回退：执行 `--rollback-file`（同样单事务 + 反向审计）。

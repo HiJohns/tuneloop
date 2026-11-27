@@ -2,8 +2,10 @@
 # #2623 (L1) 用户缓存只读对账：把 tuneloop 本地 users 缓存与 IAM 权威关系比对，
 # 输出 6 类差异分类 + 机器可读 token（供 #2624 修复、#2625 例行消费）。
 #
-# 只读：本脚本不包含任何写入语句；真实库模式在连接后立即
+# 只读路径（默认，不加 --apply）：真实库模式在连接后立即
 # `SET default_transaction_read_only = on`，输出恒为 DB_WRITES=0。
+# 写通道（#2624，--apply）：Owner 审批 env + --confirm-rows 双闸门，单事务 compare-and-set；
+# 此时 DB_WRITES 为实际写入行数（详见 docs/ops/user-cache-reconcile.md §9）。
 #
 # 用法：
 #   bash scripts/reconcile-user-cache.sh [--json] [--limit N]
@@ -395,6 +397,9 @@ DETAILS=()
 # #2624：可修复行（只含 TENANT_MISMATCH / ORG_MISMATCH / NIL_UUID）
 # 字段：iam_sub|local_id|category|old_tenant|old_org|new_tenant|new_org
 REPAIRS=()
+# #2624：Issue 硬性闸门 #5 —— status='disabled' 的漂移行**禁止触碰**。
+# 它仍计入差异类别（D1：只读 token 契约归 #2623，不因写通道而变），只是不进 REPAIRS。
+SKIPPED_DISABLED=0
 
 add_repair() { # sub local_id category old_tenant old_org new_tenant new_org
   REPAIRS+=("$1|$2|$3|$4|$5|$6|$7")
@@ -448,21 +453,33 @@ classify_subject() { # sub
       COUNT[NIL_UUID]=$((COUNT[NIL_UUID] + 1))
       add_detail NIL_UUID "$sub" "tenant=$local_tenant org=$local_org role=$local_role" \
         "tenant=$expect_tenant org=$expect_org role=$rel_role"
-      add_repair "$sub" "$local_uid" NIL_UUID "$local_tenant" "$local_org" "$expect_tenant" "$expect_org"
+      if [ "$local_status" = "disabled" ]; then
+        SKIPPED_DISABLED=$((SKIPPED_DISABLED + 1))
+      else
+        add_repair "$sub" "$local_uid" NIL_UUID "$local_tenant" "$local_org" "$expect_tenant" "$expect_org"
+      fi
       return 0
     fi
     if [ "$local_tenant" != "$expect_tenant" ]; then
       COUNT[TENANT_MISMATCH]=$((COUNT[TENANT_MISMATCH] + 1))
       add_detail TENANT_MISMATCH "$sub" "tenant=$local_tenant org=$local_org role=$local_role" \
         "tenant=$expect_tenant org=$expect_org role=$rel_role"
-      add_repair "$sub" "$local_uid" TENANT_MISMATCH "$local_tenant" "$local_org" "$expect_tenant" "$expect_org"
+      if [ "$local_status" = "disabled" ]; then
+        SKIPPED_DISABLED=$((SKIPPED_DISABLED + 1))
+      else
+        add_repair "$sub" "$local_uid" TENANT_MISMATCH "$local_tenant" "$local_org" "$expect_tenant" "$expect_org"
+      fi
       return 0
     fi
     if [ "$local_org" != "$expect_org" ]; then
       COUNT[ORG_MISMATCH]=$((COUNT[ORG_MISMATCH] + 1))
       add_detail ORG_MISMATCH "$sub" "tenant=$local_tenant org=$local_org role=$local_role" \
         "tenant=$expect_tenant org=$expect_org role=$rel_role"
-      add_repair "$sub" "$local_uid" ORG_MISMATCH "$local_tenant" "$local_org" "$expect_tenant" "$expect_org"
+      if [ "$local_status" = "disabled" ]; then
+        SKIPPED_DISABLED=$((SKIPPED_DISABLED + 1))
+      else
+        add_repair "$sub" "$local_uid" ORG_MISMATCH "$local_tenant" "$local_org" "$expect_tenant" "$expect_org"
+      fi
       return 0
     fi
     allowed="$(allowed_local_roles "$rel_role" "$rel_froles")"
@@ -556,6 +573,7 @@ repair_tokens() {
   printf 'REPAIR_ROWS=%s\n' "$REPAIR_ROWS"
   printf 'SKIPPED_ORPHAN=%s\n' "$SKIPPED_ORPHAN"
   printf 'SKIPPED_MISSING_LOCAL=%s\n' "$SKIPPED_MISSING_LOCAL"
+  printf 'SKIPPED_DISABLED=%s\n' "$SKIPPED_DISABLED"
   printf 'SKIPPED_ROLE=%s\n' "$SKIPPED_ROLE"
   printf 'SKIPPED_ROLE_UNVERIFIED=%s\n' "$SKIPPED_ROLE_UNVERIFIED"
   printf 'ROLE_APPLY_SKIPPED=%s\n' "$ROLE_APPLY_SKIPPED"
@@ -592,7 +610,7 @@ write_repair_sql() { # file action old_field new_field order
       echo "-- iam_sub=$(sql_quote "$sub") category=$cat"
       printf "UPDATE users SET tenant_id = '%s', org_id = '%s', updated_at = now()\n" \
         "$(sql_quote "$to_tenant")" "$(sql_quote "$to_org")"
-      printf " WHERE id = '%s' AND iam_sub = '%s' AND tenant_id = '%s' AND org_id = '%s';\n" \
+      printf " WHERE id = '%s' AND iam_sub = '%s' AND tenant_id = '%s' AND org_id = '%s' AND deleted_at IS NULL;\n" \
         "$(sql_quote "$uid")" "$(sql_quote "$sub")" "$(sql_quote "$from_tenant")" "$(sql_quote "$from_org")"
       printf "INSERT INTO audit_logs (id, tenant_id, org_id, user_id, actor_name, actor_role, action, resource_type, resource_id, status_code, status, details, ip_address, user_agent, created_at)\n"
       printf "VALUES (gen_random_uuid(), '%s', '%s', '%s', 'reconcile-user-cache', 'ops', '%s', 'users', '%s', 0, 'success',\n" \
@@ -606,9 +624,11 @@ write_repair_sql() { # file action old_field new_field order
       local to_tenant="$new_tenant" to_org="$new_org"
       if [ "$order" = "rollback" ]; then to_tenant="$old_tenant"; to_org="$old_org"; fi
       echo "DO \$\$ BEGIN"
-      printf "  IF EXISTS (SELECT 1 FROM users WHERE id = '%s' AND (tenant_id <> '%s' OR org_id <> '%s')) THEN\n" \
-        "$(sql_quote "$uid")" "$(sql_quote "$to_tenant")" "$(sql_quote "$to_org")"
-      printf "    RAISE EXCEPTION 'reconcile: concurrent change detected for %s';\n" "$(sql_quote "$uid")"
+      printf "  IF NOT EXISTS (SELECT 1 FROM users WHERE id = '%s' AND iam_sub = '%s'\n" \
+        "$(sql_quote "$uid")" "$(sql_quote "$sub")"
+      printf "                       AND tenant_id = '%s' AND org_id = '%s' AND deleted_at IS NULL) THEN\n" \
+        "$(sql_quote "$to_tenant")" "$(sql_quote "$to_org")"
+      printf "    RAISE EXCEPTION 'reconcile: concurrent change detected for %s (row missing/soft-deleted/not at target)';\n" "$(sql_quote "$uid")"
       echo "  END IF;"
       echo "END \$\$;"
     done <<< "$SORTED_REPAIRS"
@@ -689,10 +709,20 @@ if [ "$APPLY" = "1" ]; then
   fi
 
   BATCH_ID="$(new_batch_id)"
-  mkdir -p "$(dirname "$SQL_OUT")" 2>/dev/null || true
-  mkdir -p "$(dirname "$ROLLBACK_FILE")" 2>/dev/null || true
-  write_repair_sql "$SQL_OUT" USER_CACHE_RECONCILE old new forward
-  write_repair_sql "$ROLLBACK_FILE" USER_CACHE_RECONCILE_ROLLBACK new old rollback
+  # 产物必须可独立执行（D6）：写不出来就是失败，禁止「生成失败仍 PASS」（#2624 B3）。
+  SQL_WRITE_FAILED=0
+  mkdir -p "$(dirname "$SQL_OUT")" 2>/dev/null || SQL_WRITE_FAILED=1
+  mkdir -p "$(dirname "$ROLLBACK_FILE")" 2>/dev/null || SQL_WRITE_FAILED=1
+  if [ "$SQL_WRITE_FAILED" = "0" ]; then
+    write_repair_sql "$SQL_OUT" USER_CACHE_RECONCILE old new forward || SQL_WRITE_FAILED=1
+    write_repair_sql "$ROLLBACK_FILE" USER_CACHE_RECONCILE_ROLLBACK new old rollback || SQL_WRITE_FAILED=1
+  fi
+  if [ "$SQL_WRITE_FAILED" = "1" ] || [ ! -s "$SQL_OUT" ] || [ ! -s "$ROLLBACK_FILE" ]; then
+    echo "SQL_WRITE_FAILED=1"
+    DB_WRITES=0
+    repair_tokens
+    fail_with 2 "cannot write repair/rollback SQL (check --sql-out / --rollback-file and permissions)"
+  fi
   AUDIT_ROWS="$REPAIR_ROWS"
   ROLLBACK_ROWS="$REPAIR_ROWS"
 

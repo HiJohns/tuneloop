@@ -2,9 +2,9 @@
 # #2624 证据/回归测试：用户缓存对账的「可选修复」通道（--apply）。
 #
 # 用法：
-#   bash scripts/tests/test_reconcile_user_cache_apply_2624.sh r1   # 闸门 + SQL 形状（离线 --sql-only）
-#   bash scripts/tests/test_reconcile_user_cache_apply_2624.sh r2   # 一次性 PG：单事务真修复 + 审计 + 复查归零
-#   bash scripts/tests/test_reconcile_user_cache_apply_2624.sh r3   # 回滚还原 + 并发中止（整体回滚）
+#   bash scripts/tests/test_reconcile_user_cache_apply_2624.sh r1   # 闸门 + SQL 形状（离线 --sql-only）+ R5 disabled 跳过 + R6 产物写失败
+#   bash scripts/tests/test_reconcile_user_cache_apply_2624.sh r2   # 一次性 PG：单事务真修复 + 审计 + 复查归零 + R5 disabled 行不被修
+#   bash scripts/tests/test_reconcile_user_cache_apply_2624.sh r3   # 回滚还原 + 改值型并发中止 + R4 行被删除型并发中止
 #
 # 全部在一次性 PostgreSQL（127.0.0.1:15433，#2341 口径）上跑；未触碰 dev jobmaster-postgres、
 # 预生产/生产库。判定逻辑与 token 契约仍由 #2623 拥有——本测试只消费它的输出。
@@ -180,18 +180,56 @@ r1)
   expect ROLE_APPLY_SKIPPED 1 "$(tok "$OK_OUT" ROLE_APPLY_SKIPPED)"
   expect SQL_ONLY_DB_WRITES 0 "$(tok "$OK_OUT" DB_WRITES)"
 
-  CAS_ROWS="$(grep -cE "^ WHERE id = '[0-9a-f-]+' AND iam_sub = '[^']+' AND tenant_id = '[0-9a-f-]+' AND org_id = '[0-9a-f-]+';$" "$TMP/fix.sql" 2>/dev/null | tr -d ' ')"
+  CAS_ROWS="$(grep -cE "^ WHERE id = '[0-9a-f-]+' AND iam_sub = '[^']+' AND tenant_id = '[0-9a-f-]+' AND org_id = '[0-9a-f-]+' AND deleted_at IS NULL;$" "$TMP/fix.sql" 2>/dev/null | tr -d ' ')"
   expect SQL_HAS_CAS 1 "$([ "${CAS_ROWS:-0}" = "6" ] && echo 1 || echo 0)"
   AUDIT_INSERTS="$(grep -c 'INSERT INTO audit_logs' "$TMP/fix.sql" 2>/dev/null | tr -d ' ')"
   expect SQL_HAS_AUDIT 6 "$AUDIT_INSERTS"
   POSTCHECKS="$(grep -c 'RAISE EXCEPTION' "$TMP/fix.sql" 2>/dev/null | tr -d ' ')"
   expect SQL_HAS_POSTCHECK 1 "$([ "${POSTCHECKS:-0}" = "6" ] && echo 1 || echo 0)"
+  # B1 回归：后置校验必须是「断言达到新值」（NOT EXISTS），不能是「断言不匹配」（行被删除时漏检）
+  POSTCHECK_NOT_EXISTS="$(grep -c 'IF NOT EXISTS (SELECT 1 FROM users' "$TMP/fix.sql" 2>/dev/null | tr -d ' ')"
+  expect SQL_POSTCHECK_ASSERTS_TARGET 1 "$([ "${POSTCHECK_NOT_EXISTS:-0}" = "6" ] && echo 1 || echo 0)"
+  expect SQL_POSTCHECK_LEGACY_MISMATCH_FORM 0 "$(grep -c 'IF EXISTS (SELECT 1 FROM users WHERE id' "$TMP/fix.sql" 2>/dev/null | tr -d ' ')"
   SUBS="$(grep -oE '^-- iam_sub=[^ ]+' "$TMP/fix.sql" | sed 's/^-- iam_sub=//')"
   expect SQL_ORDERED_BY_IAM_SUB 1 "$([ "$SUBS" = "$(printf '%s\n' "$SUBS" | LC_ALL=C sort)" ] && echo 1 || echo 0)"
   expect SQL_SINGLE_TRANSACTION 1 "$([ "$(grep -c '^BEGIN;$' "$TMP/fix.sql")" = "1" ] && [ "$(grep -c '^COMMIT;$' "$TMP/fix.sql")" = "1" ] && echo 1 || echo 0)"
   expect SQL_NO_UNAUTHORIZED_APPLY_FLAG 1 "$([ "$(grep -c -- '--apply' "$TMP/fix.sql")" = "0" ] && echo 1 || echo 0)"
   expect ROLLBACK_ACTION_ROWS 6 "$(grep -c "'USER_CACHE_RECONCILE_ROLLBACK'" "$TMP/rollback.sql" 2>/dev/null | tr -d ' ')"
   expect ROLLBACK_MIRRORS_OLD 1 "$( [ "$(grep -c "tenant_id = '33333333-3333-3333-3333-333333333333'" "$TMP/rollback.sql")" -ge 3 ] && echo 1 || echo 0)"
+
+  # 4) #2624 R5/B2（离线）：status='disabled' 的漂移行禁止触碰
+  #    fixture 由计划内的 local.tsv 派生（只把 a-tenant-1 的 status 改为 disabled），不新增计划外文件。
+  DIS_LOCAL="$TMP/local-disabled.tsv"
+  awk -F'\t' -v OFS='\t' '{ if ($1 == "a-tenant-1") $6 = "disabled"; print }' \
+    "$FIXTURE_DIR/local.tsv" > "$DIS_LOCAL"
+  DIS_OUT="$TMP/r1-disabled.txt"
+  rm -f "$TMP/fix-disabled.sql" "$TMP/rollback-disabled.sql"
+  OWNER_APPROVED_USER_CACHE_RECONCILE=1 bash "$TOOL" --apply --sql-only --confirm-rows 5 \
+    --sql-out "$TMP/fix-disabled.sql" --rollback-file "$TMP/rollback-disabled.sql" \
+    --iam-fixture "$FIXTURE_DIR/iam.tsv" --local-fixture "$DIS_LOCAL" > "$DIS_OUT" 2>&1
+  DIS_RC=$?
+  sed -n '1,20p' "$DIS_OUT"
+  expect DISABLED_OFFLINE_EXIT 0 "$DIS_RC"
+  expect SKIPPED_DISABLED 1 "$(tok "$DIS_OUT" SKIPPED_DISABLED)"
+  expect DISABLED_REPAIR_ROWS 5 "$(tok "$DIS_OUT" REPAIR_ROWS)"
+  expect DISABLED_DB_WRITES 0 "$(tok "$DIS_OUT" DB_WRITES)"
+  DIS_HITS="$(grep -c 'a-tenant-1' "$TMP/fix-disabled.sql" 2>/dev/null | tr -d ' ')"
+  expect DISABLED_NOT_IN_SQL 1 "$([ "${DIS_HITS:-0}" = "0" ] && echo 1 || echo 0)"
+  # D1：跳过修复不得改变只读分类结果（disabled 行仍计入 TENANT_MISMATCH）
+  expect DISABLED_CATEGORY_UNCHANGED 3 "$(tok "$DIS_OUT" TENANT_MISMATCH)"
+
+  # 5) #2624 R6/B3：SQL 产物写不出来 → 必须显式失败（exit 2 + SQL_WRITE_FAILED=1，不得 RESULT: PASS）
+  WRITE_FAIL_OUT="$TMP/r1-write-fail.txt"
+  OWNER_APPROVED_USER_CACHE_RECONCILE=1 bash "$TOOL" --apply --sql-only --confirm-rows 6 \
+    --sql-out /proc/notallowed/fix.sql --rollback-file /proc/notallowed/rb.sql \
+    --fixture "$FIXTURE_DIR" > "$WRITE_FAIL_OUT" 2>&1
+  WRITE_FAIL_RC=$?
+  sed -n '1,25p' "$WRITE_FAIL_OUT"
+  expect SQL_WRITE_FAIL_EXIT 2 "$WRITE_FAIL_RC"
+  expect SQL_WRITE_FAIL_TOKEN 1 "$(tok "$WRITE_FAIL_OUT" SQL_WRITE_FAILED)"
+  expect SQL_WRITE_FAIL_DB_WRITES 0 "$(tok "$WRITE_FAIL_OUT" DB_WRITES)"
+  expect SQL_WRITE_FAIL_NO_PASS 0 "$(grep -c 'RESULT: PASS' "$WRITE_FAIL_OUT" 2>/dev/null | tr -d ' ')"
+  expect SQL_WRITE_FAIL_NO_FILE 0 "$( [ -f /proc/notallowed/fix.sql ] && echo 1 || echo 0)"
   finish
   ;;
 
@@ -228,6 +266,29 @@ r2)
   expect RECHECK_NIL_UUID 0 "$(tok "$RECHECK_OUT" NIL_UUID)"
   expect RECHECK_ORPHAN_LOCAL 2 "$(tok "$RECHECK_OUT" ORPHAN_LOCAL)"
   expect RECHECK_DB_WRITES 0 "$(tok "$RECHECK_OUT" DB_WRITES)"
+
+  # #2624 R5/B2（真修复路径）：status='disabled' 的漂移行不得被 UPDATE/审计
+  "${PSQL[@]}" -d "$DB" -q -c "
+    UPDATE users SET status='disabled', tenant_id='33333333-3333-3333-3333-333333333333' WHERE iam_sub='a-tenant-2';
+    UPDATE users SET tenant_id='33333333-3333-3333-3333-333333333333' WHERE iam_sub='a-org-1';
+  " >/dev/null || { echo "FATAL: cannot build disabled scenario" >&2; exit 2; }
+
+  DIS_APPLY_OUT="$TMP/r2-disabled-apply.txt"
+  DIS_AUDIT_BEFORE="$(sql_scalar "SELECT count(*) FROM audit_logs WHERE resource_id='a-tenant-2'")"
+  DIS_APPLY_RC="$(run_apply "$DIS_APPLY_OUT" --apply --confirm-rows 1 \
+    --sql-out "$TMP/r2-disabled-fix.sql" --rollback-file "$TMP/r2-disabled-rb.sql" \
+    --iam-fixture "$FIXTURE_DIR/iam.tsv")"
+  sed -n '1,25p' "$DIS_APPLY_OUT"
+  expect DISABLED_APPLY_EXIT 0 "$DIS_APPLY_RC"
+  expect DISABLED_SKIPPED 1 "$(tok "$DIS_APPLY_OUT" SKIPPED_DISABLED)"
+  expect DISABLED_REPAIR_ROWS 1 "$(tok "$DIS_APPLY_OUT" REPAIR_ROWS)"
+  expect DISABLED_DB_WRITES 1 "$(tok "$DIS_APPLY_OUT" DB_WRITES)"
+  DIS_SQL_HITS="$(grep -c 'a-tenant-2' "$TMP/r2-disabled-fix.sql" 2>/dev/null | tr -d ' ')"
+  expect DISABLED_NOT_IN_SQL 1 "$([ "${DIS_SQL_HITS:-0}" = "0" ] && echo 1 || echo 0)"
+  DIS_ROW="$(sql_scalar "SELECT status || '|' || tenant_id::text FROM users WHERE iam_sub='a-tenant-2'")"
+  expect DISABLED_ROW_UNCHANGED 1 "$([ "$DIS_ROW" = 'disabled|33333333-3333-3333-3333-333333333333' ] && echo 1 || echo 0)"
+  DIS_AUDIT_AFTER="$(sql_scalar "SELECT count(*) FROM audit_logs WHERE resource_id='a-tenant-2'")"
+  expect DISABLED_AUDIT_ROWS 0 "$(( DIS_AUDIT_AFTER - DIS_AUDIT_BEFORE ))"
   finish
   ;;
 
@@ -292,6 +353,34 @@ r3)
   expect ROWS_CHANGED_AFTER_ABORT 0 "$([ "$HASH_AFTER" = "$HASH_TAMPERED" ] && echo 0 || echo 1)"
   expect NO_PARTIAL_WRITE 0 "$( [ "$(sql_scalar "SELECT count(*) FROM audit_logs")" = "$AUDIT_BEFORE_CONC" ] && echo 0 || echo 1)"
   expect FULL_TABLE_UNCHANGED_BY_ABORT 1 "$([ "$HASH_AFTER" = "$HASH_TAMPERED" ] && echo 1 || echo 0)"
+
+  # #2624 R4/B1：快照后目标行被**硬删除** → 后置校验必须 RAISE（NOT EXISTS 形态）→ 整体回滚
+  # 先把并发例篡改的行还原，回到「干净漂移态」再生成 SQL 快照
+  "${PSQL[@]}" -d "$DB" -q -c \
+    "UPDATE users SET tenant_id='33333333-3333-3333-3333-333333333333' WHERE iam_sub='a-tenant-1'" >/dev/null
+  DEL_GEN_OUT="$TMP/r3-delete-gen.txt"
+  DEL_GEN_RC="$(run_apply "$DEL_GEN_OUT" --apply --sql-only --confirm-rows 6 \
+    --sql-out "$TMP/r3-delete.sql" --rollback-file "$TMP/r3-delete-rb.sql" \
+    --iam-fixture "$FIXTURE_DIR/iam.tsv")"
+  expect DELETE_ROW_GEN_EXIT 0 "$DEL_GEN_RC"
+  expect DELETE_ROW_GEN_DB_WRITES 0 "$(tok "$DEL_GEN_OUT" DB_WRITES)"
+
+  "${PSQL[@]}" -d "$DB" -q -c "DELETE FROM users WHERE iam_sub='a-nil-1'" >/dev/null
+  HASH_AFTER_DELETE="$(sql_scalar "SELECT md5(string_agg(id::text||tenant_id::text||org_id::text, ',' ORDER BY id)) FROM users")"
+  AUDIT_AFTER_DELETE="$(sql_scalar "SELECT count(*) FROM audit_logs")"
+
+  PGPASSWORD="$POSTGRES_PASSWORD" "${PSQL[@]}" -d "$DB" -q -f "$TMP/r3-delete.sql" > "$TMP/r3-delete-exec.log" 2>&1
+  DEL_RC=$?
+  sed -n '1,10p' "$TMP/r3-delete-exec.log"
+  expect DELETE_ROW_SQL_EXIT_NONZERO 1 "$([ "$DEL_RC" != "0" ] && echo 1 || echo 0)"
+  expect DELETE_ROW_ABORT 1 "$(grep -q 'concurrent change detected' "$TMP/r3-delete-exec.log" && echo 1 || echo 0)"
+  expect DELETE_ROW_NO_PASS 0 "$(grep -c 'RESULT: PASS' "$TMP/r3-delete-exec.log" 2>/dev/null | tr -d ' ')"
+  HASH_AFTER_DELETE_ABORT="$(sql_scalar "SELECT md5(string_agg(id::text||tenant_id::text||org_id::text, ',' ORDER BY id)) FROM users")"
+  DELETE_ROW_CHANGED=0
+  [ "$HASH_AFTER_DELETE_ABORT" = "$HASH_AFTER_DELETE" ] || DELETE_ROW_CHANGED=1
+  expect ROWS_CHANGED_AFTER_DELETE_ABORT 0 "$DELETE_ROW_CHANGED"
+  expect DELETE_ROW_DB_WRITES 0 "$DELETE_ROW_CHANGED"
+  expect DELETE_ROW_AUDIT_ROWS 0 "$(( $(sql_scalar "SELECT count(*) FROM audit_logs") - AUDIT_AFTER_DELETE ))"
   finish
   ;;
 
