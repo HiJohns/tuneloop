@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "issue": 2620,
+  "build": "1.0.0064ce14",
+  "commit": "0064ce14639b07ba16e23b8053f695ce69b09d45",
+  "dirty": false,
+  "plan_sha256": "87052a231cbe015afe2bffeffb398bfbd8606c8a8802a33ce4c241e2a2405335",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2620 (branch issue-2620, base origin/develop 19711ee7a); handler 直调 + 一次性 PostgreSQL 127.0.0.1:15433（TUNELOOP_TEST_DB=tuneloop_test_2620，#2341 口径）；未使用 jobmaster-postgres 与预生产/生产库",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2620.sh r1 > docs/evidence/2620/R1-self-query-tests.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2620/R1-self-query-tests.txt"
+      ],
+      "assert": "exit 0 且含 GO_TEST_EXIT=0 SELF2620_CASES_TOTAL=5 SELF2620_CASES_FAIL=0 SELF2620_BIND_GEN_HTTP=200 SELF2620_UNBIND_HTTP=200 SELF2620_PROMO_QR_HTTP=200 SELF2620_REFERRALS_TOTAL=1 SELF2620_REFEREE_NAME=1 SELF2620_CROSS_TENANT_HIDDEN=1；且含 5 条 --- PASS: TestSelfQueryTenantScope2620/ 子用例行",
+      "actual": "PASS：GO_TEST_EXIT=0 / SELF2620_CASES_TOTAL=5 / SELF2620_CASES_FAIL=0 / SELF2620_BIND_GEN_HTTP=200 / SELF2620_UNBIND_HTTP=200 / SELF2620_PROMO_QR_HTTP=200 / SELF2620_REFERRALS_TOTAL=1 / SELF2620_REFEREE_NAME=1 / SELF2620_CROSS_TENANT_HIDDEN=1；artifact 内含 5 条 --- PASS: TestSelfQueryTenantScope2620/<子用例>",
+      "expected": "PASS（9 项 token 全为期望值 + 5 条 PASS 子用例）",
+      "negative": "任一端点 404 40004 user not found、referee 姓名缺失、跨租户行可见、子用例数 <5 → FAIL",
+      "negative_result": "红线实证（修前同一命令，仅落测试未换句柄）：TestSelfQueryTenantScope2620 FAIL，bind_gen/unbind/promo_qr/referrals 四个子用例均返回 HTTP 404 body={\"code\":40004,\"message\":\"user not found\"}，cross_tenant_scoped 负例 PASS（证明隔离仍在）；修复后 5/5 PASS。",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2620.sh r2 > docs/evidence/2620/R2-build-and-scan.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2620/R2-build-and-scan.txt"
+      ],
+      "assert": "exit 0 且含 GO_BUILD_EXIT=0 TEST_COMPILE_EXIT=0 GOFMT_DIFF=0 IDENTITY_CTX_SITES=6 RESIDUAL_PLAIN_CTX_SITES=0",
+      "actual": "PASS：GO_BUILD_EXIT=0 / TEST_COMPILE_EXIT=0 / GOFMT_DIFF=0 / IDENTITY_CTX_SITES=6（wechat_bind.go=4、referral.go=2）/ RESIDUAL_PLAIN_CTX_SITES=0",
+      "expected": "PASS（5 项 token 全为期望值）",
+      "negative": "残留 WithContext(ctx)、漏改句柄（<6）、构建失败、编译冒烟失败、gofmt 差异 → FAIL",
+      "negative_result": "负例未触发：两文件残留 WithContext(ctx) 计 0（RESIDUAL_PLAIN_CTX_SITES=0）；IdentityCtx 站点 6 处（未漏改）；go build ./... 与 go test ./... -run '^$' 均 exit 0；gofmt -l 无差异。",
+      "pass": true
+    }
+  ]
+}

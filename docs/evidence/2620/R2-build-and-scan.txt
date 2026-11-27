@@ -1,0 +1,11 @@
+# build=1.0.0064ce146 # commit=0064ce14639b07ba16e23b8053f695ce69b09d45 # dirty=false
+GENERATED_AT_HEAD=0064ce14639b07ba16e23b8053f695ce69b09d45
+# 句柄收口静态扫描 + go build ./... + 编译冒烟（go test ./... -run '^$'）+ gofmt
+GO_BUILD_EXIT=0
+TEST_COMPILE_EXIT=0
+GOFMT_DIFF=0
+IDENTITY_CTX_SITES=6
+RESIDUAL_PLAIN_CTX_SITES=0
+--- per-file IdentityCtx counts ---
+backend/handlers/wechat_bind.go=4
+backend/handlers/referral.go=2

@@ -1,0 +1,5 @@
+backend/handlers/referral.go
+backend/handlers/self_query_tenant_scope_2620_test.go
+backend/handlers/wechat_bind.go
+docs/ops/tenant-id-audit.md
+scripts/verify-2620.sh

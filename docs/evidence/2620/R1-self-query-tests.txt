@@ -1,0 +1,18 @@
+# build=1.0.0064ce146 # commit=0064ce14639b07ba16e23b8053f695ce69b09d45 # dirty=false
+GENERATED_AT_HEAD=0064ce14639b07ba16e23b8053f695ce69b09d45
+# 4 个 /users/me/* 端点自查询 + 跨租户负例（users.tenant_id=cacheTenant ≠ JWT tid）
+self_query_tenant_scope_2620_test.go:153: SELF2620_BIND_GEN_HTTP=200
+self_query_tenant_scope_2620_test.go:166: SELF2620_UNBIND_HTTP=200
+self_query_tenant_scope_2620_test.go:183: SELF2620_PROMO_QR_HTTP=200
+self_query_tenant_scope_2620_test.go:206: SELF2620_REFERRALS_TOTAL=1
+self_query_tenant_scope_2620_test.go:207: SELF2620_REFEREE_NAME=1
+self_query_tenant_scope_2620_test.go:223: SELF2620_CROSS_TENANT_HIDDEN=1
+SELF2620_CASES_TOTAL=5
+SELF2620_CASES_FAIL=0
+GO_TEST_EXIT=0
+--- go test subtest results ---
+    --- PASS: TestSelfQueryTenantScope2620/bind_gen (0.00s)
+    --- PASS: TestSelfQueryTenantScope2620/unbind (0.00s)
+    --- PASS: TestSelfQueryTenantScope2620/promo_qr (0.00s)
+    --- PASS: TestSelfQueryTenantScope2620/referrals (0.01s)
+    --- PASS: TestSelfQueryTenantScope2620/cross_tenant_scoped (0.00s)
