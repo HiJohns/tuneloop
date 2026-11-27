@@ -119,10 +119,31 @@ FAIL(r8): vitest bind-failure-2601 (expired rows) exit=1
 
 ## 证据真实性 / 持久化
 
-- 7 份文本 artifact 首行均为 `# build=1.0.927158cf2 # commit=927158cf2… # dirty=false`，`GENERATED_AT_HEAD=927158cf2…`，生成于 Rev.2 fix commit **之后**。
+7 份文本 artifact 的首行（逐字）与账本 `docs/evidence/2601/evidence.json`（`build=1.0.927158cf2`、`commit=927158cf24e146f1a8cd492f0ba1e7296f667284`、`dirty=false`）一致：
+
+| artifact | 首行（逐字） |
+|---|---|
+| `docs/evidence/2601/R1-confirm-triples.txt` | `# build=1.0.927158cf2 # commit=927158cf24e146f1a8cd492f0ba1e7296f667284 # dirty=false` |
+| `docs/evidence/2601/R2-unbind-triples.txt` | `# build=1.0.927158cf2 # commit=927158cf24e146f1a8cd492f0ba1e7296f667284 # dirty=false` |
+| `docs/evidence/2601/R3-mergebind-state.txt` | `# build=1.0.927158cf2 # commit=927158cf24e146f1a8cd492f0ba1e7296f667284 # dirty=false` |
+| `docs/evidence/2601/R4-bind-ui.txt` | `# build=1.0.927158cf2 # commit=927158cf24e146f1a8cd492f0ba1e7296f667284 # dirty=false` |
+| `docs/evidence/2601/R5-docs.txt` | `# build=1.0.927158cf2 # commit=927158cf24e146f1a8cd492f0ba1e7296f667284 # dirty=false` |
+| `docs/evidence/2601/R6-build-lint.txt` | `# build=1.0.927158cf2 # commit=927158cf24e146f1a8cd492f0ba1e7296f667284 # dirty=false` |
+| `docs/evidence/2601/R8-bind-expired.txt` | `# build=1.0.927158cf2 # commit=927158cf24e146f1a8cd492f0ba1e7296f667284 # dirty=false` |
+
+- 七份的第二行均为 `GENERATED_AT_HEAD=ddfe4268f3bfc05285cb68d582f67a47e30cdb68`（本次重跑时的分支 HEAD；首行的 `build/commit` 锚点始终指向 Rev.2 fix commit `927158cf2`，与 `evidence.json` 一致）。
 - R1–R3 的断言为真实 handler + fake IAM + Postgres 测试库（127.0.0.1:15433/tuneloop_test）读回；R4/R8 为 jsdom + `@testing-library/react` 真实渲染（`render` / `waitFor` / `fireEvent`）。
-- R5 为文档结构断言（`evidence_type: static`），R6 为 build/lint，R7 为 gate 报告。
+- R5 为文档结构断言（`evidence_type: static`），R6 为 build/lint，R7 为 gate 报告（`.provenance` 同样锚定 `1.0.927158cf2 / 927158cf2… / false`，由 gate 从 evidence.json 继承）。
 - 不同矩阵行使用各自独立 artifact，无复用；`tmp/` 仅作原始日志。
+
+## Round 2 审计阻断点闭环
+
+| 阻断点 | 整改动作 | 可核验证据 |
+|---|---|---|
+| 1 R1–R6 provenance 锚 Rev.1 | 六份在 Rev.2 fix commit 锚点重跑并**入库**（此前重跑结果只留在工作树、未提交） | 上表七行首行；`bash ~/.config/opencode/scripts/evidence-artifacts.sh --issue 2601 --repo .` → `PASS: 8 artifacts` |
+| 2 Summary 自证与产物冲突 | 本节改为逐 artifact 列首行（可逐字比对），删除「均已重跑」式无产物支撑表述 | 本节表格 vs `head -1 docs/evidence/2601/R*.txt` |
+| 3 gate P14 在已提交状态不可复现 | R1–R6 入库后再跑 gate（报告提交在证据之后），并在干净树用 `--report tmp/` 复跑同一命令验证 `RESULT: PASS` 可复现 | `docs/evidence/2601/pre-ready-2601.json`（`overall=PASS`、`P14 PASS`、`P17 sha256=7c98a665…`） |
+| 4 `changed-files.txt` 漏 R8 | 补 `docs/evidence/2601/R8-bind-expired.txt`，与 `git diff --name-only 1e207b9a8 HEAD` 21 行逐行相等 | `wc -l docs/evidence/2601/changed-files.txt` = 21；`diff` 与 diff 名单无输出 |
 
 ## Dependency Order / 验收规则
 

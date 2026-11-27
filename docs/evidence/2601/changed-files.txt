@@ -7,6 +7,7 @@ docs/evidence/2601/R3-mergebind-state.txt
 docs/evidence/2601/R4-bind-ui.txt
 docs/evidence/2601/R5-docs.txt
 docs/evidence/2601/R6-build-lint.txt
+docs/evidence/2601/R8-bind-expired.txt
 docs/evidence/2601/changed-files.txt
 docs/evidence/2601/evidence.json
 docs/evidence/2601/plan.md
