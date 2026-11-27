@@ -1,0 +1,10 @@
+# build=1.0.5a695fef # commit=5a695fefb262ba0e78ead79b4f28275c85229f50 # dirty=false
+INPUT_CODE=40900
+INPUT_MESSAGE=网点名称已存在
+PC_TEXT=网点名称已存在
+PC_LAYER=human_message
+MOBILE_TEXT=网点名称已存在
+MOBILE_LAYER=human_message
+PASSTHROUGH=1
+RESULT: PASS
+

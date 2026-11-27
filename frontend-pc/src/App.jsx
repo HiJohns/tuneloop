@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { BrowserRouter, Routes, Route, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useNavigate, useLocation, useSearchParams, Navigate, useParams } from 'react-router-dom'
 import { Layout, Menu, Breadcrumb, Spin, Modal } from 'antd'
 import { Tabs } from 'antd'
 import {
@@ -34,9 +34,6 @@ import InviteManagement from './pages/InviteManagement'
 import DirectMemberManagement from './pages/DirectMemberManagement'
 import NotificationCenter from './components/NotificationCenter'
 import PermissionManage from './pages/admin/PermissionManage'
-import AssetDetail from './pages/AssetDetail'
-import ClientManagement from './pages/ClientManagement'
-import TenantManagement from './pages/TenantManagement'
 import AppealManagement from './pages/AppealManagement'
 import RepairConfigPage from './pages/admin/repair/RepairConfigPage'
 import MerchantRepairList from './pages/admin/repair/MerchantRepairList'
@@ -115,6 +112,13 @@ function handleLogout() {
   // Redirect to IAM login for proper logout with redirect back
   const url = buildIAMLoginURL()
   if (url) window.location.href = url
+}
+
+// #2538 D1: 只保留一个乐器详情页 —— 旧的 /site/stock/:id 存根（AssetDetail.jsx）
+// 被删除，旧链接/书签/库存监控行点击统一重定向到 /instruments/detail/:id。
+function LegacyStockDetailRedirect() {
+  const { id } = useParams()
+  return <Navigate to={`/instruments/detail/${id}`} replace />
 }
 
 function MainLayout() {
@@ -351,7 +355,9 @@ function MainLayout() {
     icon: <SettingOutlined />,
     label: '平台管理',
     children: [
-      { key: '/merchants', label: '商户管理', permission: { sysPermBits: [6] } },
+      // #2546 D13：商户管理员（本商户 OWNER/ADMIN）可进入商户管理（列表收窄到本商户），
+      // 平台专属写操作在页面内按 businessRole 隐藏。
+      { key: '/merchants', label: '商户管理', permission: { sysPermBits: [6], businessRoles: ['merchant_admin'] } },
       { key: '/system/user-management', label: '账户管理', permission: { sysPermBits: [6] } }, // #2064: 平台级账户管理（全部人员查找+关停），仅 system/namespace admin
       { key: '/face-review', label: '实名审核队列', permission: { sysPermBits: [18] } }, // #1793 T5
       { key: '/platform-staff', label: '平台员工管理', permission: { sysPermBits: [5] } }, // #1795 T6
@@ -438,7 +444,7 @@ function onMenuClick(e) {
     const key = item.key || ''
     if (isNsAdmin && getNamespaceAdminMenuKeys().includes(key)) return true
     if (ownerAtMerchant && cusPerm === 0 && sysPerm === 0 && parentKey !== 'platform' && parentKey !== 'system') return true
-    return checkPermission(item.permission, sysPerm, cusPerm, cusPermMapping)
+    return checkPermission(item.permission, sysPerm, cusPerm, cusPermMapping, userInfo)
   }
   const filteredItems = menuConfig
     .map(item => item.children
@@ -705,15 +711,16 @@ function onMenuClick(e) {
             <Route path="/finance" element={<ProtectedRoute><FinanceConfig /></ProtectedRoute>} />
             <Route path="/finance/quotes" element={<ProtectedRoute><div className="bg-white p-6 rounded shadow">报价单管理</div></ProtectedRoute>} />
             <Route path="/site/stock" element={<ProtectedRoute><InstrumentStock /></ProtectedRoute>} />
-            <Route path="/site/stock/:id" element={<ProtectedRoute><AssetDetail /></ProtectedRoute>} />
+            <Route path="/site/stock/:id" element={<ProtectedRoute><LegacyStockDetailRedirect /></ProtectedRoute>} />
             <Route path="/organization/sites" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10], cusPermCodes: ['instrument:create', 'instrument:read'], requireAllGroups: true }}><SiteManagement /></ProtectedRoute>} />
             <Route path="/organization/sites/new" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10] }}><SiteManagement /></ProtectedRoute>} />
             <Route path="/organization/sites/:id/edit" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10] }}><SiteManagement /></ProtectedRoute>} />
             <Route path="/organization/iam-sync" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10], cusPermCodes: ['instrument:create', 'instrument:read'], requireAll: true }}><IAMSyncPage /></ProtectedRoute>} />
             <Route path="/organization/sites/:id/new" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10] }}><SiteManagement /></ProtectedRoute>} />
             <Route path="/organization/sites/:id" element={<ProtectedRoute requiredPermission={{ sysPermBits: [10] }}><SiteManagement /></ProtectedRoute>} />
-            <Route path="/merchants" element={<ProtectedRoute requiredPermission={{ sysPermBits: [6] }}><MerchantManagement /></ProtectedRoute>} />
-            <Route path="/merchants/:id" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><MerchantManagement /></ProtectedRoute>} />
+            {/* #2546 D13：本商户 merchant_admin 可读（数据面收窄），/merchants/new 仍平台专属 */}
+            <Route path="/merchants" element={<ProtectedRoute requiredPermission={{ sysPermBits: [6], businessRoles: ['merchant_admin'] }}><MerchantManagement /></ProtectedRoute>} />
+            <Route path="/merchants/:id" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5], businessRoles: ['merchant_admin'] }}><MerchantManagement /></ProtectedRoute>} />
             <Route path="/merchants/new" element={<ProtectedRoute requiredPermission={{ sysPermBits: [5] }}><MerchantManagement /></ProtectedRoute>} />
             <Route path="/system/audit-logs" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['audit_log:read'] }}><AuditLogPage /></ProtectedRoute>} />
             <Route path="/system/user-management" element={<ProtectedRoute requiredPermission={{ sysPermBits: [6] }}><UserManagement /></ProtectedRoute>} />
@@ -731,8 +738,6 @@ function onMenuClick(e) {
             <Route path="/technician-profiles" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['instrument:read'] }}><TechnicianProfiles /></ProtectedRoute>} />
             <Route path="/maintenance/suppliers" element={<ProtectedRoute><SupplierDB /></ProtectedRoute>} />
             <Route path="/system/permissions" element={<ProtectedRoute requiredPermission={{ sysPermBits: [27] }}><PermissionManage /></ProtectedRoute>} />
-            <Route path="/system/clients" element={<ProtectedRoute requiredPermission={{ sysPermBits: [0] }}><ClientManagement /></ProtectedRoute>} />
-            <Route path="/system/tenants" element={<ProtectedRoute requiredPermission={{ sysPermBits: [6] }}><TenantManagement /></ProtectedRoute>} />
             <Route path="/system/banners" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['banner:manage'] }}><BannerManagePage /></ProtectedRoute>} />
             <Route path="/system/content-edit" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['category:manage'] }}><ContentEdit /></ProtectedRoute>} />
             <Route path="/system/membership-levels" element={<ProtectedRoute requiredPermission={{ cusPermCodes: ['membership:manage'] }}><MembershipLevelsPage /></ProtectedRoute>} />

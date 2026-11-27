@@ -602,6 +602,31 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	})
 }
 
+// activationRoleTemplates 是激活路径允许采纳的**员工级**角色模板（#2540 D2 / Rev.3）。
+//
+// 员工激活产出的 IAM 关系角色只有 OWNER/ADMIN/STAFF/repair_technician 四种语义，
+// 因此模板必须同属员工层：平台级模板（`namespace_admin` / `sys_admin`）、商户级
+// （`merchant_admin`）与顾客（`customer`）不参与员工激活——把平台模板与员工关系
+// 角色混搭会让权限面与组织位置不一致。白名单是 `services.AllRoleTemplates` 的
+// 真子集，未知码同样落空。
+var activationRoleTemplates = map[string]struct{}{
+	"site_admin":        {},
+	"site_member":       {},
+	"merchant_staff":    {},
+	"repair_technician": {},
+}
+
+// resolveActivationRoleTemplate 返回激活时使用的业务角色模板码：
+// 仅采用**员工级**白名单内的模板；空/非法/平台级/商户级/客户 → "site_member"
+// （legacy 兜底）。纯函数，便于脱 DB 单测（#2540）。
+func resolveActivationRoleTemplate(userRole string) string {
+	role := strings.TrimSpace(userRole)
+	if _, ok := activationRoleTemplates[role]; ok {
+		return role
+	}
+	return "site_member"
+}
+
 // ActivateUser creates IAM user for an existing local user that has no iam_sub
 // POST /api/users/:id/activate
 func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
@@ -615,13 +640,22 @@ func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
 	}
 
 	db := database.GetDB().WithContext(ctx)
-	var user models.User
-	if err := db.Where("id = ? AND tenant_id = ? AND deleted_at IS NULL", userID, tenantID).First(&user).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query user: " + err.Error()})
-		}
+	// #2526：激活同样是 by-id 行操作，可见性判定与列表/详情同源。
+	user, lookup, lookupErr := loadVisibleStaffUser(db, ctx, userID)
+	if lookupErr != nil {
+		log.Printf("[ActivateUser] ERROR: %v", lookupErr)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query user: " + lookupErr.Error()})
+		return
+	}
+	switch lookup {
+	case staffUserMissing:
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
+		return
+	case staffUserInvisible:
+		log.Printf("[ActivateUser] WARN: invisible staff user=%s actor=%s role=%s tid=%s oid=%s user_role=%s user_tid=%s",
+			userID, middleware.GetUserID(ctx), middleware.GetBusinessRole(ctx), tenantID,
+			middleware.GetOrgID(ctx), user.Role, user.TenantID)
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
 		return
 	}
 
@@ -666,10 +700,11 @@ func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
 		orgID = tenantID
 	}
 
-	iamRole := services.GetBusinessRole("site_member")
-	if iamRole == "" {
-		iamRole = "staff"
-	}
+	// #2540：关系角色与客户权限模板必须同源取自 users.role。
+	// 旧写法固定 GetBusinessRole("site_member") → IAM 关系角色被写成业务码 "user"
+	// （beaconiam 不识别 → 权限 None），且权限模板硬编码 site_member，激活 site_admin 会实质降权。
+	roleTemplate := resolveActivationRoleTemplate(user.Role)
+	iamRole := services.NormalizeIAMRelationRole(toIAMRole(roleTemplate))
 	if err := iamClient.BindUserToOrganization(iamResp.UserID, orgID, iamRole, ""); err != nil {
 		if purgeErr := iamClient.PurgeUser(iamResp.UserID); purgeErr != nil {
 			log.Printf("[ActivateUser] rollback purge failed for %s: %v", iamResp.UserID, purgeErr)
@@ -678,7 +713,7 @@ func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
 		return
 	}
 
-	template := services.AllRoleTemplates["site_member"]
+	template := services.AllRoleTemplates[roleTemplate]
 	if len(template.CusPermCodes) > 0 {
 		cusPerm, cusPermExt := services.ComputeCusPermBitmapExt(template.CusPermCodes, middleware.PermissionRegistry.GetCusPermBit)
 		if err := iamClient.SetUserCustomerPermissions(orgID, iamResp.UserID, cusPerm, cusPermExt); err != nil {
@@ -691,19 +726,69 @@ func (h *UserStaffHandler) ActivateUser(c *gin.Context) {
 		}
 	}
 
+	// #2540（审计 Bug 1 修复）：功能角色模板必须与客户权限位同源取自同一个 roleTemplate。
+	// 只写关系角色 + 客户权限位而不分配功能角色模板，IAM 侧 RoleTemplate.SysPermBits 不会落库，
+	// JWT fn_roles 为空 → 依赖职能角色的入口（维修师工作台、员工入口）出现缺口；
+	// CreateUser / MerchantAddMember 都会分配模板，激活路径必须与二者一致。
+	templateCode := ""
+	templates, listErr := iamClient.ListRoleTemplates(middleware.GetNamespaceID(ctx))
+	if listErr == nil {
+		for _, t := range templates {
+			if t.Code == roleTemplate {
+				templateCode = t.Code
+				break
+			}
+		}
+	}
+	var assignErr error
+	if listErr == nil && templateCode != "" {
+		assignErr = iamClient.AssignRoleTemplateToUserWithToken(
+			services.ExtractUserToken(c), iamResp.UserID, orgID, templateCode)
+	}
+	if listErr != nil || templateCode == "" || assignErr != nil {
+		reason := ""
+		switch {
+		case listErr != nil:
+			reason = "list role templates failed: " + listErr.Error()
+		case templateCode == "":
+			reason = "role template " + roleTemplate + " not found in namespace"
+		default:
+			reason = assignErr.Error()
+		}
+		log.Printf("[ActivateUser] assign role template %s failed for %s: %s", roleTemplate, iamResp.UserID, reason)
+		if unbindErr := iamClient.UnbindUserFromOrganization(iamResp.UserID, orgID, ""); unbindErr != nil {
+			log.Printf("[ActivateUser] rollback unbind failed for %s: %v", iamResp.UserID, unbindErr)
+		}
+		if purgeErr := iamClient.PurgeUser(iamResp.UserID); purgeErr != nil {
+			log.Printf("[ActivateUser] rollback purge failed for %s: %v", iamResp.UserID, purgeErr)
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "IAM assign role template failed: " + reason})
+		return
+	}
+
 	status := iamResp.Status
 	if status == "" {
 		status = "active"
 	}
-	if err := db.Model(&user).Updates(map[string]interface{}{
-		"iam_sub": iamResp.UserID,
-		"status":  status,
-	}).Error; err != nil {
+	// #2526（同根路径对称扫描）：本地回写与详情/保存同源——显式作用域 + RowsAffected 校验。
+	// 零租户存量行若仍按 users.tenant_id 过滤会静默 0 行（IAM 已创建、本地未回写 → 重复激活）。
+	act := db.WithContext(database.ExplicitTenantScopeOnly(ctx)).
+		Model(&models.User{}).
+		Where("id = ? AND deleted_at IS NULL", user.ID).
+		Updates(map[string]interface{}{
+			"iam_sub": iamResp.UserID,
+			"status":  status,
+		})
+	if act.Error != nil || act.RowsAffected == 0 {
+		reason := "no row updated"
+		if act.Error != nil {
+			reason = act.Error.Error()
+		}
 		iamClient.UnbindUserFromOrganization(iamResp.UserID, orgID, "")
 		if purgeErr := iamClient.PurgeUser(iamResp.UserID); purgeErr != nil {
 			log.Printf("[ActivateUser] rollback purge failed for %s: %v", iamResp.UserID, purgeErr)
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update user iam_sub: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update user iam_sub: " + reason})
 		return
 	}
 
@@ -829,14 +914,16 @@ func performSiteTransfer(c *gin.Context, db *gorm.DB, tenantID, userID string, u
 
 	if orgChanged && sub != "" {
 		if err := iam.UnbindUserFromOrganization(sub, oldOrg, ""); err != nil {
-			return http.StatusBadGateway, gin.H{"code": 50000, "message": "切换网点失败：解绑旧组织失败：" + err.Error()}
+			log.Printf("[UserStaff] switch site: unbind old org failed: %v", err)
+			return http.StatusBadGateway, gin.H{"code": 50000, "message": "切换网点失败，请稍后再试"}
 		}
 		if err := iam.BindUserToOrganization(sub, targetOrg, toIAMRole(primaryRole), ""); err != nil {
 			if compErr := compensateSiteTransfer(iam, sub, oldOrg, targetOrg, primaryRole, roles, token); compErr != nil {
 				log.Printf("[CRITICAL] #2466 site transfer compensation failed user=%s old=%s new=%s: %v", userID, oldOrg, targetOrg, compErr)
 				return http.StatusInternalServerError, gin.H{"code": 50000, "message": "切换网点失败且 IAM 回滚失败，请联系管理员人工核对 IAM 组织关系"}
 			}
-			return http.StatusBadGateway, gin.H{"code": 50000, "message": "切换网点失败：绑定新组织失败：" + err.Error()}
+			log.Printf("[UserStaff] switch site: bind new org failed: %v", err)
+			return http.StatusBadGateway, gin.H{"code": 50000, "message": "切换网点失败，请稍后再试"}
 		}
 		iamDone = true
 		if tmpl, ok := services.AllRoleTemplates[primaryRole]; ok && len(tmpl.CusPermCodes) > 0 {
@@ -846,7 +933,8 @@ func performSiteTransfer(c *gin.Context, db *gorm.DB, tenantID, userID string, u
 					log.Printf("[CRITICAL] #2466 permission rollback failed user=%s: %v", userID, compErr)
 					return http.StatusInternalServerError, gin.H{"code": 50000, "message": "切换网点失败且 IAM 回滚失败，请联系管理员人工核对 IAM 组织关系"}
 				}
-				return http.StatusBadGateway, gin.H{"code": 50000, "message": "切换网点失败：设置权限失败：" + err.Error()}
+				log.Printf("[UserStaff] switch site: set permissions failed: %v", err)
+				return http.StatusBadGateway, gin.H{"code": 50000, "message": "切换网点失败，请稍后再试"}
 			}
 		}
 		for _, r := range roles {
@@ -855,7 +943,8 @@ func performSiteTransfer(c *gin.Context, db *gorm.DB, tenantID, userID string, u
 					log.Printf("[CRITICAL] #2466 template rollback failed user=%s: %v", userID, compErr)
 					return http.StatusInternalServerError, gin.H{"code": 50000, "message": "切换网点失败且 IAM 回滚失败，请联系管理员人工核对 IAM 组织关系"}
 				}
-				return http.StatusBadGateway, gin.H{"code": 50000, "message": "切换网点失败：同步角色模板失败：" + err.Error()}
+				log.Printf("[UserStaff] switch site: sync role template failed: %v", err)
+				return http.StatusBadGateway, gin.H{"code": 50000, "message": "切换网点失败，请稍后再试"}
 			}
 		}
 	}
@@ -952,22 +1041,28 @@ func performSiteTransfer(c *gin.Context, db *gorm.DB, tenantID, userID string, u
 // 同时返回归属网点（site_members 权威）与直属商户/维修师傅标识，供前端按类型渲染字段。
 func (h *UserStaffHandler) GetStaffUser(c *gin.Context) {
 	ctx := c.Request.Context()
-	tenantID := middleware.GetTenantID(ctx)
 	userID := c.Param("id")
 
 	db := database.GetDB().WithContext(ctx)
 
-	var user models.User
-	q := db.Where("id = ? AND tenant_id = ? AND deleted_at IS NULL", userID, tenantID)
-	if scoped, err := middleware.ApplyOrgScope(q, ctx); err == nil {
-		q = scoped
+	// #2526：可见性交给人员列表同源判定（membership ∪ 员工角色旧口径）。
+	// 零租户存量行（users.tenant_id 为 nil UUID）此前按 tenant 过滤查不到 → 列表可见、
+	// 点开 404。不存在与不可见对外统一 404（不泄漏存在性），仅日志区分。
+	user, lookup, err := loadVisibleStaffUser(db, ctx, userID)
+	if err != nil {
+		log.Printf("[GetStaffUser] ERROR: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query user: " + err.Error()})
+		return
 	}
-	if err := q.First(&user).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query user: " + err.Error()})
-		}
+	switch lookup {
+	case staffUserMissing:
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
+		return
+	case staffUserInvisible:
+		log.Printf("[GetStaffUser] WARN: invisible staff user=%s actor=%s role=%s tid=%s oid=%s user_role=%s user_tid=%s",
+			userID, middleware.GetUserID(ctx), middleware.GetBusinessRole(ctx),
+			middleware.GetTenantID(ctx), middleware.GetOrgID(ctx), user.Role, user.TenantID)
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
 		return
 	}
 
@@ -1061,14 +1156,22 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 
 	db := database.GetDB().WithContext(ctx)
 
-	// Check if user exists
-	var existingUser models.User
-	if err := db.Where("id = ? AND tenant_id = ? AND deleted_at IS NULL", userID, tenantID).First(&existingUser).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query user: " + err.Error()})
-		}
+	// #2526：存在性/可见性走人员列表同源判定（零租户存量行不再 404）。
+	existingUser, lookup, lookupErr := loadVisibleStaffUser(db, ctx, userID)
+	if lookupErr != nil {
+		log.Printf("[UpdateUser] ERROR: %v", lookupErr)
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to query user: " + lookupErr.Error()})
+		return
+	}
+	switch lookup {
+	case staffUserMissing:
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
+		return
+	case staffUserInvisible:
+		log.Printf("[UpdateUser] WARN: invisible staff user=%s actor=%s role=%s tid=%s oid=%s user_role=%s user_tid=%s",
+			userID, middleware.GetUserID(ctx), middleware.GetBusinessRole(ctx), tenantID,
+			middleware.GetOrgID(ctx), existingUser.Role, existingUser.TenantID)
+		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
 		return
 	}
 
@@ -1185,7 +1288,7 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 				c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "target site is not active"})
 				return
 			}
-			status, body := performSiteTransfer(c, db, tenantID, userID, &existingUser, newSite)
+			status, body := performSiteTransfer(c, db, tenantID, userID, existingUser, newSite)
 			if status != 0 {
 				c.JSON(status, body)
 				return
@@ -1216,24 +1319,61 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 		}
 	}
 
-	if err := db.Model(&models.User{}).Where("id = ? AND tenant_id = ?", userID, tenantID).Updates(updates).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update user: " + err.Error()})
+	// #2526 D4：写库与读路径同源——显式作用域（不按 users.tenant_id 过滤，零租户行
+	// 否则会静默 0 行更新），并校验 RowsAffected：0 行必须 50000，禁止「保存成功但没写」。
+	upd := db.WithContext(database.ExplicitTenantScopeOnly(ctx)).
+		Model(&models.User{}).
+		Where("id = ? AND deleted_at IS NULL", userID).
+		Updates(updates)
+	if upd.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update user: " + upd.Error.Error()})
+		return
+	}
+	if upd.RowsAffected == 0 {
+		log.Printf("[UpdateUser] ERROR: no row updated user=%s actor=%s (rows_affected=0)", userID, middleware.GetUserID(ctx))
+		c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update user: no row updated"})
 		return
 	}
 
-	// #2375：本地目标域同步（网点/商户直属），保持单一主角色（D4）。
+	// #2375：本地目标域同步（网点/商户直属）；#2482：改主角色 = 合并角色全集。
 	if roleChanged {
 		// #2475：roles 是 jsonb，map Update 不走 serializer，必须显式序列化；
-		// 序列化失败进 role_errors（可见、不静默），不阻断其它字段更新（D2）。
-		rolesExpr, rolesErr := siteMemberRolesExpr([]string{newRole})
-		if rolesErr != nil {
-			log.Printf("[UpdateUser] site_members roles encode failed user=%s: %v", userID, rolesErr)
-			roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "encode site_members roles: " + rolesErr.Error()})
-		} else if err := db.Model(&models.SiteMember{}).
-			Where("user_id = ? AND tenant_id = ?", userID, tenantID).
-			Updates(map[string]interface{}{"role": newRole, "roles": rolesExpr}).Error; err != nil {
-			log.Printf("[UpdateUser] site_members role sync failed user=%s: %v", userID, err)
-			roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "sync site_members: " + err.Error()})
+		// #2482：逐行合并（不同网点行可有不同 roles），保留其它身份，仅原位替换主角色。
+		type siteMemberRow struct {
+			ID        string
+			RolesJSON string
+		}
+		var rows []siteMemberRow
+		if err := db.Raw(
+			"SELECT id, roles::text AS roles_json FROM site_members WHERE user_id = ? AND tenant_id = ? ORDER BY site_id",
+			userID, tenantID,
+		).Scan(&rows).Error; err != nil {
+			log.Printf("[UpdateUser] site_members roles load failed user=%s: %v", userID, err)
+			roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "load site_members roles: " + err.Error()})
+			rows = nil
+		}
+		for _, row := range rows {
+			var existingRoles []string
+			if row.RolesJSON != "" {
+				if err := json.Unmarshal([]byte(row.RolesJSON), &existingRoles); err != nil {
+					log.Printf("[UpdateUser] site_members roles parse failed user=%s site_member=%s: %v", userID, row.ID, err)
+					roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "parse site_members roles: " + err.Error()})
+					continue
+				}
+			}
+			merged := mergeSiteMemberRoles(existingRoles, existingUser.Role, newRole)
+			rolesExpr, rolesErr := siteMemberRolesExpr(merged)
+			if rolesErr != nil {
+				log.Printf("[UpdateUser] site_members roles encode failed user=%s site_member=%s: %v", userID, row.ID, rolesErr)
+				roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "encode site_members roles: " + rolesErr.Error()})
+				continue
+			}
+			if err := db.Model(&models.SiteMember{}).
+				Where("id = ?", row.ID).
+				Updates(map[string]interface{}{"role": newRole, "roles": rolesExpr}).Error; err != nil {
+				log.Printf("[UpdateUser] site_members role sync failed user=%s site_member=%s: %v", userID, row.ID, err)
+				roleErrors = append(roleErrors, gin.H{"code": newRole, "error": "sync site_members: " + err.Error()})
+			}
 		}
 		if err := db.Model(&models.MerchantMember{}).
 			Where("user_id = ? AND tenant_id = ?", userID, tenantID).
@@ -2128,7 +2268,7 @@ func (h *UserStaffHandler) WxBindCurrentUser(c *gin.Context) {
 		log.Printf("[WxBindCurrentUser] bind failed for user %s: %v", userID, err)
 		c.JSON(http.StatusConflict, gin.H{
 			"code":    40900,
-			"message": "微信绑定失败: " + err.Error(),
+			"message": "微信绑定失败，请稍后再试",
 		})
 		return
 	}
@@ -2170,8 +2310,9 @@ func (h *UserStaffHandler) WxMergeCurrentUser(c *gin.Context) {
 		return
 	}
 	if err := services.NewIAMService().WxMerge(userToken, userID, req.ToUserID, req.OpenID); err != nil {
+		// #2497：detail 只进日志（单一来源，避免同一次失败打两遍）。
 		log.Printf("[WxMergeCurrentUser] merge failed for user %s -> %s: %v", userID, req.ToUserID, err)
-		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "账户合并失败: " + err.Error()})
+		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "账户合并失败，请稍后再试"})
 		return
 	}
 

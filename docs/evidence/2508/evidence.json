@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "issue": "2508",
+  "build": "1.0.448a2b0ec",
+  "commit": "448a2b0ec282690913b16ea9544e5ad72cd3c201",
+  "dirty": false,
+  "plan_sha256": "49815fcd2b711a60178aafe86ad021830e28f93f65e913739db7b154117a9338",
+  "tooling_commit": "f663626b8fe3895a49dffa4c43266664546741db",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2508.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2508/R1-id-domain.txt"
+      ],
+      "assert": "exit 0；grep BUGGY_ROWS=0、FIXED_ROWS=2、RED_CONFIRMED=1",
+      "actual": "R1 BUGGY_ROWS=0 FIXED_ROWS=2 RED_CONFIRMED=1",
+      "expected": "PASS",
+      "negative": "输出 BUGGY_ROWS=1 或更大 → FAIL",
+      "negative_result": "negative not triggered: BUGGY_ROWS=0 (fail only if >=1)",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2508.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2508/R2-site-view.txt"
+      ],
+      "assert": "exit 0；grep SITE_VIEW_ROWS=2、HAS_SITE_A_MEMBER=1、HAS_ZERO_TENANT=1、LEAK_SITE_B=0、LEAK_TECH=0、LEAK_PLATFORM=0、LEAK_OTHER_TENANT=0",
+      "actual": "R2 SITE_VIEW_ROWS=2 HAS_SITE_A_MEMBER=1 HAS_ZERO_TENANT=1 LEAK_SITE_B=0 LEAK_TECH=0 LEAK_PLATFORM=0 LEAK_OTHER_TENANT=0",
+      "expected": "PASS",
+      "negative": "任一 LEAK_*=1 或 SITE_VIEW_ROWS=0 → FAIL",
+      "negative_result": "negative not triggered: all LEAK_*=0 and SITE_VIEW_ROWS=2",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2508.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2508/R3-isolation.txt"
+      ],
+      "assert": "exit 0；grep A_ONLY=1、B_ONLY=1、CROSS_LEAK=0",
+      "actual": "R3 A_ONLY=1 B_ONLY=1 CROSS_LEAK=0",
+      "expected": "PASS",
+      "negative": "CROSS_LEAK=1 → FAIL",
+      "negative_result": "negative not triggered: CROSS_LEAK=0",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2508.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2508/R4-old-behavior-gone.txt"
+      ],
+      "assert": "exit 0；grep OLD_KEYING_ROWS=0、STATUS=200",
+      "actual": "R4 OLD_KEYING_ROWS=0 STATUS=200",
+      "expected": "PASS",
+      "negative": "OLD_KEYING_ROWS=1 或更大 → FAIL",
+      "negative_result": "negative not triggered: OLD_KEYING_ROWS=0",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2508.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2508/R5-multisite-filter.txt"
+      ],
+      "assert": "exit 0；grep MULTI_ROWS=3、FILTER_A_ROWS=2、FILTER_B_ROWS=0、INVALID_SITE_CODE=40002",
+      "actual": "R5 MULTI_ROWS=3 FILTER_A_ROWS=2 FILTER_B_ROWS=0 INVALID_SITE_CODE=40002",
+      "expected": "PASS",
+      "negative": "MULTI_ROWS=2 或 FILTER_B_ROWS=1 → FAIL",
+      "negative_result": "negative not triggered: MULTI_ROWS=3 and FILTER_B_ROWS=0",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2508.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2508/R6-regression.txt"
+      ],
+      "assert": "exit 0；grep REGRESSION_PASS=1、FAIL_COUNT=0、TEST=TestPersonnel2065_SiteView 且该行 PASS",
+      "actual": "REGRESSION_PASS=1 FAIL_COUNT=0 PASS_COUNT=17",
+      "expected": "PASS",
+      "negative": "任一 --- FAIL 或 FAIL_COUNT=1 → FAIL",
+      "negative_result": "negative not triggered: no '--- FAIL' line, FAIL_COUNT=0",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2508.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2508/R7-build-scan.txt"
+      ],
+      "assert": "exit 0；grep BUILD_RC=0、PERSONNEL_SITE_ID_MATCH=0、S2=1、S3=2、S4=2、S5=2",
+      "actual": "BUILD_RC=0 PERSONNEL_SITE_ID_MATCH=0 S2=1 S3=2 S4=2 S5=2",
+      "expected": "PASS",
+      "negative": "BUILD_RC=1 或 PERSONNEL_SITE_ID_MATCH=1 → FAIL",
+      "negative_result": "negative not triggered: BUILD_RC=0 and PERSONNEL_SITE_ID_MATCH=0",
+      "pass": true
+    }
+  ]
+}

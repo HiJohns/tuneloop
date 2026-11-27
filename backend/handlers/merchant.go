@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -67,10 +69,15 @@ func (h *MerchantHandler) ListMerchants(c *gin.Context) {
 		}
 	}
 	if len(adminUIDs) > 0 {
+		// #2546 D1b：读取侧归一化 —— admin_uid 历史行可能是 IAM 用户 id
+		// （users.iam_sub）；两种 ID 空间都要能解析到同一条 users 记录。
 		var adminUsers []models.User
-		database.GetDB().Where("id IN ? AND deleted_at IS NULL", adminUIDs).Find(&adminUsers)
+		database.GetDB().Where("(id IN ? OR iam_sub IN ?) AND deleted_at IS NULL", adminUIDs, adminUIDs).Find(&adminUsers)
 		for _, u := range adminUsers {
 			adminMap[u.ID] = u
+			if u.IAMSub != "" {
+				adminMap[u.IAMSub] = u
+			}
 		}
 	}
 
@@ -508,14 +515,14 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 	id := c.Param("id")
 
 	var input struct {
-		Name               string `json:"name"`
-		Phone              string `json:"phone"`
-		Address            string `json:"address"`
-		MerchantType       string `json:"merchant_type"`
-		TransitAddress     string `json:"transit_address"`
-		TransitPhone       string `json:"transit_phone"`
-		TransitContactName string `json:"transit_contact_name"`
-		AdminUID           string `json:"admin_uid"`
+		Name               string          `json:"name"`
+		Phone              string          `json:"phone"`
+		Address            string          `json:"address"`
+		MerchantType       string          `json:"merchant_type"`
+		TransitAddress     string          `json:"transit_address"`
+		TransitPhone       string          `json:"transit_phone"`
+		TransitContactName string          `json:"transit_contact_name"`
+		AdminUID           json.RawMessage `json:"admin_uid"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -550,118 +557,93 @@ func (h *MerchantHandler) UpdateMerchant(c *gin.Context) {
 		return
 	}
 
-	// Update fields
+	// #2546 D15：普通字段更新与所有权转让分离且有序。
+	// 1) 先只写请求中出现的普通字段（map Updates，避免 Save 回写整行）。
+	updates := map[string]interface{}{}
 	if input.Name != "" {
-		merchant.Name = input.Name
+		updates["name"] = input.Name
 	}
 	if input.Phone != "" {
-		merchant.Phone = input.Phone
+		updates["phone"] = input.Phone
 	}
 	if input.Address != "" {
-		merchant.Address = input.Address
+		updates["address"] = input.Address
 	}
 	if input.MerchantType != "" {
-		merchant.MerchantType = input.MerchantType
+		updates["merchant_type"] = input.MerchantType
 	}
 	if input.TransitAddress != "" {
-		merchant.TransitAddress = input.TransitAddress
+		updates["transit_address"] = input.TransitAddress
 	}
 	if input.TransitPhone != "" {
-		merchant.TransitPhone = input.TransitPhone
+		updates["transit_phone"] = input.TransitPhone
 	}
 	if input.TransitContactName != "" {
-		merchant.TransitContactName = input.TransitContactName
+		updates["transit_contact_name"] = input.TransitContactName
 	}
-
-	// Handle admin_uid change
-	nilUUID := "00000000-0000-0000-0000-000000000000"
-	newAdmin := input.AdminUID
-	oldAdmin := merchant.AdminUID
-
-	if newAdmin == "" || newAdmin == nilUUID {
-		newAdmin = ""
-	}
-	if oldAdmin == "" || oldAdmin == nilUUID {
-		oldAdmin = ""
-	}
-
-	// #2461 D3：换管理员 = 补偿式全成败（bind 新 → demote 旧；demote 失败则解绑新并 502）。
-	adminWarning := ""
-	if newAdmin != oldAdmin {
-		iamClient := services.NewIAMClient()
-		operatorID := middleware.GetUserID(c.Request.Context())
-		userToken := services.ExtractUserToken(c)
-
-		newBound := false
-		var newUser models.User
-
-		// Bind new admin if provided (bind first per #618 best practice)
-		if input.AdminUID != "" && input.AdminUID != nilUUID && merchant.OrgID != "" {
-			if err := database.GetDB().Where("id = ?", input.AdminUID).First(&newUser).Error; err == nil && newUser.IAMSub != "" {
-				if bindErr := iamClient.BindUserToOrganizationWithToken(userToken, newUser.IAMSub, merchant.OrgID, "OWNER", operatorID); bindErr != nil {
-					// #2461：bind 失败不得只 log —— 通过 admin_pending + admin_sync_warning 显式可见。
-					log.Printf("[UpdateMerchant] Failed to bind new admin %s: %v", newUser.IAMSub, bindErr)
-					adminWarning = "新管理员绑定 IAM 失败：" + bindErr.Error()
-				} else {
-					newBound = true
-				}
-				merchant.AdminPending = true
-			} else {
-				merchant.AdminPending = true
-			}
+	if len(updates) > 0 {
+		upd := db.Model(&models.Merchant{}).
+			Where("id = ? AND tenant_id = ?", merchant.ID, merchant.TenantID).
+			Updates(updates)
+		if upd.Error != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    50000,
+				"message": "Failed to update merchant: " + upd.Error.Error(),
+			})
+			return
 		}
+	}
 
-		// Demote old admin if there was one
-		if oldAdmin != "" && merchant.OrgID != "" {
-			var oldUser models.User
-			if err := database.GetDB().Where("id = ?", merchant.AdminUID).First(&oldUser).Error; err == nil && oldUser.IAMSub != "" {
-				if demoteErr := iamClient.UpdateUserRoleInOrgWithToken(userToken, merchant.OrgID, oldUser.IAMSub, "USER"); demoteErr != nil {
-					log.Printf("[UpdateMerchant] Failed to demote old admin %s: %v", oldUser.IAMSub, demoteErr)
-					// 补偿：解绑刚绑定的新管理员，保证「换管理员」全成败
-					if newBound {
-						if unbindErr := iamClient.UnbindUserFromOrganizationWithToken(userToken, newUser.IAMSub, merchant.OrgID, newUser.IAMSub); unbindErr != nil {
-							log.Printf("[UpdateMerchant] CRITICAL: compensation unbind failed new_admin=%s org=%s: %v", newUser.IAMSub, merchant.OrgID, unbindErr)
-							c.JSON(http.StatusInternalServerError, gin.H{
-								"code":    50000,
-								"message": "换管理员失败（旧管理员降级失败且新管理员解绑失败），请联系管理员人工核对 IAM 组织关系",
-							})
-							return
-						}
-					}
-					c.JSON(http.StatusBadGateway, gin.H{
-						"code":    50000,
-						"message": "换管理员失败（旧管理员降级失败），请重试",
-					})
+	// 2) 再转让所有权（唯一写入路径，见 transferMerchantOwnership）。
+	// RawMessage 区分「字段缺省（不动所有权）」「显式 null（拒绝）」「有值」：
+	// OWNER 不能删除也不能清空，只能转让（#2546 D4/Low-3，fail-fast 不静默）。
+	if input.AdminUID != nil {
+		if strings.TrimSpace(string(input.AdminUID)) == "null" {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "所有人不能置空，只能转让所有权"})
+			return
+		}
+		var requestedOwner string
+		if err := json.Unmarshal(input.AdminUID, &requestedOwner); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "admin_uid 必须是字符串"})
+			return
+		}
+		requestedOwner = strings.TrimSpace(requestedOwner)
+		if requestedOwner == nilUUID2546 {
+			requestedOwner = ""
+		}
+		if requestedOwner == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "所有人不能清空，只能转让所有权"})
+			return
+		}
+		// #2546 D1b/D14：所有权比较统一在本地 users.id 空间。
+		oldOwner, _, ownerErr := merchantOwnerLocalUID(c.Request.Context(), db, merchant)
+		if ownerErr != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "解析商户所有人失败：" + ownerErr.Error()})
+			return
+		}
+		if requestedOwner != oldOwner {
+			previousOwnerID, transferErr := transferMerchantOwnership(c, db, merchant, requestedOwner)
+			if transferErr != nil {
+				var typed *ownershipTransferError
+				if errors.As(transferErr, &typed) {
+					c.JSON(typed.Status, gin.H{"code": typed.Code, "message": typed.Message})
 					return
 				}
+				c.JSON(http.StatusBadGateway, gin.H{"code": 50200, "message": "转让所有权失败（IAM）：" + transferErr.Error()})
+				return
 			}
-		}
-
-		// Update local record
-		if input.AdminUID == "" || input.AdminUID == nilUUID {
-			merchant.AdminUID = nilUUID
-			merchant.AdminPending = false
-		} else {
-			merchant.AdminUID = input.AdminUID
+			log.Printf("[UpdateMerchant] ownership transferred merchant=%s previous_owner=%s new_owner=%s", merchant.ID, previousOwnerID, requestedOwner)
 		}
 	}
 
-	result = db.Save(&merchant)
-	if result.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    50000,
-			"message": "Failed to update merchant: " + result.Error.Error(),
-		})
-		return
+	// 3) 转让已写库，仅重新读取用于响应快照（不再 Save，避免覆盖内存字段）。
+	if err := db.Where("id = ?", merchant.ID).First(&merchant).Error; err != nil {
+		log.Printf("[UpdateMerchant] reload after update failed merchant=%s: %v", merchant.ID, err)
 	}
 
 	resp := gin.H{
 		"code": 20000,
 		"data": merchant,
-	}
-	// #2461：新管理员 bind 失败时除 admin_pending 外还要有显式告警字段（禁止只 log）。
-	if adminWarning != "" {
-		resp["admin_sync_warning"] = adminWarning
 	}
 	c.JSON(http.StatusOK, resp)
 }
@@ -733,7 +715,8 @@ func (h *MerchantHandler) DeleteMerchant(c *gin.Context) {
 	db.Where("tenant_id = ?", tenantID).Find(&merchantMembers)
 	for _, m := range merchantMembers {
 		if err := unbind(m.UserID, merchant.OrgID); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "级联解除商户成员失败：" + err.Error()})
+			log.Printf("[MerchantDelete] cascade unbind merchant member failed: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "级联解除商户成员失败，请稍后再试"})
 			return
 		}
 	}
@@ -745,7 +728,8 @@ func (h *MerchantHandler) DeleteMerchant(c *gin.Context) {
 			continue
 		}
 		if err := unbind(m.UserID, site.OrgID); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "级联解除网点成员失败：" + err.Error()})
+			log.Printf("[MerchantDelete] cascade unbind site member failed: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "级联解除网点成员失败，请稍后再试"})
 			return
 		}
 	}

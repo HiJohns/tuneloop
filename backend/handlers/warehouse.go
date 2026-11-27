@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -22,6 +23,44 @@ import (
 
 func stringPtr(s string) *string {
 	return &s
+}
+
+// resolveSiteIDByOrg maps an organization ID to a site primary key (#2511).
+//
+// Background: #1889 asked the repair flow to record where an instrument
+// physically is so the acceptance gate can verify it. Its fallback branch wrote
+// `order.OrgID` (an organization ID) straight into `instruments.current_site_id`,
+// which is a `sites.id` column — a cross-domain write that made acceptance look
+// the site up in `site_members` and never find it.
+//
+// Deterministic strategy (Decision Lock D1):
+//   - exactly one site in the org → that site
+//   - several sites → prefer the anchor site (`sites.org_id == sites.tenant_id`),
+//     otherwise the oldest by `created_at`
+//   - no site / query error → "" so callers keep the existing value and WARN
+//
+// It must never return the organization ID itself.
+func resolveSiteIDByOrg(db *gorm.DB, orgID string) string {
+	if orgID == "" {
+		return ""
+	}
+	var sites []models.Site
+	if err := db.Where("org_id = ?", orgID).Order("created_at asc").Find(&sites).Error; err != nil {
+		log.Printf("[WARN] #2511: failed to resolve site for org %q: %v", orgID, err)
+		return ""
+	}
+	if len(sites) == 0 {
+		return ""
+	}
+	if len(sites) == 1 {
+		return sites[0].ID
+	}
+	for _, site := range sites {
+		if site.TenantID != "" && site.OrgID == site.TenantID {
+			return site.ID
+		}
+	}
+	return sites[0].ID
 }
 
 type WarehouseHandler struct{}
@@ -135,7 +174,7 @@ func (h *WarehouseHandler) UpdateShipping(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid parameters: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": bindmsg.Message(err)})
 		return
 	}
 
@@ -285,7 +324,7 @@ func (h *WarehouseHandler) ConfirmDelivery(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid parameters: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": bindmsg.Message(err)})
 		return
 	}
 
@@ -485,7 +524,7 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid parameters: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": bindmsg.Message(err)})
 		return
 	}
 
@@ -690,13 +729,15 @@ func (h *WarehouseHandler) InspectReturn(c *gin.Context) {
 		updates = map[string]interface{}{"stock_status": models.StockStatusMaintenance, "repair_status": "repair_pending"}
 		// #1889: record where the instrument physically is so the acceptance
 		// gate can verify the operator's site. Prefer the inspecting operator's
-		// site; fall back to the order's site.
+		// site; otherwise resolve the order's org to a site primary key.
+		// #2511: the fallback must never write the org ID (cross-domain) —
+		// keep the previous value and WARN when nothing resolves.
 		if siteID := resolveOperatorSiteID(db, userID); siteID != nil {
 			updates["current_site_id"] = *siteID
-		} else if order.OrgID != "" {
-			updates["current_site_id"] = order.OrgID
+		} else if resolved := resolveSiteIDByOrg(db, order.OrgID); resolved != "" {
+			updates["current_site_id"] = resolved
 		} else {
-			log.Printf("[WARN] #1889: no site resolved for instrument %s entering repair", order.InstrumentID)
+			log.Printf("[WARN] #1889/#2511: no site resolved for instrument %s entering repair (operator has no site membership; order org %q maps to no site)", order.InstrumentID, order.OrgID)
 		}
 	} else {
 		updates = map[string]interface{}{"stock_status": models.StockStatusAvailable, "repair_status": nil}
@@ -833,7 +874,7 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid parameters: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": bindmsg.Message(err)})
 		return
 	}
 
@@ -865,13 +906,14 @@ func (h *WarehouseHandler) AssessDamage(c *gin.Context) {
 	instUpdates := map[string]interface{}{"stock_status": models.StockStatusMaintenance, "repair_status": "repair_pending"}
 	// #1889: record where the instrument physically is so the acceptance gate
 	// can verify the operator's site. Prefer the assessing operator's site;
-	// fall back to the order's site.
+	// otherwise resolve the order's org to a site primary key (#2511: never
+	// write the org ID; keep the previous value + WARN when nothing resolves).
 	if siteID := resolveOperatorSiteID(db, userID); siteID != nil {
 		instUpdates["current_site_id"] = *siteID
-	} else if order.OrgID != "" {
-		instUpdates["current_site_id"] = order.OrgID
+	} else if resolved := resolveSiteIDByOrg(db, order.OrgID); resolved != "" {
+		instUpdates["current_site_id"] = resolved
 	} else {
-		log.Printf("[WARN] #1889: no site resolved for instrument %s entering repair", order.InstrumentID)
+		log.Printf("[WARN] #1889/#2511: no site resolved for instrument %s entering repair (operator has no site membership; order org %q maps to no site)", order.InstrumentID, order.OrgID)
 	}
 	if err := db.Model(&models.Instrument{}).Where("id = ?", order.InstrumentID).
 		Updates(instUpdates).Error; err != nil {

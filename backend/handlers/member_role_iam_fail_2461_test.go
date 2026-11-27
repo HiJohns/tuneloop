@@ -38,6 +38,12 @@ type roleIAMMock2461 struct {
 	bindCalls   int
 	unbindCalls int
 
+	// #2546：所有权变更改走 transfer-ownership（不再 bind OWNER + demote）。
+	transferCalls    int
+	transferStatus   int
+	lastTransferPath string
+	lastTransferBody string
+
 	roleStatus   int // 0 == 200
 	tmplStatus   int
 	bindStatus   int
@@ -69,6 +75,19 @@ func setupRoleIAMMock2461(t *testing.T, m *roleIAMMock2461) {
 	mux.HandleFunc("/api/v1/organizations/", func(w http.ResponseWriter, r *http.Request) {
 		raw, _ := readBody2461(r)
 		switch {
+		case strings.HasSuffix(r.URL.Path, "/transfer-ownership"):
+			m.mu.Lock()
+			m.transferCalls++
+			m.lastTransferPath = r.URL.Path
+			m.lastTransferBody = raw
+			status := statusOf(m.transferStatus)
+			m.mu.Unlock()
+			if status != http.StatusOK {
+				w.WriteHeader(status)
+				writeJSON(w, map[string]string{"error": "transfer ownership failed"})
+				return
+			}
+			writeJSON(w, map[string]interface{}{"org_id": "org", "previous_owner_id": "prev", "new_owner_id": "next"})
 		case strings.HasSuffix(r.URL.Path, "/role"):
 			m.mu.Lock()
 			m.roleCalls++
@@ -300,55 +319,73 @@ func putMerchantAdmin2461(t *testing.T, r *gin.Engine, merchantID, newAdminID st
 	return w
 }
 
-// R6：bind 新管理员成功、demote 旧管理员失败 → 502 + 补偿解绑新管理员 + 本地未提交。
-func TestUpdateMerchantAdminDemoteFailureCompensates_2461(t *testing.T) {
+// R6（#2546 翻转）：换商户所有人改走 IAM 单事务转让 —— 不再 bind 新 OWNER +
+// demote 旧 OWNER（beaconiam#508 下该路径必然失败），因此原「demote 失败补偿解绑」
+// 场景消失：role/bind 端点故障不影响转让，结果是 200 + 本地指针切换。
+func TestUpdateMerchantAdminTransferReplacesBindDemote_2461(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	tenantID, merchantID, oldAdminID, newAdminID, _ := seedMerchantWithAdmin2461(t)
-	mock := &roleIAMMock2461{roleStatus: http.StatusInternalServerError}
+	tenantID, merchantID, _, newAdminID, orgID := seedMerchantWithAdmin2461(t)
+	// role/bind 端点故障不再参与换所有人；转让端点正常 200。
+	mock := &roleIAMMock2461{roleStatus: http.StatusInternalServerError, bindStatus: http.StatusInternalServerError}
 	setupRoleIAMMock2461(t, mock)
+
+	// #2546：转让前置要求目标用户是 active 商户成员。
+	require.NoError(t, database.GetDB().Create(&models.MerchantMember{
+		TenantID: orgID, MerchantID: merchantID, UserID: newAdminID, Role: "merchant_admin", Status: "active",
+	}).Error)
 
 	r := merchantRouter2461(t, tenantID)
 	w := putMerchantAdmin2461(t, r, merchantID, newAdminID)
-	require.Equal(t, http.StatusBadGateway, w.Code, "demote 失败必须 502：%s", w.Body.String())
-
-	var resp struct {
-		Message string `json:"message"`
-	}
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-	assert.Contains(t, resp.Message, "旧管理员降级失败", "MSG_CONTAINS")
+	require.Equal(t, http.StatusOK, w.Code, "转让成功必须 200：%s", w.Body.String())
 
 	var m models.Merchant
 	require.NoError(t, database.GetDB().Where("id = ?", merchantID).First(&m).Error)
-	assert.Equal(t, oldAdminID, m.AdminUID, "ADMIN_UID_UNCHANGED：失败时不得提交本地换管理员")
+	assert.Equal(t, newAdminID, m.AdminUID, "ADMIN_UID_SWITCHED：转让成功后本地指针必须切换")
 
 	mock.mu.Lock()
 	defer mock.mu.Unlock()
-	assert.Equal(t, 1, mock.bindCalls)
-	assert.Equal(t, 1, mock.unbindCalls, "IAM_UNBIND_CALLS=1：必须补偿解绑新管理员")
-	t.Logf("STATUS=%d MSG_CONTAINS=旧管理员降级失败 IAM_UNBIND_CALLS=%d ADMIN_UID_UNCHANGED=1", w.Code, mock.unbindCalls)
+	assert.Equal(t, 1, mock.transferCalls, "IAM_TRANSFER_CALLS=1")
+	assert.Equal(t, 0, mock.bindCalls, "IAM_BIND_CALLS=0（不得再 bind OWNER）")
+	assert.Equal(t, 0, mock.roleCalls, "IAM_ROLE_CALLS=0（不得再 demote OWNER）")
+	assert.Equal(t, 0, mock.unbindCalls, "IAM_UNBIND_CALLS=0（无第二个 OWNER 需要补偿）")
+	assert.True(t, strings.HasSuffix(mock.lastTransferPath, "/transfer-ownership"), "IAM_PATH=%s", mock.lastTransferPath)
+	t.Logf("STATUS=%d IAM_TRANSFER_CALLS=%d IAM_BIND_CALLS=%d IAM_ROLE_CALLS=%d IAM_UNBIND_CALLS=%d ADMIN_UID_SWITCHED=1",
+		w.Code, mock.transferCalls, mock.bindCalls, mock.roleCalls, mock.unbindCalls)
 }
 
-// R7：bind 新管理员失败 → 200 + admin_pending=true + 显式告警字段（禁止只 log）。
-func TestUpdateMerchantAdminBindFailureVisible_2461(t *testing.T) {
+// R7（#2546 翻转）：转让失败 → 502/50200，本地指针与 admin_pending 均不变。
+// 转让是单事务全成败，不存在「本地先改、IAM 待确认」的半态（admin_sync_warning 已随
+// bind+demote 路径一并移除）。
+func TestUpdateMerchantAdminTransferFailureVisible_2461(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	tenantID, merchantID, _, newAdminID, _ := seedMerchantWithAdmin2461(t)
-	mock := &roleIAMMock2461{bindStatus: http.StatusInternalServerError}
+	tenantID, merchantID, oldAdminID, newAdminID, orgID := seedMerchantWithAdmin2461(t)
+	mock := &roleIAMMock2461{transferStatus: http.StatusInternalServerError}
 	setupRoleIAMMock2461(t, mock)
+
+	require.NoError(t, database.GetDB().Create(&models.MerchantMember{
+		TenantID: orgID, MerchantID: merchantID, UserID: newAdminID, Role: "merchant_admin", Status: "active",
+	}).Error)
 
 	r := merchantRouter2461(t, tenantID)
 	w := putMerchantAdmin2461(t, r, merchantID, newAdminID)
-	require.Equal(t, http.StatusOK, w.Code, "bind 失败不得整体失败（保留 admin_pending 语义）：%s", w.Body.String())
+	require.Equal(t, http.StatusBadGateway, w.Code, "转让失败必须 502：%s", w.Body.String())
 
 	var resp struct {
-		Data struct {
-			AdminPending bool `json:"admin_pending"`
-		} `json:"data"`
-		AdminSyncWarning string `json:"admin_sync_warning"`
+		Code int `json:"code"`
 	}
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-	assert.True(t, resp.Data.AdminPending, "ADMIN_PENDING=true")
-	assert.NotEmpty(t, resp.AdminSyncWarning, "bind 失败必须有告警字段，不得只写日志")
-	t.Logf("STATUS=%d ADMIN_PENDING=%t ADMIN_SYNC_WARNING=1", w.Code, resp.Data.AdminPending)
+	assert.Equal(t, 50200, resp.Code, "TRANSFER_FAIL_CODE=50200")
+
+	var m models.Merchant
+	require.NoError(t, database.GetDB().Where("id = ?", merchantID).First(&m).Error)
+	assert.Equal(t, oldAdminID, m.AdminUID, "ADMIN_UID_UNCHANGED：失败时不得提交本地更换所有人")
+	assert.False(t, m.AdminPending, "ADMIN_PENDING_UNCHANGED=false")
+
+	mock.mu.Lock()
+	defer mock.mu.Unlock()
+	assert.Equal(t, 1, mock.transferCalls, "IAM_TRANSFER_CALLS=1")
+	t.Logf("STATUS=%d CODE=%d ADMIN_UID_UNCHANGED=1 ADMIN_PENDING_UNCHANGED=0",
+		w.Code, resp.Code)
 }
 
 // R8：直属员工改角色 IAM 失败 → 200 + role_errors + users.role 已更新（#2375 契约保持不变）。

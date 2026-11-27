@@ -33,11 +33,14 @@ steps:
 - 租户管理员
 
 ## 流程
-1. 创建商户 → IAM namespace 内创建组织
-2. 初始化角色（#663）
+1. 创建商户 → IAM 在 namespace 内创建**独立组织**（`parent_id = null`，`kind=tenant`；不是命名空间组织的子节点）
+2. **创建者 = 该商户唯一 OWNER**（IAM `bind` role=OWNER，首次绑定允许；此后该组织不得再出现第二个 OWNER）
+3. 初始化角色模板（#663，由该商户 OWNER 定义；直营店继承使用）
 
-## 关键规则
-- 商户创建后必须初始化角色模板
+## 关键规则（2026-11-26 组织模型）
+- 商户（租户）是**独立组织**：有 OWNER、不隶属于命名空间组织
+- OWNER 唯一、不能删除，只能 `transfer-ownership`（原 OWNER → ADMIN）
+- 商户创建后必须初始化角色模板（owner 定义）
 
 ---
 id: B-02

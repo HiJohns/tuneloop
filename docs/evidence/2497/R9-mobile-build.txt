@@ -1,0 +1,17 @@
+# build=1.0.5a695fef # commit=5a695fefb262ba0e78ead79b4f28275c85229f50 # dirty=false
+MOBILE_BUILD_CMD=cd frontend-mobile && npm run build:h5（Node 22）
+MOBILE_BUILD_EXIT=0
+NODE_VERSION=22
+NODE_VERSION_FULL=v22.22.3
+--- mobile build tail ---
+      js/161.js
+      css/app.css
+      js/app.js
+[39m[22m
+
+webpack 5.91.0 compiled with [1m[33m2 warnings[39m[22m in 121913 ms
+
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795715590500 hold_ms=145346
+MOBILE_BUILD_OK=1
+RESULT: PASS
+

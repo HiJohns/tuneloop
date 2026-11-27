@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -129,7 +130,7 @@ func CalculateRenewal(c *gin.Context) {
 	orderID := c.Param("id")
 	var req RenewalCalculateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid parameters: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": bindmsg.Message(err)})
 		return
 	}
 
@@ -222,7 +223,7 @@ func ConfirmRenewal(c *gin.Context) {
 	orderID := c.Param("id")
 	var req RenewalConfirmRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid parameters: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": bindmsg.Message(err)})
 		return
 	}
 

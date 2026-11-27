@@ -450,7 +450,8 @@ func (h *RegistrationSessionHandler) RebindRegistrationSession(c *gin.Context) {
 		return
 	}
 	if err := applySideEffectsAndRecord(db, &record, now); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "重新授权后仍未完成: " + err.Error()})
+		log.Printf("[RegistrationSession] re-apply side effects failed: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "重新授权后仍未完成，请稍后再试"})
 		return
 	}
 

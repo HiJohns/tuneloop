@@ -1,0 +1,30 @@
+# build=1.0.719e6492 # commit=719e649291800235e48194c8ef10ad0420a3c70a # dirty=false
+FULL_SUITE_CMD=cd backend && go build ./... && go test ./handlers -count=1 -timeout 15m && go test ./services -count=1 -timeout 15m
+FULL_SUITE_EXIT=0
+FAIL_COUNT=0
+PANIC_COUNT=0
+GATE_RESULT=PASS
+GATE_PLAN_SHA=f1403367761271da70ddc8ad3fcb14fc0aec38dbd9b10b32af25af41f59c76ce
+PLAN_SOURCE=PASS
+--- gate log tail ---
+P1   PASS   plan has Verification Matrix / Input Truth & Tool Preflight / Decision Lock / Out of Scope
+P2   PASS   Work Summary covers all 8 matrix rows with PASS/N/A
+P3   PASS   all referenced evidence paths exist and are durable
+P4   PASS   all 1 affected command(s) passed
+P12  PASS   Evidence Contract complete: 8 row(s) match the plan and have durable artifacts
+P14  PASS   artifact provenance matches evidence (8 artifacts)
+P18  WARN   tooling_commit missing (legacy bundle); config_sha=1a1d46357e5db8dc32ce85d6ddf90dc1d2577fb9
+P15  N/A    no batch gate reference in the plan
+P16  N/A    no UI render rows in the plan
+P17  PASS   plan snapshot and Accepted Plan comment match the gated plan
+P5   PASS   full gate clean worktree; HEAD failures are a subset of baseline (eb6579802e7f1083586a6428fef344c4c6c110bc); source head=run baseline=cache
+P6   PASS   all changed files are declared in the Accepted Plan
+P7   N/A    no contract-affecting files changed
+P8   N/A    no panel/clarify files changed
+P9   N/A    no session/build_version/aiaudit/.rpt/.dat evidence referenced
+P10  N/A    no aiaudit reference
+P11  PASS   fix commit(s) are ancestors of HEAD; canonical worktree /tmp/opencode/tuneloop/wt-2482; worktree guard: PASS isolated worktree=/tmp/opencode/tuneloop/wt-2482
+P13  PASS   fix commit and evidence artifacts are on origin/issue-2482
+REPORT: /tmp/opencode/tuneloop/wt-2482/docs/evidence/2482/pre-ready-2482.json
+RESULT: PASS
+

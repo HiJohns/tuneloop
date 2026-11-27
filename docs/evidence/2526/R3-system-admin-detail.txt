@@ -1,0 +1,7 @@
+# build=1.0.44f9368c7 # commit=44f9368c757143396bcaf0dabe3db2d3f2741441 # dirty=false
+== R3 system_admin 详情口径 ==
+SYSTEM_PLATFORM=200
+SYSTEM_TRANSIT=200
+SYSTEM_ZERO_TENANT=404
+--- PASS: TestStaffDetail2526_SystemAdmin (0.85s)
+R3_OK

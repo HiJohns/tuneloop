@@ -1,0 +1,6 @@
+docs/spec/ui/ui.md
+frontend-pc/src/App.jsx
+frontend-pc/src/pages/ClientManagement.jsx
+frontend-pc/src/pages/TenantManagement.jsx
+frontend-pc/src/services/api.js
+scripts/verify-2518.sh

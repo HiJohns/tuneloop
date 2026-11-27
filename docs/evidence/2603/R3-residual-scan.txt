@@ -1,0 +1,22 @@
+# build=1.0.7bbdca8a0 # commit=7bbdca8a026c4ae39c8aaf1b13cddb6815555cb1 # dirty=false
+GENERATED_AT_HEAD=a22a180ffcb2c25109de183a857b08d63a688e75
+# 收口扫描：28 处（site.go 2 + 其余 12 文件 26）全部收敛；同类 25 处不得外溢
+RESIDUAL_BIND_RAW=0
+RESIDUAL_INVALID_PREFIX=0
+BINDMSG_CALL_SITES=28
+BINDMSG_HANDLER_FILES=13
+OUT_OF_SCOPE_INVALID_REQUEST=25
+--- per-file bindmsg.Message(err) counts ---
+backend/handlers/site.go=2
+backend/handlers/property.go=5
+backend/handlers/warehouse.go=4
+backend/handlers/wechatpay_prepay.go=2
+backend/handlers/renewal.go=2
+backend/handlers/mall_image.go=2
+backend/handlers/inventory.go=2
+backend/handlers/iam_proxy.go=2
+backend/handlers/banner.go=2
+backend/handlers/appeal.go=2
+backend/handlers/payment_calculate.go=1
+backend/handlers/instrument.go=1
+backend/handlers/coupon_pricing.go=1

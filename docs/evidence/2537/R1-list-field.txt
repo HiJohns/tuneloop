@@ -1,0 +1,9 @@
+# build=1.0.3f08c2dd8 # commit=3f08c2dd8e32d0ac19a73101752de2e257b92958 # dirty=false
+GENERATED_AT_HEAD=3f08c2dd8e32d0ac19a73101752de2e257b92958
+== R1 instrument list overdue_daily_fee == pricing-v2 ==
+LIST_OVERDUE_A=3600
+PRICING_V2_OVERDUE_A=3600
+LIST_OVERDUE_B=1500
+LIST_OVERDUE_C=null
+--- PASS: TestInstrumentListOverdue2537_R1 (0.83s)
+R1_OK

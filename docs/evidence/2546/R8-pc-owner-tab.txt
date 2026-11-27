@@ -1,0 +1,65 @@
+# build=1.0.29eea1dae # commit=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b # dirty=false
+GENERATED_AT_HEAD=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b
+# R8 PC「所有人」Tab 接线：纯函数 node --test + 源码结构断言 + eslint + build
+✔ pickOwnerRow 返回唯一的 is_owner 行 (1.058522ms)
+✔ pickOwnerRow 在未锚定所有人时返回 null（不得猜测） (0.148654ms)
+✔ transferCandidates 排除当前所有人（含 is_owner 与 owner_uid 两种标记） (0.776146ms)
+✔ transferCandidates 在只有所有人时为空（禁用转让入口） (0.216905ms)
+✔ canRemoveMember 禁止移除所有人，允许移除其他成员 (0.207594ms)
+✔ transferConfirmText 固定声明「转让后你将成为管理员」 (0.249915ms)
+✔ canTransferOwnership：当前登录账号是本商户所有人且存在候选 → 允许 (0.296897ms)
+✔ canTransferOwnership：被降级的原所有人（viewer_is_owner=false）→ 禁止 (0.196134ms)
+✔ canTransferOwnership：未锚定所有人（owner_uid 为空）→ 禁止 (0.242295ms)
+✔ canTransferOwnership：无候选成员 → 禁止（避免空转让端点调用） (0.365468ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 85.111225
+
+/tmp/opencode/tuneloop/wt-2546/frontend-pc/src/components/MerchantMemberManagement.jsx
+   75:7   warning  'fetchMembers' was used before it was defined                                                                    no-use-before-define
+   77:6   warning  React Hook useEffect has a missing dependency: 'fetchMembers'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  345:27  warning  'bindExistingUser' was used before it was defined                                                                no-use-before-define
+
+/tmp/opencode/tuneloop/wt-2546/frontend-pc/src/pages/MerchantManagement.jsx
+  34:5  warning  'fetchMerchants' was used before it was defined                                                                    no-use-before-define
+  35:6  warning  React Hook useEffect has a missing dependency: 'fetchMerchants'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+✖ 5 problems (0 errors, 5 warnings)
+
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s107-p107-350703 at_ms=1795730742342 wait_ms=73
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s107-p107-350703 wait_ms=73
+
+> frontend-pc@1.0.0 build
+> vite build
+
+vite v5.4.21 building for production...
+transforming...
+Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 5429 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                     0.53 kB │ gzip:   0.34 kB
+dist/assets/index-B9174E9n.css     38.39 kB │ gzip:   7.13 kB
+dist/assets/index-CwbTo3w6.js   2,631.92 kB │ gzip: 810.60 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 19.53s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795730763103 hold_ms=20761
+NODE_TEST_RC=0
+TAB_RENAMED=1
+TRANSFER_BUTTON_USES_VIEWER_IS_OWNER=1
+OWNER_REMOVE_DISABLED=1
+OWNER_CARD_RENDERED=1
+CANDIDATE_PAGE_SIZE=100
+FRONTEND_LINT_RC=0
+FRONTEND_BUILD_RC=0

@@ -1,0 +1,12 @@
+# build=1.0.ed39cccd4 # commit=ed39cccd43d217124b5886a89bf90769bb7898cb # dirty=false
+== R1 detail field contract + unknown id (backend) ==
+STATUS=200
+CODE=20000
+HAS_BASE_DAILY_RATE=1
+HAS_MEDIA_DISPLAY=1
+HAS_POSTER=1
+NOT_FOUND_CODE=40400
+--- PASS: TestAssetDetail2529_R1 (1.27s)
+PASS
+ok  	tuneloop-backend/handlers	2.131s
+R1_OK
