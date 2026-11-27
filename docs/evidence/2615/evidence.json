@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2615,
-  "build": "1.0.474380094",
-  "commit": "47438009407d09344feb5c764fffd42d0921a0c0",
+  "build": "1.0.5e3d9c53b",
+  "commit": "5e3d9c53b5fa3dc07ce88ba7fe0815eaf3b2bea3",
   "dirty": false,
   "plan_sha256": "8b498d33a2cf1be3630d55233fdf7d4686fdfd7adaf2abd36f20a4e8b2f1d0a5",
   "tooling_commit": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
@@ -21,10 +21,10 @@
         "docs/evidence/2615/R1-api.txt"
       ],
       "assert": "exit 0 且含 LOSS_LIST_TOTAL=3、LOSS_LIST_PAGE_LEN=2、LOSS_LIST_STATUS_OPEN=2、LOSS_LIST_STATUS_RESTORED=1、LOSS_LIST_BRIEF_SN=1、LOSS_LIST_PHOTOS_ARRAY=1、LOSS_GET_CODE=20000、LOSS_GET_BRIEF_SN=1、LOSS_GET_MISSING_CODE=40400、LOSS_GET_CROSS_TENANT_CODE=40400",
-      "actual": "R1 tokens: LOSS_GET_BRIEF_SN=1,LOSS_GET_CODE=20000 LOSS_GET_CROSS_TENANT_CODE=40400,LOSS_GET_MISSING_CODE=40400 LOSS_LIST_BRIEF_SN=1,LOSS_LIST_PAGE_LEN=2 LOSS_LIST_PHOTOS_ARRAY=1,LOSS_LIST_STATUS_OPEN=2 LOSS_LIST_STATUS_RESTORED=1,LOSS_LIST_TOTAL=3",
+      "actual": "PASS：exit 0 / RESULT: PASS (r1)。十项合同 token 全为期望值（LOSS_LIST_TOTAL=3、LOSS_LIST_PAGE_LEN=2、LOSS_LIST_STATUS_OPEN=2、LOSS_LIST_STATUS_RESTORED=1、LOSS_LIST_BRIEF_SN=1、LOSS_LIST_PHOTOS_ARRAY=1、LOSS_GET_CODE=20000、LOSS_GET_BRIEF_SN=1、LOSS_GET_MISSING_CODE=40400、LOSS_GET_CROSS_TENANT_CODE=40400）；Round 1 追加：LOSS_RESPONSE_KEEPS_REVERSED_FIELDS=1（列表每行 + 详情均保留 reversed_at / reversed_amount_cents / deducted_damage_cents / deducted_idle_cents / reverse_note 五个历史列）。",
       "expected": "十项 token 全为期望值",
       "negative": "分页失效、total 非真实计数、photos 仍字符串、brief 缺失、跨租户 200 → FAIL",
-      "negative_result": "负例断言通过：status=bogus → 400/40002；缺失/非法 id/跨租户 → 404/40400（LOSS_GET_MISSING_CODE=40400、LOSS_GET_CROSS_TENANT_CODE=40400）",
+      "negative_result": "负例已实测：status=bogus → 400/40002；不存在/非法 id/跨租户 → 404/40400（无 200 泄漏）；跨租户用例另建 tenant 上下文，确认不泄漏存在性。Round 1 新增负例：把 lossRecordJSON 回退到缺陷版 bc543314a(=HEAD^) 后 LOSS_RESPONSE_KEEPS_REVERSED_FIELDS=0 且测试 FAIL（list row drops legacy field / detail drops reversed_at…），修复后为 1。",
       "pass": true
     },
     {
@@ -35,10 +35,10 @@
         "docs/evidence/2615/R2-list.txt"
       ],
       "assert": "exit 0 且含 LOSS_LIST_ROWS=3、LOSS_LIST_SN_SHOWN=1、LOSS_LIST_TIME_SHOWN=1、LOSS_LIST_STATUS_BADGE=2、LOSS_LIST_DANGER_BUTTON_IN_ROW=0、LOSS_LIST_REGISTER_ENTRY=1、LOSS_LIST_ROW_NAV=1、LOSS_LIST_RENDER_FAIL=0",
-      "actual": "R2 tokens: LOSS_LIST_DANGER_BUTTON_IN_ROW=0,LOSS_LIST_REGISTER_ENTRY=1 LOSS_LIST_RENDER_FAIL=0,LOSS_LIST_ROWS=3 LOSS_LIST_ROW_NAV=1,LOSS_LIST_SN_SHOWN=1 LOSS_LIST_STATUS_BADGE=2,LOSS_LIST_TIME_SHOWN=1",
+      "actual": "PASS：exit 0 / RESULT: PASS (r2)。八项合同 token 全为期望值（LOSS_LIST_ROWS=3、LOSS_LIST_SN_SHOWN=1、LOSS_LIST_TIME_SHOWN=1、LOSS_LIST_STATUS_BADGE=2、LOSS_LIST_DANGER_BUTTON_IN_ROW=0、LOSS_LIST_REGISTER_ENTRY=1、LOSS_LIST_ROW_NAV=1、LOSS_LIST_RENDER_FAIL=0）；Round 1 追加：LOSS_LIST_COVER_SRC_ABSOLUTE=1、LOSS_LIST_COVER_RAW_INPUT=0（夹具两行封面分别用真实形态：相对路径 /uploads/media/cover-1.webp 与裸 file_key cover-2.webp，渲染出的 src 均为 env.apiBaseUrl origin + /uploads/media/<key>）。",
       "expected": "八项 token 全为期望值",
       "negative": "行内危险按钮、缺 SN/时间、点行不跳详情、无登记入口 → FAIL",
-      "negative_result": "负例断言通过：行内 button 计数为 0（LOSS_LIST_DANGER_BUTTON_IN_ROW=0），且仅 1 个登记入口（LOSS_LIST_REGISTER_ENTRY=1）",
+      "negative_result": "负例已实测：行内危险按钮计数 = 0（单一入口 + 整行进详情）；点行不跳详情/无登记入口 → FAIL。Round 1 新增负例：把 InstrumentLossManage 回退到缺陷版后 LOSS_LIST_COVER_SRC_ABSOLUTE=0 且 LOSS_LIST_COVER_RAW_INPUT=1（裸 key 直接进 <Image src>，weapp 静默不显示），修复后分别为 1 / 0。",
       "pass": true
     },
     {
@@ -63,10 +63,10 @@
         "docs/evidence/2615/R4-detail.txt"
       ],
       "assert": "exit 0 且含 LOSS_DETAIL_FIELDS=1、LOSS_DETAIL_PHOTOS=1、LOSS_DETAIL_OPEN_HAS_RESTORE=1、LOSS_DETAIL_RESTORED_HIDES_RESTORE=1、LOSS_DETAIL_RESTORE_PAYLOAD=1、LOSS_DETAIL_RENDER_FAIL=0",
-      "actual": "R4 tokens: LOSS_DETAIL_FIELDS=1,LOSS_DETAIL_OPEN_HAS_RESTORE=1 LOSS_DETAIL_PHOTOS=1,LOSS_DETAIL_RENDER_FAIL=0 LOSS_DETAIL_RESTORED_HIDES_RESTORE=1,LOSS_DETAIL_RESTORE_PAYLOAD=1",
+      "actual": "PASS：exit 0 / RESULT: PASS (r4)。六项合同 token 全为期望值（LOSS_DETAIL_FIELDS=1、LOSS_DETAIL_PHOTOS=1、LOSS_DETAIL_OPEN_HAS_RESTORE=1、LOSS_DETAIL_RESTORED_HIDES_RESTORE=1、LOSS_DETAIL_RESTORE_PAYLOAD=1、LOSS_DETAIL_RENDER_FAIL=0）；Round 1 追加：LOSS_DETAIL_PHOTO_SRC_ABSOLUTE=1、LOSS_DETAIL_PHOTO_RAW_KEY=0、LOSS_DETAIL_PHOTO_PREVIEW_URLS_ABSOLUTE=1、LOSS_DETAIL_RESTORE_PHOTO_SRC_ABSOLUTE=1、LOSS_DETAIL_RESTORE_PHOTO_RAW_KEY=0、LOSS_DETAIL_RESTORE_PHOTO_PREVIEW_URLS_ABSOLUTE=1（夹具 photos=['k1','k2'] / restore_photos=['r1'] 均为 /upload 真实返回的裸 key；preview 断言读的是 browser.js previewImage 真实挂到 body 的覆盖层 <img src>，不是 mock）。",
       "expected": "六项 token 全为期望值",
       "negative": "字段缺失、照片不渲染、已恢复仍可恢复、恢复载荷缺字段 → FAIL",
-      "negative_result": "负例断言通过：已恢复记录不渲染恢复按钮（LOSS_DETAIL_RESTORED_HIDES_RESTORE=1）",
+      "negative_result": "负例已实测：已恢复记录不渲染恢复按钮（hasButton=false）；恢复载荷 damaged=true + photos 数组。Round 1 新增负例：把 InstrumentLossDetail 回退到缺陷版后 LOSS_DETAIL_PHOTOS=0、LOSS_DETAIL_PHOTO_RAW_KEY=2、LOSS_DETAIL_RESTORE_PHOTO_SRC_ABSOLUTE=0、LOSS_DETAIL_RESTORE_PHOTO_RAW_KEY=1，且 preview 断言因找不到照片控件抛错 → 2 个用例 FAIL；修复后全部为期望值（裸 key 作 src 的情形计数为 0）。",
       "pass": true
     },
     {
@@ -77,10 +77,10 @@
         "docs/evidence/2615/R5-build-wiring.txt"
       ],
       "assert": "exit 0 且含 WEAPP_PAGES_REGISTERED=2、H5_PAGES_REGISTERED=2、NAV_MAP_ENTRIES=2、WEAPP_BUILD_OK=1、H5_BUILD_OK=1、WXML_NATIVE_TAG=0、ESLINT_NOUNDEF=0",
-      "actual": "R5 tokens: ESLINT_EXIT=0,ESLINT_NOUNDEF=0 H5_BUILD_OK=1,H5_PAGES_REGISTERED=2 H5_ROUTES_REGISTERED=2,NAV_MAP_ENTRIES=2 WEAPP_BUILD_OK=1,WEAPP_PAGES_REGISTERED=2 WEAPP_PAGE_WXML_PRODUCED=3,WXML_NATIVE_TAG=0",
+      "actual": "PASS：exit 0 / RESULT: PASS (r5)。七项合同 token 全为期望值（WEAPP_PAGES_REGISTERED=2、H5_PAGES_REGISTERED=2、NAV_MAP_ENTRIES=2、WEAPP_BUILD_OK=1、H5_BUILD_OK=1、WXML_NATIVE_TAG=0、ESLINT_NOUNDEF=0）；另含 H5_ROUTES_REGISTERED=2、WEAPP_PAGE_WXML_PRODUCED=3、ESLINT_EXIT=0。",
       "expected": "七项 token 全为期望值",
       "negative": "页面未注册、构建失败、wxml 含原生标签、eslint no-undef → FAIL",
-      "negative_result": "负例断言通过：新页 wxml 无原生 HTML 标签（WXML_NATIVE_TAG=0）、eslint 无 no-undef（ESLINT_NOUNDEF=0）",
+      "negative_result": "负例已实测：产物探针 grep 原生 HTML 交互/媒体标签（base.wxml 除外）命中 0；三页 wxml 均真实产出；eslint 9 个文件 exit 0 且 no-undef 计数 0（i18n 硬编码文案为 warning，属 i18n Phase 2 目录范围）。",
       "pass": true
     },
     {
@@ -91,10 +91,10 @@
         "docs/evidence/2615/pre-ready-2615.json"
       ],
       "assert": "exit 0 且 jq -e '.overall == \"PASS\"' docs/evidence/2615/pre-ready-2615.json 成立；P12 对 docs/evidence/2615/evidence.json 每行 pass=true",
-      "actual": "overall=PASS（P1–P17 见 docs/evidence/2615/pre-ready-2615.json）",
+      "actual": "PASS：pre-ready-check.sh 2615 → exit 0 / RESULT: PASS（overall=PASS）。P1/P2/P3/P4/P6/P7/P11/P12/P13/P14/P17/P18 PASS；P5 N/A（仓库根无 go.mod/package.json，全量编译与定向回归见 Work Summary）；P8/P9/P10/P15/P16 N/A。P12 对 evidence.json 6 行逐行 pass=true；P13 锚定 fix 5e3d9c53b 且 5 份 artifact 均在 origin/issue-2615。",
       "expected": "overall=PASS 且证据行全 pass=true",
       "negative": "任一 P 项失败 / evidence 缺行 / dirty=true / plan 快照不一致 → gate 非 0，禁止 ready",
-      "negative_result": "无 FAIL 项；dirty=false；P13 提交已在 origin/issue-2615",
+      "negative_result": "负例已实测：Round 1 的 pre-ready 同一命令在证据未重生成时 P12 会因 assert 与合同不一致 FAIL；本轮先把 fix commit 与证据提交 push 到 origin/issue-2615 再跑 gate，P13 通过；gate PASS 后才置 ready。",
       "pass": true
     }
   ]

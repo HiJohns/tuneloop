@@ -1,140 +1,159 @@
-## Work Summary — #2615 丢失登记页信息架构收敛（记录列表 + 单一登记入口 + 详情页恢复）
+## Work Summary — #2615 (Round 2 / fixreview) 丢失登记页信息架构收敛
 
-### 变更内容
+### Remote
 
-**后端（List 归一化 + 新增详情端点）**
-- `List`：`page`/`pageSize`（默认 20，上限 100）+ `status=open|restored|all`（非法值 → 400/40002，不静默按 all）+ `open=true` 兼容映射；`total` 改为真实 `COUNT(*)`（原为 `len(list)`，且旧实现硬编码 `Limit(200)`）；响应行 `photos`/`restore_photos` 由 jsonb 字符串归一化为字符串数组（空值/非法 JSON → `[]`），并新增 `instrument_brief`（一次 `IN` 批量查询，禁 N+1；未命中 → `null`）。
-- 新增 `Get`（`GET /api/instrument-loss/:id`）：tenant 过滤走 middleware.GetTenantID；不存在 / 非法 id / 他人租户统一 404/40400（不区分，不泄漏存在性），`tid==""` → 403/40300。
-- 路由：`backend/main.go` 在 `GET /instrument-loss` 之后注册 `GET /instrument-loss/:id`（`ExplicitTenantScope` + `RequireCusPerm("instrument:read")`）。
+- `origin/issue-2615`；fix `5e3d9c53b`（替换 Round 1 的 `474380094`）+ 证据提交，均已 push。
+- 分支 `issue-2615`（基于 Accepted Plan 基线 `bdd14b69d`）。
 
-**移动端（H5 + weapp 共用 .jsx，三页面拆分）**
-- `InstrumentLossManage` 重写为**丢失记录列表**：删除「在管乐器」段与行内红色「丢失登记」按钮；行 = 封面 + SN + 类别/级别 + 丢失时间 + 状态徽标（丢失中/已恢复）+ 责任方·比例 + 赔偿/承担；整行点进详情；页首**唯一**「＋ 登记丢失」入口；20/页触底加载、`useDidShow` 回页刷新第一页。
-- 新增 `InstrumentLossRegister`：SN 检索（300ms 防抖）选乐器 + 责任方/比例默认联动（用户=100%，其他=0）+ 赔偿/承担 + 描述必填 + 照片 ≤6（Taro.chooseImage → platform.uploadFile）→ `POST /instruments/:id/lost` → 回列表。
-- 新增 `InstrumentLossDetail`：记录全文 + 照片多图预览；丢失中 → 「恢复上架」展开恢复表单（损坏/说明/照片）→ `POST /instruments/:id/restore`；已恢复 → 只展示恢复留痕，**不渲染恢复按钮**。参数用 useSearchParams().get('id')（禁 `useParams`）。
-- 跨端接线：`frontend-mobile/src/app.config.ts`（`weappPages`/`h5Pages` 各 +2）、`frontend-mobile/src/App-H5.jsx`（+2 路由）、`frontend-mobile/src/platform/navigation.js`（+2 映射）、H5 薄壳 ×2、weapp 薄壳 + index.config.ts ×2。
+### 针对审计意见的改进（Round 1 阻断项逐条）
 
-**文档（Core Update）**
-- `docs/spec/api/api.md` 新增 §5.12（列表/详情契约 + 既有登记/恢复端点回链）。
-- `docs/spec/ui/ui.md` §3.26 改为三段式 IA。
-- `docs/cases/instrument-loss.md` LS-01 / LS-05 入口改写（其余口径逐字不动）。
+| 审计项 | 根因分类 | 修复 |
+|---|---|---|
+| **B1** 详情页「现场照片 / 恢复照片」用裸 `file_key` 作 `<Image src>` 与 `previewImage` urls → weapp 不显示、H5 404；且 R4 断言把裸 key 写成期望 | 执行 | `frontend-mobile/src/pages/InstrumentLossDetail.jsx` 引入 `frontend-mobile/src/utils/media.js` 的 photoSrc：`photoUrls = photos.map(photoSrc)`、`restorePhotoUrls = restorePhotosSaved.map(photoSrc)`；缩略图 `src={photoSrc(key)}`，预览 `previewImage({ urls: photoUrls, current: photoSrc(key) })`（恢复照片同）。R4 断言改为「src / preview url = env.apiBaseUrl origin + `/uploads/media/<key>`」，并新增「裸 key 作 src 计数 = 0」的负例。 |
+| **B2** 列表行封面 instrument_brief.cover_image（`/uploads/media/` 下的相对路径 相对路径）未过 `photoSrc` → weapp 缩略图不显示 | 执行 | `frontend-mobile/src/pages/InstrumentLossManage.jsx` 行内封面改为 photoSrc(brief.cover_image)；同类路径一并修：详情页头部封面（同一 Issue 新增代码）同样归一化。R2 夹具改用两种真实形态（相对路径 相对路径 /uploads/media/cover-1.webp 与裸 key 裸 key cover-2.webp），断言渲染 src 为 origin + `/uploads/media/<key>` 且裸形态计数 = 0。 |
+| **B3** `lossRecordJSON` 丢弃模型 5 个字段（`reversed_at` / `reversed_amount_cents` / `deducted_damage_cents` / `deducted_idle_cents` / `reverse_note`）→ 旧 `GET /instrument-loss` 字段静默消失 | 执行 | 补齐这 5 个字段（列已作废但「保留以兼容历史行」，零成本、无 migration），并在 R1 增加 `LOSS_RESPONSE_KEEPS_REVERSED_FIELDS=1`（列表每行 + 详情都断言）。 |
+
+附带（审计非阻断备注，同批顺手处理）：
+
+- `scripts/verify-2615.sh` 的 `ESLINT_CMD` 文案不再打印 `<2609 changed files>` 占位符，改为真实文件列表。
+
+### 未处理（非阻断，需 Architect / 后续 Issue）
+
+- **计划内部矛盾（危险色）**：变更点 3 写「状态徽标 `丢失中`（`#DC2626`）」，Decision Lock D6 写「列表行一律不用危险色」。Round 1 审计已判定**非阻断**并要求 Architect 消歧；本轮按变更点 3 保持红字徽标，不改口径（改 D6 或改徽标属计划变更，超出 fixreview 范围）。
+- **P16（UI render 断言）未生效**：计划把 `evidence_type: render` 放在单独的 `### Evidence Types` 表，未内联到矩阵行 → gate 的 P16 为 N/A。实际证据确实使用 `render(`/`fireEvent`/`querySelector`（非 grep）。内联属计划变更，建议 Architect 在后续计划模板中修正。
+- i18n 硬编码中文（新三页）属 i18n Phase 2 目录推进范围；详情页恢复按钮位于卡片内而非「底部行动条」属视觉差异（不影响可达性）。
 
 ### 涉及文件
-后端：`backend/handlers/instrument_loss.go`、`backend/handlers/instrument_loss_list_2615_test.go`、`backend/main.go`
-前端：`frontend-mobile/src/pages/InstrumentLossManage.jsx`、`frontend-mobile/src/pages/InstrumentLossRegister.jsx`、`frontend-mobile/src/pages/InstrumentLossDetail.jsx`、`frontend-mobile/src/pages/instrument-loss-register/index.tsx`、`frontend-mobile/src/pages/instrument-loss-detail/index.tsx`、`frontend-mobile/src/pages-weapp/instrument-loss-register/index.tsx`、`frontend-mobile/src/pages-weapp/instrument-loss-register/index.config.ts`、`frontend-mobile/src/pages-weapp/instrument-loss-detail/index.tsx`、`frontend-mobile/src/pages-weapp/instrument-loss-detail/index.config.ts`、`frontend-mobile/src/app.config.ts`、`frontend-mobile/src/App-H5.jsx`、`frontend-mobile/src/platform/navigation.js`、`frontend-mobile/scripts/page-smoke/instrument-loss-2615.test.jsx`
-脚本/文档：`scripts/verify-2615.sh`、`docs/spec/api/api.md`、`docs/spec/ui/ui.md`、`docs/cases/instrument-loss.md`
 
-### Commit
-- fix：`d7caf4f79`（IA 收敛主体）、`474380094`（证据脚本按矩阵行切分产物）——latest fix commit 为 `474380094`
-- evidence：`docs(evidence): issue-2615`（汇总见 Remote 行）
+- `backend/handlers/instrument_loss.go`（`lossRecordJSON` 补 5 个历史字段）
+- `backend/handlers/instrument_loss_list_2615_test.go`（`LOSS_RESPONSE_KEEPS_REVERSED_FIELDS`）
+- `frontend-mobile/src/pages/InstrumentLossDetail.jsx`（`photoSrc`：封面 / 现场照片 / 恢复照片 / 预览 urls）
+- `frontend-mobile/src/pages/InstrumentLossManage.jsx`（行内封面 `photoSrc`）
+- `frontend-mobile/scripts/page-smoke/instrument-loss-2615.test.jsx`（R2/R4 断言改为归一化 URL + 裸 key 负例）
+- `scripts/verify-2615.sh`（合同 token + ESLINT_CMD 文案）
+- 证据：`docs/evidence/2615/R1-api.txt`、`docs/evidence/2615/R2-list.txt`、`docs/evidence/2615/R3-register.txt`、`docs/evidence/2615/R4-detail.txt`、`docs/evidence/2615/R5-build-wiring.txt`、`docs/evidence/2615/evidence.json`、`docs/evidence/2615/pre-ready-2615.json`、`docs/evidence/2615/summary.md`、`docs/evidence/2615/changed-files.txt`
 
-### 验证层级
-- 本单无 Parent（独立 Issue），按 #2651（Owner 单 Issue 吞吐口径）执行：
-  - 定向（pre-ready P4 的 affected-cmd）：`bash scripts/verify-2615.sh gate` = `go test ./handlers/ -run '^TestInstrumentLoss2615'`（Postgres fixture）+ 三页渲染用例（vitest + @testing-library/react 的 `render`/`fireEvent`）+ 跨端接线静态断言。
-  - 全量编译：`go build ./...` + `go test ./... -run '^$'`（全包编译冒烟，覆盖 `backend/main.go` 路由注册）——见下方代码块。
-  - 前端全量构建：R5 一次性产出 `build:weapp` / `build:h5` + wxml 原生标签探针 + eslint。
-  - pre-ready P5：本单无批次（无 `Parent:`），按 #2651 全量 `go test ./...` 由批次 gate 承担；pre-ready 报告 P5 为 N/A（自动探测口径），定向 + 全量编译由 P4 与下方构建输出承担。
+无新增文件（未改计划 Files / 矩阵 / 验收工具）。
+
+### 自证（修复类必填）
+
+**① 红绿实证（同一 harness，缺陷版 vs 修复版）**
+
+后端（`cd backend && go test ./handlers/ -run '^TestInstrumentLoss2615' -count=1 -v`）：
 
 ```text
-$ cd backend && go build ./... && go test ./... -run '^$' -count=1
-BUILD_RC=0
-ok  	tuneloop-backend/bindmsg	0.022s [no tests to run]
-ok  	tuneloop-backend/database	0.012s [no tests to run]
-ok  	tuneloop-backend/handlers	1.039s [no tests to run]
-ok  	tuneloop-backend/middleware	0.021s [no tests to run]
-ok  	tuneloop-backend/models	0.014s [no tests to run]
-ok  	tuneloop-backend/service	0.015s [no tests to run]
-ok  	tuneloop-backend/services	0.022s [no tests to run]
-ok  	tuneloop-backend/services/tencentcloud	0.006s [no tests to run]
-ok  	tuneloop-backend/services/wechatpay	0.014s [no tests to run]
-SMOKE_RC=0
+缺陷版（HEAD^ = Round 1 的 lossRecordJSON）：
+  LOSS_RESPONSE_KEEPS_REVERSED_FIELDS=0
+  list row drops legacy field "reverse_note": 54f46f55-…
+  detail drops legacy field "reversed_at" / "reversed_amount_cents" / "deducted_damage_cents" / "deducted_idle_cents" / "reverse_note"
+  --- FAIL: TestInstrumentLoss2615_ListAndGet
+修复版 5e3d9c53b：LOSS_RESPONSE_KEEPS_REVERSED_FIELDS=1，--- PASS: TestInstrumentLoss2615_ListAndGet
 ```
+
+前端（`cd frontend-mobile && npx vitest run --config vitest.config.js scripts/page-smoke/instrument-loss-2615.test.jsx`）：
+
+```text
+缺陷版（页面回退到 Round 1）：
+  LOSS_LIST_COVER_SRC_ABSOLUTE=0   LOSS_LIST_COVER_RAW_INPUT=1
+  LOSS_DETAIL_PHOTOS=0             LOSS_DETAIL_PHOTO_RAW_KEY=2
+  LOSS_DETAIL_RESTORE_PHOTO_SRC_ABSOLUTE=0  LOSS_DETAIL_RESTORE_PHOTO_RAW_KEY=1
+  Tests 2 failed | 2 passed（preview 断言因找不到照片控件抛错）
+修复版 5e3d9c53b：
+  LOSS_LIST_COVER_SRC_ABSOLUTE=1   LOSS_LIST_COVER_RAW_INPUT=0
+  LOSS_DETAIL_PHOTOS=1             LOSS_DETAIL_PHOTO_SRC_ABSOLUTE=1   LOSS_DETAIL_PHOTO_RAW_KEY=0
+  LOSS_DETAIL_PHOTO_PREVIEW_URLS_ABSOLUTE=1
+  LOSS_DETAIL_RESTORE_PHOTO_SRC_ABSOLUTE=1  LOSS_DETAIL_RESTORE_PHOTO_RAW_KEY=0
+  LOSS_DETAIL_RESTORE_PHOTO_PREVIEW_URLS_ABSOLUTE=1
+  Tests 4 passed (4)
+```
+
+**② 真实 `<Image src>` / preview urls 取值**（jsdom 下 env.apiBaseUrl = /api，故 origin 为空串；weapp 构建注入 `https://<host>/api`，同一条 `photoSrc` 会产出绝对 URL）：
+
+```text
+夹具：photos=['k1','k2']（裸 key）、restore_photos=['r1']、cover_image='/uploads/media/cover-1.webp' 与 'cover-2.webp'
+渲染：<Image src="/uploads/media/k1">、<Image src="/uploads/media/k2">、<Image src="/uploads/media/r1">
+      <Image src="/uploads/media/cover-1.webp">、<Image src="/uploads/media/cover-2.webp">
+preview：previewImage({ urls: ['/uploads/media/k1','/uploads/media/k2'], current: '/uploads/media/k1' })
+         → 覆盖层 <img src> = /uploads/media/k1（断言读真实 DOM 覆盖层）
+```
+
+**③ 全量编译与定向回归**
+
+```text
+$ cd backend && go build ./...                 → BUILD_RC=0
+$ cd backend && go test ./... -run '^$' -count=1 → 全包编译冒烟通过（各包 ok [no tests to run]）
+$ cd backend && go test ./... -count=1 -timeout 20m -p 2
+  FAIL tuneloop-backend/handlers      ← TestMain: pq: database "tuneloop" does not exist（本机 localhost:5432 无该库）
+  FAIL tuneloop-backend/services      ← TestBulkImportIAMRole2540: 同上（DB 不可用）
+  其余包全 ok
+```
+
+上述 2 个包共 3 条失败属**本机环境既有**、与本次改动无关：同机对 `origin/develop` 基线跑 `scripts/batch-gate.sh --baseline origin/develop`（批次 `2026-11-27-2622`）得到 `FAIL_COUNT=3 / BASELINE_FAIL_COUNT=3 / FULL_GATE_NEW_FAILURES=0`，失败集合与本单完全一致（无新增失败、无新增 panic）。本单改动仅触及 `backend/handlers/instrument_loss.go` 的响应字段与两个移动端页面的媒体路径，不涉及这两个失败点的代码路径。
+
+**④ 根因分层声明**：应用层（后端响应字段 + 移动端媒体 URL 归一化 + 自有 harness 断言），无库层/依赖变更，无 migration。
+
+**⑤ 范围声明**：仅修复审计意见所列 B1/B2/B3 与其验收行（R1+/R2+/R4+），未改判定口径、未改共享验收工具/规则、未做 Out of Scope 的过滤 Tab / 批量扫码 / PC 台账。
 
 ### 矩阵 6/6
 
 | 行 | 状态 | 证据 |
 |---|---|---|
-| R1 台账列表分页/状态过滤/乐器摘要/详情端点（集成测试，Postgres fixture） | PASS | `docs/evidence/2615/R1-api.txt`：LOSS_LIST_TOTAL=3、LOSS_LIST_PAGE_LEN=2、LOSS_LIST_STATUS_OPEN=2、LOSS_LIST_STATUS_RESTORED=1、LOSS_LIST_BRIEF_SN=1、LOSS_LIST_PHOTOS_ARRAY=1、LOSS_GET_CODE=20000、LOSS_GET_BRIEF_SN=1、LOSS_GET_MISSING_CODE=40400、LOSS_GET_CROSS_TENANT_CODE=40400 |
-| R2 列表页 render：记录行信息 + 单一登记入口 + 无行内危险按钮 + 行点击进详情 | PASS | `docs/evidence/2615/R2-list.txt`：LOSS_LIST_ROWS=3、LOSS_LIST_SN_SHOWN=1、LOSS_LIST_TIME_SHOWN=1、LOSS_LIST_STATUS_BADGE=2、LOSS_LIST_DANGER_BUTTON_IN_ROW=0、LOSS_LIST_REGISTER_ENTRY=1、LOSS_LIST_ROW_NAV=1、LOSS_LIST_RENDER_FAIL=0 |
+| R1 台账列表分页/状态过滤/乐器摘要/详情端点（集成测试，Postgres fixture） | PASS | `docs/evidence/2615/R1-api.txt`：LOSS_LIST_TOTAL=3、LOSS_LIST_PAGE_LEN=2、LOSS_LIST_STATUS_OPEN=2、LOSS_LIST_STATUS_RESTORED=1、LOSS_LIST_BRIEF_SN=1、LOSS_LIST_PHOTOS_ARRAY=1、LOSS_GET_CODE=20000、LOSS_GET_BRIEF_SN=1、LOSS_GET_MISSING_CODE=40400、LOSS_GET_CROSS_TENANT_CODE=40400；新增 LOSS_RESPONSE_KEEPS_REVERSED_FIELDS=1 |
+| R2 列表页 render：记录行信息 + 单一登记入口 + 无行内危险按钮 + 行点击进详情 | PASS | `docs/evidence/2615/R2-list.txt`：LOSS_LIST_ROWS=3、LOSS_LIST_SN_SHOWN=1、LOSS_LIST_TIME_SHOWN=1、LOSS_LIST_STATUS_BADGE=2、LOSS_LIST_DANGER_BUTTON_IN_ROW=0、LOSS_LIST_REGISTER_ENTRY=1、LOSS_LIST_ROW_NAV=1、LOSS_LIST_RENDER_FAIL=0；新增 LOSS_LIST_COVER_SRC_ABSOLUTE=1、LOSS_LIST_COVER_RAW_INPUT=0 |
 | R3 登记页 render：SN 检索选择器 + 校验 + 提交载荷 + 返回列表 | PASS | `docs/evidence/2615/R3-register.txt`：LOSS_REG_SELECTOR_QUERY=1、LOSS_REG_PARTY_RATIO_DEFAULT=1、LOSS_REG_VALIDATE_NO_INSTRUMENT=1、LOSS_REG_VALIDATE_DESC_REQUIRED=1、LOSS_REG_SUBMIT_PAYLOAD=1、LOSS_REG_SUBMIT_BACK=1、LOSS_REG_RENDER_FAIL=0 |
-| R4 详情页 render：记录全文 + 照片 + 恢复提交 + 已恢复态隐藏恢复按钮 | PASS | `docs/evidence/2615/R4-detail.txt`：LOSS_DETAIL_FIELDS=1、LOSS_DETAIL_PHOTOS=1、LOSS_DETAIL_OPEN_HAS_RESTORE=1、LOSS_DETAIL_RESTORED_HIDES_RESTORE=1、LOSS_DETAIL_RESTORE_PAYLOAD=1、LOSS_DETAIL_RENDER_FAIL=0 |
+| R4 详情页 render：记录全文 + 照片 + 恢复提交 + 已恢复态隐藏恢复按钮 | PASS | `docs/evidence/2615/R4-detail.txt`：LOSS_DETAIL_FIELDS=1、LOSS_DETAIL_PHOTOS=1、LOSS_DETAIL_PHOTO_SRC_ABSOLUTE=1、LOSS_DETAIL_PHOTO_RAW_KEY=0、LOSS_DETAIL_PHOTO_PREVIEW_URLS_ABSOLUTE=1、LOSS_DETAIL_RESTORE_PHOTO_SRC_ABSOLUTE=1、LOSS_DETAIL_RESTORE_PHOTO_RAW_KEY=0、LOSS_DETAIL_RESTORE_PHOTO_PREVIEW_URLS_ABSOLUTE=1、LOSS_DETAIL_OPEN_HAS_RESTORE=1、LOSS_DETAIL_RESTORED_HIDES_RESTORE=1、LOSS_DETAIL_RESTORE_PAYLOAD=1、LOSS_DETAIL_RENDER_FAIL=0 |
 | R5 跨端接线 + 构建 + 产物可达性 + ESLint | PASS | `docs/evidence/2615/R5-build-wiring.txt`：WEAPP_PAGES_REGISTERED=2、H5_PAGES_REGISTERED=2、H5_ROUTES_REGISTERED=2、NAV_MAP_ENTRIES=2、WEAPP_BUILD_OK=1、H5_BUILD_OK=1、WXML_NATIVE_TAG=0、WEAPP_PAGE_WXML_PRODUCED=3、ESLINT_NOUNDEF=0 |
-| R6 pre-ready gate（四源一致性 + 合同完整性 + 远端可达） | PASS | `docs/evidence/2615/pre-ready-2615.json`：overall=PASS（见下方 Pre-ready gate 段） |
+| R6 pre-ready gate（四源一致性 + 合同完整性 + 远端可达） | PASS | `docs/evidence/2615/pre-ready-2615.json`：overall=PASS（见下方 Pre-ready gate） |
+
+未完成行：无。
+
+### 流程可达性（Step 2.5 沙盘复核）
+
+| 角色 | 入口 | 看到什么 | 能做什么 | 控件 | 目标端可见可点 |
+|---|---|---|---|---|---|
+| 网点员工（staff） | 列表页「＋ 登记丢失」 | 丢失记录行（封面/SN/类别/丢失时间/状态徽标/责任方·比例/赔偿） | 登记丢失 / 进详情 | `Button` / 整行 `View onClick` | 是（weapp wxml 原生标签 0，`WEAPP_PAGE_WXML_PRODUCED=3`） |
+| 网点员工 | 列表行 → 详情 | 记录全文 + 现场照片 + 恢复留痕 | 看照片（预览）/ 恢复上架 | `View onClick` + `Image` + `Button` | 是（照片 src 为 origin 绝对/根路径，weapp 可加载） |
+| 网点员工 | 详情（丢失中） | 恢复表单 | 确认恢复 | `Button`（危险色仅确认动作） | 是 |
 
 ### Evidence Contract
 
 | 行 | 结果 | 产物 | 关键断言 |
 |---|---|---|---|
-| R1 | PASS | `docs/evidence/2615/R1-api.txt` | 10 个 token 全为期望值；负例 status=bogus → 400/40002，缺失/非法 id/跨租户 → 404/40400 |
-| R2 | PASS | `docs/evidence/2615/R2-list.txt` | 8 个 token 全为期望值；负例 行内 button 计数 = 0 |
-| R3 | PASS | `docs/evidence/2615/R3-register.txt` | 7 个 token 全为期望值；负例 未选乐器/描述空均不发请求 |
-| R4 | PASS | `docs/evidence/2615/R4-detail.txt` | 6 个 token 全为期望值；负例 已恢复记录无恢复按钮 |
-| R5 | PASS | `docs/evidence/2615/R5-build-wiring.txt` | 7 个 token 全为期望值；负例 wxml 原生标签 = 0、eslint no-undef = 0 |
+| R1 | PASS | `docs/evidence/2615/R1-api.txt` | 十项合同 token + LOSS_RESPONSE_KEEPS_REVERSED_FIELDS=1；负例 status=bogus→400/40002、缺失/非法 id/跨租户→404/40400 |
+| R2 | PASS | `docs/evidence/2615/R2-list.txt` | 八项合同 token + 封面归一化两项；负例行内按钮 = 0、裸 key 计数 = 0 |
+| R3 | PASS | `docs/evidence/2615/R3-register.txt` | 七项合同 token；负例 未选乐器/描述空均不发请求 |
+| R4 | PASS | `docs/evidence/2615/R4-detail.txt` | 六项合同 token + 照片/恢复照片/预览归一化六项；负例 裸 key src 计数 = 0、已恢复无恢复按钮 |
+| R5 | PASS | `docs/evidence/2615/R5-build-wiring.txt` | 七项合同 token；负例 wxml 原生标签 = 0、eslint no-undef = 0 |
 | R6 | PASS | `docs/evidence/2615/pre-ready-2615.json` | overall=PASS、P12 每行 pass=true、P13 提交在 origin/issue-2615 |
 
-机读合同：`docs/evidence/2615/evidence.json`（`dirty=false`，每个合同行恰好一条记录，`pass=true`；R2/R3/R4 产物按行前缀切分，不复用其它行断言）。
+机读合同：`docs/evidence/2615/evidence.json`（build=1.0.5e3d9c53b、commit=5e3d9c53b、dirty=false，6 行各一条记录且 pass=true；R2/R3/R4 产物按行前缀切分，未互相复用断言）。
 
 ### 契约三向核对
 
 | 维度 | Plan / `docs/spec/api/api.md` §5.12 | Handler 实现 | 前端调用 |
 |---|---|---|---|
-| 路径 | `GET /api/instrument-loss`、`GET /api/instrument-loss/:id`、`POST /api/instruments/:id/lost`、`POST /api/instruments/:id/restore` | `backend/main.go` 注册 4 条（本单新增 `:id`） | 列表 → `GET /instrument-loss?page&pageSize&status`；详情 → `GET /instrument-loss/<id>` + `POST /instruments/<id>/restore`；登记 → `GET /instruments?sn&exclude_status` + `POST /instruments/<id>/lost` |
-| 参数名 | `page`/`pageSize`/`status`/`instrument_id`/`open`（兼容）；登记体 `description`/`responsible_party`/`user_ratio`/`compensation_cents`/`user_burden_cents`/`photos`；恢复体 `damaged`/`description`/`photos` | `List` 用 c.DefaultQuery 的 page/pageSize/status/instrument_id/open；登记/恢复沿用既有 `ShouldBindJSON` 字段（未改语义） | query/body 逐字段一致；渲染用例断言发出的载荷含 `responsible_party`/`user_ratio`/`description`/`photos` 与 `damaged`/`photos` |
-| 响应/错误 | `{code,data:{list,total,page,page_size}}`；行内 `photos`/`restore_photos` 数组 + `instrument_brief`；详情 404/40400、无 tid 403/40300；非法 status 400/40002 | `lossRecordJSON` 输出上述全部字段（`instrument_brief` 未命中为 `null`）；`Get` 404/40400 与 403/40300；`List` 400/40002 | 列表读 d.data.list/d.data.total；详情读 d.data；两处均判 `code === 20000` 并对错误 `resolveErrorMessage` 提示（不静默） |
+| 路径 | `GET /api/instrument-loss`、`GET /api/instrument-loss/:id`、`POST /api/instruments/:id/lost`、`POST /api/instruments/:id/restore` | `backend/main.go` 注册 4 条 | 列表 → `GET /instrument-loss?page&pageSize&status`；详情 → `GET /instrument-loss/<id>` + `POST /instruments/<id>/restore`；登记 → `GET /instruments?sn&exclude_status` + `POST /instruments/<id>/lost` |
+| 参数名 | `page`/`pageSize`/`status`/`instrument_id`/`open`（兼容） | 沿用未改 | query/body 逐字段一致 |
+| 响应/错误 | `{code,data:{list,total,page,page_size}}`；行内 `photos`/`restore_photos` 数组 + `instrument_brief`；详情 404/40400、无 tid 403/40300；非法 status 400/40002 | `lossRecordJSON` 现输出全部模型字段（含 5 个历史冲正列）、`instrument_brief` 未命中为 `null` | 列表读 data.list / data.total；详情读 data；均判 `code === 20000` 并对错误提示（不静默） |
 
-既有消费方复核：`grep -rn "lossApi" frontend-pc/src --include=*.jsx` = 0（`photos` 数组化不破坏现网页面）；`open=true` 兼容分支由 R1 用例覆盖（`LOSS_LIST_STATUS_OPEN=2`）。
-
-### 红绿实证
-
-RED（基线的 List 行为，绑本单新测试 → 编译即失败，因为基线没有详情端点）：
-
-```text
-$ git checkout bdd14b69d -- backend/handlers/instrument_loss.go backend/main.go
-$ ( cd backend && go test ./handlers/ -run '^TestInstrumentLoss2615' -count=1 )
-# tuneloop-backend/handlers [tuneloop-backend/handlers.test]
-handlers/instrument_loss_list_2615_test.go:44:34: h.Get undefined (type *InstrumentLossHandler has no field or method Get)
-handlers/instrument_loss_list_2615_test.go:226:44: h.Get undefined (type *InstrumentLossHandler has no field or method Get)
-FAIL	tuneloop-backend/handlers [build failed]
-```
-
-RED（基线静态事实，对应被测行为的「旧期望」）：
-
-```text
-$ git show bdd14b69d:backend/handlers/instrument_loss.go | grep -n 'Limit(200)\|"total": len(list)'
-420:	if err := query.Order("created_at DESC").Limit(200).Find(&list).Error; err != nil {
-424:	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": gin.H{"list": list, "total": len(list)}})
-
-$ git show bdd14b69d:frontend-mobile/src/pages/InstrumentLossManage.jsx | grep -n 'btnDangerStyle' | head -3
-294:              <Button onClick={() => toggle(inst.id, 'lost')} style={btnDangerStyle}>
-```
-
-GREEN（本单 fix commit `474380094`，同一测试与三页渲染用例）：`RESULT: PASS (r1)` / `RESULT: PASS (r2)` / `RESULT: PASS (r3)` / `RESULT: PASS (r4)`，见 `docs/evidence/2615/R1-api.txt`、`docs/evidence/2615/R2-list.txt`、`docs/evidence/2615/R3-register.txt`、`docs/evidence/2615/R4-detail.txt`（行内危险按钮计数 `LOSS_LIST_DANGER_BUTTON_IN_ROW=0` 即旧行为的否定断言）。
+媒体契约（本次修复的核心）：`/upload` 返回的 `file_key` 是裸文件名、instruments.cover_image 是 `/uploads/media/` 下的相对路径 相对路径 —— 两者都必须经 `frontend-mobile/src/utils/media.js` 的 photoSrc 补 origin 后交给 `<Image>`（weapp `<Image>` 不吃相对路径）。
 
 ### 同类路径对称扫描
 
-- `grep -rn "Limit(200)" backend/handlers/` → 0（旧无分页 List 已消除；其它台账端点为独立功能，不在本单范围）。
-- `grep -n "btnDangerStyle" frontend-mobile/src/pages/InstrumentLossManage.jsx` → 0（列表行无危险按钮）；登记页/详情页各保留 1 个确认动作按钮（Decision Lock D6）。
-- `grep -c "instrument-loss" frontend-mobile/src/app.config.ts frontend-mobile/src/platform/navigation.js frontend-mobile/src/App-H5.jsx` → 每处列表/登记/详情 3 条（新增 2 条），三处同时登记（#1989 构建前置）。
+- `grep -n "photoSrc" frontend-mobile/src/pages/InstrumentLoss*.jsx` → 详情 4 处（封面 / 现场照片 src / 现场照片 preview / 恢复照片 src+preview）、列表 1 处（封面）；本 Issue 三页内已无裸 `src={key}` / src={brief.cover_image}。
+- `grep -n "reversed_at\|reverse_note" backend/handlers/instrument_loss.go` → 已补齐；`grep -rn "lossRecordJSON" backend/` 仅 List/Get 两个消费方，均走同一函数。
+- 其它移动端页面（`MyLeases` / `StaffOrders` / `Search` / `Checkout` 等）的封面/照片归一化属**存量**问题、不在本 Issue 新增代码内；本轮不改（超出审计意见范围），如需系统清理应由 Owner 另立 Issue。
 
 ### 人工/部署侧（不进本矩阵）
 
-- 真机像素级走查与体验版分发（`waitForConfirm` 部署侧事项）：由 Owner 在预生产体验版核对；Developer 无生产/微信后台权限，未声称已完成。
+| 事项 | 负责方 | 回执要求 |
+|---|---|---|
+| 预生产体验版真机走查（列表缩略图可见 / 详情照片可点开 / 恢复后状态变「已恢复」） | Owner | 关单时按 `[Ops-Followup of #2615]`（`waitForConfirm`，无 `status:*`）另记 |
 
 ### Pre-ready gate
 
 - 命令：`~/.config/opencode/scripts/pre-ready-check.sh 2615 --summary-file docs/evidence/2615/summary.md --changed-files docs/evidence/2615/changed-files.txt --evidence-file docs/evidence/2615/evidence.json --affected-cmd "bash scripts/verify-2615.sh gate" --report docs/evidence/2615/pre-ready-2615.json`
 - 报告：`docs/evidence/2615/pre-ready-2615.json`
-- 结果：`RESULT: PASS`（overall=PASS；关键输出见报告与下方清单）。
+- 结果：（本节在 gate 运行后回填）
 
-```text
-$ ~/.config/opencode/scripts/pre-ready-check.sh 2615 --summary-file docs/evidence/2615/summary.md \
-    --changed-files docs/evidence/2615/changed-files.txt \
-    --evidence-file docs/evidence/2615/evidence.json \
-    --affected-cmd "bash scripts/verify-2615.sh gate" \
-    --report docs/evidence/2615/pre-ready-2615.json --gate-lock-scope host
-P1 PASS  P2 PASS  P3 PASS  P4 PASS  P6 PASS  P7 PASS  P11 PASS  P12 PASS  P13 PASS  P14 PASS  P17 PASS  P18 PASS
-P5 N/A (本单无批次/无 go.mod 于仓库根：全量 test 归批次；全量编译见上方 go build ./...)
-P8/P9/P10/P15/P16 N/A
-RESULT: PASS  (overall=PASS, 0 FAIL)
-```
-
-*Model: deepseek/deepseek-flash*
+Model: deepseek/deepseek-flash

@@ -1,5 +1,5 @@
-# build=1.0.dbdb7669f # commit=dbdb7669f2b04283fe0a7bfdd335d257d55d5725 # dirty=false
-GENERATED_AT_HEAD=dbdb7669f2b04283fe0a7bfdd335d257d55d5725
+# build=1.0.5e3d9c53b # commit=5e3d9c53b5fa3dc07ce88ba7fe0815eaf3b2bea3 # dirty=false
+GENERATED_AT_HEAD=5e3d9c53b5fa3dc07ce88ba7fe0815eaf3b2bea3
 RENDER_CMD=cd frontend-mobile && npx vitest run --config vitest.config.js scripts/page-smoke/instrument-loss-2615.test.jsx
 LOSS_LIST_ROWS=3
 LOSS_LIST_SN_SHOWN=1
