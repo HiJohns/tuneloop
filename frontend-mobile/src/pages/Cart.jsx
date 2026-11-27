@@ -4,7 +4,7 @@ import Taro from '@tarojs/taro'
 import { View, Text, Image, Button, ScrollView } from '@tarojs/components'
 import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
-import { dialog, storage, eventBus, env, session, getStatusBarHeight, useDidShow } from '../platform'
+import { dialog, storage, eventBus, env, session, useDidShow } from '../platform'
 import { apiFetch, getCartKey, getToken, redirectToLogin } from '../services/api'
 
 const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(`
@@ -317,19 +317,57 @@ export default function Cart() {
     nav('/')
   }
 
+  // #2616: 本页 weapp 端是自定义导航（pages-weapp/cart/index.config.ts
+  // navigationStyle: 'custom'），头部必须为原生胶囊预留右上角空间，否则右侧动作
+  // 会压在胶囊（关闭/更多）下并被裁切。menu.left 是胶囊左边缘的绝对 X 坐标：
+  // 右对齐内容需要「屏幕宽 - 左边缘」的右侧内边距（Home 的 `windowWidth - menuRight`
+  // 只适用于居中窄元素）。胶囊 API 不可用时保守预留 96，宁可留白也不重叠。
+  const navBar = useMemo(() => {
+    if (!env.isMiniProgram) return { statusBarHeight: 0, capsuleReserveRight: 0 }
+    try {
+      const sys = Taro.getSystemInfoSync() || {}
+      const menu = Taro.getMenuButtonBoundingClientRect ? Taro.getMenuButtonBoundingClientRect() : null
+      const windowWidth = sys.windowWidth || 375
+      return {
+        statusBarHeight: sys.statusBarHeight || 0,
+        capsuleReserveRight: menu && menu.left > 0
+          ? Math.max(0, windowWidth - menu.left + 8)
+          : 96,
+      }
+    } catch {
+      return { statusBarHeight: 0, capsuleReserveRight: 96 }
+    }
+  }, [])
+
   return (
     <View style={{ backgroundColor: "#FDFBF7", height: '100vh', overflow: 'hidden' }} className="container h-screen w-screen overflow-hidden flex flex-col relative antialiased">
       <View
-        className="w-full pb-2 px-4 flex justify-between items-center bg-white border-b border-zinc-100 flex-shrink-0"
-        style={{ paddingTop: env.isMiniProgram ? getStatusBarHeight() + 8 : 12 }}
+        data-testid="cart-header"
+        className="pb-2 flex items-center bg-white border-b border-zinc-100 flex-shrink-0"
+        style={{
+          boxSizing: 'border-box',
+          width: '100%',
+          paddingTop: env.isMiniProgram ? navBar.statusBarHeight + 8 : 12,
+          paddingLeft: 16,
+          paddingRight: env.isMiniProgram ? navBar.capsuleReserveRight : 16,
+        }}
       >
-        <Text className="text-xl font-bold text-black" onClick={() => nav(-1)}>❮</Text>
-        <Text className="text-lg font-black text-black">购物车</Text>
-        {/* #2042: 批量删除（有选择时显示） */}
+        <Text className="text-xl font-bold text-black" style={{ flexShrink: 0 }} onClick={() => nav(-1)}>❮</Text>
+        <Text
+          data-testid="cart-header-title"
+          className="text-lg font-black text-black"
+          style={{ flex: '1 1 0%', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center' }}
+        >购物车</Text>
+        {/* #2042: 批量删除（有选择时显示）；#2616: 不换行、不被压缩 */}
         {selected.size > 0 ? (
-          <Text className="text-sm text-red-500 font-bold" onClick={handleBatchDelete}>删除所选({selected.size})</Text>
+          <Text
+            data-testid="cart-batch-delete"
+            className="text-sm text-red-500 font-bold"
+            style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+            onClick={handleBatchDelete}
+          >删除所选({selected.size})</Text>
         ) : (
-          <View className="w-6"></View>
+          <View style={{ width: 24, flexShrink: 0 }} />
         )}
       </View>
 
@@ -381,16 +419,21 @@ export default function Cart() {
                       const itemSubtotal = pricing.rent + pricing.deposit
                       return (
                         <View key={itemId} className="py-4 flex items-start">
-                          {/* Checkbox column */}
-                          <View className="flex-shrink-0 flex items-center" style={{ width: 28, marginTop: 24 }}>
+                          {/* Checkbox column: 36×36 热区（>=32px）内居中 20×20 视觉框 */}
+                          <View
+                            data-testid="cart-select-hit"
+                            className="flex-shrink-0 flex items-center justify-center"
+                            onClick={() => !rentedOut && toggleSelect(itemId)}
+                            style={{ width: 36, height: 36, marginTop: 16 }}
+                          >
                             <View
-                              onClick={() => !rentedOut && toggleSelect(itemId)}
+                              data-testid="cart-select-box"
                               style={{
                                 width: 20, height: 20, borderRadius: 4, borderWidth: 2,
-                                borderColor: rentedOut ? '#e4e4e7' : (selected.has(itemId) ? '#B98E5F' : '#d1d5db'),
-                                backgroundColor: rentedOut ? '#f4f4f5' : (selected.has(itemId) ? '#B98E5F' : 'transparent'),
+                                borderColor: rentedOut ? '#E4E4E7' : (selected.has(itemId) ? '#B98E5F' : '#71717A'),
+                                backgroundColor: rentedOut ? '#F4F4F5' : (selected.has(itemId) ? '#B98E5F' : '#FFFFFF'),
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                opacity: rentedOut ? 0.5 : 1,
+                                opacity: rentedOut ? 0.6 : 1,
                               }}
                             >
                               {!rentedOut && selected.has(itemId) && <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>✓</Text>}
