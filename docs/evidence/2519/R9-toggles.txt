@@ -1,109 +1,92 @@
-# build=1.0.c841a9e82 # commit=c841a9e82bc86dec130d6308b6b4992028fee2f6 # dirty=false
-# generated_at=2026-11-26T15:46:34Z HEAD=c841a9e82bc86dec130d6308b6b4992028fee2f6
-[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e at_ms=1795707994175 wait_ms=77
-[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=77
+# build=1.0.bbcdcfb55 # commit=bbcdcfb55165aa5f2729dd312ffaea2d4d10b166 # dirty=false
+# generated_at=2026-11-27T18:52:25Z HEAD=bbcdcfb55165aa5f2729dd312ffaea2d4d10b166
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 at_ms=1795805544780 wait_ms=191
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 wait_ms=191
 TAP version 13
 # Subtest: 字段清单与后端三项显式字段同源（不含周/月租、不含 overrides）
 ok 1 - 字段清单与后端三项显式字段同源（不含周/月租、不含 overrides）
   ---
-  duration_ms: 1.570903
-  type: 'test'
+  duration_ms: 3.131719
   ...
 # Subtest: 只提交开启项：关闭项不出现在 items[]
 ok 2 - 只提交开启项：关闭项不出现在 items[]
   ---
-  duration_ms: 0.426429
-  type: 'test'
+  duration_ms: 0.597469
   ...
 # Subtest: 三项全开：一条 item 携带全部字段（字符串金额按数值处理）
 ok 3 - 三项全开：一条 item 携带全部字段（字符串金额按数值处理）
   ---
-  duration_ms: 0.197044
-  type: 'test'
+  duration_ms: 0.349151
   ...
 # Subtest: 全关：前置拒绝且不产生 payload
 ok 4 - 全关：前置拒绝且不产生 payload
   ---
-  duration_ms: 0.973171
-  type: 'test'
+  duration_ms: 0.294519
   ...
 # Subtest: 空选择 / 非数组 ids：前置拒绝
 ok 5 - 空选择 / 非数组 ids：前置拒绝
   ---
-  duration_ms: 0.289487
-  type: 'test'
+  duration_ms: 0.715903
   ...
 # Subtest: 日租金/逾期日租金必须大于 0；押金可为 0、不可为负
 ok 6 - 日租金/逾期日租金必须大于 0；押金可为 0、不可为负
   ---
-  duration_ms: 0.4635
-  type: 'test'
+  duration_ms: 0.987391
   ...
 # Subtest: 设价反馈优先消费 failed[]，其余按 updated/请求数比对
 ok 7 - 设价反馈优先消费 failed[]，其余按 updated/请求数比对
   ---
-  duration_ms: 0.47529
-  type: 'test'
+  duration_ms: 0.902288
   ...
 # Subtest: 批量状态反馈：失败逐条可见
 ok 8 - 批量状态反馈：失败逐条可见
   ---
-  duration_ms: 0.329277
-  type: 'test'
+  duration_ms: 0.711732
   ...
 # Subtest: field list is exactly the three backend fields
 ok 9 - field list is exactly the three backend fields
   ---
-  duration_ms: 1.564703
-  type: 'test'
+  duration_ms: 3.17708
   ...
 # Subtest: only enabled fields are submitted
 ok 10 - only enabled fields are submitted
   ---
-  duration_ms: 0.453929
-  type: 'test'
+  duration_ms: 0.845217
   ...
 # Subtest: single enabled field submits only that field
 ok 11 - single enabled field submits only that field
   ---
-  duration_ms: 0.239935
-  type: 'test'
+  duration_ms: 0.361851
   ...
 # Subtest: all toggles off is rejected
 ok 12 - all toggles off is rejected
   ---
-  duration_ms: 1.083314
-  type: 'test'
+  duration_ms: 1.747985
   ...
 # Subtest: deposit accepts 0 but daily rent rejects 0
 ok 13 - deposit accepts 0 but daily rent rejects 0
   ---
-  duration_ms: 0.326917
-  type: 'test'
+  duration_ms: 0.459584
   ...
 # Subtest: empty selection and non numeric values are rejected
 ok 14 - empty selection and non numeric values are rejected
   ---
-  duration_ms: 0.214705
-  type: 'test'
+  duration_ms: 0.484735
   ...
 # Subtest: feedback surfaces failed[] reasons
 ok 15 - feedback surfaces failed[] reasons
   ---
-  duration_ms: 0.342727
-  type: 'test'
+  duration_ms: 1.656252
   ...
 # Subtest: feedback is success when everything updated
 ok 16 - feedback is success when everything updated
   ---
-  duration_ms: 0.174474
-  type: 'test'
+  duration_ms: 0.875798
   ...
 # Subtest: batch status feedback surfaces failed[]
 ok 17 - batch status feedback surfaces failed[]
   ---
-  duration_ms: 0.432729
-  type: 'test'
+  duration_ms: 1.674243
   ...
 1..17
 # tests 17
@@ -113,8 +96,8 @@ ok 17 - batch status feedback surfaces failed[]
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 157.104612
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795707994402 hold_ms=227
+# duration_ms 298.753226
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795805545849 hold_ms=1069
 TESTS_PASS=17
 NODE_TEST_EXIT=0
 LEGACY_TEST_REWRITTEN=1

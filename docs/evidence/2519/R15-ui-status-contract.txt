@@ -1,0 +1,8 @@
+# build=1.0.bbcdcfb55 # commit=bbcdcfb55165aa5f2729dd312ffaea2d4d10b166 # dirty=false
+# generated_at=2026-11-27T18:52:09Z HEAD=bbcdcfb55165aa5f2729dd312ffaea2d4d10b166
+R15 UI_STATUS_VALUES=available,archived UPDATED=2 FAILED=0 DB_CHANGED=2
+BATCH_UPDATED=2 BATCH_FAILED=0
+GO_TEST_EXIT=0
+UI_STATUS_VALUES=available,archived
+UI_HIDDEN_BLOCK=0
+LEGACY_UI_VALUES=0

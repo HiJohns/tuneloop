@@ -1,5 +1,5 @@
-# build=1.0.c841a9e82 # commit=c841a9e82bc86dec130d6308b6b4992028fee2f6 # dirty=false
-# generated_at=2026-11-26T15:47:30Z HEAD=c841a9e82bc86dec130d6308b6b4992028fee2f6
+# build=1.0.bbcdcfb55 # commit=bbcdcfb55165aa5f2729dd312ffaea2d4d10b166 # dirty=false
+# generated_at=2026-11-27T18:54:10Z HEAD=bbcdcfb55165aa5f2729dd312ffaea2d4d10b166
 BUILD_EXIT=0
 GO_TEST_EXIT=0
 NPM_BUILD_EXIT=0
@@ -9,14 +9,14 @@ BUILD_OK=1
 GO_TEST_OK=1
 NPM_BUILD_OK=1
 ESLINT_OK=1
-[heavy-lock] acquired scope=host slot=0 node=node-opencode-s35-p35-1ece3e wait_ms=197
-ok  	tuneloop-backend/handlers	6.835s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795708028520 hold_ms=14460
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 wait_ms=180
+ok  	tuneloop-backend/handlers	8.204s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795805572445 hold_ms=12922
 - Using dynamic import() to code-split the application
 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-✓ built in 17.91s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795708047522 hold_ms=18881
+✓ built in 34.12s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795805609635 hold_ms=36735
    59:5   warning  'fetchCategories' was used before it was defined                                                                                                                     no-use-before-define
    68:5   warning  'fetchInstruments' was used before it was defined                                                                                                                    no-use-before-define
    69:6   warning  React Hook useEffect has missing dependencies: 'fetchInstruments', 'pagination.page', and 'pagination.pageSize'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
@@ -24,6 +24,6 @@ ok  	tuneloop-backend/handlers	6.835s
    79:6   warning  React Hook useEffect has missing dependencies: 'fetchInstruments' and 'pagination.pageSize'. Either include them or remove the dependency array                      react-hooks/exhaustive-deps
   291:32  warning  'deleteInstrument' was used before it was defined                                                                                                                    no-use-before-define
 
-✖ 10 problems (0 errors, 10 warnings)
+✖ 21 problems (0 errors, 21 warnings)
 
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795708050496 hold_ms=2851
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795805650857 hold_ms=4453

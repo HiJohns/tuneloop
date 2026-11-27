@@ -1,4 +1,4 @@
-## Accepted Plan — #2519（Rev.5：批量设价改为「日租金 / 逾期日租金 / 押金」逐项开关 + 押金双写 + 显式设置优先 + `overrides` 入参废弃）｜Rev.6｜Rev.7
+## Accepted Plan — #2519（Rev.5：批量设价改为「日租金 / 逾期日租金 / 押金」逐项开关 + 押金双写 + 显式设置优先 + `overrides` 入参废弃）｜Rev.6｜Rev.8
 
 > 取代 Rev.3。Rev.3 的 D6（押金只写 `pricing.deposit`）经预生产实测证伪（见下），UI 的「价格类型 + 操作」选择器也被 Owner 判定为无意义，改为**三项各带开关**。
 
@@ -122,7 +122,6 @@
 | 前端接线收敛（静态） | `InstrumentStock.jsx`、`admin/instrument/List.jsx` | grep | — | PC | 命中 `price_type`/`operator` 选择器 = 0；调用 `batch/status` = 1；两页均只用 `BATCH_PRICE_FIELDS` | R10 |
 | 文档同步 | `docs/spec/api/api.md` | grep | — | 文档 | 含 `batch/status`、三字段、`failed` 表述 | R11 |
 | 构建与测试 | `backend` + `frontend-pc` | 定向测试 + `go build` + `npm run build` + eslint | — | 双端 | 全绿 | R12 |
-| 全量后端 gate（Rev.7，审计 B5） | `backend` | `go test ./...` | 修后工作树 | 后端 | `GO_TEST_FULL_OK=1`、`FAIL_COUNT=0`、含 `TestInstrumentsLeftovers_*` | R14 |
 | 批量上/下架真实入口（Rev.7，审计 B2） | `frontend-pc/src/pages/admin/instrument/List.jsx` | 抓取按钮提交的 `status` 字面值 → 后端 | 修后树 | PC + 后端 | `UI_STATUS_VALUES=available,archived`、`UI_HIDDEN_BLOCK=0`、`BATCH_UPDATED=N`、`BATCH_FAILED=0` | R15 |
 | 详情页逾期日费（Rev.7，审计 B1） | `frontend-pc/src/pages/admin/instrument/Detail.jsx` | 改「逾期日费」→ `PUT /instruments/batch-pricing` | 显式 `overdue_daily_fee` | PC + 后端 | `DETAIL_SENDS_OVERRIDES=0`、`PRICING_OVERDUE_UPDATED=1`、`FAILED_CONSUMED=1` | R16 |
 | 非法 status 契约（Rev.7，审计 B3） | `docs/spec/api/api.md` + `backend/handlers/instrument.go` | 提交非法状态 | 修后树 | 文档 + 后端 | `DOC_FAILED_REASONS=5`、`API_INVALID_STATUS_IN_FAILED=1` | R17 |
@@ -161,6 +160,8 @@
 
 ### Out of Scope
 
+- **全量 `go test ./...` 本单不执行**（#2651 Owner 2026-11-26 决策）：单 Issue gate = `go build ./...` + 定向测试 + 编译冒烟；全量由**批次 gate**（`scripts/batch-gate.sh`，批次 `2026-11-26-B` 已全绿）承担。Work Summary 须记 `no-full-gate: 由批次 gate 承担（#2651）`。
+
 - 周租金/月租金（模型无字段，另立设计）；
 - increase/decrease/multiply 运算语义（需取值/取整口径，另议）；
 - 「逾期费=0 表示免收」的语义扩展（当前 `CalculatePricing` 把 0 当未配置，另立 Issue）；
@@ -181,7 +182,6 @@
 | R7 | `deposit=100`；另一台 `deposit=0` | 同上 | `docs/evidence/2519/R7-deposit.txt` | `DEPOSIT_COL=10000`、`PRICING_DEPOSIT=100`、`OVERRIDE_DEPOSIT_REMOVED=1`、`ZERO_CASE_COL=0`、`ZERO_CASE_TIER=zero` | 只写 JSONB（列不变）→ FAIL |
 | R8 | 一条三字段全开 + 一条不存在 id | 同上 | `docs/evidence/2519/R8-multi-field.txt` | `UPDATED=1`、`FAILED=1`、`BASE=5000`、`OVERDUE=120`、`DEPOSIT=10000` | 任一项未生效 → FAIL |
 | R13 | 只传 `overrides`（legacy） | `PUT /instruments/batch-pricing` | `docs/evidence/2519/R13-legacy-overrides.txt` | `UPDATED=0`、`FAILED=1`、`FAILED_REASON=no_fields`、`OVERRIDES_STORED=0`、`PRICING_V2_OVERDUE=0` | 仍消费 `overrides`（定价变化或 `updated=1`）→ FAIL |
-| R14 | 修后 `backend` | `bash scripts/verify-2519.sh r14` | `docs/evidence/2519/R14-full-gate.txt` | `GO_TEST_FULL_OK=1`、`FAIL_COUNT=0`、含 `TestInstrumentsLeftovers` | 任一失败 → FAIL |
 | R15 | `List.jsx` 批量按钮（解除隐藏后） | `bash scripts/verify-2519.sh r15` | `docs/evidence/2519/R15-ui-status-contract.txt` | `UI_STATUS_VALUES=available,archived`、`UI_HIDDEN_BLOCK=0`、`BATCH_FAILED=0` | 仍隐藏或提交 `active/inactive` → FAIL |
 | R16 | 详情页价格面板「逾期日费」 | `bash scripts/verify-2519.sh r16` | `docs/evidence/2519/R16-detail-overdue.txt` | `DETAIL_SENDS_OVERRIDES=0`、`PRICING_OVERDUE_UPDATED=1`、`FAILED_CONSUMED=1` | 仍传 overrides / 未消费 failed[] → FAIL |
 | R17 | `api.md` + 非法状态请求 | `bash scripts/verify-2519.sh r17` | `docs/evidence/2519/R17-invalid-status-contract.txt` | `DOC_FAILED_REASONS=5`、`API_INVALID_STATUS_IN_FAILED=1` | 文档与实现不一致 → FAIL |
@@ -203,7 +203,6 @@
 | R7 | `bash scripts/verify-2519.sh r7` | docs/evidence/2519/R7-deposit.txt | exit 0；含 `DEPOSIT_COL=10000`、`ZERO_CASE_TIER=zero` | PASS | 只写 JSONB → FAIL | dev |
 | R8 | `bash scripts/verify-2519.sh r8` | docs/evidence/2519/R8-multi-field.txt | exit 0；含 `UPDATED=1`、`FAILED=1` | PASS | 项未生效 → FAIL | dev |
 | R13 | `bash scripts/verify-2519.sh r13` | docs/evidence/2519/R13-legacy-overrides.txt | exit 0；含 `FAILED_REASON=no_fields`、`PRICING_V2_OVERDUE=0` | PASS | 仍消费 overrides → FAIL | dev |
-| R14 | `bash scripts/verify-2519.sh r14` | docs/evidence/2519/R14-full-gate.txt | exit 0；含 `GO_TEST_FULL_OK=1`、`FAIL_COUNT=0` | PASS | 任一失败 → FAIL | dev |
 | R15 | `bash scripts/verify-2519.sh r15` | docs/evidence/2519/R15-ui-status-contract.txt | exit 0；含 `UI_STATUS_VALUES=available,archived`、`UI_HIDDEN_BLOCK=0` | PASS | 隐藏块残留 / 值不符 → FAIL | dev |
 | R16 | `bash scripts/verify-2519.sh r16` | docs/evidence/2519/R16-detail-overdue.txt | exit 0；含 `DETAIL_SENDS_OVERRIDES=0`、`PRICING_OVERDUE_UPDATED=1` | PASS | 仍传 overrides → FAIL | dev |
 | R17 | `bash scripts/verify-2519.sh r17` | docs/evidence/2519/R17-invalid-status-contract.txt | exit 0；含 `DOC_FAILED_REASONS=5`、`API_INVALID_STATUS_IN_FAILED=1` | PASS | 不一致 → FAIL | dev |
@@ -253,6 +252,7 @@
 ### Workload
 
 - Size: M
+
 
 
 
