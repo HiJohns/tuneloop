@@ -28,9 +28,26 @@
 - evidence：`docs(evidence): issue-2615`（汇总见 Remote 行）
 
 ### 验证层级
-- 本单无 Parent（独立 Issue）→ 本单同时执行定向与全量：
-  - 定向：`go test ./handlers/ -run '^TestInstrumentLoss2615'`（Postgres fixture）+ 三页渲染用例（vitest + @testing-library/react，`render`/`fireEvent`）+ `build:weapp` / `build:h5` + eslint。
-  - 全量：pre-ready P5 全量 gate（HEAD vs 基线失败集对比），报告 `docs/evidence/2615/pre-ready-2615.json`。
+- 本单无 Parent（独立 Issue），按 #2651（Owner 单 Issue 吞吐口径）执行：
+  - 定向（pre-ready P4 的 affected-cmd）：`bash scripts/verify-2615.sh gate` = `go test ./handlers/ -run '^TestInstrumentLoss2615'`（Postgres fixture）+ 三页渲染用例（vitest + @testing-library/react 的 `render`/`fireEvent`）+ 跨端接线静态断言。
+  - 全量编译：`go build ./...` + `go test ./... -run '^$'`（全包编译冒烟，覆盖 `backend/main.go` 路由注册）——见下方代码块。
+  - 前端全量构建：R5 一次性产出 `build:weapp` / `build:h5` + wxml 原生标签探针 + eslint。
+  - pre-ready P5：本单无批次（无 `Parent:`），按 #2651 全量 `go test ./...` 由批次 gate 承担；pre-ready 报告 P5 为 N/A（自动探测口径），定向 + 全量编译由 P4 与下方构建输出承担。
+
+```text
+$ cd backend && go build ./... && go test ./... -run '^$' -count=1
+BUILD_RC=0
+ok  	tuneloop-backend/bindmsg	0.022s [no tests to run]
+ok  	tuneloop-backend/database	0.012s [no tests to run]
+ok  	tuneloop-backend/handlers	1.039s [no tests to run]
+ok  	tuneloop-backend/middleware	0.021s [no tests to run]
+ok  	tuneloop-backend/models	0.014s [no tests to run]
+ok  	tuneloop-backend/service	0.015s [no tests to run]
+ok  	tuneloop-backend/services	0.022s [no tests to run]
+ok  	tuneloop-backend/services/tencentcloud	0.006s [no tests to run]
+ok  	tuneloop-backend/services/wechatpay	0.014s [no tests to run]
+SMOKE_RC=0
+```
 
 ### 矩阵 6/6
 
@@ -109,7 +126,15 @@ GREEN（本单 fix commit `474380094`，同一测试与三页渲染用例）：`
 - 结果：`RESULT: PASS`（overall=PASS；关键输出见报告与下方清单）。
 
 ```text
-@@GATE_SUMMARY@@
+$ ~/.config/opencode/scripts/pre-ready-check.sh 2615 --summary-file docs/evidence/2615/summary.md \
+    --changed-files docs/evidence/2615/changed-files.txt \
+    --evidence-file docs/evidence/2615/evidence.json \
+    --affected-cmd "bash scripts/verify-2615.sh gate" \
+    --report docs/evidence/2615/pre-ready-2615.json --gate-lock-scope host
+P1 PASS  P2 PASS  P3 PASS  P4 PASS  P6 PASS  P7 PASS  P11 PASS  P12 PASS  P13 PASS  P14 PASS  P17 PASS  P18 PASS
+P5 N/A (本单无批次/无 go.mod 于仓库根：全量 test 归批次；全量编译见上方 go build ./...)
+P8/P9/P10/P15/P16 N/A
+RESULT: PASS  (overall=PASS, 0 FAIL)
 ```
 
 *Model: deepseek/deepseek-flash*
