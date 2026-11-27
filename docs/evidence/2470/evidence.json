@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "issue": 2470,
-  "build": "1.0.5daa8f17",
-  "commit": "5daa8f17d2ce949aaf344ba8ce6bd06b4b5b516a",
+  "build": "1.0.ceea4038",
+  "commit": "ceea4038e3f2c85f2df7196ceed9d210721836f9",
   "dirty": false,
-  "plan_sha256": "cc4aa7775116c68767ce90e2884aaf8518c844084bd385fd597e5981c4b8855c",
-  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2470 (branch issue-2470, base origin/develop@2ce72b62c); backend go build + targeted go test (fake IAM httptest + real Gin routes on local test DB) + full go test -json ./... -p 1 on HEAD and on an origin/develop baseline worktree; frontend-pc npm run build; no production IAM calls; HEAD=5daa8f17d2ce949aaf344ba8ce6bd06b4b5b516a",
-  "tooling_commit": "17d6543870675e1d8070740c7ba3e08ab908adf7",
+  "plan_sha256": "bedead8578ec7fe646ed8257051f77fdb82c2ec55f7a38fc49e03c3a019571b4",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2470 (branch issue-2470, base origin/develop@2ce72b62c); backend go build + targeted go test (fake IAM httptest + real Gin routes on local test DB) + full go test -json ./... -p 1 on HEAD and on an origin/develop baseline worktree; frontend-pc npm run build (node v22.22.3); no production IAM calls; HEAD=ceea4038e3f2c85f2df7196ceed9d210721836f9",
+  "tooling_commit": "a29b2b35530c77f2bae31c509207199e6572ad9c",
   "rows": [
     {
       "id": "R1",
@@ -100,7 +100,7 @@
         "docs/evidence/2470/R6-build.txt"
       ],
       "assert": "exit 0；含 BUILD_OK 与 GO_TEST_OK 与 NPM_BUILD_OK",
-      "actual": "PASS：cd backend && go build ./... → BUILD_OK；定向 go test ./services ./handlers -run '2470|2364' → GO_TEST_OK；cd frontend-pc && npm run build → NPM_BUILD_OK（✓ built in 36.18s）",
+      "actual": "PASS：cd backend && go build ./... → BUILD_OK；定向 go test ./services ./handlers -run '2470|2364' → GO_TEST_OK；cd frontend-pc && npm run build → NPM_BUILD_OK（✓ built in 21.83s）",
       "expected": "PASS",
       "negative": "任一失败 → FAIL",
       "negative_result": "若 go build、定向 go test 或 PC npm run build 任一非 0 → 对应 OK 标记缺失 → R6 FAIL。",
@@ -114,7 +114,7 @@
         "docs/evidence/2470/R8-gate.txt"
       ],
       "assert": "exit 0；含 FULL_GATE_NEW_FAILURES=0、PANIC_COUNT=0、BASELINE_FAIL_COUNT=",
-      "actual": "PASS：HEAD（5daa8f17d）与基线 origin/develop@2ce72b62c 各跑一次 go test -json ./... -p 1；FULL_GATE_CURRENT_FAILURES=8、FULL_GATE_BASELINE_FAILURES=8、FULL_GATE_NEW_FAILURES=0、PANIC_COUNT=0、BASELINE_FAIL_COUNT=8。8 条基线失败全部是测试库缺表（instrument_levels / merchant_members）的环境耦合，两棵树完全一致；Rev.3 登记的 3 条（user_staff_rollback_2309）已在 develop 修复，故实测计数由 3 变为 8（同类环境耦合，非本单引入）",
+      "actual": "PASS：HEAD（ceea4038e）与基线 origin/develop@2ed1e0f28 各跑一次 go test -json ./... -p 1；FULL_GATE_EXIT=0、FULL_GATE_CURRENT_FAILURES=0、FULL_GATE_BASELINE_FAILURES=0、FULL_GATE_NEW_FAILURES=0、PANIC_COUNT=0、BASELINE_FAIL_COUNT=0。本轮 HEAD 与基线两棵树全量用例均 0 失败（develop 已修复此前 3/8 条测试库缺表类环境耦合失败），因此失败集差异为空集，NEW_FAILURES=0 由「两棵树都无失败」成立",
       "expected": "PASS",
       "negative": "新增失败 → FAIL",
       "negative_result": "若 HEAD 出现基线中不存在的失败身份（FULL_GATE_NEW_FAILURES>0）、或任一树出现 panic（PANIC_COUNT>0）→ R8 FAIL；基线自身失败不阻断（Rev.3 基线差异口径）。",
@@ -127,11 +127,11 @@
       "artifacts": [
         "docs/evidence/2470/R9-docs.txt"
       ],
-      "assert": "exit 0；含 DOC_TOKENS=3",
-      "actual": "PASS：DOC_TOKENS=3（users/orphans / fallback_unsupported / scanned_pending 在两篇文档中至少各出现一次）；api.md 含 GET /api/admin/iam-orphans 小节（DOC_API_SECTION=1）、iam-notes 含「IAM 孤儿查询端点」小节（DOC_NOTES_SECTION=1）",
+      "assert": "exit 0；含 DOC_TOKENS=3、DOC_ERRCODE_40300=1、DOC_NOTES_ARRAY=1",
+      "actual": "PASS：DOC_TOKENS=3（users/orphans / fallback_unsupported / scanned_pending 在两篇文档中至少各出现一次）；DOC_ERRCODE_40300=1（api.md §2.6.5 权限拒绝行写 `40300` + HTTP 403，与 iam_orphan_2364_test.go 断言的 403/40300 一致，且该行不含 40102）；DOC_NOTES_ARRAY=1（purge 响应声明 `\"notes\": [...]` 数组形态，与 handler `\"notes\": []string{purgeQueueNote}` 一致）；负例自检 NEGATIVE_ERRCODE_DETECTED=1（把 40300 改写成 40102 → 断言转 0）、NEGATIVE_NOTES_DETECTED=1（把 notes 数组改写成字符串 → 断言转 0）",
       "expected": "PASS",
-      "negative": "缺项 → FAIL",
-      "negative_result": "若三枚关键令牌任一缺失（DOC_TOKENS<3）、或 api.md 缺端点小节、或 iam-notes 缺上游契约小节 → R9 FAIL。",
+      "negative": "契约值写错 → FAIL",
+      "negative_result": "若 api.md 把权限拒绝码写成 40102 / 40303 / 40002 → DOC_ERRCODE_40300=0 → R9 FAIL；若 purge 响应把 notes 写成字符串 → DOC_NOTES_ARRAY=0 → R9 FAIL；若三项 token 任一缺失 → DOC_TOKENS<3 → FAIL。两条新断言的负例自检已在本轮证明可拦住错值。",
       "pass": true
     }
   ]

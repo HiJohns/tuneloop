@@ -1,4 +1,4 @@
-## Accepted Plan — #2470 v2（孤儿面板接上游「孤儿端点」+ 旧 IAM 回退 + 清理路径同源）｜Rev.3
+## Accepted Plan — #2470 v2（孤儿面板接上游「孤儿端点」+ 旧 IAM 回退 + 清理路径同源）｜Rev.4
 
 > **v2 说明（修 /work 报出的计划缺口）**：v1 只把 `List` 切到新端点，`Purge` 的实时复核仍用 `ListPendingUsersWithToken`（受 IAM 活跃关系过滤）→ 面板**能列出**无关系孤儿，但点「清理」会 `not an orphan` 100% 失败。v2 把 `Purge` 复核切到同一新方法（含同一回退），并新增 D5 + R7（清理成功）。同时把上游引用从重复单 `beaconiam#505` 更正为既有单 **beaconiam#502**。
 
@@ -28,7 +28,7 @@
 | 清理路径同源（v2 新增） | `backend/handlers/iam_orphan.go` | `POST /api/admin/iam-orphans/purge` | 无关系 pending 孤儿 | 后端 | `purged=1`；不出现 `not an orphan` | R7 |
 | 构建与测试 | `backend` + PC | `go build ./...` + 定向测试 + `npm run build` | — | 后端 + PC | 全绿 | R6 |
 | 全量后端回归（独立 Issue gate，**基线差异口径**） | `backend` | `go test ./... -timeout 20m`（HEAD 与 `origin/develop` 基线各跑一次） | 修后树 | 后端 | `FULL_SUITE_EXIT` 允许为 1（基线已有 3 个与本单无关的失败）、`FULL_GATE_NEW_FAILURES=0`（HEAD 失败集 ⊆ baseline）、`PANIC_COUNT=0` | R8 |
-| 接口/镜像语义文档 | `docs/spec/api/api.md`、`docs/topics/iam/iam-notes.md` | grep | 修后树 | 文档 | 含 `users/orphans`、`fallback_unsupported`、`scanned_pending` 三项表述 | R9 |
+| 接口/镜像语义文档（**可判定契约值**） | `docs/spec/api/api.md`、`docs/topics/iam/iam-notes.md` | grep | 修后树 | 文档 | `DOC_TOKENS=3`（三项存在）+ **`DOC_ERRCODE_40300=1`**（孤儿清理越权码写对，不是 40303/40002）+ **`DOC_NOTES_ARRAY=1`**（`notes` 字段声明为数组，不是字符串） | R9 |
 
 ## Input Truth & Tool Preflight
 
@@ -66,7 +66,7 @@
 | R7 | fake IAM 返回 1 条无关系孤儿 | `POST /api/admin/iam-orphans/purge` | `docs/evidence/2470/R7-purge.txt` | `purged=1`；该 IAM 用户被删除；不出现 `not an orphan` | 清理被拒 → FAIL |
 | R6 | HEAD 源码 | `bash scripts/verify-2470.sh r6` | `docs/evidence/2470/R6-build.txt` | `BUILD_OK` + `GO_TEST_OK` + `NPM_BUILD_OK` | 任一失败 → FAIL |
 | R8 | 修后树 + `origin/develop` 基线 | `go test ./... -timeout 20m`（两棵树） | `docs/evidence/2470/R8-gate.txt` | `FULL_GATE_NEW_FAILURES=0`、`BASELINE_FAIL_COUNT=3`（已知 `instrument_levels` / `merchant_members` 缺失类环境耦合）、`PANIC_COUNT=0` | 出现**基线之外**的新失败 → FAIL |
-| R9 | 两篇文档 | grep | `docs/evidence/2470/R9-docs.txt` | `DOC_TOKENS=3` | 缺项 → FAIL |
+| R9 | 两篇文档 | `bash scripts/verify-2470.sh r9` | `docs/evidence/2470/R9-docs.txt` | `DOC_TOKENS=3`、`DOC_ERRCODE_40300=1`、`DOC_NOTES_ARRAY=1` | 缺项、或把 40300 写成 40303/40002、或把 `notes` 写成字符串 → FAIL |
 
 ## Evidence Contract
 
@@ -80,7 +80,7 @@
 | R7 | `bash scripts/verify-2470.sh r7` | docs/evidence/2470/R7-purge.txt | exit 0；含 `PURGED=1` 与 `NOT_ORPHAN=0` | PASS | 清理被拒 → FAIL | dev |
 | R6 | `bash scripts/verify-2470.sh r6` | docs/evidence/2470/R6-build.txt | exit 0；含 `BUILD_OK` 与 `GO_TEST_OK` 与 `NPM_BUILD_OK` | PASS | 任一失败 → FAIL | dev |
 | R8 | `bash scripts/verify-2470.sh r8` | docs/evidence/2470/R8-gate.txt | exit 0；含 `FULL_GATE_NEW_FAILURES=0`、`PANIC_COUNT=0`、`BASELINE_FAIL_COUNT=` | PASS | 新增失败 → FAIL | dev |
-| R9 | `bash scripts/verify-2470.sh r9` | docs/evidence/2470/R9-docs.txt | exit 0；含 `DOC_TOKENS=3` | PASS | 缺项 → FAIL | dev |
+| R9 | `bash scripts/verify-2470.sh r9` | docs/evidence/2470/R9-docs.txt | exit 0；含 `DOC_TOKENS=3`、`DOC_ERRCODE_40300=1`、`DOC_NOTES_ARRAY=1` | PASS | 契约值写错 → FAIL | dev |
 
 ## Artifact Provenance
 
@@ -138,6 +138,7 @@
 - `docs/evidence/2470/evidence.json`
 
 *Model: DeepSeek V4.1 Flash 1017*
+
 
 
 
