@@ -1,24 +1,22 @@
-# build=1.0.5ad54551d # commit=5ad54551d4acfba3e7b7105b1e8d9722e5e6e751 # dirty=false
-# tree=5ad54551d4acfba3e7b7105b1e8d9722e5e6e751
+# build=1.0.fd2d0fdd8 # commit=fd2d0fdd8660951f997c1dcc354a2f202557a1f6 # dirty=false
+# tree=542df80286bf532378c296d1b5b1e2a95ab94fd8
 GATE_RESULT=PASS
 FULL_GATE_CMD=cd frontend-pc && npm run build
-dist/assets/index-Bo0yjM7q.js   2,629.38 kB │ gzip: 809.39 kB
+dist/assets/index--6bJ1ROx.js   2,627.87 kB │ gzip: 809.92 kB
 
 (!) Some chunks are larger than 500 kB after minification. Consider:
 - Using dynamic import() to code-split the application
 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-✓ built in 44.94s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795721419163 hold_ms=47958
+✓ built in 31.32s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795807326549 hold_ms=33040
 FULL_GATE_DIRECT_EXIT=0
 P5=N/A
-GATE_PLAN_SHA_MATCH=0
+GATE_PLAN_SHA_MATCH=1
 REBUILT_ROWS=7
-PLAN_SOURCE: plan sha=828c043b4411f612a10a553664776658eda282c972f642a987abaed5d8273252 source=/home/coder/worktrees/tuneloop/wt-2488/docs/evidence/2488/plan.md
-PLAN_SOURCE: gate sha=8d7eba262acfbcbbbfe2d3e6f467f93bf46ef037447aceb71b3610d849e37152 source=/home/coder/worktrees/tuneloop/wt-2488/docs/evidence/2488/pre-ready-2488.json
-PLAN_SOURCE: FAIL gate-mismatch comment=828c043b4411f612a10a553664776658eda282c972f642a987abaed5d8273252 gate=8d7eba262acfbcbbbfe2d3e6f467f93bf46ef037447aceb71b3610d849e37152
-PLAN_SOURCE: evidence sha=8d7eba262acfbcbbbfe2d3e6f467f93bf46ef037447aceb71b3610d849e37152 source=/home/coder/worktrees/tuneloop/wt-2488/docs/evidence/2488/evidence.json
-PLAN_SOURCE: FAIL evidence-mismatch comment=828c043b4411f612a10a553664776658eda282c972f642a987abaed5d8273252 evidence=8d7eba262acfbcbbbfe2d3e6f467f93bf46ef037447aceb71b3610d849e37152
-PLAN_SOURCE: FAIL
-PLAN_SOURCE=FAIL
-GATE_FAIL
+PLAN_SOURCE: plan sha=d97a667a6ffecf1d3fc8da8c9f7562357b6cbfdd3f91198d2dd6d8ad5e11e62e source=/home/coder/worktrees/tuneloop/wt-2488/docs/evidence/2488/plan.md
+PLAN_SOURCE: gate sha=d97a667a6ffecf1d3fc8da8c9f7562357b6cbfdd3f91198d2dd6d8ad5e11e62e source=/home/coder/worktrees/tuneloop/wt-2488/docs/evidence/2488/pre-ready-2488.json
+PLAN_SOURCE: evidence sha=d97a667a6ffecf1d3fc8da8c9f7562357b6cbfdd3f91198d2dd6d8ad5e11e62e source=/home/coder/worktrees/tuneloop/wt-2488/docs/evidence/2488/evidence.json
+PLAN_SOURCE: PASS sha=d97a667a6ffecf1d3fc8da8c9f7562357b6cbfdd3f91198d2dd6d8ad5e11e62e
+PLAN_SOURCE=PASS
+GATE_OK

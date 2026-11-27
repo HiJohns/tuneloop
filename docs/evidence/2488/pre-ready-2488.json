@@ -1,16 +1,16 @@
 {
   "issue": 2488,
   "overall": "PASS",
-  "plan": "/tmp/opencode/tuneloop/wt-2488/tmp/pre-ready-2488.lceLXG/plan.md",
-  "plan_sha256": "8d7eba262acfbcbbbfe2d3e6f467f93bf46ef037447aceb71b3610d849e37152",
-  "config_sha": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2488/tmp/pre-ready-2488.j9yjeW/plan.md",
+  "plan_sha256": "d97a667a6ffecf1d3fc8da8c9f7562357b6cbfdd3f91198d2dd6d8ad5e11e62e",
+  "config_sha": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
   "provenance": {
-    "build": "1.0.a98106a26",
-    "commit": "a98106a2600b8cc72a35a404769eb358624bcd35",
+    "build": "1.0.fd2d0fdd8",
+    "commit": "fd2d0fdd8660951f997c1dcc354a2f202557a1f6",
     "dirty": false
   },
   "summary": "tmp/work-summary-2488.md",
-  "timestamp": "20261126-132249",
+  "timestamp": "20261127-192211",
   "checks": [
     {
       "id": "P1",
@@ -29,8 +29,8 @@
     },
     {
       "id": "P4",
-      "status": "PASS",
-      "detail": "all 1 affected command(s) passed"
+      "status": "WARN",
+      "detail": "no --affected-cmd supplied; affected-package tests were not run"
     },
     {
       "id": "P12",
@@ -44,8 +44,8 @@
     },
     {
       "id": "P18",
-      "status": "WARN",
-      "detail": "tooling_commit missing (legacy bundle); config_sha=a017a25d46fec75ebb30fd9e19eb220c51fb166a"
+      "status": "PASS",
+      "detail": "tooling_commit matches the running scripts (be61a790605b0b65759d0fd2be9b258bc6c41b49)"
     },
     {
       "id": "P15",
@@ -54,18 +54,18 @@
     },
     {
       "id": "P16",
-      "status": "N/A",
-      "detail": "no UI render rows in the plan"
+      "status": "PASS",
+      "detail": "UI rows use render evidence or a recorded static exemption"
     },
     {
       "id": "P17",
-      "status": "N/A",
-      "detail": "Accepted Plan comment unavailable (no fake PASS)"
+      "status": "PASS",
+      "detail": "plan snapshot and Accepted Plan comment match the gated plan"
     },
     {
       "id": "P5",
       "status": "N/A",
-      "detail": "no go.mod/package.json and no --full-gate-cmd: full gate not applicable"
+      "detail": "sub-task: full gate belongs to the parent/batch gate"
     },
     {
       "id": "P6",
@@ -95,7 +95,7 @@
     {
       "id": "P11",
       "status": "PASS",
-      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /tmp/opencode/tuneloop/wt-2488; worktree guard: PASS isolated worktree=/tmp/opencode/tuneloop/wt-2488"
+      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /home/coder/worktrees/tuneloop/wt-2488; worktree guard: PASS isolated worktree=/home/coder/worktrees/tuneloop/wt-2488"
     },
     {
       "id": "P13",
