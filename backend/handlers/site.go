@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -229,9 +230,10 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
+		// #2603：绑定错误翻中文（点名字段），不得回传 Go/JSON 内部措辞
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
-			"message": "invalid parameters: " + err.Error(),
+			"message": bindmsg.Message(err),
 		})
 		return
 	}
@@ -339,16 +341,30 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	orgResp, err := iamClient.CreateOrganizationWithToken(userToken, iamReq)
 	if err != nil {
 		log.Printf("[CreateSite] IAM CreateOrganization failed: %v", err)
-		if strings.Contains(err.Error(), "name conflict") || strings.Contains(err.Error(), "already exists") {
+		// #2581：重名判定以哨兵 errors.Is(err, ErrOrganizationNameConflict) 为准（#2552 口径），
+		// 保留字符串匹配兜底以兼容历史 IAM message；message 必须是含 CJK 的具体原因，
+		// 否则前端「CJK 优先透传」口径会把 40900 降级成通用「数据冲突，请刷新后重试」。
+		if errors.Is(err, services.ErrOrganizationNameConflict) ||
+			strings.Contains(err.Error(), "name conflict") || strings.Contains(err.Error(), "already exists") {
 			c.JSON(http.StatusConflict, gin.H{
 				"code":    40900,
-				"message": "organization name already exists: " + err.Error(),
+				"message": fmt.Sprintf("该商户下已存在同名网点「%s」，请换一个名称", strings.TrimSpace(req.Name)),
+			})
+			return
+		}
+		// #2602：IAM 权限不足（403/401）→ 403/40300 + 中文可行动提示。
+		// 严禁把 IAM 英文原文塞进 5xx：前端按 #2497 会把 5xx 的英文降级成
+		// 「服务器开小差了」，用户无法得知这是权限问题。
+		if errors.Is(err, services.ErrIAMForbidden) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"code":    40300,
+				"message": "权限不足：当前账号无权在该商户下创建网点",
 			})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
-			"message": "Failed to create sub-organization in IAM: " + err.Error(),
+			"message": "创建网点组织失败，请稍后再试",
 		})
 		return
 	}
@@ -551,9 +567,10 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
+		// #2603：绑定错误翻中文（点名字段），不得回传 Go/JSON 内部措辞
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
-			"message": "invalid parameters: " + err.Error(),
+			"message": bindmsg.Message(err),
 		})
 		return
 	}
@@ -655,22 +672,22 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 			case errors.Is(iamErr, services.ErrIAMForbidden):
 				c.JSON(http.StatusForbidden, gin.H{
 					"code":    40301,
-					"message": "IAM 拒绝修改组织名（权限不足）: " + iamErr.Error(),
+					"message": "IAM 拒绝修改组织名（权限不足）",
 				})
 			case errors.Is(iamErr, services.ErrIAMOrgNotFound):
 				c.JSON(http.StatusNotFound, gin.H{
 					"code":    40400,
-					"message": "IAM 组织不存在（org_id 失效）: " + iamErr.Error(),
+					"message": "IAM 组织不存在（org_id 失效）",
 				})
 			case errors.Is(iamErr, services.ErrIAMOrgNameConflict):
 				c.JSON(http.StatusConflict, gin.H{
 					"code":    40900,
-					"message": "网点名已存在（IAM 组织名冲突）: " + iamErr.Error(),
+					"message": "网点名已存在（IAM 组织名冲突）",
 				})
 			default:
 				c.JSON(http.StatusBadGateway, gin.H{
 					"code":    50000,
-					"message": "IAM 更新组织名失败: " + iamErr.Error(),
+					"message": "IAM 更新组织名失败，请稍后重试",
 				})
 			}
 			// IAM 失败 → 不写本地（D3）。
@@ -698,9 +715,11 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 	if result.Error != nil {
 		if nameChanged {
 			// IAM 已改名、本地失败：显式告知可重试（重试走同名分支补本地，D4）。
+			// #2497：改名已生效但本地写入失败，detail 只进日志。
+			log.Printf("[UpdateSite] local sync after IAM rename failed site=%s: %v", siteID, result.Error)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"code":    50000,
-				"message": "IAM 已改名，本地同步失败，请重试: " + result.Error.Error(),
+				"message": "IAM 已改名，本地同步失败，请重试",
 			})
 			return
 		}

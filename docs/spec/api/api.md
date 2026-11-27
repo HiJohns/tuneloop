@@ -29,6 +29,20 @@
 
 > **用户可见文案（#1675 / #2480 / #2504）**：后端 `message` 为机器可读标识（英文为主，**不得原样展示给用户**），前端统一由 `resolveErrorMessage` 解析（`frontend-mobile/src/services/errorMessages.js` / `frontend-pc/src/services/errorMessages.js`，层序 owner 为 `errorMessageResolution.mjs`）翻译为用户友好中文。五层回退：L1 `message_map` 精确匹配（高频错误，如 `order not found` → 「未找到订单」）→ L2 `human_message` 可读中文透传（含 CJK，优先于 code 家族，#2480）→ L3 `code_map` code 家族映射（如 40400 → 「未找到相关数据」、40303 → 「暂无权限访问该页面」）→ L4 `raw_message`（**已不可达**：含 CJK 的文案在 L2 已返回，本层仅保留层名以兼容历史断言/日志；#2504 D8）→ L5 调用点业务 fallback（ASCII 机器串不外溢）。完整错误码分类见 [`docs/archive/reports/backend_api_error_codes_report.md`](../../archive/reports/backend_api_error_codes_report.md)。新增后端错误消息时，如属用户可见高频错误，请同步补充 `ERROR_MESSAGE_MAP`；新增错误码请同时补 `ERROR_CODE_MAP`（PC + mobile，文案逐字一致）。
 
+> **请求体绑定失败（#2603）**：`c.ShouldBindJSON` 校验/解析失败时，`message` **必须**由唯一出口 `backend/bindmsg` 的 `bindmsg.Message(err)` 生成——中文点名「哪一项不能为空 / 格式不对 / 类型不正确」，或整体不可解析时给出「请求体格式不正确，请检查后重试」。**禁止**把 `err.Error()` 的 Go/JSON 原文（`invalid character '\x17' in string`、`invalid parameters: …`、`cannot unmarshal …`、`Field validation for …`）拼进 `message`：前端 L2 只透传含 CJK 的可读文案，英文技术串会被判「无具体原因」并降级为 L3/L5 通用兜底，用户因此看不到**哪个字段**错了。绑定失败沿用原 `code`（`40002`，`instrument` 状态更新分支为 `40001`）与 HTTP 400，不得改为其它 code 或 HTTP 200；`40002` 属业务可纠正冲突白名单（见 `frontend-pc/src/utils/formConflict.js`），可落表单内常驻提示（#2569 口径）。字段称呼表与文案模板的唯一 owner 为 `backend/bindmsg/bindmsg.go`，新增请求体字段须同步登记称呼（称呼不得含 ASCII 字母）。
+
+**PC 客户端非 2xx 契约（#2563）**：本节定义**服务端**响应格式；客户端如何消费非 2xx 由 `frontend-pc/src/services/apiError.js`（唯一 owner，纯函数 `resolveHttpFailure`）决定，不得在页面内联解析：
+
+| HTTP 状态 | 客户端形态 | 说明 |
+|---|---|---|
+| `2xx` | 返回解析后的 body | 标准格式 `{ code, data, message }` 原样返回 |
+| `401` | 先走鉴权域（`40104`/`40105`/`40106`/`40107` + 刷新 + idle 超时） | **本域行为不变**，先于非 2xx 分支处理 |
+| `404` | 返回对象 `{ code: 40400, data: null, status: 404 }` | 历史契约保持不变 |
+| `409` | 返回对象 `{ code: 后端 code \|\| 40900, data, status: 409 }` | `40900` 等业务可纠正冲突由此可达 |
+| 其余非 2xx（`400` / `403` / `429` / `5xx`） | **抛出 `Error`（`name=ApiError`），并在 Error 上携带 `error.code` / `error.status` / `error.data`** | 文案仍由 `resolveErrorMessage` 解析；`code` 仅在后端给出有限数字时写入 |
+
+由此，业务可纠正冲突（`40002` / `40004` / `40005` / `40900`，白名单唯一 owner 为 `frontend-pc/src/utils/formConflict.js`）无论由 `409` 还是 `400` 送达，调用方都能在 **`catch`** 分支用 `isBusinessCorrectableConflict(err)` 判定并落到表单内持久提示（`FormConflictAlert`）。**禁止**把某个 4xx 私自改成「返回对象」形态绕过本契约——会让没有 `else` 分支的调用点变成静默成功。
+
 ### 1.4 时间戳契约（#1759）
 - 所有时间字段（`created_at` / `updated_at` / 各事件时间戳）为 **ISO8601 UTC**，JSON 序列化带 `Z` 后缀（如 `"2026-08-22T16:02:01Z"`）
 - DB 存储为 `timestamptz`（迁移 `20260824002_timestamptz`：存量北京数值 → 正确 UTC）；业务时区 = Asia/Shanghai（Go 启动时显式 `time.Local`）
@@ -1023,6 +1037,14 @@ GET /api/confirmation-sessions/:id
 > - **加盟店**：**必须**传 `owner_user_id`（否则 `40002`）；IAM 在命名空间下建**独立组织**（`parent_id = null`，`kind=franchise`）并把该用户绑为 **OWNER**，随后建 `org_link(kind=franchise)` 关联当前商户；`sites.org_id` 为该独立组织。
 > - 角色模板：直营店继承所属商户 OWNER 定义的模板；加盟店按 `org_link` 继承（默认开）。
 
+> **注（#2581）**: 同一商户（`sites.tenant_id` = 商户 `org_id`）内已存在同名网点 / IAM 组织名冲突 → **`409/40900`**，
+> `message` 为**中文具体原因**：`该商户下已存在同名网点「<name>」，请换一个名称`（与 §4.5.2 改名口径一致）。
+> - 判据：IAM 返回 409 → 哨兵 `services.ErrOrganizationNameConflict`（`errors.Is`，见 #2552），保留字符串匹配兼容历史 message；
+> - 文案必须含 CJK：PC 端 `resolveErrorMessage` 对 ASCII message 一律落 `ERROR_CODE_MAP[40900]` 通用文案
+>   「数据冲突，请刷新后重试」，用户读不出真实原因（#2581 缺陷根因）；
+> - PC 端据 `40900` 走**表单内持久提示**（`FormConflictAlert`），不得降级为数秒消失的 toast；
+> - **跨商户同名仍允许**（唯一性 scope = 商户内，不是全局）；本地重名预检/归一化见 #2477。
+
 **响应**:
 ```json
 {
@@ -1033,6 +1055,27 @@ GET /api/confirmation-sessions/:id
   }
 }
 ```
+
+> **注（#2602 / beaconiam#515）: 授权口径与错误码**
+>
+> | 调用者 | 可否创建 | 说明 |
+> |---|---|---|
+> | 商户 **OWNER** | ✅ | 可在本商户 org 下建网点（顶层组织亦允许） |
+> | 商户 **ADMIN** | ✅ | **仅限本商户 org 子树内**（IAM `CreateOrg` 校验 `parent` 落在调用者可见范围）；跨商户/跨命名空间 → `403` |
+> | 网点管理员（`site_admin`） | ❌ | 无 `organization:create` 位 → `403/40303` |
+> | 平台管理员（`namespace_admin`） | ❌（本接口） | 有无 `sys_perm` 位 12 取决于命名空间策略；平台代建请走 `merchant_id` 分支或平台运维流程 |
+>
+> 错误码约定：
+>
+> | HTTP | code | message | 触发 |
+> |---|---|---|---|
+> | 409 | `40900` | `该商户下已存在同名网点「<name>」，请换一个名称` | 同商户重名（IAM 组织名冲突 / 本地唯一索引） |
+> | 403 | `40300` | `权限不足：当前账号无权在该商户下创建网点` | IAM 返回 401/403（哨兵 `services.ErrIAMForbidden`）；**不得**再出现 `Failed to create sub-organization in IAM: …` 这类英文原文 |
+> | 403 | `40301` | 无商户归属 / 无权为其他商户创建网点 | `merchant_id` 越权 |
+> | 400 | `40002` | 具体原因（中文） | 参数不合法 / `merchant_id` 无效 / 受控商户缺 `transit_site_id` / `partner` 类型 |
+> | 5xx | `50000` / `50200` | `创建网点组织失败，请稍后再试`（中文，不含 IAM 原文） | IAM 不可达 / 未知失败 |
+>
+> 前端口径：`40900`/`40002` → 表单内持久提示（`FormConflictAlert`）；`40300` → 明确中文 toast（不可通过改输入解决，不需要常驻）；5xx → 中文兜底 + 日志留原文。
 
 #### 4.5.2 更新网点
 
@@ -1732,10 +1775,19 @@ curl -X POST http://localhost:5554/api/instruments/import \  -H "Authorization: 
 **接口**: `GET /api/instruments/export`
 
 **查询参数**:
-- `category`: 分类筛选 (可选)
-- `status`: 状态筛选 (可选)
+- `category`: 分类筛选 (可选，按分类**名称**等值；旧参数，保留兼容)
+- `status`: 状态筛选 (可选；与 `stock_status` 同义，二者任一即可)
+- `stock_status`: 状态筛选别名（#2578 D6，库存监控页写 `status`，Dashboard/存货页写 `stock_status`）
+- `sn`: 识别码模糊匹配（#2578，与 `GET /api/instruments?sn=` 同口径）
+- `category_id`: 分类筛选，**服务端展开后代分类**（#2578，与 `GET /api/instruments?category_id=` 同一实现 `getDescendantCategoryIDs`）
+- `exclude_status`: 排除状态，逗号分隔，服务端按 `stock_status NOT IN (...)` 过滤（#2578，非管理级默认排除 `lost,archived,sold`）
 - `search_text`: 搜索文本，匹配name或brand (可选)
-- `fields`: 导出字段，逗号分隔 (可选，默认全部)
+- `fields`: 导出字段，逗号分隔 (可选，默认全部；有效值含 `sn`→「识别码」、`category_name`→「分类名称」)
+
+> **注（#2578 可见性与过滤口径）**：导出与列表 `GET /api/instruments` 使用**同一套**过滤与可见性语义——
+> 可见性由 `applyInstrumentListScope` 注入（网点员工/维修师傅只看所属网点，其余按 `ApplyOrgScope`），
+> 分类按后代展开，状态支持 `status`/`stock_status` 双读 + `exclude_status` 排除；
+> `fields` 支持 `sn`（识别码）与 `category_name`（分类名称）。0 行结果仍返回 `400/40006`（不改为 200 空文件）。
 
 **请求示例**:
 ```bash
@@ -6263,8 +6315,13 @@ GET /api/admin/dashboard/near-transfers
 |---|---|
 | merchant_admin | 本商户全员 = 各网点成员 ∪ **商户直属员工**（`merchant_members`）∪ **维修师傅**（`technician_profiles`）；直属/师傅行 site_name=「直属商户」、师傅 position=「维修师傅」。**归属锚定 membership**：由 `site_members→sites.tenant_id` / `merchant_members.tenant_id` / `technician_profiles.tenant_id` 决定，users 按 id 取回（**不按 `users.tenant_id` 过滤**——本地缓存该列不可靠） |
 | site_admin | **本网点（组织域）全部成员**：`JOIN sites s ON s.id = sm.site_id WHERE s.org_id = JWT oid`；不含维修师傅。JWT `oid` 是**网点自身的 IAM 组织 ID**（`sites.org_id`），与 `site_members.site_id`（`sites.id`）**不是同一域**（#2508）。一个组织下有多个站点时返回**该组织全部站点**成员，**不递归**子网点（`sites.parent_id`） |
-| system_admin | **平台员工**（根组织 users，role∈staff/namespace_admin/sys_admin）∪ **中转网点成员**（`sites.type='transit'`）；平台员工无网点归属时 site_name=「平台」 |
+| system_admin | **平台员工**（根组织 users，role∈staff/namespace_admin/sys_admin）∪ **中转网点成员**（`site_members.site_id → sites`，且 `sites.type='transit'` **且** `sites.tenant_id = 平台租户`；平台租户=JWT `tid`，为空回落 `oid`）；平台员工无网点归属时 site_name=「平台」 |
 | 其他（customer 等） | `40303` |
+
+**中转网点的组织域（#2552 / #2547 D2）**: 中转网点持有**自己的** `branch` 子组织（`sites.org_id`，父组织 = 命名空间主组织 `is_primary`，无 owner），成员的 IAM 绑定/角色/解绑目标 = 该组织；而 `sites.tenant_id` 仍是平台租户。两列不同域，**禁止互相替代**：
+- **术语对照**：IAM 侧语义为 `kind=branch`（组织类型）；`POST /api/v1/namespaces/{ns}/organizations` 的请求字段名是 `type`，取值 `branch`（`CreateOrganizationRequest.Type`，`json:"type,omitempty"`）。同一概念的两个名字，勿引入第三种写法。
+- 成员行的本地租户列（`site_members.tenant_id` / 新建用户的 `users.tenant_id`）必须是**平台租户**（唯一键含 tenant，写成组织 ID 会让幂等判定失配 → 重复成员行）；
+- 中转成员判据用 `sites.tenant_id`（站点维度），**不用** `sites.org_id`（否则网点一旦有了子组织，既有成员会从系统视图/详情消失）。
 
 **Query**: `page`（默认 1）、`page_size`（默认 20，≤100）、`name`（姓名 ILIKE；页面搜索表单参数）、`site_id`（**merchant 视图**按网点过滤成员，师傅/直属员工不属网点故排除；**site_admin 视图亦生效**，语义为「与本组织求交」——跨组织站点 ID 得到空集，不报错、不泄漏）、`direct`（**merchant 视图**：`true`=只看直属员工（`merchant_members`）+ 维修师傅；与 `site_id` 同传时 **direct 优先**）、`search`（name/phone/email ILIKE，通用口径；name 优先）
 
@@ -6502,7 +6559,7 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 |---|---|
 | merchant_admin | `site_members→sites.tenant_id = tid`（active）或 `merchant_members.tenant_id = tid`（active）或 `technician_profiles.tenant_id = tid`；否则 `users.tenant_id = tid` 且 `lower(role) ∉ {"", "user"}` |
 | site_admin | `site_members→sites.org_id = oid`（active）；否则 `users.tenant_id = tid` + `org_id` 在可见组织内，且 `lower(role) ∉ {"", "user"}` |
-| system_admin | `users.org_id = oid` 且 `lower(role) ∈ {staff, namespace_admin, sys_admin}`；或中转网点成员（`sites.type='transit'` 且 `sites.tenant_id/org_id = oid`）；或 `tid` 非空时 `users.tenant_id = tid` |
+| system_admin | `users.org_id = oid` 且 `lower(role) ∈ {staff, namespace_admin, sys_admin}`；或中转网点成员（`site_members.site_id → sites`，`sites.type='transit'` **且** `sites.tenant_id = 平台租户`，平台租户=`tid`，空回落 `oid`；**不使用** `sites.org_id`——中转网点持有自己的 `branch` 子组织，与平台租户不同域，#2552）；或 `tid` 非空时 `users.tenant_id = tid` |
 | 其他 | 仅旧口径：`users.tenant_id = tid` + `org_id` 在可见组织内 |
 
 **纯顾客**: `lower(users.role) ∈ {"", "user"}` 且无任何成员关系 → 一律 `404 40400`（不得通过 `users.tenant_id` 命中被当作员工打开，避免个人信息越权读取）。
@@ -6761,9 +6818,25 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
   "merchant_type": "controlled",
   "transit_address": "新中转地址",
   "transit_phone": "13911112222",
-  "transit_contact_name": "新联系人"
+  "transit_contact_name": "新联系人",
+  "admin_uid": "new-owner-uuid"
 }
 ```
+
+**字段说明（#2546 所有权语义）**:
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| admin_uid | string \| null | **所有人（OWNER）** 用户 UUID。字段缺省 → 不变更所有权；提供且与当前所有人不同 → 走**转让所有权**（IAM `POST /organizations/:id/transfer-ownership`，原所有人自动降 ADMIN）；显式置空 / `null` / 全零 UUID → `40002`「所有人不能清空，只能转让所有权」 |
+
+**错误码（admin_uid 分支）**:
+- `40002`: 目标用户已是本商户所有人 / 目标用户缺少 IAM 账号 / 尝试清空所有人
+- `40303`: 仅当前所有人可转让所有权（IAM 403）
+- `40400`: 目标用户不是本商户的成员（IAM 404）
+- `40900`: 该商户当前没有所有人（IAM 409，需走修复流程）
+- `50200`: IAM 不可用/5xx（转让单事务失败，本地指针不变）
+
+> **组合请求顺序（#2546 D15）**：普通字段（name/phone/address/merchant_type/transit_*）先以 `Updates` 落库，再执行所有权转让；禁止「转让后重载整行再 Save」（会把同请求的普通字段覆盖回旧值）。响应中的商户对象为更新后的重新读取快照，不再写库。
 
 **响应**: 常规成功响应 `{ code: 20000, data: { ... } }`
 
@@ -6772,6 +6845,133 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 **接口**: `DELETE /api/merchants/:id`
 
 **响应**: `{ "code": 20000, "message": "success" }`
+
+#### 12.3.5 商户成员与所有人（#2546）
+
+> 每商户**恰好 1 个所有人（OWNER）**：IAM `user_org_relations` 部分唯一索引保证，OWNER 只能转让、不能删除/降级。
+> 本地所有权指针 = `merchants.admin_uid`；`merchant_members.role` 只表达业务角色（OWNER 与 ADMIN 在 tuneloop 内同为 `merchant_admin`，由 JWT `tid == oid` 判定）。
+> 因此本地**没有** `merchant_members.is_owner` 列，`is_owner` 只是响应级计算字段（`user_id == merchants.admin_uid`）。
+
+##### 12.3.5.1 商户成员列表
+
+**接口**: `GET /api/admin/merchants/:id/members`
+
+**权限**: sys_perm bit 5（`tenant:view`）**或** `businessRole=merchant_admin`（本商户，数据面按 org 收窄）
+
+> **路由授权口径（#2546 D13）**：仅 4 条路由对 `businessRole=merchant_admin` 放行——`GET /api/merchants`、`GET /api/merchants/:id`、`GET /api/admin/merchants/:id/members`、`POST /api/merchants/:id/transfer-ownership`；创建/删除/编辑商户与成员增删改仍仅 `sys_perm`（商户管理员 `40303`）。
+
+**查询参数**:
+| 参数 | 类型 | 默认 | 说明 |
+|------|------|------|------|
+| page | int | 1 | 页码 |
+| page_size | int | 20 | 每页数量（上限见 maxPageSize） |
+| include | string | — | `all` = 返回本商户全部 active 成员（供转让候选使用）；缺省只返回 `role='merchant_admin'`（既有口径不变） |
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "list": [
+      {
+        "user_id": "uuid",
+        "user_name": "张三",
+        "user_email": "zhangsan@example.com",
+        "role": "merchant_admin",
+        "status": "active",
+        "is_owner": true,
+        "created_at": "2026-11-26T08:00:00Z"
+      }
+    ],
+    "total": 1,
+    "page": 1,
+    "page_size": 20,
+    "owner_uid": "uuid",
+    "owner_anchor_present": true,
+    "viewer_uid": "uuid",
+    "viewer_is_owner": true
+  }
+}
+```
+
+**字段说明**:
+| 字段 | 说明 |
+|------|------|
+| is_owner | 该行是否为当前所有人（由归一化后的 `merchants.admin_uid` 计算，不落库） |
+| owner_uid | 本地所有人指针，**归一化到本地 `users.id` 空间**（#2546 D1b：`admin_uid` 命中 `users.id` 直接使用；否则按 `users.iam_sub = admin_uid` 解析本地 id；两者都不命中 → 空串）。 |
+| owner_anchor_present | `merchants.admin_uid` 是否有值。`owner_uid=""` 时用它区分两类空态：`false` = 未锚定所有人（`admin_uid` 无值）；`true` = 成员记录缺失（有值但两种 ID 空间都不命中）。两者都禁用转让。 |
+| viewer_uid | 当前登录账号的**本地 `users.id`**（`middleware.LocalUserID`，由 JWT `sub`/`iam_sub` 反查），与 `owner_uid` 同一 ID 空间。 |
+| viewer_is_owner | **转让门控唯一真值**：`owner_uid == viewer_uid`（均为本地 `users.id`）。禁止用平台级 JWT `is_owner`（= `users.is_owner` 遗留标记，与组织 OWNER 无关）。 |
+
+##### 12.3.5.2 添加商户成员
+
+**接口**: `POST /api/admin/merchants/:id/members`
+
+**请求 Body**: `{ "user_id": "uuid", "role": "merchant_admin" }`（或 `user_ids` / `new_users` 批量形态）
+
+**IAM 角色映射**: `merchant_admin → ADMIN`（#2546；所有权只能转让，不得追加第二个 OWNER）。
+
+**错误码**:
+- `40002`: 显式请求 `role=OWNER/owner`（提示走转让所有权）
+
+##### 12.3.5.3 修改商户成员角色
+
+**接口**: `PUT /api/admin/merchants/:id/members/:uid`
+
+**请求 Body**: `{ "role": "merchant_admin" }`
+
+**错误码**:
+- `40002`: 目标是当前所有人（`所有人不能改角色，请使用转让所有权`）；或显式请求 OWNER
+- `40400`: 成员不存在
+
+##### 12.3.5.4 移除商户成员
+
+**接口**: `DELETE /api/admin/merchants/:id/members/:uid`
+
+**错误码**:
+- `40303`: 目标是当前所有人（`所有人不能移除，只能转让所有权`，不调 IAM）
+- `40009`: 目标是最后一个非 owner 管理员（既有兜底，保持不变）
+
+##### 12.3.5.5 转让所有权
+
+**接口**: `POST /api/merchants/:id/transfer-ownership`
+
+**权限**: sys_perm **bit 8**（`tenant:update`）**或** `businessRole=merchant_admin`（本商户）；IAM 侧必须是当前 OWNER（或平台超管）
+
+**请求 Body**:
+```json
+{ "user_id": "target-user-uuid" }
+```
+
+**服务端动作**（顺序固定，失败不落本地）:
+1. 本地前置校验：目标必须是本商户 active `merchant_members` 行（否则 `40400`，**不调 IAM**）、不得等于当前所有人（`40002`）、必须有 `users.iam_sub`（`40002`）；
+2. IAM `POST /api/v1/organizations/:org_id/transfer-ownership {user_id: <iam_sub>}`（单事务：旧 OWNER→ADMIN、目标→OWNER、audit、perm_version 递增）；
+3. 本地同步（**单事务**）：`merchants.admin_uid = 目标本地 id`、`admin_pending=false`，并把目标 `merchant_members.role` 提升为 `merchant_admin`；任一 `RowsAffected != 1` 或报错 → **整体回滚** 并返回 `500/50000`「IAM 已转让，但本地同步失败…请联系平台人工核对」（禁止 log-only 半同步 + 200）；
+4. 审计由 `auditRouteMap` 表项（`TRANSFER_OWNERSHIP` / `merchant` / `CRITICAL`）自动落 `audit_logs`，handler 不手写审计。
+
+**响应**:
+```json
+{
+  "code": 20000,
+  "data": {
+    "merchant_id": "uuid",
+    "previous_owner_id": "old-owner-uuid",
+    "new_owner_id": "new-owner-uuid"
+  }
+}
+```
+
+**错误码**:
+| HTTP | code | 场景 |
+|------|------|------|
+| 400 | 40001 | `user_id` 缺失或非 UUID |
+| 400 | 40002 | 目标已是当前所有人 / 目标缺少 IAM 账号 / IAM 400（如 `user is already the owner`，文案透传） |
+| 403 | 40303 | IAM 403「仅当前所有人可转让所有权」 |
+| 404 | 40400 | 目标不是本商户成员 / IAM 404 |
+| 409 | 40900 | IAM 409「该商户当前没有所有人，请走修复流程」 |
+| 502 | 50200 | IAM 5xx / 网络失败（**不得**降级为 200） |
+
+> 本地 `admin_uid` 与 IAM OWNER 的存量一致性核对由运维单（#2553）负责，本端点不做存量猜测。
 ```
 
 ### 12.4 审计日志

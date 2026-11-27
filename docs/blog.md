@@ -454,3 +454,29 @@
 - 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2540
 - 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2515
 - 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2506
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2552
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2527（审计 PASS；Ops Follow-ups #2561 #2562）｜REJECT: #2488（D8 字段编辑清空 / catch 文案 / R1 判定表口径未闭环）
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2485
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2565
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2563
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: (none)｜REJECT: #2519（审计：Detail.jsx 仍用废弃 overrides 致逾期日费静默失效 / 批量上架取值 active|inactive 与状态白名单不符且按钮被 {false &&} 隐藏 / 独立 Issue 缺全量 gate；已退回 status:analysis 待 Architect Rev.7）
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2512
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2543
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2575 (PASS); #2567 rejected round 1 (audit attribution bug)
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2577
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2581
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2578
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: (none)｜REJECT: #2564（计划层：R2 红样锚点仍用 git log -1 口径与期望值自相矛盾、G0 夹具锚点指向不存在的上层分类选择器、Evidence Contract 漏登 4 个新判定键、R4 命令未登记 --affected-cmd → status:analysis 待 Architect Rev.3；产品代码已确认正确）
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2587, #2576｜REJECT: #2586（文档层：permissions.md §3.2.1 表被新子表切断 + 端点-权限对照缺 batch-import/media，R6 计数断言漏抓，退回 fixreview）、#2579（导出价格列越过「价格字段员工隐藏」口径 + ui.md 新旧口径自相矛盾 + api.md「已移除字段不再接收」与实现（200 + 无名空列）不符）
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2546
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2591
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2487
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2592
+- 2026-11-26: 批量处理完成，包含任务: Resolved Issues: #2590（审计 PASS；fix/evidence 在 origin/issue-2590，代码待集成至 develop）
+- 2026-11-27: 批量处理完成，包含任务: Resolved Issues: #2586
+- 2026-11-27: 批量处理完成，包含任务: Resolved Issues: #2567（审计待办；fix/evidence 在 origin/issue-2567，代码待集成至 develop）；#2568/#2564/#2455 → analysis（计划缺口：依赖集成/验收文本矛盾）；#2459/#2429 → holdon（依赖未就绪）
+- 2026-11-27: 批量处理完成，包含任务: Resolved Issues: #2567
+- 2026-11-27: 批量处理完成，包含任务: Resolved Issues: #2564
+- 2026-11-27: 批量处理完成，包含任务: Resolved Issues: #2597
+- 2026-11-27: 批量处理完成，包含任务: Resolved Issues: #2598
+- 2026-11-27: 批量处理完成，包含任务: Resolved Issues: #2603

@@ -1567,7 +1567,7 @@ API 来源：
 
 ### 2.20.1 PC 乐器管理（乐器列表 + 库存监控，两独立页）
 
-> **#2212 撤销 #2043/#2101 的错误菜单合并**，恢复两个独立页：「**乐器列表**」`/instruments/list`（渲染 `List.jsx`，乐器档案新增/编辑/导入/导出/设价/排序）与「**库存监控**」`/site/stock`（渲染 `InstrumentStock.jsx`，**透传 `?status=`**，Dashboard 链接不得破坏；工具栏含 导出/批量导入/批量设价/批量删除，按 cusPerm 门控）。
+> **#2212 撤销 #2043/#2101 的错误菜单合并**，恢复两个独立页：「**乐器列表**」`/instruments/list`（渲染 `List.jsx`，乐器档案新增/编辑/导入/导出/设价/排序）与「**库存监控**」`/site/stock`（渲染 `InstrumentStock.jsx`，**透传 `?status=`**，Dashboard 链接不得破坏；工具栏含 导出/批量导入/批量设价/批量删除 + **筛选（识别码/分类/状态/清空筛选，#2577）**，按 cusPerm 门控）。
 
 - **列表列（#2537 两页列口径区分）**：
   - **乐器列表** `/instruments/list`（`List.jsx`）：图片 / 识别码 / 分类 / 乐器分级 / 加入时间 / 网点 / 状态 / 操作（**无**标准日租金、**无**押金列；价格口径归库存监控页）
@@ -1584,14 +1584,32 @@ API 来源：
 - **操作门控**：按 cusPerm **不渲染**无权限按钮
   - `update`：编辑 / 丢失 / 恢复；`delete`：删除 / 批量删除；`RequireRole`：批量设价
 - **状态范围按角色（服务端）**：员工默认 可用/在租/维护；管理员增量 下架/已出售/丢失——实现为服务端 `exclude_status=lost,archived,sold`（非管理员），客户端不再过滤
+- **筛选（#2577）**：工具栏（仅「库存」视图渲染，权限门控与既有按钮一致）新增 **识别码搜索 / 分类筛选 / 状态筛选 / 清空筛选**
+  - **URL 即筛选唯一来源**：读取 `?status=`（兼容读 `?stock_status=`）→ 状态；`?sn=` → 识别码；`?category_id=` → 分类；写回**只用 `status`**（`stock_status` 仅为兼容读别名）。Dashboard 深链 `?status=rented` / `?status=available` 仍生效，控件回显
+  - **识别码**：`Input.Search`（回车 / 点搜索 / 清空触发），不做输入即搜
+  - **分类**：选项取 `GET /instruments/filter-options` 的 `categories`（与乐器列表同源），服务端按后代分类展开
+  - **状态词表**：`available=待租`、`rented=在租`、`maintenance=维修中`、`reserved=已预订`、`shipping=配送中`、`lost=已丢失`、`archived=已下架`、`sold=已售出`；未知值原样展示
+  - **非管理级状态选项**剔除 丢失/已下架/已售出；若 URL 显式带入这些状态（管理级深链），下拉保留该值、请求叠加 `stock_status` 并**不**追加 `exclude_status`（否则恒为 0 行）
+  - **筛选变化**（搜索/分类/状态/清空）→ 回第 1 页 + 清空行选择（批量设价/删除只作用当前可见选中行）
+  - **首屏 loading** 走 `Table loading`（不整页 `Spin`），筛选时不卸载工具栏（输入框不失焦）
+
+- **导出（#2578）**：工具栏「导出 Excel」**跟随当前筛选**（识别码 / 分类（含后代）/ 状态 / 可见性范围），
+  请求 `GET /api/instruments/export`（参数 `sn` / `category_id` / `status` / `exclude_status` / `fields=sn,category_name,status`），
+  统一走 `fetchBlob`（带 Bearer、空参剔除）；产物为 `.xlsx`，文件名 `instruments_export_<date>.xlsx`（与乐器列表一致）。
+  非管理级仍按服务端 `exclude_status=lost,archived,sold` 排除隐藏状态；显式选择这些状态时不叠加排除。
+
 - **服务端分页（#2140）**：Table 改服务端 `page`/`pageSize`，`total` 取后端 `data.total`；状态筛选服务端化（`?status=` → 查询 `stock_status`）；移除 `pageSize:200` 硬编码与客户端 `filteredAssets` 过滤
 - **字段可见性**：标准日租金 / 押金 → 管理员/商户管理员可见（代理 `hasCusPerm('instrument:delete')`），员工隐藏
 - **详情/编辑**：统一「资产卡片」组件（两旧详情路径收敛，兼容重定向）
-- **资产详情页（`/site/stock/:id` → `AssetDetail.jsx`，#2529）**：
-  - **取数**：`GET /api/instruments/:id` 单条（`GetInstrumentByID`）。**禁止**拉列表首页再内存查找（旧实现 `inventoryApi.list()` 无参 = 服务端第 1 页 20 条 → 第 2 页之后的乐器一律「资产不存在」）
-  - **三态**（`frontend-pc/src/utils/assetDetail.js` 的 `assetDetailState`）：`code=20000` 且有 data → 正常渲染；`code=40400` 或 data 为空 → 「**资产不存在或已删除**」+ 返回按钮；其它 code / 请求异常 → 「**加载失败：<message>**」+ 重试按钮（不得把三种情况都显示成「资产不存在」）
-  - **页头图片**：`assetHeroImage` = `media.display[0].url` → `poster` → `images[0]` → 内置占位；`onError` 回落同一占位（与列表同源，禁止引用未入库静态资源）
-  - **字段**：资产ID / 类别 / 级别 / 状态 / 所属网点 / **标准日租金**（API `base_daily_rate` 为**分**，必须经 `formatDailyRate` 显示元；未配置显示 `-`）
+- **乐器详情页（唯一）：`/instruments/detail/:id`（`frontend-pc/src/pages/admin/instrument/Detail.jsx`，#2538）**：
+  - **入口统一**：`/site/stock/:id` 为**兼容重定向**（`App.jsx` 的 `LegacyStockDetailRedirect` → `<Navigate replace>` 到 `/instruments/detail/:id`）；旧存根 `AssetDetail.jsx` / `utils/assetDetail.js` 已删除（#2529 的临时实现被本页取代）。库存监控与乐器列表的「识别码」即详情入口（见上「识别码即详情入口」）
+  - **页头摘要（一屏可见，不必切 tab）**：160×160 主图 + 摘要网格 2×3 —— **标准日租金 / 逾期租金 / 全额押金 / 差额押金 / 估值 / 加入日期**
+    - 口径：标准日租金 = pricing-v2 `base_daily_rate`（分）→ `¥X.XX/天`；逾期租金 = `overdue_daily_fee`（分）→ `¥X.XX/天`；全额押金 = `deposit`（分，显式 0 有效）→ `¥X.XX`；差额押金 = `deposit_reduced`（分，空 → `未配置`）；估值 = `instruments.total_price`（分）→ `¥X.XX`；加入日期 = `created_at`（`formatBeijingDateTimeShort`）
+    - 摘要口径抽成纯函数 `frontend-pc/src/utils/assetSummary.js` 的 `buildAssetSummary(instrument, pricingV2)`（返回 6 项 `{key,label,value}`），页面只渲染；缺失一律 `-`（差额押金 `未配置`）
+    - 主图取源与列表同源（`instrumentImageSrc`：`media.display[0].url` → `poster` → `images[0]` → 内置 data-URI 占位），`onError` 回落同一占位
+  - **页头以下为 tab**：基本信息 / 价格策略（标签：标准日租金、全额押金、差额押金、押金模式、逾期租金，含阶梯折扣）/ 多媒体 / 动态属性 / 当前租赁 / 日志 / 促销覆盖。**基本信息不再重复「创建时间」**（值即页头「加入日期」；「更新时间」保留）
+  - **日志 = 唯一事件视图**：`ActivityLogTab`（`GET /instruments/:id/activity-log` 订单会话事件 + `/admin/audit-logs` 操作记录）；**不再有「流转轨迹」**，**不再有「关联单据」**占位（该功能未实现，整体移除）
+  - **取数**：`GET /api/instruments/:id` 单条（`GetInstrumentByID`）；**禁止**拉列表首页再内存查找
   - **其它 PC 占位图**：`InstrumentListUser.jsx`、`IdPhotoDisplay.jsx` 的 `fallback` 统一为 `IMAGE_PLACEHOLDER`（`frontend-pc/src/utils/instrumentDisplay.js` 导出的同一 data-URI 常量），不得引用 `/placeholder-instrument.png` / `/placeholder.png`（均未入库 → 404）
 - **排序语义（#2241 方案 A）**：分类内排序——默认列表按分类分组、组内按 `sort_order`；行内上移/下移在组内换位并重排序号（不再出现记录被甩到列表尾部/跨页）。组内首/末：后端返回 `already first` / `already last`，前端以 **warning** 提示「已在最前 / 已在最后」并禁用该方向按钮；移动成功后自动回到默认组内视图（避免表头 created_at 排序下“看起来没反应”）。
 
@@ -3169,16 +3187,22 @@ const handleSyncUsersFromIAM = async () => {
 - **路由**: 一级菜单
 - **权限**: 商户管理员（含 sys_perm bit 26 可看权限管理）
 - **子菜单**:
-  - 商户管理 (`/merchants`) — sys_perm bit 5
+  - 商户管理 (`/merchants`) — sys_perm bit 5 **或** `businessRole=merchant_admin`（本商户，见下「商户管理员视角」）
     - 创建/编辑表单新增**商户类型**下拉选择（全权商户/受控商户）
     - 选择"受控商户"时条件显示中转地址、中转电话、中转联系人字段
     - 创建表单新增**跳过邮箱验证** Checkbox，勾选后管理员直接激活无需确认邮件
     - 勾选"跳过邮箱验证"且创建成功时，弹窗显示管理员初始密码
+    - **商户详情 →「所有人」Tab（#2546）**：
+      - 顶部「所有人（唯一）」卡片：姓名/邮箱/加入时间 + `OWNER` 标签，**不可移除**；卡片以**归一化后的 `owner_uid`** 为准（不按成员行存在性判定），`owner_uid` 为空时区分两类空态并禁用转让：
+        - `admin_uid` 无值（`owner_anchor_present=false`）→「未锚定所有人（请联系平台核对）」
+        - `admin_uid` 有值但两种 ID 空间都不命中（`owner_anchor_present=true`）→「成员记录缺失，请联系平台」
+      - 「转让所有权」按钮：仅后端 `viewer_is_owner === true`（归一化 `merchants.admin_uid` = 当前登录账号的本地 `users.id`）且 `owner_uid` 已锚定、存在候选成员时显示——**禁止**用平台级 `user_info.isOwner`（= `users.is_owner` 遗留标记，与组织 OWNER 无关）；候选按 `include=all&page_size=100` 分页补拉到 `total`；弹窗内选择候选（本商户 active 成员，排除当前所有人）+ 固定文案「转让后你将成为管理员」+ 二次确认（不可撤销）
+      - 管理员列表：「添加管理员」只创建 **ADMIN**（不再有「设为负责人」选项）；管理员可移除（最后 1 名管理员禁用移除，后端 `40009` 兜底）；所有人行不显示「移除」；**商户管理员视角下「添加管理员」按钮与行内「移除」整体隐藏**（成员增删仍是平台专属写路由，`40303`）
+    - **商户管理员视角（#2546 D13）**：菜单「商户管理」对其可见，列表/详情数据面收窄到**本商户**；隐藏「创建商户」「删除」「编辑基本信息」「分账配置」与列表编辑入口（平台专属写操作对商户管理员仍 `40303`）；详情默认落在「所有人」Tab（只读信息 + 转让）
   - 操作日志 (`/system/audit-logs`) — sys_perm bit 5
   - 权限管理 (`/system/permissions`) — sys_perm bit 26（商户管理员）
-  - 客户端管理 (`/system/clients`) — sys_perm bit 0
-  - 租户管理 (`/system/tenants`) — sys_perm bit 6
   - 内容管理 (`/system/banners`) — cus_perm `banner:manage`：轮播图管理；同页下方「商城页图片管理」Card（cus_perm `mall_image:manage`，平台级全站配置、与租户无关，图片建议 750×400px）
+- **租户即商户（#2518）**：本项目不存在独立的「租户管理」页面，租户 ≡ 商户，统一由「商户管理」(`/merchants`) 承载列表与新建；「客户端管理」不承载（OAuth client 属 IAM 概念，平台端无此实体）。
 
 
 #### 权限控制汇总 (v2.2 — 10 cus_perm + sys_perm 25-26)
@@ -3189,7 +3213,7 @@ const handleSyncUsersFromIAM = async () => {
 **菜单可见性 = sys_perm + cus_perm + businessRole 组合判断**：
 - 组合菜单（网点管理/人员管理/角色配置）：需 sys_perm 授权 **且** cus_perm 含有任一业务权限
 - 纯业务菜单（乐器/库存/维修/财务）：仅需对应 cus_perm 代码
-- 纯管理菜单（商户/客户端）：仅需对应 sys_perm 位码
+- 纯管理菜单（商户/权限/操作日志）：仅需对应 sys_perm 位码
 
 角色可见菜单详见 [`docs/spec/permissions.md` §四](../permissions.md#四角色-权限分配矩阵)，各菜单项所需权限详见 [`docs/spec/permissions.md` §五](../permissions.md#五菜单-权限映射)。
 

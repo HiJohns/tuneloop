@@ -1,0 +1,38 @@
+# build=1.0.7842aed44 # commit=7842aed4499fc4b01e34c2de0783cdfa09d5d048 # dirty=false
+GENERATED_AT_HEAD=7842aed4499fc4b01e34c2de0783cdfa09d5d048
+ESLINT_CMD=cd frontend-pc && npx eslint src/pages/InstrumentStock.jsx src/utils/instrumentStockFilters.js
+  201:56  warning  'openRestoreModal' was used before it was defined                                                            no-use-before-define
+  204:56  warning  'openLostModal' was used before it was defined                                                               no-use-before-define
+  209:59  warning  'handleDeleteInstrument' was used before it was defined                                                      no-use-before-define
+
+✖ 4 problems (0 errors, 4 warnings)
+
+ESLINT_EXIT=0
+ESLINT_NOUNDEF=0
+PC_BUILD_CMD=cd frontend-pc && npm run build
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 18.88s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795727609169 hold_ms=19775
+PC_BUILD_EXIT=0
+PC_TESTS_CMD=cd frontend-pc && node --test tests/instrumentStockFilters.test.mjs
+# tests 24
+# pass 24
+# fail 0
+PC_TESTS_EXIT=0
+GO_BUILD_CMD=cd backend && go build ./...
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s107-p107-350703 at_ms=1795727609688 wait_ms=74
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s107-p107-350703 wait_ms=74
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795727626170 hold_ms=16482
+GO_BUILD_EXIT=0
+GO_EXPORT_TEST_CMD=cd backend && go test ./handlers -run 'TestExportScope2578|TestExportInstruments' -count=1
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s107-p107-350703 wait_ms=79
+ok  	tuneloop-backend/handlers	2.290s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795727633778 hold_ms=7478
+GO_EXPORT_TEST_EXIT=0
+ESLINT_OK=1
+PC_BUILD_OK=1
+PC_TESTS_OK=1
+GO_BUILD_OK=1
+GO_EXPORT_TEST_OK=1
+R5_OK

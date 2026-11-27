@@ -1,0 +1,27 @@
+# build=1.0.29eea1dae # commit=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b # dirty=false
+GENERATED_AT_HEAD=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b
+# R17 admin_uid 历史形态（IAM 用户 id）读取侧归一化：owner 卡片 + 门控 + OWNER 守卫
+# build=1.0.29eea1dae # commit=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b # dirty=false
+GENERATED_AT_HEAD=29eea1daebfca235ea38fa55a3dd30a9e29d9e1b
+# CMD go test -count=1 -run 'TestListMembersOwnerUIDSpace_2546' ./handlers/
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s107-p107-350703 at_ms=1795730845363 wait_ms=68
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s107-p107-350703 wait_ms=68
+[DEBUG] Loaded .env from: ../.env
+2026/11/26 22:07:28 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e sslmode=disable
+2026/11/26 22:07:28 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e
+2026/11/26 22:07:28 [DB] Connected to database 'tuneloop_test_node_opencode_s107_p107_350703_ff978a8e'
+=== RUN   TestListMembersOwnerUIDSpace_2546
+2026/11/26 22:07:28 [DB] Configuration loaded: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e sslmode=disable
+2026/11/26 22:07:28 [DB] Connecting: host=127.0.0.1 port=5432 user=tuneloop_user dbname=tuneloop_test_node_opencode_s107_p107_350703_ff978a8e
+2026/11/26 22:07:28 [DB] Connected to database 'tuneloop_test_node_opencode_s107_p107_350703_ff978a8e'
+
+2026/11/26 22:07:29 [32m/tmp/opencode/tuneloop/wt-2546/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[602.249ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "schema_migrations", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/26 22:07:29 [TenantScope][observe] auto-scope injected for table=merchant_members (add explicit scope, then set ExplicitTenantScopeOnly)
+    merchant_ownership_2546_test.go:760: ADMIN_UID_SPACE=iam_sub IS_OWNER_HITS=1 OWNER_UID_NORMALIZED_TO_LOCAL_ID=1 VIEWER_IS_OWNER=1 REMOVE_OWNER_STATUS=403 DEMOTE_OWNER_STATUS=400
+--- PASS: TestListMembersOwnerUIDSpace_2546 (0.88s)
+PASS
+ok  	tuneloop-backend/handlers	1.620s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795730850040 hold_ms=4677
+GO_TEST_RC=0
+OWNER_CARD_RENDERED=1

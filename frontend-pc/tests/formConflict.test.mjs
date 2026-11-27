@@ -62,3 +62,18 @@ test('conflictText falls back when message is empty or not a string', () => {
   assert.equal(conflictText({ code: 40900, message: '' }, '网点名称已存在'), '网点名称已存在')
   assert.equal(conflictText(null), '请修改后重新提交')
 })
+
+// #2563：传输层把业务 code 挂到 Error 上后，rubric 必须能直接判定 Error 实例；
+// 普通 Error（无 code）仍判 false，文案取 Error.message。
+test('enriched Error is a correctable conflict, plain Error is not', () => {
+  const enriched = new Error('分类名称已存在')
+  enriched.code = 40002
+  const plain = new Error('boom')
+  console.log(`TRUE_ENRICHED_ERROR=${bit(isBusinessCorrectableConflict(enriched))}`)
+  console.log(`FALSE_PLAIN_ERROR=${holds(isBusinessCorrectableConflict(plain))}`)
+  console.log(`TEXT_ERROR_MESSAGE=${conflictText(enriched, '请修改后重新提交')}`)
+  assert.equal(isBusinessCorrectableConflict(enriched), true)
+  assert.equal(isBusinessCorrectableConflict(plain), false)
+  assert.equal(conflictText(enriched, '请修改后重新提交'), '分类名称已存在')
+  assert.equal(conflictText(plain, '请修改后重新提交'), 'boom')
+})

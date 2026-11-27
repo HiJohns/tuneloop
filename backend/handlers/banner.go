@@ -19,6 +19,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/rwcarlsen/goexif/exif"
 	"gorm.io/gorm"
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -63,7 +64,7 @@ func (h *BannerHandler) CreateBanner(c *gin.Context) {
 		BgColor   string `json:"bg_color"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid parameters: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": bindmsg.Message(err)})
 		return
 	}
 
@@ -132,7 +133,7 @@ func (h *BannerHandler) UpdateBanner(c *gin.Context) {
 		BgColor   string `json:"bg_color"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid parameters: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": bindmsg.Message(err)})
 		return
 	}
 

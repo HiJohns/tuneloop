@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { formatCents, yuanToCents } from '../utils/money'
-import { Table, Tag, Button, Space, Spin, Modal, Form, Input, InputNumber, Select, Radio, Upload, Descriptions, Image, message, Popconfirm, Alert } from 'antd'
+import { Table, Tag, Button, Space, Modal, Form, Input, InputNumber, Select, Radio, Upload, Descriptions, Image, message, Popconfirm, Alert } from 'antd'
 import { EditOutlined, WarningOutlined, RollbackOutlined, FileTextOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { inventoryApi, lossApi, api, pricingApi, ApiError } from '../services/api'
-import PermissionGate from '../components/PermissionGate'
+import { inventoryApi, lossApi, api, pricingApi, instrumentsApi, fetchBlob } from '../services/api'
 import FormConflictAlert from '../components/FormConflictAlert'
 import { conflictText, isBusinessCorrectableConflict } from '../utils/formConflict'
+import PermissionGate from '../components/PermissionGate'
 import { usePermission } from '../hooks/usePermission'
 import {
   BATCH_PRICE_OPERATOR_OPTIONS,
@@ -22,21 +22,17 @@ import {
   formatOverdueDailyFee,
   instrumentImageSrc,
 } from '../utils/instrumentDisplay'
-
-const statusColors = {
-  "在租": "green",
-  "待租": "blue",
-  "维修中": "orange",
-  "已熔断": "red",
-  "rented": "green",
-  "available": "blue",
-  "maintenance": "orange",
-  "lost": "red",
-}
+import {
+  applyFilterPatch,
+  buildStockExportParams,
+  buildStockFilterQuery,
+  buildStockListParams,
+  readStockFilters,
+  stockStatusOptions,
+} from '../utils/instrumentStockFilters'
 
 export default function InstrumentStock() {
-  const [searchParams] = useSearchParams()
-  const statusParam = searchParams.get('status')
+  const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const [assets, setAssets] = useState([])
   const [loading, setLoading] = useState(true)
@@ -45,12 +41,19 @@ export default function InstrumentStock() {
   const [total, setTotal] = useState(0)
   const [selectedRowKeys, setSelectedRowKeys] = useState([]) // #2043 批量操作
   const [priceModalVisible, setPriceModalVisible] = useState(false) // #2043 批量设价
-  const [priceForm] = Form.useForm()
-  // #2488（沿用 #2480 D8）：业务可纠正冲突（40005 状态不允许 / 40900 冲突）用表单内持久提示，
-  // 不当作瞬时 toast —— 库存状态冲突是用户可改输入后重试的业务错误。
+  // #2488（沿用 #2480 D8）：库存操作里的业务可纠正冲突（40005 状态不允许 / 40900 冲突）
+  // 用表单内持久提示，不当作瞬时 toast —— 用户改一个输入/重开表单即可重试。
   const [priceConflict, setPriceConflict] = useState('')
   const [lostConflict, setLostConflict] = useState('')
   const [restoreConflict, setRestoreConflict] = useState('')
+  const [priceForm] = Form.useForm()
+
+  // #2577: URL 即筛选唯一来源（D1）；page/pageSize 仍为本地 state（D6）。
+  const filters = readStockFilters(searchParams)
+  const filterKey = searchParams.toString()
+  // 识别码为 `Input.Search`（回车/点搜索/清空触发，D3）——输入过程不取数。
+  const [snInput, setSnInput] = useState(filters.sn)
+  const [filterOptions, setFilterOptions] = useState({ categories: [], statuses: [] })
 
   // #2043: 管理员级可见性代理（删除权限=管理级）
   const { hasCusPerm } = usePermission()
@@ -59,11 +62,10 @@ export default function InstrumentStock() {
   const loadData = async () => {
     setLoading(true)
     try {
-      // #2140：真分页——服务端 page/pageSize + 状态筛选服务端化；
-      // 非管理级状态范围（隐藏 下架/已售出/丢失）转服务端 exclude_status
-      const params = { page, pageSize }
-      if (statusParam) params.stock_status = statusParam
-      if (!isManagerLike) params.exclude_status = 'lost,archived,sold'
+      // #2140/#2577：真分页 + 服务端筛选；参数与可见性口径统一由
+      // utils/instrumentStockFilters 生成（sn / category_id / stock_status /
+      // exclude_status），页面不再各自拼装。
+      const params = buildStockListParams({ filters, page, pageSize, isManagerLike })
       const response = await inventoryApi.list(params)
       setAssets(response?.data?.list || [])
       setTotal(response?.data?.total || 0)
@@ -74,9 +76,41 @@ export default function InstrumentStock() {
     }
   }
 
+  // #2577: 只有 URL 变化才触发取数（控件回调只写 URL，不重复请求）。
   useEffect(() => {
     loadData()
-  }, [page, pageSize, statusParam, isManagerLike])
+  }, [filterKey, page, pageSize, isManagerLike])
+
+  // URL 外部变化（深链 / 清空 / 浏览器前进后退）回填识别码输入框。
+  useEffect(() => {
+    setSnInput(filters.sn)
+  }, [filters.sn])
+
+  // #2577: 分类/状态选项与乐器列表同源（filter-options）。
+  useEffect(() => {
+    instrumentsApi.getFilterOptions().then((res) => {
+      if (res?.code === 20000) setFilterOptions(res.data || {})
+    }).catch((error) => {
+      // 下拉不可用时列表仍可用（不阻塞主流程，见 Input Truth 损坏输入约定）。
+      console.error('Failed to load filter options:', error)
+    })
+  }, [])
+
+  // 筛选变化的唯一入口：合并 patch → 回第 1 页 → 清空行选择 → 写回 URL。
+  const patchFilters = (patch) => {
+    const next = applyFilterPatch({ filters, page, selectedRowKeys }, patch)
+    setPage(next.page)
+    setSelectedRowKeys(next.selectedRowKeys)
+    setSearchParams(buildStockFilterQuery(next.filters), { replace: true })
+  }
+
+  const clearFilters = () => patchFilters({ sn: '', categoryId: '', status: '' })
+
+  const statusOptions = stockStatusOptions({
+    statuses: filterOptions.statuses,
+    isManagerLike,
+    current: filters.status,
+  })
   
   const columns = [
     {
@@ -208,7 +242,7 @@ export default function InstrumentStock() {
   // 路径与 payload 统一由 utils/batchPricing 生成，避免再次打到不存在的
   // /instruments/batch/price 或发送后端不认识的 {ids, price_type, ...}。
   const handleBatchPrice = async () => {
-    setPriceConflict('') // #2488 D8：提交开始即清空
+    setPriceConflict('') // #2488 D8：提交开始即清空陈旧冲突提示
     try {
       const values = await priceForm.validateFields()
       const built = buildBatchPricingPayload(selectedRowKeys, values)
@@ -218,48 +252,43 @@ export default function InstrumentStock() {
       }
       const res = await pricingApi.batchSetPricing(built.payload)
       if (res.code !== 20000) {
-        // #2488（沿用 #2480 D8）：业务可纠正冲突（40900 等）→ 表单内持久提示，
-        // 不得降级为瞬时 toast；其余（参数/权限/5xx）保持 toast。
+        // #2488 CODE_FIRST：先判 code，再按 rubric 决定常驻提示还是瞬时 toast。
         if (isBusinessCorrectableConflict(res)) {
           setPriceConflict(conflictText(res, '批量修改价格失败，请调整后重试'))
-        } else {
-          message.error(res.message || '批量修改价格失败')
+          return
         }
+        message.error(res.message || '批量修改价格失败')
         return
       }
       const feedback = batchPricingFeedback(res, selectedRowKeys.length)
       message[feedback.level](feedback.text)
+      setPriceConflict('')
       setPriceModalVisible(false)
       priceForm.resetFields()
       setSelectedRowKeys([])
       loadData()
     } catch (e) {
-      if (!e?.errorFields) {
-        // #2488（D2/Rev.5 Bug D）：传输层 ApiError 也走同一 rubric 判定，
-        // 保持与 res 分支结构一致；后端当前仅返回 40001（无可达 rubric 码），
-        // 但分类口径不得前后不一。
-        if (isBusinessCorrectableConflict(e)) {
-          setPriceConflict(conflictText(e, '批量修改价格失败，请调整后重试'))
-        } else {
-          message.error(e instanceof ApiError && e.message ? e.message : '批量修改价格失败')
-        }
+      if (e?.errorFields) return
+      // #2488（D2/Rev.5 Bug D）：传输层 ApiError 也走同一 rubric 判定。
+      if (isBusinessCorrectableConflict(e)) {
+        setPriceConflict(conflictText(e, '批量修改价格失败，请调整后重试'))
+        return
       }
+      message.error(e?.message || '批量修改价格失败')
     }
   }
 
-  // #2043/#2101: 导出 CSV（档案管理页已并入本页；按当前状态过滤直接导出）
+  // #2578: 导出 Excel 跟随当前筛选（识别码/分类/状态/可见性），与列表同一套参数口径。
+  // D4：统一走 fetchBlob（带 Bearer + 空参剔除），产物为 xlsx，命名与乐器列表一致。
   const handleExport = async () => {
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
-      const params = new URLSearchParams()
-      if (statusParam) params.set('status', statusParam)
-      const resp = await fetch(`${API_BASE_URL}/instruments/export?${params.toString()}`)
-      if (!resp.ok) throw new Error('导出失败')
-      const blob = await resp.blob()
+      const blob = await fetchBlob('/instruments/export', {
+        params: buildStockExportParams({ filters, isManagerLike }),
+      })
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `instruments_export_${new Date().toISOString().split('T')[0]}.csv`
+      a.download = `instruments_export_${new Date().toISOString().split('T')[0]}.xlsx`
       a.click()
       window.URL.revokeObjectURL(url)
       message.success('导出成功')
@@ -332,7 +361,6 @@ export default function InstrumentStock() {
 
   const submitLost = async () => {
     const v = await lossForm.validateFields()
-    setLostConflict('') // #2488 D8：提交开始即清空
     setSubmitting(true)
     try {
       const resp = await lossApi.register(lostTarget.id, {
@@ -348,11 +376,9 @@ export default function InstrumentStock() {
         setLostTarget(null)
         loadData()
       } else if (isBusinessCorrectableConflict(resp)) {
-        // #2488：状态冲突（如已在丢失/维修中）→ 持久提示。
         setLostConflict(conflictText(resp, '登记失败，请调整后重试'))
       } else message.error(resp.message || '登记失败')
     } catch (e) {
-      // #2488 D7：传输层抛出的 ApiError 携带 code，业务可纠正冲突进持久提示。
       if (isBusinessCorrectableConflict(e)) {
         setLostConflict(conflictText(e, '登记失败，请调整后重试'))
       } else message.error(e.message || '登记失败')
@@ -362,7 +388,6 @@ export default function InstrumentStock() {
 
   const submitRestore = async () => {
     const v = await restoreForm.validateFields()
-    setRestoreConflict('') // #2488 D8：提交开始即清空
     setSubmitting(true)
     try {
       const photos = []
@@ -371,19 +396,17 @@ export default function InstrumentStock() {
         damaged: !!v.damaged, description: v.description || '', photos,
       })
       if (resp.code === 20000) {
+        setRestoreConflict('')
         const d = resp.data || {}
         message.success(d.reversal === 'refunded'
           ? `恢复成功，冲正退款 ¥${formatCents(d.refund_cents || 0)}`
           : d.reversal === 'held_pending_assessment' ? '恢复成功（有损坏，赔偿暂扣待定损）' : '恢复成功')
-        setRestoreConflict('')
         setRestoreTarget(null)
         loadData()
       } else if (isBusinessCorrectableConflict(resp)) {
-        // #2488：状态冲突（如未在丢失状态）→ 持久提示。
         setRestoreConflict(conflictText(resp, '恢复失败，请调整后重试'))
       } else message.error(resp.message || '恢复失败')
     } catch (e) {
-      // #2488 D7：传输层抛出的 ApiError 携带 code，业务可纠正冲突进持久提示。
       if (isBusinessCorrectableConflict(e)) {
         setRestoreConflict(conflictText(e, '恢复失败，请调整后重试'))
       } else message.error(e.message || '恢复失败')
@@ -421,14 +444,8 @@ export default function InstrumentStock() {
     { title: '操作', key: 'op', render: (_, r) => <Button type="link" size="small" onClick={() => setLossDetail(r)}>详情</Button> },
   ]
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
-        <Spin size="large" />
-      </div>
-    )
-  }
-
+  // #2577 D7: 首屏 loading 改为 `Table loading`——整页 early return 会在每次筛选时
+  // 卸载工具栏，导致输入框失焦、控件闪烁。
   return (
     <div className="p-6">
       {/* #2043: 批量设价模态 */}
@@ -436,12 +453,11 @@ export default function InstrumentStock() {
         title="批量修改价格"
         open={priceModalVisible}
         onOk={handleBatchPrice}
-        onCancel={() => { setPriceConflict(''); setPriceModalVisible(false); }}
+        onCancel={() => { setPriceConflict(''); setPriceModalVisible(false) }}
         width={500}
       >
         <FormConflictAlert text={priceConflict} testId="stock-price-conflict" />
-        {/* #2488 Rev.5（CLEAR_FIELDS）：price_type/operator/amount 任一变更即清空陈旧冲突提示。 */}
-        <Form form={priceForm} layout="vertical" onValuesChange={() => { if (priceConflict) setPriceConflict('') }}>
+        <Form form={priceForm} layout="vertical">
           <Alert
             type="info"
             showIcon
@@ -472,10 +488,10 @@ export default function InstrumentStock() {
         <Button icon={<WarningOutlined />} onClick={() => switchView(view === 'stock' ? 'loss' : 'stock')}>
           {view === 'stock' ? '丢失台账' : '返回库存'}
         </Button>
-        {/* #2043: 导出 CSV（需 instrument:read） */}
+        {/* #2043/#2578: 导出 Excel（跟随当前筛选；需 instrument:read） */}
         <PermissionGate code="instrument:read">
           {view === 'stock' && (
-            <Button onClick={handleExport}>导出 CSV</Button>
+            <Button onClick={handleExport}>导出 Excel</Button>
           )}
         </PermissionGate>
         {/* #2043: 批量导入（需 instrument:create） */}
@@ -487,7 +503,7 @@ export default function InstrumentStock() {
         {/* #2043: 批量设价（仅选中后出现；服务端 RequireRole 兜底） */}
         <PermissionGate code="instrument:update">
           {view === 'stock' && selectedRowKeys.length > 0 && (
-            <Button onClick={() => { priceForm.resetFields(); setPriceModalVisible(true) }}>批量设价（{selectedRowKeys.length}）</Button>
+            <Button onClick={() => { setPriceConflict(''); priceForm.resetFields(); setPriceModalVisible(true) }}>批量设价（{selectedRowKeys.length}）</Button>
           )}
         </PermissionGate>
         {/* #2043: 批量删除（仅选中后出现；需 instrument:delete） */}
@@ -504,19 +520,44 @@ export default function InstrumentStock() {
           按状态查看乐器（待租 / 在租 / 维修中 / 已丢失）；乐器档案的新增与编辑请用「乐器列表」。
         </div>
       )}
-      {statusParam && (
-        <div className="mb-4 p-3 bg-blue-50 rounded">
-          <Space>
-            <span>当前筛选: 状态 = {statusParam}</span>
-            <Button type="link" size="small" onClick={() => navigate('/site/stock', { replace: true })}>清除筛选</Button>
-          </Space>
-        </div>
+      {view === 'stock' && (
+        <Space style={{ marginBottom: 12, flexWrap: 'wrap' }} wrap>
+          <Input.Search
+            placeholder="搜索识别码..."
+            value={snInput}
+            allowClear
+            style={{ width: 250 }}
+            onChange={(e) => setSnInput(e.target.value)}
+            onSearch={(value) => patchFilters({ sn: (value || '').trim() })}
+          />
+          <Select
+            placeholder="选择分类"
+            style={{ width: 180 }}
+            allowClear
+            value={filters.categoryId || undefined}
+            onChange={(value) => patchFilters({ categoryId: value || '' })}
+            options={(filterOptions.categories || []).map((cat) => ({
+              value: cat.category_id,
+              label: cat.category_name,
+            }))}
+          />
+          <Select
+            placeholder="选择状态"
+            style={{ width: 140 }}
+            allowClear
+            value={filters.status || undefined}
+            onChange={(value) => patchFilters({ status: value || '' })}
+            options={statusOptions}
+          />
+          <Button onClick={clearFilters}>清空筛选</Button>
+        </Space>
       )}
       {view === 'stock' ? (
         <Table
           columns={columns}
           dataSource={assets || []}
           rowKey="id"
+          loading={loading}
           rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
           pagination={{
             current: page, pageSize, total, showSizeChanger: true,
@@ -534,10 +575,8 @@ export default function InstrumentStock() {
 
       {/* 丢失登记（LS-01/02） */}
       <Modal title={`丢失登记 — ${lostTarget?.name || ''}`} open={!!lostTarget}
-        onCancel={() => { setLostConflict(''); setLostTarget(null); }} onOk={submitLost} confirmLoading={submitting} okText="提交登记">
+        onCancel={() => { setLostConflict(''); setLostTarget(null) }} onOk={submitLost} confirmLoading={submitting} okText="提交登记">
         <FormConflictAlert text={lostConflict} testId="stock-lost-conflict" />
-        {/* #2488 Rev.5（CLEAR_FIELDS）：description/responsible_party/user_ratio/
-            compensation_yuan/user_burden_yuan 任一变更即清空陈旧冲突提示。 */}
         <Form form={lossForm} layout="vertical" onValuesChange={() => { if (lostConflict) setLostConflict('') }}>
           <Form.Item name="description" label="丢失描述" rules={[{ required: true, message: '请填写丢失描述' }]}>
             <Input.TextArea rows={3} placeholder="描述丢失经过" />
@@ -562,9 +601,8 @@ export default function InstrumentStock() {
 
       {/* 恢复（LS-05） */}
       <Modal title={`乐器恢复 — ${restoreTarget?.name || ''}`} open={!!restoreTarget}
-        onCancel={() => { setRestoreConflict(''); setRestoreTarget(null); }} onOk={submitRestore} confirmLoading={submitting} okText="确认恢复">
+        onCancel={() => { setRestoreConflict(''); setRestoreTarget(null) }} onOk={submitRestore} confirmLoading={submitting} okText="确认恢复">
         <FormConflictAlert text={restoreConflict} testId="stock-restore-conflict" />
-        {/* #2488 Rev.5（CLEAR_FIELDS）：damaged/description 任一变更即清空陈旧冲突提示。 */}
         <Form form={restoreForm} layout="vertical" onValuesChange={() => { if (restoreConflict) setRestoreConflict('') }}>
           <Form.Item name="damaged" label="是否有损坏">
             <Radio.Group>

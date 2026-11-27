@@ -1,0 +1,10 @@
+# build=1.0.16faa351d # commit=16faa351de3842a750f8f09c4bb0fe6f063d32a0 # dirty=false
+# 红绿对照：修前非 2xx 丢弃 code（红）→ 修后 Error 携带 code（绿）；调用点仍依赖 throw 语义
+RED_BASE=58cb3a54a61b907d432cc4ab04697bcf56972514
+RED_THROW_SITE=1
+RED_NO_CODE=1
+GREEN_CODE_ATTACHED=1
+NONOK_INLINE_RETURNS=0
+AWAIT_CALL_SITES=259
+CALL_SITES_GE_150=1
+R4_OK

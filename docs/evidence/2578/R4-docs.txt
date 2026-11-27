@@ -1,0 +1,9 @@
+# build=1.0.7842aed44 # commit=7842aed4499fc4b01e34c2de0783cdfa09d5d048 # dirty=false
+GENERATED_AT_HEAD=7842aed4499fc4b01e34c2de0783cdfa09d5d048
+# docs/spec/api/api.md §5.8.2 与 docs/spec/ui/ui.md §2.20.1 的导出契约同步
+API_SECTION_LINES=58
+API_EXPORT_PARAMS=1
+API_EXPORT_FIELDS_SN=1
+UI_EXPORT_XLSX=1
+UI_EXPORT_FOLLOW_FILTER=1
+R4_OK

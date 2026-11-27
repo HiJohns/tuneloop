@@ -914,14 +914,16 @@ func performSiteTransfer(c *gin.Context, db *gorm.DB, tenantID, userID string, u
 
 	if orgChanged && sub != "" {
 		if err := iam.UnbindUserFromOrganization(sub, oldOrg, ""); err != nil {
-			return http.StatusBadGateway, gin.H{"code": 50000, "message": "切换网点失败：解绑旧组织失败：" + err.Error()}
+			log.Printf("[UserStaff] switch site: unbind old org failed: %v", err)
+			return http.StatusBadGateway, gin.H{"code": 50000, "message": "切换网点失败，请稍后再试"}
 		}
 		if err := iam.BindUserToOrganization(sub, targetOrg, toIAMRole(primaryRole), ""); err != nil {
 			if compErr := compensateSiteTransfer(iam, sub, oldOrg, targetOrg, primaryRole, roles, token); compErr != nil {
 				log.Printf("[CRITICAL] #2466 site transfer compensation failed user=%s old=%s new=%s: %v", userID, oldOrg, targetOrg, compErr)
 				return http.StatusInternalServerError, gin.H{"code": 50000, "message": "切换网点失败且 IAM 回滚失败，请联系管理员人工核对 IAM 组织关系"}
 			}
-			return http.StatusBadGateway, gin.H{"code": 50000, "message": "切换网点失败：绑定新组织失败：" + err.Error()}
+			log.Printf("[UserStaff] switch site: bind new org failed: %v", err)
+			return http.StatusBadGateway, gin.H{"code": 50000, "message": "切换网点失败，请稍后再试"}
 		}
 		iamDone = true
 		if tmpl, ok := services.AllRoleTemplates[primaryRole]; ok && len(tmpl.CusPermCodes) > 0 {
@@ -931,7 +933,8 @@ func performSiteTransfer(c *gin.Context, db *gorm.DB, tenantID, userID string, u
 					log.Printf("[CRITICAL] #2466 permission rollback failed user=%s: %v", userID, compErr)
 					return http.StatusInternalServerError, gin.H{"code": 50000, "message": "切换网点失败且 IAM 回滚失败，请联系管理员人工核对 IAM 组织关系"}
 				}
-				return http.StatusBadGateway, gin.H{"code": 50000, "message": "切换网点失败：设置权限失败：" + err.Error()}
+				log.Printf("[UserStaff] switch site: set permissions failed: %v", err)
+				return http.StatusBadGateway, gin.H{"code": 50000, "message": "切换网点失败，请稍后再试"}
 			}
 		}
 		for _, r := range roles {
@@ -940,7 +943,8 @@ func performSiteTransfer(c *gin.Context, db *gorm.DB, tenantID, userID string, u
 					log.Printf("[CRITICAL] #2466 template rollback failed user=%s: %v", userID, compErr)
 					return http.StatusInternalServerError, gin.H{"code": 50000, "message": "切换网点失败且 IAM 回滚失败，请联系管理员人工核对 IAM 组织关系"}
 				}
-				return http.StatusBadGateway, gin.H{"code": 50000, "message": "切换网点失败：同步角色模板失败：" + err.Error()}
+				log.Printf("[UserStaff] switch site: sync role template failed: %v", err)
+				return http.StatusBadGateway, gin.H{"code": 50000, "message": "切换网点失败，请稍后再试"}
 			}
 		}
 	}
@@ -2264,7 +2268,7 @@ func (h *UserStaffHandler) WxBindCurrentUser(c *gin.Context) {
 		log.Printf("[WxBindCurrentUser] bind failed for user %s: %v", userID, err)
 		c.JSON(http.StatusConflict, gin.H{
 			"code":    40900,
-			"message": "微信绑定失败: " + err.Error(),
+			"message": "微信绑定失败，请稍后再试",
 		})
 		return
 	}
@@ -2306,8 +2310,9 @@ func (h *UserStaffHandler) WxMergeCurrentUser(c *gin.Context) {
 		return
 	}
 	if err := services.NewIAMService().WxMerge(userToken, userID, req.ToUserID, req.OpenID); err != nil {
+		// #2497：detail 只进日志（单一来源，避免同一次失败打两遍）。
 		log.Printf("[WxMergeCurrentUser] merge failed for user %s -> %s: %v", userID, req.ToUserID, err)
-		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "账户合并失败: " + err.Error()})
+		c.JSON(http.StatusConflict, gin.H{"code": 40900, "message": "账户合并失败，请稍后再试"})
 		return
 	}
 

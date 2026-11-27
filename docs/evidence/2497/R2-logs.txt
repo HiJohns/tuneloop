@@ -1,0 +1,42 @@
+# build=1.0.5a695fef # commit=5a695fefb262ba0e78ead79b4f28275c85229f50 # dirty=false
+LOG_PRESENT=379
+LOG_MIN=22
+BASELINE_REF=origin/develop
+BASELINE_SITES=33
+LOG_PER_SITE=33
+LOST_DETAIL=0
+SITE backend/handlers/invoice.go:202 recv=err covered=1 block=201 log=202
+SITE backend/handlers/member_invite_2114.go:386 recv=visErr covered=1 block=386 log=388
+SITE backend/handlers/merchant.go:736 recv=err covered=1 block=735 log=736
+SITE backend/handlers/merchant.go:748 recv=err covered=1 block=748 log=749
+SITE backend/handlers/merchant_invoice.go:118 recv=err covered=1 block=117 log=118
+SITE backend/handlers/merchant_member.go:448 recv=bindErr covered=1 block=446 log=447
+SITE backend/handlers/merchant_member.go:454 recv=demoteErr covered=1 block=452 log=453
+SITE backend/handlers/merchant_member.go:463 recv=err covered=1 block=461 log=462
+SITE backend/handlers/merchant_member.go:470 recv=err covered=1 block=468 log=469
+SITE backend/handlers/merchant_member.go:554 recv=err covered=1 block=553 log=554
+SITE backend/handlers/payscore_handler.go:145 recv=err covered=1 block=144 log=146
+SITE backend/handlers/registration_session.go:453 recv=err covered=1 block=452 log=453
+SITE backend/handlers/site.go:658 recv=iamErr covered=1 block=652 log=653
+SITE backend/handlers/site.go:663 recv=iamErr covered=1 block=652 log=653
+SITE backend/handlers/site.go:668 recv=iamErr covered=1 block=652 log=653
+SITE backend/handlers/site.go:673 recv=iamErr covered=1 block=652 log=653
+SITE backend/handlers/site.go:703 recv=result.Error covered=1 block=698 log=702
+SITE backend/handlers/site_member.go:325 recv=err covered=1 block=324 log=325
+SITE backend/handlers/smtp_config.go:33 recv=err covered=1 block=33 log=34
+SITE backend/handlers/smtp_config.go:115 recv=err covered=1 block=116 log=117
+SITE backend/handlers/transit_site_admin.go:106 recv=err covered=1 block=104 log=105
+SITE backend/handlers/transit_site_admin.go:126 recv=err covered=1 block=120 log=126
+SITE backend/handlers/transit_site_admin.go:385 recv=err covered=1 block=385 log=386
+SITE backend/handlers/user_management.go:371 recv=err covered=1 block=369 log=371
+SITE backend/handlers/user_staff.go:917 recv=err covered=1 block=916 log=917
+SITE backend/handlers/user_staff.go:924 recv=err covered=1 block=920 log=925
+SITE backend/handlers/user_staff.go:934 recv=err covered=1 block=931 log=936
+SITE backend/handlers/user_staff.go:943 recv=err covered=1 block=941 log=946
+SITE backend/handlers/user_staff.go:2267 recv=err covered=1 block=2252 log=2268
+SITE backend/handlers/user_staff.go:2310 recv=err covered=1 block=2312 log=2314
+SITE backend/handlers/webhook_config.go:109 recv=err covered=1 block=109 log=110
+SITE backend/handlers/webhook_config.go:134 recv=err covered=1 block=135 log=136
+SITE backend/handlers/wechat_bind.go:296 recv=mergeErr covered=1 block=294 log=295
+RESULT: PASS
+

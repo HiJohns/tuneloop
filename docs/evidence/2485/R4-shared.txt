@@ -1,0 +1,12 @@
+# build=1.0.52f1ed229 # commit=52f1ed22905827b97e14feb76e67b64f2791cc67 # dirty=false
+# 共享件复用（D2）：只用 components/FormConflictAlert，禁止本批自建冲突 Alert
+FILE=frontend-pc/src/components/SiteMemberManagement.jsx SHARED_ALERT=1 LOCAL_ALERT_DUP=0 LOCAL_CODE_LIST=0
+FILE=frontend-pc/src/components/MerchantMemberManagement.jsx SHARED_ALERT=1 LOCAL_ALERT_DUP=0 LOCAL_CODE_LIST=0
+FILE=frontend-pc/src/pages/DirectMemberManagement.jsx SHARED_ALERT=1 LOCAL_ALERT_DUP=0 LOCAL_CODE_LIST=0
+FILE=frontend-pc/src/pages/admin/category/List.jsx SHARED_ALERT=0 LOCAL_ALERT_DUP=0 LOCAL_CODE_LIST=0
+SHARED_REUSE=3
+LOCAL_ALERT_DUP=0
+LOCAL_CODE_LIST_FILES=0
+SHARED_REUSE_GE_1=1
+PERSISTED_FILES=3
+PERSISTED_FILES_MISSING_ALERT=0

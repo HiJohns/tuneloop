@@ -76,8 +76,13 @@ func newIAMRollbackMock2309(t *testing.T, newUserID string) *iamRollbackMock2309
 		}
 		writeJSON(w, map[string]interface{}{"data": map[string]interface{}{}})
 	})
+	// #2565：激活路径在「可见性 → 本地 pending 校验」之后会拉取命名空间角色模板并分配。
+	// 旧 mock 返回 `{"data": []}` → ListRoleTemplates 解析失败（wrapped.role_templates 与
+	// 顶层数组都取不到）→ ActivateUser 在「角色模板缺失」回滚处就返回 500，
+	// 与用例名（bind / 权限 / 本地写回失败）不符，形成「名称 ≠ 覆盖」的假绿。
+	// 这里返回 IAM 真实形态的模板数组，让三条激活用例各自走到目标失败分支。
 	mux.HandleFunc("/api/v1/namespaces/", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, map[string]interface{}{"data": []interface{}{}})
+		writeJSON(w, []map[string]interface{}{{"id": "rt-site-member", "code": "site_member"}})
 	})
 	m.srv = httptest.NewServer(mux)
 	return m
@@ -169,10 +174,13 @@ func TestCreateUser2309_BindFailurePurgesIAM(t *testing.T) {
 func TestActivateUser2309_BindFailurePurgesIAM(t *testing.T) {
 	db, tenantID, orgID, _, _, r := setupStaffRollback2309(t)
 	pendingID := uuid.New().String()
+	// #2565 D2：夹具必须是 #2462 D1 之后真实员工形态（`users.role` 恒写员工角色）。
+	// 空 role 会被 #2526 的 isCustomerUserRole 判为顾客 → by-id 动作一律 404，
+	// 于是本用例会停在可见性闸门、永远验不到「bind 失败后 PurgeUser」。
 	require.NoError(t, db.Create(&models.User{
 		ID: pendingID, TenantID: tenantID, OrgID: orgID,
 		Name: "待激活", Phone: "13900002312", Email: "pending2309@example.com",
-		Status: "pending",
+		Role: "site_member", Status: "pending",
 	}).Error)
 
 	newUserID := uuid.New().String()
@@ -197,7 +205,7 @@ func TestActivateUser2309_PermissionFailurePurgesIAM(t *testing.T) {
 	require.NoError(t, db.Create(&models.User{
 		ID: pendingID, TenantID: tenantID, OrgID: orgID,
 		Name: "待激活", Phone: "13900002313", Email: "pending2309b@example.com",
-		Status: "pending",
+		Role: "site_member", Status: "pending",
 	}).Error)
 
 	newUserID := uuid.New().String()
@@ -219,15 +227,20 @@ func TestActivateUser2309_PermissionFailurePurgesIAM(t *testing.T) {
 func TestActivateUser2309_LocalUpdateFailurePurgesIAM(t *testing.T) {
 	db, tenantID, orgID, _, _, r := setupStaffRollback2309(t)
 	pendingID := uuid.New().String()
+	// #2565 D2/D6：真实员工形态（role 非空）+ 把「本地写回失败」分支真正走到。
 	require.NoError(t, db.Create(&models.User{
 		ID: pendingID, TenantID: tenantID, OrgID: orgID,
 		Name: "待激活", Phone: "13900002314", Email: "pending2309c@example.com",
-		Status: "pending",
+		Role: "site_member", Status: "pending",
 	}).Error)
 
 	// 注入 local users 更新失败（模拟 DB 错误），触发第三处回滚。
+	// #2565 D6：用原子计数证明该回调**确实被命中**——否则本用例会在更早的
+	// 「角色模板缺失」处 500 返回，名称写「本地写回失败」却从未覆盖该分支。
+	var localWritebackAttempts int32
 	require.NoError(t, db.Callback().Update().Before("gorm:update").Register("fail_users_update_2309", func(tx *gorm.DB) {
 		if tx.Statement.Table == "users" {
+			atomic.AddInt32(&localWritebackAttempts, 1)
 			tx.AddError(errors.New("forced users update failure"))
 		}
 	}))
@@ -252,4 +265,7 @@ func TestActivateUser2309_LocalUpdateFailurePurgesIAM(t *testing.T) {
 	require.Equal(t, http.StatusInternalServerError, w.Code, w.Body.String())
 	assert.EqualValues(t, 1, m.purges(), "local update failure must call PurgeUser")
 	assert.EqualValues(t, 0, m.softDeletes(), "local update failure must not call DeleteUser")
+	require.GreaterOrEqual(t, atomic.LoadInt32(&localWritebackAttempts), int32(1),
+		"local write-back branch must be reached (users UPDATE callback hit)")
+	t.Logf("LOCAL_WRITEBACK_ATTEMPT=%d", atomic.LoadInt32(&localWritebackAttempts))
 }

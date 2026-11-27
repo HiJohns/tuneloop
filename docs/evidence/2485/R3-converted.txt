@@ -1,0 +1,11 @@
+# build=1.0.52f1ed229 # commit=52f1ed22905827b97e14feb76e67b64f2791cc67 # dirty=false
+# 已转换行：business-persisted 必须在同一函数内先判 code，再落到持久 state（FormConflictAlert）
+FILE=frontend-pc/src/components/MerchantMemberManagement.jsx PREDICATE=1 PERSIST_SETTER=1 SHARED_ALERT=1
+FILE=frontend-pc/src/components/SiteMemberManagement.jsx PREDICATE=1 PERSIST_SETTER=1 SHARED_ALERT=1
+FILE=frontend-pc/src/pages/DirectMemberManagement.jsx PREDICATE=2 PERSIST_SETTER=2 SHARED_ALERT=2
+CODE_FIRST_FILE=frontend-pc/src/components/SiteMemberManagement.jsx pairs=1 ok=1
+CODE_FIRST_FILE=frontend-pc/src/components/MerchantMemberManagement.jsx pairs=1 ok=1
+CODE_FIRST_FILE=frontend-pc/src/pages/DirectMemberManagement.jsx pairs=2 ok=1
+CONVERTED_ROWS=4
+CODE_FIRST=1
+CONVERTED_GE_1=1

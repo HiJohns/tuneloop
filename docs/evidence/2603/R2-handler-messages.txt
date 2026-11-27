@@ -1,0 +1,13 @@
+# build=1.0.7bbdca8a0 # commit=7bbdca8a026c4ae39c8aaf1b13cddb6815555cb1 # dirty=false
+GENERATED_AT_HEAD=a22a180ffcb2c25109de183a857b08d63a688e75
+# 26 个绑定点 × 2 用例（损坏体 / 缺必填或类型不符）= 52；handler 直调 + 一次性 PG
+bind_error_2603_test.go:269: BIND2603_CASES_TOTAL=52
+bind_error_2603_test.go:270: BIND2603_CASES_FAIL=0
+bind_error_2603_test.go:271: BIND2603_ASCII_LEAK=0
+bind_error_2603_test.go:272: BIND2603_RAW_PHRASE_LEAK=0
+bind_error_2603_test.go:273: BIND2603_SITE_MSG=参数不合法：名称不能为空
+bind_error_2603_test.go:274: BIND2603_PROPERTY_MSG=参数不合法：属性类型不能为空
+bind_error_2603_test.go:275: BIND2603_WAREHOUSE_MSG=参数不合法：物流单号不能为空
+bind_error_2603_test.go:276: BIND2603_COUPON_MSG=参数不合法：优惠码不能为空
+bind_error_2603_test.go:277: BIND2603_SYNTAX_MSG=请求体格式不正确，请检查后重试
+GO_TEST_EXIT=0

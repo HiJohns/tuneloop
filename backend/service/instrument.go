@@ -22,6 +22,7 @@ func NewInstrumentService(db *gorm.DB) *InstrumentService {
 var headerMap = map[string]string{
 	"brand":         "品牌",
 	"model":         "型号",
+	"sn":            "识别码",
 	"category_name": "分类名称",
 	"level":         "级别",
 	"daily_rate":    "日租金",
@@ -64,6 +65,13 @@ type ExportOptions struct {
 	Category   string   `json:"category"`
 	Status     string   `json:"status"`
 	SearchText string   `json:"search_text"`
+
+	// #2578：导出与列表同一套过滤语义（D1：可见性由 handler 注入闭包，
+	// service 不复制权限逻辑）。
+	SN            string                  `json:"sn"`             // 识别码模糊匹配（与 GET /api/instruments?sn= 同口径）
+	CategoryIDs   []string                `json:"category_ids"`   // 已展开后代分类的 ID 集合（handler 用 getDescendantCategoryIDs）
+	ExcludeStatus []string                `json:"exclude_status"` // stock_status NOT IN（csv）
+	Scope         func(*gorm.DB) *gorm.DB `json:"-"`              // 可见性作用域闭包（applyInstrumentListScope）
 }
 
 func (s *InstrumentService) ImportInstruments(file *excelize.File, tenantID string) (*ImportResult, error) {
@@ -352,11 +360,24 @@ func (s *InstrumentService) ExportInstruments(opts ExportOptions, tenantID strin
 
 	query := s.db.Where("tenant_id = ?", tenantID)
 
-	if opts.Category != "" {
-		query = query.Where("category_name = ?", opts.Category)
+	// #2578：顺序固定 —— 租户 → 可见性 → sn → 后代分类 → 状态 → 排除状态 → 既有参数。
+	if opts.Scope != nil {
+		query = opts.Scope(query)
+	}
+	if opts.SN != "" {
+		query = query.Where("sn ILIKE ?", "%"+opts.SN+"%")
+	}
+	if len(opts.CategoryIDs) > 0 {
+		query = query.Where("category_id IN ?", opts.CategoryIDs)
 	}
 	if opts.Status != "" {
 		query = query.Where("stock_status = ?", opts.Status)
+	}
+	if len(opts.ExcludeStatus) > 0 {
+		query = query.Where("stock_status NOT IN ?", opts.ExcludeStatus)
+	}
+	if opts.Category != "" {
+		query = query.Where("category_name = ?", opts.Category)
 	}
 	if opts.SearchText != "" {
 		query = query.Where("name ILIKE ? OR brand ILIKE ?",
@@ -447,6 +468,8 @@ func (s *InstrumentService) getFieldValue(instrument *models.Instrument, field s
 		return "0"
 	case "status":
 		return s.sanitizeValue(instrument.StockStatus)
+	case "category_name":
+		return s.sanitizeValue(instrument.CategoryName)
 	case "description":
 		return s.sanitizeValue(instrument.Description)
 	// name, brand 字段已删除

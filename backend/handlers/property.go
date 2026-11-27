@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -149,7 +150,7 @@ func (h *PropertyHandler) CreateProperty(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
-			"message": "invalid parameters: " + err.Error(),
+			"message": bindmsg.Message(err),
 		})
 		return
 	}
@@ -236,7 +237,7 @@ func (h *PropertyHandler) UpdateProperty(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
-			"message": "invalid parameters: " + err.Error(),
+			"message": bindmsg.Message(err),
 		})
 		return
 	}
@@ -320,7 +321,7 @@ func (h *PropertyHandler) CreatePropertyOption(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
-			"message": "invalid parameters: " + err.Error(),
+			"message": bindmsg.Message(err),
 		})
 		return
 	}
@@ -370,7 +371,7 @@ func (h *PropertyHandler) ConfirmPropertyValue(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
-			"message": "invalid parameters: " + err.Error(),
+			"message": bindmsg.Message(err),
 		})
 		return
 	}
@@ -494,7 +495,7 @@ func (h *PropertyHandler) MergePropertyValues(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
-			"message": "invalid parameters: " + err.Error(),
+			"message": bindmsg.Message(err),
 		})
 		return
 	}

@@ -490,12 +490,15 @@ func setupAPIRoutes(r *gin.Engine, iamService *services.IAMService, permRegistry
 		authRequired.POST("/instruments/:id/scrap", middleware.ExplicitTenantScope(), middleware.RequireCusPerm("instrument:update"), handlers.ScrapInstrument)
 
 		// Merchant management routes (require tenant sys_perm + project_admin role)
-		authRequired.GET("/merchants", middleware.ExplicitTenantScope(), middleware.RequireSysPerm(middleware.SysPermTenantList), merchantHandler.ListMerchants)
-		authRequired.GET("/merchants/:id", middleware.ExplicitTenantScope(), middleware.RequireSysPerm(middleware.SysPermTenantView), merchantHandler.GetMerchant)
+		// #2546 D13：本商户 merchant_admin 可读（数据面仍按 org 收窄），其余写路由
+		// 保持 RequireSysPerm（平台专属）。
+		authRequired.GET("/merchants", middleware.ExplicitTenantScope(), middleware.RequireSysPermOrRole(middleware.SysPermTenantList, middleware.BusinessRoleMerchantAdmin), merchantHandler.ListMerchants)
+		authRequired.GET("/merchants/:id", middleware.ExplicitTenantScope(), middleware.RequireSysPermOrRole(middleware.SysPermTenantView, middleware.BusinessRoleMerchantAdmin), merchantHandler.GetMerchant)
 		authRequired.POST("/merchants", middleware.ExplicitTenantScope(), middleware.RequireSysPerm(middleware.SysPermTenantCreate), merchantHandler.CreateMerchant)
 		authRequired.PUT("/merchants/:id", middleware.ExplicitTenantScope(), middleware.RequireSysPerm(middleware.SysPermTenantUpdate), merchantHandler.UpdateMerchant)
+		authRequired.POST("/merchants/:id/transfer-ownership", middleware.ExplicitTenantScope(), middleware.RequireSysPermOrRole(middleware.SysPermTenantUpdate, middleware.BusinessRoleMerchantAdmin), merchantMemberHandler.TransferOwnership)
 		authRequired.DELETE("/merchants/:id", middleware.ExplicitTenantScope(), middleware.RequireSysPerm(middleware.SysPermTenantDelete), merchantHandler.DeleteMerchant)
-		authRequired.GET("/admin/merchants/:id/members", middleware.ExplicitTenantScope(), middleware.RequireSysPerm(middleware.SysPermTenantView), merchantMemberHandler.ListMembers)
+		authRequired.GET("/admin/merchants/:id/members", middleware.ExplicitTenantScope(), middleware.RequireSysPermOrRole(middleware.SysPermTenantView, middleware.BusinessRoleMerchantAdmin), merchantMemberHandler.ListMembers)
 		authRequired.POST("/admin/merchants/:id/members", middleware.ExplicitTenantScope(), middleware.RequireSysPerm(middleware.SysPermTenantUpdate), merchantMemberHandler.AddMember)
 		authRequired.PUT("/admin/merchants/:id/members/:uid", middleware.ExplicitTenantScope(), middleware.RequireSysPerm(middleware.SysPermTenantUpdate), merchantMemberHandler.UpdateMemberRole)
 		authRequired.DELETE("/admin/merchants/:id/members/:uid", middleware.ExplicitTenantScope(), middleware.RequireSysPerm(middleware.SysPermTenantUpdate), merchantMemberHandler.RemoveMember)

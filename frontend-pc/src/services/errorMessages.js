@@ -117,6 +117,14 @@ export function resolveErrorCore(result, options = {}) {
   if (!result) return { text: fallback, layer: 'fallback' }
   const { code, message } = result
   if (hasMessage(message) && messageMap[message]) return { text: messageMap[message], layer: 'message_map' }
+  // #2497：5xx（code >= 50000）的中文串是后端内部诊断（中文前缀 + err.Error() 拼接），
+  // 不得作为 human_message 透传给用户；有 code 家族文案走 code_map，否则走 fallback。
+  const numericCode = Number(code)
+  const isServerError = Number.isFinite(numericCode) && numericCode >= 50000
+  if (isServerError && hasMessage(message) && isHumanReadableMessage(message)) {
+    const mapped = codeMap[code] || codeMap[numericCode]
+    return mapped ? { text: mapped, layer: 'code_map' } : { text: fallback, layer: 'fallback' }
+  }
   // #2480：可读中文文案优先于 code 家族通用文案（40900/40901 等）——
   // #2290/#2104 曾把 4091x 排除出 map，本单把规则升级为「含 CJK 即优先透传」。
   if (isHumanReadableMessage(message)) return { text: message, layer: 'human_message' }

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -131,7 +132,7 @@ func (h *InventoryHandler) TransferInventory(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
-			"message": "invalid parameters: " + err.Error(),
+			"message": bindmsg.Message(err),
 		})
 		return
 	}
@@ -410,7 +411,7 @@ func (h *InventoryHandler) BatchUpdateRent(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
-			"message": "invalid parameters: " + err.Error(),
+			"message": bindmsg.Message(err),
 		})
 		return
 	}

@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "issue": 2497,
+  "build": "1.0.5a695fef",
+  "commit": "5a695fefb262ba0e78ead79b4f28275c85229f50",
+  "dirty": false,
+  "plan_sha256": "c62a18d2bd9b6d9ec4d0baed8f8d502230e685dd2647f6676ead571f97e948f7",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2497 (branch issue-2497, origin/develop merged); Postgres test DB 127.0.0.1:15433/tuneloop_test_local (TUNELOOP_DB/TUNELOOP_TEST_DB pinned by scripts/verify-2497.sh); backend go build + full go test suite (-p 1); frontend-pc eslint + npm run build; frontend-mobile npm run build:h5 on Node 22.22.3; node --test dual-side resolver cases; no real IAM/production calls; HEAD=5a695fefb262ba0e78ead79b4f28275c85229f50",
+  "tooling_commit": "6cb3026653419e312bbcdce26968323684882177",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2497.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2497/R1-scan.txt"
+      ],
+      "assert": "exit 0；含 CJK_ERR_CONCAT=0",
+      "actual": "PASS：CJK_ERR_CONCAT=0（目录级扫描 backend/handlers/*.go 共 415 文件）；基线 origin/develop 实测 BASELINE_FILES=15 / BASELINE_HITS=33；BASELINE_SITES_COVERED=33/33（站点级：基线的旧拼接行在交付树中不再出现）；BASELINE_SET_COVERED=1",
+      "expected": "PASS",
+      "negative": "任一命中 → FAIL",
+      "negative_result": "若 HEAD 仍有 CJK + 任意 .Error() 拼接（CJK_ERR_CONCAT>0）、或基线站点在交付树中仍出现旧拼接行（BASELINE_SITES_COVERED<BASELINE_HITS）、或基线文件数 < D5 下限 → R1 FAIL 非 0 退出。",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2497.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2497/R2-logs.txt"
+      ],
+      "assert": "exit 0；含 LOG_PRESENT>=22 与 LOST_DETAIL=0",
+      "actual": "PASS：BASELINE_SITES=33、LOG_PER_SITE=33、LOST_DETAIL=0、LOG_PRESENT=379（基线每个拼接点在同一错误处理块内都有引用同一 error 的 log 调用）",
+      "expected": "PASS",
+      "negative": "缺日志 → FAIL",
+      "negative_result": "逐点判定：任一基线拼接点在同一错误处理块内找不到引用同一 error 的 log 调用（LOST_DETAIL>0 或 LOG_PER_SITE<BASELINE_SITES）→ FAIL（内部细节不得丢弃）。",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2497.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2497/R3-5xx-guard.txt"
+      ],
+      "assert": "exit 0；含 LEAK=0",
+      "actual": "PASS：{code:50000, message:'标记删除失败：pq: …'} → PC_TEXT=服务器开小差了，请稍后再试 / PC_LAYER=code_map；MOBILE 同层同文；LEAK=0",
+      "expected": "PASS",
+      "negative": "回显内部串 → FAIL",
+      "negative_result": "若 5xx 守卫不生效（layer≠code_map）或输出回显内部串（LEAK=1）→ FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2497.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2497/R4-passthrough.txt"
+      ],
+      "assert": "exit 0；含 PASSTHROUGH=1",
+      "actual": "PASS：{code:40900, message:'网点名称已存在'} → PC_TEXT=网点名称已存在 / PC_LAYER=human_message；PASSTHROUGH=1（#2480 行为未回退）",
+      "expected": "PASS",
+      "negative": "被替换 → FAIL",
+      "negative_result": "若 40900 中文被通用文案替换（PASSTHROUGH=0 / layer≠human_message）→ FAIL（#2480 行为回退）。",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2497.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2497/R5-parity.txt"
+      ],
+      "assert": "exit 0；含 PARITY=1",
+      "actual": "PASS：PARITY=1（CASES=12、DIFFS=0）；5xx 双端 node --test PARITY_5XX_PASS=5 / PARITY_5XX_FAIL=0 / CASES=5；MOBILE_PROD_PATH=1",
+      "expected": "PASS",
+      "negative": "不一致 → FAIL",
+      "negative_result": "若平价脚本 PARITY≠1 / DIFFS>0、5xx 双端用例 FAIL>0、或 mobile 生产路径未接解析层（MOBILE_PROD_PATH=0）→ FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2497.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2497/R6-build.txt"
+      ],
+      "assert": "exit 0；含 BUILD_OK 与 ESLINT_OK 与 NPM_BUILD_OK",
+      "actual": "PASS：BUILD_EXIT=0（go build ./...）、ESLINT_EXIT=0、NPM_BUILD_EXIT=0（frontend-pc npm run build）；MOBILE_CHOKEPOINT_CALLS=1 / MOBILE_RAW_THROW=0 / MOBILE_SYNTAX_OK=1",
+      "expected": "PASS",
+      "negative": "任一失败 → FAIL",
+      "negative_result": "go build / eslint / PC 全量构建任一非 0，或 mobile chokepoint 未调用解析层（MOBILE_CHOKEPOINT_CALLS=0 / MOBILE_RAW_THROW=1）→ FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2497.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2497/R7-gotest.txt"
+      ],
+      "assert": "exit 0；含 FULL_SUITE_EXIT=0 与 FAIL_COUNT=0 与 PANIC_COUNT=0",
+      "actual": "PASS：cd backend && go test ./... -count=1 -timeout 20m -p 1（包串行：规避 handlers run-库 DROP 与 services scratch 用例的库名冲突） → FULL_SUITE_EXIT=0 / FAIL_COUNT=0 / PANIC_COUNT=0；TUNELOOP_DB=tuneloop TUNELOOP_TEST_DB=tuneloop_test_local POSTGRES_HOST=127.0.0.1 POSTGRES_PORT=15433（独立 Issue 无 Parent，按 Verification Tiers 跑全量）",
+      "expected": "PASS",
+      "negative": "任一失败 → FAIL",
+      "negative_result": "全量后端回归任一包失败或 panic（FULL_SUITE_EXIT≠0 / FAIL_COUNT>0 / PANIC_COUNT>0）→ FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash scripts/verify-2497.sh r8",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2497/R8-plan-source.txt"
+      ],
+      "assert": "exit 0；首行 provenance，正文含 PLAN_SOURCE: PASS",
+      "actual": "PASS：scripts/plan-source.sh --issue 2497 四源同 sha c62a18d2…（Accepted Plan 评论 / docs/evidence/2497/plan.md / gate 报告 / evidence.json），正文含 PLAN_SOURCE: PASS",
+      "expected": "PASS",
+      "negative": "四源不一致 → FAIL",
+      "negative_result": "四源任一 sha 不一致（Accepted Plan 评论 / plan.md / gate 报告 / evidence.json）→ plan-source.sh 输出 PLAN_SOURCE: FAIL <reason> → FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R9",
+      "command": "bash scripts/verify-2497.sh r9",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2497/R9-mobile-build.txt"
+      ],
+      "assert": "exit 0；含 MOBILE_BUILD_OK=1",
+      "actual": "PASS：cd frontend-mobile && npm run build:h5（Node 22） → MOBILE_BUILD_EXIT=0；NODE_VERSION=22（v22.22.3）",
+      "expected": "PASS",
+      "negative": "构建失败 → FAIL",
+      "negative_result": "frontend-mobile 构建失败（MOBILE_BUILD_EXIT≠0）或 Node 主版本非 22 → FAIL（Taro v4 在 Node 24 下 ESM 不兼容）。",
+      "pass": true
+    }
+  ]
+}

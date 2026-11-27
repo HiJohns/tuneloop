@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "issue": 2565,
+  "build": "1.0.5a9d550c8",
+  "commit": "5a9d550c8230756ed92537700adc5d8d154e1e5c",
+  "dirty": false,
+  "plan_sha256": "c635255aee80bfe613ce44cc43b1c720c89f35d922e35b21c99466758cfc53e5",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2565 (branch issue-2565, base origin/develop 58cb3a54a); Postgres test DB 127.0.0.1:15433/tuneloop_test_local; fake IAM via httptest (services.SetIAMInternalURLForTesting); Go 1.27.4; handlers full suite via host heavy-lock",
+  "tooling_commit": "a017a25d46fec75ebb30fd9e19eb220c51fb166a",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2565.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2565/R1-2309-green.txt"
+      ],
+      "assert": "exit 0；含 PRE_FIX_FAIL=3、POST_FIX_PASS=3、POST_FIX_FAIL=0、LOCAL_WRITEBACK_ATTEMPT>=1",
+      "actual": "PASS：PRE_FIX_REF=origin/develop、PRE_FIX_EXIT=1、PRE_FIX_FAIL=3 → POST_FIX_EXIT=0、POST_FIX_PASS=3、POST_FIX_FAIL=0、PURGE_OK=3、SOFT_DELETE=0、LOCAL_WRITEBACK_ATTEMPT=1",
+      "expected": "PASS",
+      "negative": "红例不成立或修后仍红或第三例未触达本地写回 → FAIL",
+      "negative_result": "以 origin/develop 版夹具跑同一选择器得到 3 FAIL（空 role → 40400），证明红例真实成立；修后 3 PASS，且第三例日志出现 LOCAL_WRITEBACK_ATTEMPT=1，证明「角色模板缺失」之前的本地写回分支已被走到",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2565.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2565/R2-guard-404.txt"
+      ],
+      "assert": "exit 0；含 GUARD_STATUS=404、GUARD_CODE=40400、GUARD_IAM_CALLS=0",
+      "actual": "PASS：GUARD_STATUS=404、GUARD_CODE=40400、GUARD_IAM_CALLS=0（fake IAM 计数器为 0，可见性闸门在触达 IAM 前拒绝）",
+      "expected": "PASS",
+      "negative": "返回 200 或触达 IAM → FAIL",
+      "negative_result": "若放宽 personnelUserVisible 放行空角色 pending 行，状态会变 200；若在可见性判定前先调 IAM，计数器 >0 —— 两者都会让 assert 失败",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2565.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2565/R3-neighbor.txt"
+      ],
+      "assert": "exit 0；含 PERSONNEL_PREDICATE_DIFF=0、EMPTY_ROLE_ACTIVATE_FIXTURES=0",
+      "actual": "PASS：PERSONNEL_PREDICATE_DIFF=0（personnel.go / user_staff.go 相对 origin/develop 零改动）、EMPTY_ROLE_ACTIVATE_FIXTURES=0、FIXTURE_ROLE_LEGAL=3、ROLE_SCAN_FILES=3、ROLE_SCAN_GUARD_EXCLUDED=1",
+      "expected": "PASS",
+      "negative": "判定被改写或残留空角色夹具 → FAIL",
+      "negative_result": "扫描注册 /activate 路由的 3 个测试文件（排除 2565 守卫用例的故意空角色块）；块内缺 Role 或字面量角色不在 {site_member,site_admin,repair_technician,merchant_staff} 内即计入 EMPTY >0",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2565.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2565/R4-suite-build.txt"
+      ],
+      "assert": "exit 0；含 HANDLERS_FAIL_COUNT=0、BUILD_OK=1",
+      "actual": "PASS：BUILD_EXIT=0/BUILD_OK=1、HANDLERS_EXIT=0、HANDLERS_FAIL_COUNT=0、HANDLERS_NEW_FAILURES=0（handlers 全量 661.8s）、BASELINE_REF=origin/develop、BASELINE_KNOWN_FAILURES=#2309 三例",
+      "expected": "PASS",
+      "negative": "仍有失败或构建失败 → FAIL",
+      "negative_result": "修前同一套件在 origin/develop 与 issue 分支均为 3 FAIL；修后全量 0 FAIL，故新失败集合必为空（HANDLERS_NEW_FAILURES=0）",
+      "pass": true
+    }
+  ]
+}

@@ -118,8 +118,8 @@
 | contact_phone | VARCHAR(50) | | 联系人电话 |
 | phone | VARCHAR(50) | | 联系电话 |
 | address | TEXT | | 地址 |
-| admin_uid | UUID | INDEX | 管理员用户 ID |
-| admin_pending | BOOLEAN | DEFAULT false | 管理员待确认 |
+| admin_uid | UUID | INDEX | **所有人（OWNER）用户 ID**（本地指针；权威关系在 IAM `user_org_relations.role='OWNER'`，每个组织至多 1 个）。业务角色 `merchant_admin` 由 JWT claims（`tid == oid`）判定，OWNER 与 ADMIN 在本地同为 `merchant_admin`；`merchant_members` **没有** `is_owner` 列 |
+| admin_pending | BOOLEAN | DEFAULT false | 创建商户时管理员绑定待确认（更换所有人不再使用该字段） |
 | status | VARCHAR(20) | DEFAULT 'active' | 状态 (active/inactive) |
 | merchant_type | VARCHAR(20) | DEFAULT 'full' | 商户类型: full/controlled |
 | transit_address | TEXT | | 受控商户转发地址 |
@@ -359,7 +359,7 @@ photos:
 |--------|------|------|------|
 | id | UUID | PK, DEFAULT gen_random_uuid() | 主键 |
 | tenant_id | UUID | INDEX, NOT NULL | 租户 ID |
-| org_id | UUID | INDEX | 网点自身的 IAM 组织 ID（非商户组织 ID，创建网点时由 IAM Create Organization 返回） |
+| org_id | UUID | INDEX | 网点自身的 IAM 组织 ID（非商户组织 ID，创建网点时由 IAM Create Organization 返回）。`type='transit'` 时 = 命名空间组织下的 `branch` 子组织（无 owner）；此时 `tenant_id` 仍为平台租户——**两列不同域，禁止互相替代**（#2552 / #2547 D2） |
 | parent_id | UUID | INDEX | 父网点 ID (顶级为 NULL) |
 | manager_id | UUID | INDEX | 负责人 ID |
 | name | VARCHAR(255) | NOT NULL | 网点名称 |
