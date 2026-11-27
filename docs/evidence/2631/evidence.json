@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "issue": 2631,
+  "build": "1.0.b8dbb13e",
+  "commit": "b8dbb13e549b9adeb520411fd1be9ef3b956e96a",
+  "dirty": false,
+  "plan_sha256": "05ec4b5200bd46bdfeab22602df622fcdb917757bcae374d2c35f8b135bc292c",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "`bash scripts/tests/test_reconcile_user_cache_cron_2631.sh h1 > docs/evidence/2631/R1-escalation-dedup.txt 2>&1`",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2631/R1-escalation-dedup.txt"
+      ],
+      "assert": "产物逐行含以下 KEY=VALUE 且值相等；`RESULT: PASS` 恰 1 行",
+      "actual": "H1_RUN1_EXIT=0 H1_RUN1_ESCALATED=1 H1_RUN1_ESCALATE_COMMENTS=1 H1_RUN1_BASELINE=2027-01-05.json H1_RUN1_GAP=0 H1_RUN1_ISSUE=777 H1_RUN1_ISSUE_SOURCE=create H1_RUN1_ESCALATE_MARKER=.2027-01-06.escalated H1_RUN1_ESCALATE_MARKER_EXISTS=1 H1_RUN2_EXIT=0 H1_RUN2_ESCALATE_SKIPPED=already-escalated H1_RUN2_ESCALATED=0 H1_RUN2_ESCALATE_COMMENTS=0 H1_RUN2_GH_CALLS=0 H1_RUN2_ISSUE=777 H1_RUN2_ISSUE_SOURCE=local-marker H1_COMMENT_CALLS_TOTAL=1 H1_COMMENT_BODIES=1 H1_NEGATIVE_DUPLICATE_COMMENTS=0 TEST_EXIT=0 RESULT: PASS",
+      "expected": "`H1_RUN1_ESCALATED=1`、`H1_RUN1_ESCALATE_COMMENTS=1`、`H1_RUN2_ESCALATE_SKIPPED=already-escalated`、`H1_RUN2_ESCALATE_COMMENTS=0`、`H1_RUN2_GH_CALLS=0`、`H1_COMMENT_CALLS_TOTAL=1`、`H1_COMMENT_BODIES=1`、`TEST_EXIT=0`",
+      "negative": "`H1_COMMENT_CALLS_TOTAL` 出现 2 或 `H1_COMMENT_BODIES` 出现 2（同日重复升级评论）；`H1_RUN2_ESCALATE_COMMENTS=1` 即 FAIL",
+      "negative_result": "H1_NEGATIVE_DUPLICATE_COMMENTS=0 且 H1_COMMENT_CALLS_TOTAL=1 — 同日第二次运行未产生第 2 条升级评论",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "`bash scripts/tests/test_reconcile_user_cache_cron_2631.sh h2 > docs/evidence/2631/R2-baseline-gap-wording.txt 2>&1`",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2631/R2-baseline-gap-wording.txt"
+      ],
+      "assert": "产物逐行含以下 KEY=VALUE 且值相等；`RESULT: PASS` 恰 1 行",
+      "actual": "H2_EXIT=0 H2_GAP=1 H2_BASELINE=2027-01-10.json H2_DAYS=3 H2_ESCALATED=1 H2_GAP_BODY_PRESENT=1 H2_GAP_BODY_HAS_GAP_TITLE=1 H2_GAP_BODY_HAS_INTERVAL=1 H2_GAP_BODY_CONTIGUOUS_CLAIMS=0 H2_CONTIGUOUS_EXIT=0 H2_CONTIGUOUS_GAP=0 H2_CONTIGUOUS_BASELINE=2027-01-20.json H2_CONTIGUOUS_DAYS=1 H2_CONTIGUOUS_BODY_PRESENT=1 H2_CONTIGUOUS_BODY_HAS_CONTIGUOUS_TITLE=1 H2_CONTIGUOUS_BODY_GAP_CLAIMS=0 TEST_EXIT=0 RESULT: PASS",
+      "expected": "`H2_GAP=1`、`H2_BASELINE=2027-01-10.json`、`H2_DAYS=3`、`H2_GAP_BODY_HAS_GAP_TITLE=1`、`H2_GAP_BODY_CONTIGUOUS_CLAIMS=0`、`H2_CONTIGUOUS_GAP=0`、`H2_CONTIGUOUS_BODY_HAS_CONTIGUOUS_TITLE=1`、`H2_CONTIGUOUS_BODY_GAP_CLAIMS=0`、`TEST_EXIT=0`",
+      "negative": "缺口场景评论正文出现「连续 2 天」（`H2_GAP_BODY_CONTIGUOUS_CLAIMS` 大于 0）；或连续场景改用「较上次归档」措辞（`H2_CONTIGUOUS_BODY_GAP_CLAIMS` 大于 0）",
+      "negative_result": "H2_GAP_BODY_CONTIGUOUS_CLAIMS=0 且 H2_CONTIGUOUS_BODY_GAP_CLAIMS=0 — 缺口场景未出现「连续 2 天」，连续场景未改用「较上次归档」",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "`bash scripts/tests/test_reconcile_user_cache_cron_2631.sh h2b > docs/evidence/2631/R3-failed-archive-baseline.txt 2>&1`",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2631/R3-failed-archive-baseline.txt"
+      ],
+      "assert": "产物逐行含以下 KEY=VALUE 且值相等；`RESULT: PASS` 恰 1 行",
+      "actual": "H2B_EXIT=0 H2B_BASELINE=2027-01-15.json H2B_DAYS=2 H2B_GAP=1 H2B_FAILED_BASELINE_USED=0 H2B_ESCALATED=1 H2B_NO_BASELINE_EXIT=0 H2B_NO_BASELINE=1 H2B_NO_BASELINE_GAP=1 H2B_NO_BASELINE_ESCALATED=0 H2B_NO_BASELINE_COMMENTS=0 H2B_NO_BASELINE_ISSUE_CREATED=1 TEST_EXIT=0 RESULT: PASS",
+      "expected": "`H2B_BASELINE=2027-01-15.json`、`H2B_DAYS=2`、`H2B_GAP=1`、`H2B_FAILED_BASELINE_USED=0`、`H2B_NO_BASELINE=1`、`H2B_NO_BASELINE_ESCALATED=0`、`H2B_NO_BASELINE_ISSUE_CREATED=1`、`H2B_NO_BASELINE_EXIT=0`、`TEST_EXIT=0`",
+      "negative": "基准取到失败归档（`H2B_BASELINE=2027-01-16.json` 或 `H2B_FAILED_BASELINE_USED=1`）；无基准仍升级（`H2B_NO_BASELINE_ESCALATED=1`）",
+      "negative_result": "H2B_FAILED_BASELINE_USED=0（基准跳过 failed:true 的 2027-01-16.json）且 H2B_NO_BASELINE_ESCALATED=0（无基准不升级）",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "`bash scripts/tests/test_reconcile_user_cache_cron_2631.sh h3 > docs/evidence/2631/R4-local-issue-marker.txt 2>&1`",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2631/R4-local-issue-marker.txt"
+      ],
+      "assert": "产物逐行含以下 KEY=VALUE 且值相等；`RESULT: PASS` 恰 1 行",
+      "actual": "H3_SEARCH_EXIT=0 H3_SEARCH_ISSUE=811 H3_SEARCH_SOURCE=search H3_SEARCH_CREATES=0 H3_SEARCH_MARKER_EXISTS=1 H3_SEARCH_MARKER_ISSUE=811 H3_MARKER_EXIT=0 H3_MARKER_ISSUE=811 H3_MARKER_ISSUE_MARKER=811 H3_MARKER_SOURCE=local-marker H3_MARKER_GH_CALLS=0 H3_MARKER_LIST_CALLS=0 H3_DEGRADE_EXIT=0 H3_DEGRADE_ISSUE=812 H3_DEGRADE_LIST_FAILED=1 H3_DEGRADE_CREATES=1 H3_DEGRADE_MARKER_EXISTS=1 H3_DEGRADE_RERUN_EXIT=0 H3_DEGRADE_RERUN_ISSUE=812 H3_DEGRADE_RERUN_CREATES=0 H3_FAIL_EXIT=2 H3_FAIL_ISSUE=none H3_FAIL_CREATE_FAILED=1 H3_FAIL_MARKER_EXISTS=0 H3_FAIL_RETRY_EXIT=0 H3_FAIL_RETRY_ISSUE=813 H3_FAIL_RETRY_CREATES=2 H3_FAIL_RETRY_MARKER_EXISTS=1 TEST_EXIT=0 RESULT: PASS",
+      "expected": "`H3_SEARCH_ISSUE=811`、`H3_SEARCH_CREATES=0`、`H3_SEARCH_MARKER_EXISTS=1`、`H3_MARKER_ISSUE=811`、`H3_MARKER_SOURCE=local-marker`、`H3_MARKER_GH_CALLS=0`、`H3_MARKER_LIST_CALLS=0`、`H3_DEGRADE_ISSUE=812`、`H3_DEGRADE_LIST_FAILED=1`、`H3_DEGRADE_CREATES=1`、`H3_DEGRADE_RERUN_ISSUE=812`、`H3_FAIL_ISSUE=none`、`H3_FAIL_MARKER_EXISTS=0`、`H3_FAIL_RETRY_CREATES=2`、`TEST_EXIT=0`",
+      "negative": "marker 命中仍调用 `gh issue list`（`H3_MARKER_LIST_CALLS` 大于 0）或 `H3_MARKER_GH_CALLS` 大于 0；create 失败后仍写 marker（`H3_FAIL_MARKER_EXISTS=1`）或下轮不再建单（`H3_FAIL_RETRY_CREATES` 小于 2）",
+      "negative_result": "H3_MARKER_LIST_CALLS=0 / H3_MARKER_GH_CALLS=0（marker 命中不调用 gh）且 H3_FAIL_MARKER_EXISTS=0 + H3_FAIL_RETRY_CREATES=2（建单失败不写 marker，下轮重试）",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "`bash scripts/tests/test_reconcile_user_cache_cron_2631.sh guard > docs/evidence/2631/R5-dry-run-zero-markers.txt 2>&1`",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2631/R5-dry-run-zero-markers.txt"
+      ],
+      "assert": "产物逐行含以下 KEY=VALUE 且值相等；`RESULT: PASS` 恰 1 行",
+      "actual": "GUARD_DRY_RUN_EXIT=0 GUARD_DRY_RUN_FILES_WRITTEN=0 GUARD_DRY_RUN_GH_CALLS=0 GUARD_DRY_RUN_MARKERS=0 GUARD_DRY_RUN_ARCHIVE_ABSENT=1 GUARD_ZERO_EXIT=0 GUARD_ZERO_GH_CALLS=0 GUARD_ZERO_MARKERS=0 GUARD_ZERO_ARCHIVES=2 TEST_EXIT=0 RESULT: PASS",
+      "expected": "`GUARD_DRY_RUN_FILES_WRITTEN=0`、`GUARD_DRY_RUN_MARKERS=0`、`GUARD_DRY_RUN_GH_CALLS=0`、`GUARD_ZERO_MARKERS=0`、`GUARD_ZERO_ARCHIVES=2`、`TEST_EXIT=0`",
+      "negative": "dry-run 产生 marker（`GUARD_DRY_RUN_MARKERS` 大于 0）或出现 gh 调用（`GUARD_DRY_RUN_GH_CALLS` 大于 0）；零差异实跑写 marker（`GUARD_ZERO_MARKERS` 大于 0）",
+      "negative_result": "GUARD_DRY_RUN_MARKERS=0 / GUARD_DRY_RUN_GH_CALLS=0 / GUARD_DRY_RUN_FILES_WRITTEN=0 — dry-run 未写 marker、未调用 gh",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "`bash scripts/tests/test_reconcile_user_cache_cron_2631.sh regress > docs/evidence/2631/R6-regression-2625.txt 2>&1`",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2631/R6-regression-2625.txt"
+      ],
+      "assert": "产物逐行含以下 KEY=VALUE 且值相等；`RESULT: PASS` 恰 1 行",
+      "actual": "R2625_R1_TEST_EXIT=0 R2625_R2_TEST_EXIT=0 R2625_R3_TEST_EXIT=0 HARNESS_BASE_REF=origin/issue-2625 HARNESS_BASE_PRESENT=1 HARNESS_CUR_ASSERTS=105 HARNESS_BASE_ASSERTS=105 HARNESS_ASSERT_PARITY=1 HARNESS_DIFF_NON_DATE_LINES=0 TEST_EXIT=0 RESULT: PASS",
+      "expected": "`R2625_R1_TEST_EXIT=0`、`R2625_R2_TEST_EXIT=0`、`R2625_R3_TEST_EXIT=0`、`HARNESS_ASSERT_PARITY=1`、`HARNESS_DIFF_NON_DATE_LINES=0`、`TEST_EXIT=0`",
+      "negative": "任一 r1/r2/r3 非 0；断言调用数低于 `origin/issue-2625` 基线（`HARNESS_ASSERT_PARITY=0`）；夹具 diff 出现非日期行（`HARNESS_DIFF_NON_DATE_LINES` 大于 0，即放宽或改写既有断言）",
+      "negative_result": "HARNESS_ASSERT_PARITY=1（105/105 断言未删减）且 HARNESS_DIFF_NON_DATE_LINES=0（对 origin/issue-2625 仅日期/注释差异）",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "`bash scripts/tests/test_reconcile_user_cache_cron_2631.sh docs > docs/evidence/2631/R7-doc-sync.txt 2>&1`",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2631/R7-doc-sync.txt"
+      ],
+      "assert": "产物逐行含以下 KEY=VALUE 且值相等；`RESULT: PASS` 恰 1 行",
+      "actual": "DOC_PRESENT=1 DOC_GAP_WORDING=1 DOC_CONTIGUOUS_WORDING=1 DOC_GAP_TOKEN=1 DOC_BASELINE_TOKEN=1 DOC_ESCALATE_MARKER=1 DOC_ISSUE_MARKER=1 DOC_ALREADY_ESCALATED=1 DOC_FAILED_ARCHIVE_SKIP=1 DOC_OLD_UNCONDITIONAL_ROW_GONE=1 TEST_EXIT=0 RESULT: PASS",
+      "expected": "`DOC_GAP_WORDING=1`、`DOC_CONTIGUOUS_WORDING=1`、`DOC_GAP_TOKEN=1`、`DOC_ESCALATE_MARKER=1`、`DOC_ISSUE_MARKER=1`、`DOC_ALREADY_ESCALATED=1`、`DOC_OLD_UNCONDITIONAL_ROW_GONE=1`、`TEST_EXIT=0`",
+      "negative": "文档仍保留旧的「同类差异今日 >0 且不低于昨日」无条件表述（`DOC_OLD_UNCONDITIONAL_ROW_GONE=0`）；或缺少 `ESCALATE_BASELINE_GAP` 与 marker 说明",
+      "negative_result": "DOC_OLD_UNCONDITIONAL_ROW_GONE=1 — 旧「不低于昨日」无条件表述已移除，且文档含双措辞与 marker 说明",
+      "pass": true
+    }
+  ]
+}
