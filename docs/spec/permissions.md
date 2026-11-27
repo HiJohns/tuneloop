@@ -60,7 +60,7 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 | 6 | tenant:list | GET /api/merchants |
 | 7 | tenant:create | POST /api/merchants（创建商户） |
 | 10 | organization:view | 网点管理菜单/路由 |
-| 12 | organization:create | 网点批量导入 |
+| 12 | organization:create | 新建网点 / 网点批量导入（商户 OWNER 与 ADMIN 均可；ADMIN 限本商户组织子树，见 §5.4） |
 | 15 | user:view | 人员管理菜单/路由 |
 | 17 | user:create | 人员批量导入 |
 | 27 | permission:create | 权限管理菜单/路由及全部 API |
@@ -312,6 +312,32 @@ function getNamespaceAdminMenuKeys() {
 > 不把 bit 5/6 授给商户管理员模板：会连带放开 `/system/user-management`、`/platform-staff`、`/system/warnings` 等平台页。
 
 ---
+
+### 5.4 网点创建授权口径（#2602 / beaconiam#515）
+
+> 来源：2026-11-27 预生产实测 —— 商户 ADMIN 建网点被 IAM `403 insufficient permissions` 拒绝，
+> tuneloop 又把该 403 压成 `50000` + 英文原文，前端按 #2497 规则降级成「服务器开小差了」。
+> Owner 裁定：**商户管理员应能建网点**。
+
+**两层门禁必须同时满足**（缺一即 403）：
+
+| 层 | 判据 | 代码 |
+|---|---|---|
+| tuneloop 路由 | `sys_perm` bit **12**（organization:create） | `backend/main.go:533` `RequireSysPerm(SysPermOrganizationCreate)` |
+| IAM 路由 | 角色级 `PermissionAdmin` 及以上 | beaconiam `cmd/api/main.go` `POST /organizations` |
+| IAM handler 范围 | 子组织：`parent` 必须在调用者可见范围（`GetVisibilityScope`）；顶层组织：仅 OWNER 级 | beaconiam `internal/handler/org_handler.go` `authorizeOrgCreate` |
+
+**角色矩阵**：
+
+| 角色 | sys bit 12 | 可建网点的范围 | 顶层组织（新增商户） |
+|---|:---:|---|:---:|
+| 商户 OWNER | ✅（`tenant_admin` 模板位 10–29） | 本商户 org 及其子树 | ✅ |
+| 商户 ADMIN | ✅（同一 `merchant_admin` 模板） | **仅本商户 org 子树**；跨商户/跨命名空间 → 403 | ❌ |
+| 网点管理员 / 网点员工 | ❌ | — | ❌ |
+| 命名空间管理员 | ❌（位 {5,6,7,8,9,15–19}） | 走平台代建（`merchant_id`）流程，不走本接口 | ✅（IAM 侧） |
+
+**错误码**：`40900` 重名（中文含网点名）/ `40300` 权限不足（中文）/ `40301` 商户归属越权 / `40002` 参数 / `5xx` 中文兜底。详表见 `docs/spec/api/api.md` §4.5.1。
+
 
 ## 六、代码位置索引
 

@@ -350,9 +350,19 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 			})
 			return
 		}
+		// #2602：IAM 权限不足（403/401）→ 403/40300 + 中文可行动提示。
+		// 严禁把 IAM 英文原文塞进 5xx：前端按 #2497 会把 5xx 的英文降级成
+		// 「服务器开小差了」，用户无法得知这是权限问题。
+		if errors.Is(err, services.ErrIAMForbidden) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"code":    40300,
+				"message": "权限不足：当前账号无权在该商户下创建网点",
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    50000,
-			"message": "Failed to create sub-organization in IAM: " + err.Error(),
+			"message": "创建网点组织失败，请稍后再试",
 		})
 		return
 	}

@@ -322,8 +322,11 @@ func (c *IAMClient) CreateOrganization(req *CreateOrganizationRequest) (*CreateO
 		// #2552: 哨兵错误，调用方用 errors.Is 映射为 409/40900（禁止字符串匹配）。
 		return nil, fmt.Errorf("%w: %s", ErrOrganizationNameConflict, string(respBody))
 	}
-	if statusCode == http.StatusForbidden {
-		return nil, fmt.Errorf("permission denied: %s", string(respBody))
+	if statusCode == http.StatusForbidden || statusCode == http.StatusUnauthorized {
+		// #2602：403/401 统一为可判别哨兵，调用方映射 403/40300 + 中文（禁止把 IAM 英文
+		// 原文塞进 5xx 响应体 —— 前端按 #2497 会降级成「服务器开小差了」，用户无法得知
+		// 是权限问题）。
+		return nil, fmt.Errorf("%w: %s", ErrIAMForbidden, string(respBody))
 	}
 	if statusCode != http.StatusOK && statusCode != http.StatusCreated {
 		return nil, fmt.Errorf("CreateOrganization returned status %d: %s", statusCode, string(respBody))
@@ -362,8 +365,10 @@ func (c *IAMClient) CreateOrganizationWithToken(token string, req *CreateOrganiz
 		// #2552: 哨兵错误，调用方用 errors.Is 映射为 409/40900（禁止字符串匹配）。
 		return nil, fmt.Errorf("%w: %s", ErrOrganizationNameConflict, string(respBody))
 	}
-	if statusCode == http.StatusForbidden {
-		return nil, fmt.Errorf("permission denied: %s", string(respBody))
+	if statusCode == http.StatusForbidden || statusCode == http.StatusUnauthorized {
+		// #2602：403/401 统一为可判别哨兵（与 CreateOrganization 同口径），
+		// 调用方据此映射 403/40300 + 中文，绝不把 IAM 英文原文塞进 5xx。
+		return nil, fmt.Errorf("%w: %s", ErrIAMForbidden, string(respBody))
 	}
 	if statusCode != http.StatusOK && statusCode != http.StatusCreated {
 		return nil, fmt.Errorf("CreateOrganization returned status %d: %s", statusCode, string(respBody))

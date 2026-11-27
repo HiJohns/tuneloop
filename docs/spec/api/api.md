@@ -1054,6 +1054,27 @@ GET /api/confirmation-sessions/:id
 }
 ```
 
+> **注（#2602 / beaconiam#515）: 授权口径与错误码**
+>
+> | 调用者 | 可否创建 | 说明 |
+> |---|---|---|
+> | 商户 **OWNER** | ✅ | 可在本商户 org 下建网点（顶层组织亦允许） |
+> | 商户 **ADMIN** | ✅ | **仅限本商户 org 子树内**（IAM `CreateOrg` 校验 `parent` 落在调用者可见范围）；跨商户/跨命名空间 → `403` |
+> | 网点管理员（`site_admin`） | ❌ | 无 `organization:create` 位 → `403/40303` |
+> | 平台管理员（`namespace_admin`） | ❌（本接口） | 有无 `sys_perm` 位 12 取决于命名空间策略；平台代建请走 `merchant_id` 分支或平台运维流程 |
+>
+> 错误码约定：
+>
+> | HTTP | code | message | 触发 |
+> |---|---|---|---|
+> | 409 | `40900` | `该商户下已存在同名网点「<name>」，请换一个名称` | 同商户重名（IAM 组织名冲突 / 本地唯一索引） |
+> | 403 | `40300` | `权限不足：当前账号无权在该商户下创建网点` | IAM 返回 401/403（哨兵 `services.ErrIAMForbidden`）；**不得**再出现 `Failed to create sub-organization in IAM: …` 这类英文原文 |
+> | 403 | `40301` | 无商户归属 / 无权为其他商户创建网点 | `merchant_id` 越权 |
+> | 400 | `40002` | 具体原因（中文） | 参数不合法 / `merchant_id` 无效 / 受控商户缺 `transit_site_id` / `partner` 类型 |
+> | 5xx | `50000` / `50200` | `创建网点组织失败，请稍后再试`（中文，不含 IAM 原文） | IAM 不可达 / 未知失败 |
+>
+> 前端口径：`40900`/`40002` → 表单内持久提示（`FormConflictAlert`）；`40300` → 明确中文 toast（不可通过改输入解决，不需要常驻）；5xx → 中文兜底 + 日志留原文。
+
 #### 4.5.2 更新网点
 
 **接口**: `PUT /api/merchant/sites/:id`

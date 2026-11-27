@@ -65,9 +65,9 @@
 
 ### 第 13 项 — 网点重名 409 分支（#2570）
 
-> **⚠️ 2026-11-27 实测阻断**：商户 **ADMIN 建网点会被 IAM 拒绝**（`403 insufficient permissions`，IAM `POST /organizations` 硬卡 `RequirePermission(OWNER)`），tuneloop 又把它映射成 `50000` + 英文原文 → 界面只显示「服务器开小差了」。
-> **当前只有商户 OWNER 能建网点**；平台管理员会被 tuneloop 的 `RequireSysPerm(12)` 拒。
-> 已立单：**tuneloop#2602** + **beaconiam#515**（含「放宽必须同时补父组织范围校验，否则越权」）。本项等修复上线后再验。
+> **2026-11-27 阻断已修（Owner 裁 A：商户管理员应能建网点）**：beaconiam#515（IAM 放宽到 ADMIN + 父组织范围校验）与 tuneloop#2602（403 → `40300` + 中文，不再出现 IAM 英文原文）已实现并部署预生产。
+> 现在：**商户 OWNER 与 ADMIN 都能在本商户下建网点**；ADMIN 跨商户 → `403`，顶层组织仍 OWNER-only。
+> 重验时按下面步骤做；若仍报「服务器开小差了」，把时间点发我（那是 5xx，不是权限）。
 
 **路径**：`平台管理` → `网点管理`（`/organization/sites`）→ 右上「**新建网点**"
 
