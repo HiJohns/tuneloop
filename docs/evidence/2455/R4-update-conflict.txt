@@ -1,27 +1,27 @@
-# build=1.0.9d0b22c # commit=9d0b22ce55eef31414b4aca95196301cab952ce5 # dirty=false
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 at_ms=1795816250753 wait_ms=167
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 wait_ms=167
+# build=1.0.704c59e # commit=704c59e2da83920818b7be986521af168bdb3517 # dirty=false
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 at_ms=1795818297817 wait_ms=185
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 wait_ms=185
 [WARNING] No .env file found in common paths
-2026/11/27 21:50:55 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/27 21:50:55 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
-2026/11/27 21:50:55 [DB] Connected to database 'tuneloop_test_local'
+2026/11/27 22:25:03 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/27 22:25:03 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/27 22:25:04 [DB] Connected to database 'tuneloop_test_local'
 === RUN   TestUpdateSite_DuplicateNameRejectedBeforeIAM_2455
-2026/11/27 21:50:56 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/27 21:50:56 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
-2026/11/27 21:50:56 [DB] Connected to database 'tuneloop_test_local'
+2026/11/27 22:25:04 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/27 22:25:04 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/27 22:25:04 [DB] Connected to database 'tuneloop_test_local'
 
-2026/11/27 21:50:57 [32m/home/coder/worktrees/tuneloop/wt-2455/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[726.197ms] [33m[rows:0][35m TRUNCATE TABLE "schema_migrations", "membership_levels", "coupons", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
-2026/11/27 21:50:57 [TenantScope][observe] auto-scope injected for table=sites (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/27 22:25:04 [32m/home/coder/worktrees/tuneloop/wt-2455/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[610.918ms] [33m[rows:0][35m TRUNCATE TABLE "schema_migrations", "membership_levels", "coupons", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/27 22:25:04 [TenantScope][observe] auto-scope injected for table=sites (add explicit scope, then set ExplicitTenantScopeOnly)
     site_name_unique_2455_test.go:453: HTTP=409
     site_name_unique_2455_test.go:454: CODE=40900
     site_name_unique_2455_test.go:455: MSG_ZH=1
     site_name_unique_2455_test.go:456: IAM_CALLS=0
     site_name_unique_2455_test.go:457: DB_NAME=北京中转站
---- PASS: TestUpdateSite_DuplicateNameRejectedBeforeIAM_2455 (1.21s)
+--- PASS: TestUpdateSite_DuplicateNameRejectedBeforeIAM_2455 (0.81s)
 PASS
-ok  	tuneloop-backend/handlers	2.029s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795816257557 hold_ms=6804
+ok  	tuneloop-backend/handlers	1.586s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795818305167 hold_ms=7350
 HTTP=409
 CODE=40900
 MSG_ZH=1

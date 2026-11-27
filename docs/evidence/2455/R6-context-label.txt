@@ -1,33 +1,33 @@
-# build=1.0.9d0b22c # commit=9d0b22ce55eef31414b4aca95196301cab952ce5 # dirty=false
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 at_ms=1795816258152 wait_ms=174
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 wait_ms=174
+# build=1.0.704c59e # commit=704c59e2da83920818b7be986521af168bdb3517 # dirty=false
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 at_ms=1795818305760 wait_ms=183
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 wait_ms=183
 [WARNING] No .env file found in common paths
-2026/11/27 21:51:04 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/27 21:51:04 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
-2026/11/27 21:51:04 [DB] Connected to database 'tuneloop_test_local'
+2026/11/27 22:25:11 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/27 22:25:11 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/27 22:25:11 [DB] Connected to database 'tuneloop_test_local'
 === RUN   TestWxAccounts_ContextLabelDisambiguatesSameNamedSites_2455
-2026/11/27 21:51:05 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/27 21:51:05 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
-2026/11/27 21:51:05 [DB] Connected to database 'tuneloop_test_local'
+2026/11/27 22:25:11 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/27 22:25:11 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/27 22:25:11 [DB] Connected to database 'tuneloop_test_local'
 
-2026/11/27 21:51:06 [32m/home/coder/worktrees/tuneloop/wt-2455/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[688.973ms] [33m[rows:0][35m TRUNCATE TABLE "schema_migrations", "membership_levels", "coupons", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/27 22:25:12 [32m/home/coder/worktrees/tuneloop/wt-2455/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[616.538ms] [33m[rows:0][35m TRUNCATE TABLE "schema_migrations", "membership_levels", "coupons", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
 [GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
  - using env:	export GIN_MODE=release
  - using code:	gin.SetMode(gin.ReleaseMode)
 
 [GIN-debug] GET    /api/auth/wx-accounts     --> tuneloop-backend/handlers.(*AuthHandler).WxAccounts-fm (1 handlers)
-2026/11/27 21:51:06 [WxAccounts] openid=openid-accounts-001 accounts=3
+2026/11/27 22:25:12 [WxAccounts] openid=openid-accounts-001 accounts=3
     wx_accounts_context_label_2455_test.go:135: LABEL_A=cadenza · 卡丹萨乐器
     wx_accounts_context_label_2455_test.go:136: LABEL_B=卡丹萨 · 卡丹萨乐器
     wx_accounts_context_label_2455_test.go:137: ORG_NAME_B=卡丹萨西铁营
     wx_accounts_context_label_2455_test.go:138: DISTINCT=1
     wx_accounts_context_label_2455_test.go:139: LEGACY_LABEL=卡丹萨 · 卡丹萨乐器
     wx_accounts_context_label_2455_test.go:140: CUSTOMER_LABEL=顾客
---- PASS: TestWxAccounts_ContextLabelDisambiguatesSameNamedSites_2455 (0.94s)
+--- PASS: TestWxAccounts_ContextLabelDisambiguatesSameNamedSites_2455 (0.81s)
 PASS
-ok  	tuneloop-backend/handlers	2.009s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795816266353 hold_ms=8201
+ok  	tuneloop-backend/handlers	1.580s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795818312948 hold_ms=7188
 LABEL_A=cadenza · 卡丹萨乐器
 LABEL_B=卡丹萨 · 卡丹萨乐器
 ORG_NAME_B=卡丹萨西铁营

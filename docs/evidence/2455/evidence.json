@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2455,
-  "build": "1.0.9d0b22c",
-  "commit": "9d0b22ce55eef31414b4aca95196301cab952ce5",
+  "build": "1.0.704c59e",
+  "commit": "704c59e2da83920818b7be986521af168bdb3517",
   "dirty": false,
   "plan_sha256": "637ed77c38e8ddc7eca04490cdbb23597895a5989ea027a8b564085a3dc4bb00",
   "tooling_commit": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
