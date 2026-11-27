@@ -1,10 +1,10 @@
-# build=1.0.fab810a8 # commit=fab810a8b0d6e337e4c44cb3e18699a5fece251d # dirty=false
-GENERATED_AT_HEAD=fab810a8b0d6e337e4c44cb3e18699a5fece251d
+# build=1.0.551079e0 # commit=551079e0f8085c61775bc470f7a0ef49fa3ec4f5 # dirty=false
+GENERATED_AT_HEAD=551079e0f8085c61775bc470f7a0ef49fa3ec4f5
 BACKEND=systemd
 AT=03:30
-SERVICE=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.E80g2N/home/.config/systemd/user/opencode-user-cache-reconcile.service
-TIMER=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.E80g2N/home/.config/systemd/user/opencode-user-cache-reconcile.timer
-LOG=/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.E80g2N/state/tuneloop/user-cache-reconcile.log
+SERVICE=/home/coder/worktrees/tuneloop/wt-2625/tmp/reconcile-cron-2625.VC14on/home/.config/systemd/user/opencode-user-cache-reconcile.service
+TIMER=/home/coder/worktrees/tuneloop/wt-2625/tmp/reconcile-cron-2625.VC14on/home/.config/systemd/user/opencode-user-cache-reconcile.timer
+LOG=/home/coder/worktrees/tuneloop/wt-2625/tmp/reconcile-cron-2625.VC14on/state/tuneloop/user-cache-reconcile.log
 ENV_FILE=%h/.config/tuneloop/reconcile.env
 --- service ---
 [Unit]
@@ -12,12 +12,12 @@ Description=TuneLoop user cache reconcile (read-only, #2623/#2625)
 
 [Service]
 Type=oneshot
-WorkingDirectory=/tmp/opencode/tuneloop/wt-2625
+WorkingDirectory=/home/coder/worktrees/tuneloop/wt-2625
 Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
 EnvironmentFile=%h/.config/tuneloop/reconcile.env
-ExecStart=/tmp/opencode/tuneloop/wt-2625/scripts/reconcile-user-cache-cron.sh
-StandardOutput=append:/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.E80g2N/state/tuneloop/user-cache-reconcile.log
-StandardError=append:/tmp/opencode/tuneloop/wt-2625/tmp/reconcile-cron-2625.E80g2N/state/tuneloop/user-cache-reconcile.log
+ExecStart=/home/coder/worktrees/tuneloop/wt-2625/scripts/reconcile-user-cache-cron.sh
+StandardOutput=append:/home/coder/worktrees/tuneloop/wt-2625/tmp/reconcile-cron-2625.VC14on/state/tuneloop/user-cache-reconcile.log
+StandardError=append:/home/coder/worktrees/tuneloop/wt-2625/tmp/reconcile-cron-2625.VC14on/state/tuneloop/user-cache-reconcile.log
 --- timer ---
 [Unit]
 Description=Nightly TuneLoop user cache reconcile
@@ -36,11 +36,12 @@ PRINT_WROTE_UNIT=0
 PRINT_ONCALENDAR=1
 BACKEND=systemd
 AT=03:30
-SERVICE_SHA=f1f05433dba7af18cde1e3268de36565db2705370312e23acbf65472dbb8f11b
+SERVICE_SHA=b36186c188952ddf6d96ad914ad234c1e91079bb42dd715971e7b350ff21d861
 TIMER_SHA=0c82ae6c1766a12b7b8fa10839edc86b290cdf487d77e59213440b6fd16fafcf
 FILES_WRITTEN=2
 IDEMPOTENT=1
 NEXT_ELAPSE=Fri 2026-11-28 03:30:00 CST
+TIMER_ENABLED=1
 RESULT: PASS
 APPLY_EXIT=0
 APPLY_FILES_WRITTEN=2
@@ -53,12 +54,40 @@ UNIT_EXEC_READONLY=1
 UNIT_ENVFILE=1
 UNIT_NO_SECRET=1
 UNIT_LOG_APPEND=1
+APPLY_TIMER_ENABLED=1
 IDEMPOTENT_EXIT=0
 IDEMPOTENT=1
 UNIT_CONTENT_STABLE=1
 UNINSTALL_EXIT=0
 UNINSTALL_REMOVED=2
 UNINSTALL_UNIT_GONE=1
+BACKEND=systemd
+AT=03:30
+SERVICE_SHA=b36186c188952ddf6d96ad914ad234c1e91079bb42dd715971e7b350ff21d861
+TIMER_SHA=0c82ae6c1766a12b7b8fa10839edc86b290cdf487d77e59213440b6fd16fafcf
+TIMER_ENABLED=0
+ERROR: systemd timer not enabled (systemctl --user enable --now failed): /home/coder/worktrees/tuneloop/wt-2625/tmp/reconcile-cron-2625.VC14on/home/.config/systemd/user/opencode-user-cache-reconcile.timer
+RESULT: FAIL (timer not enabled)
+TIMER_ENABLE_FAIL_EXIT=2
+TIMER_ENABLE_FAIL_TOKEN=0
+TIMER_ENABLE_FAIL_NO_PASS=0
+TIMER_ENABLE_FAIL_EXPLICIT=1
+BACKEND=systemd
+AT=03:30
+SERVICE_SHA=b36186c188952ddf6d96ad914ad234c1e91079bb42dd715971e7b350ff21d861
+TIMER_SHA=0c82ae6c1766a12b7b8fa10839edc86b290cdf487d77e59213440b6fd16fafcf
+WARN:systemd-timer-not-enabled-fallback-cron
+BACKEND=cron
+FILES_WRITTEN=1
+IDEMPOTENT=1
+NEXT_ELAPSE=unknown
+TIMER_ENABLED=0
+RESULT: PASS
+TIMER_FALLBACK_EXIT=0
+TIMER_FALLBACK_WARN=1
+TIMER_FALLBACK_TIMER_ENABLED=0
+TIMER_FALLBACK_UNIT_REMOVED=1
+TIMER_FALLBACK_CRON_LINE=1
 CRON_APPLY_EXIT=0
 CRON_MARKER_PRESENT=1
 CRON_SCHEDULE_0330=1
