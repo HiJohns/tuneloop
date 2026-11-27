@@ -1,16 +1,16 @@
 {
   "issue": 2586,
   "overall": "PASS",
-  "plan": "/tmp/opencode/tuneloop/wt-2586/tmp/pre-ready-2586.2V547q/plan.md",
-  "plan_sha256": "6fbd6680aa72e7888562d5b5f2910db3e0e4301b9f2780d48fd99604a31823a9",
-  "config_sha": "acab7d27d28832d1ad366dd4c944ffb3e2ff9ca8",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2586/tmp/pre-ready-2586.1HWhqY/plan.md",
+  "plan_sha256": "e2bc947197d8551b44663fd3bf8d8ea7464766574b5df37efa3b872c885dcfaa",
+  "config_sha": "72e6520e00bf456491c77b6f08b208df4e3ff821",
   "provenance": {
-    "build": "1.0.8ebc823e5",
-    "commit": "8ebc823e51c5eff4f15a0e2cf9352ed378abbb1d",
+    "build": "1.0.fd8dc424b",
+    "commit": "fd8dc424b264b54d6aeefa8fbce9481e8cc3eb56",
     "dirty": false
   },
   "summary": "tmp/work-summary-2586.md",
-  "timestamp": "20261126-212937",
+  "timestamp": "20261127-000146",
   "checks": [
     {
       "id": "P1",
@@ -30,7 +30,7 @@
     {
       "id": "P4",
       "status": "PASS",
-      "detail": "all 2 affected command(s) passed"
+      "detail": "all 1 affected command(s) passed"
     },
     {
       "id": "P12",
@@ -44,8 +44,8 @@
     },
     {
       "id": "P18",
-      "status": "PASS",
-      "detail": "tooling_commit matches the running scripts (acab7d27d28832d1ad366dd4c944ffb3e2ff9ca8)"
+      "status": "WARN",
+      "detail": "tooling_commit mismatch: evidence=5bd4c21f1a3eccae9122c6f7977c6dd1831ed22b config_sha=72e6520e00bf456491c77b6f08b208df4e3ff821"
     },
     {
       "id": "P15",
@@ -64,8 +64,8 @@
     },
     {
       "id": "P5",
-      "status": "PASS",
-      "detail": "full gate clean worktree; HEAD failures are a subset of baseline (origin/develop); source head=run baseline=run"
+      "status": "N/A",
+      "detail": "no go.mod/package.json and no --full-gate-cmd: full gate not applicable"
     },
     {
       "id": "P6",
@@ -95,7 +95,7 @@
     {
       "id": "P11",
       "status": "PASS",
-      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /tmp/opencode/tuneloop/wt-2586; worktree guard: PASS isolated worktree=/tmp/opencode/tuneloop/wt-2586"
+      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /home/coder/worktrees/tuneloop/wt-2586; worktree guard: PASS isolated worktree=/home/coder/worktrees/tuneloop/wt-2586"
     },
     {
       "id": "P13",
