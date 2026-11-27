@@ -457,7 +457,7 @@ export default function InstrumentStock() {
         width={500}
       >
         <FormConflictAlert text={priceConflict} testId="stock-price-conflict" />
-        <Form form={priceForm} layout="vertical">
+        <Form form={priceForm} layout="vertical" onValuesChange={() => { if (priceConflict) setPriceConflict('') }}>
           <Alert
             type="info"
             showIcon

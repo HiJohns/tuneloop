@@ -1,4 +1,4 @@
-## Accepted Plan — #2488 v4（内容/展示类页面 + **传输层 ApiError** + 真实契约 fixture）｜Rev.5
+## Accepted Plan — #2488 v4（内容/展示类页面 + **传输层 ApiError** + 真实契约 fixture）｜Rev.5｜Rev.6
 
 > **v4 说明（采纳审计 O1）**：① `### Files` 增补 **`frontend-pc/src/services/api.js`**（传输层）与 `docs/evidence/2488/plan.md`；② 新增 **D7 `ApiError{code,message,data}`** 契约——非 2xx（除 404/409 的既有对象返回）抛出携带 `code` 的错误，否则 banner/mall 的 `HTTP 400 + 40002` 永远无法被页面判定（R2/R3 不可达）；③ R2/R3 fixture 改为**真实契约**（`HTTP 400 + 40002`），R4 改为 `HTTP 409 + 40900`（丢失登记），**删除不存在的 `40005` fixture**；④ `/instruments/batch/price` 路由错误移出本单 → **#2514**。
 
@@ -65,6 +65,7 @@
 
 | 行 ID | evidence_type | 说明 |
 |---|---|---|
+| R1 | static | 判定表（只读）+ 可达性列，源码结构断言；Owner 豁免见 D5 |
 | R2 | static | 轮播配置页接线结构断言，Owner 豁免见 D5 |
 | R3 | static | 商城图片页接线结构断言，Owner 豁免见 D5 |
 | R4 | static | 库存操作页接线结构断言，Owner 豁免见 D5 |
@@ -168,6 +169,7 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 - **部署侧**：预生产截图回评由 `[Ops-Followup of #2488]` 承载。
 
 *Model: DeepSeek V4.1 Flash 1017*
+
 
 
 

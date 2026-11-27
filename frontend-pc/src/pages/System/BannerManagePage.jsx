@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Table, Card, Button, Space, Modal, Form, Input, Upload, Image, Popconfirm, message, ColorPicker } from 'antd';
 import { PlusOutlined, UploadOutlined, EditOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
-import { bannerApi, ApiError } from '../../services/api';
+import { bannerApi } from '../../services/api';
 import { antdUploadProps } from '../../utils/upload';
 import FormConflictAlert from '../../components/FormConflictAlert';
 import { conflictText, isBusinessCorrectableConflict } from '../../utils/formConflict';
@@ -132,7 +132,7 @@ export default function BannerManagePage() {
       }
       // #2488 Rev.5（Bug B）：非业务 ApiError 透出后端中文 message；
       // 网络/未知错误（非 ApiError）仍用友好兜底，避免技术串直出。
-      message.error(e instanceof ApiError && e.message ? e.message : '操作失败');
+      message.error(e?.message || '操作失败');
     }
   };
 

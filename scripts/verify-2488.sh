@@ -44,8 +44,9 @@ BANNER_PAGE="frontend-pc/src/pages/System/BannerManagePage.jsx"
 MALLIMAGE_PAGE="frontend-pc/src/pages/System/MallImageManageCard.jsx"
 STOCK_PAGE="frontend-pc/src/pages/InstrumentStock.jsx"
 SHARED_FORM_CONFLICT="frontend-pc/src/utils/formConflict.js"
-API_JS="frontend-pc/src/services/api.js"
 SRC_ROOT="frontend-pc/src"
+API_ERROR_JS="$SRC_ROOT/services/apiError.js"
+API_JS="$SRC_ROOT/services/api.js"
 
 require_tokens() {
   local log="$1"; shift
@@ -103,8 +104,10 @@ clear_metrics() {
 #   CATCH_NETWORK_FALLBACK=1  非 ApiError（网络/未知）仍有中文兜底，不直出技术串
 catch_metrics() {
   local page="$1" msg=0 fb=0
-  grep -qE 'e instanceof ApiError && e\.message \? e\.message :' "$page" && msg=1
-  grep -qE "e instanceof ApiError && e\.message \? e\.message : '[^']+'" "$page" && fb=1
+  # #2488 Rev.7 D9b：`ApiError` 类不再由 api.js 导出（唯一 owner = services/apiError.js），
+  # 页面 catch 只需「透传服务端 message + 中文兜底」，不再据 instanceof 判定。
+  grep -qE "e\?\.message \|\| '|e\.message \|\| '" "$page" && msg=1
+  grep -qE "e\?\.message \|\| '[^']+'" "$page" && fb=1
   printf 'CATCH_MESSAGE=%s\nCATCH_NETWORK_FALLBACK=%s\n' "$msg" "$fb"
 }
 
@@ -118,10 +121,13 @@ wiring_metrics() {
   grep -q 'conflictText(' "$page" && text=1
   clears=$(grep -cE "set[A-Za-z]*Conflict\(''\)" "$page" | tr -d ' ')
   grep -qE '\[[[:space:]]*40002|40004[[:space:]]*,[[:space:]]*40005' "$page" && local_codes=1
-  # #2488 D7（v4）：传输层必须把非 2xx 的 code 带到页面，否则 400+40002 不可达。
-  #   ① api.js 定义并抛出 ApiError{code,...}；② 页面 catch 用同一 rubric 判定。
-  if grep -q 'class ApiError' "$API_JS" \
-     && grep -q 'throw new ApiError' "$API_JS" \
+  # #2488 D7 + Rev.7 D9b：传输层必须把非 2xx 的 code 带到页面，否则 400+40002 不可达。
+  #   唯一 owner = #2563 的 services/apiError.js（抛出的 Error 挂 code/status/data）；
+  #   api.js 只消费 resolveHttpFailure（不得自建第二个 ApiError 实现）。
+  #   ① apiError.js 把 code 挂到抛出的 Error 上；② api.js 走同一入口；③ 页面 catch 用同一 rubric。
+  if grep -q 'resolveHttpFailure' "$API_JS" \
+     && grep -q 'resolveHttpFailure' "$API_ERROR_JS" \
+     && grep -qE "error\.code = code|error\.name = 'ApiError'" "$API_ERROR_JS" \
      && grep -qE 'isBusinessCorrectableConflict\(e\)' "$page"; then
     api_error=1
   fi
