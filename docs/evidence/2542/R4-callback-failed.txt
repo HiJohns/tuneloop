@@ -1,29 +1,28 @@
 # build=1.0.7ef3e0271 # commit=7ef3e027143c3ec41896c79a2c68aa87b9f1357f # dirty=false
-GENERATED_AT_HEAD=7ef3e027143c3ec41896c79a2c68aa87b9f1357f
 == go test ./handlers -run ^TestConfirmationSession2542_IAMCallbackFailureReceipt$ ==
 [WARNING] No .env file found in common paths
-2026/11/27 19:58:48 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e sslmode=disable
-2026/11/27 19:58:48 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e
-2026/11/27 19:58:48 [DB] Connected to database 'tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e'
+2026/11/27 20:38:19 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s209_p209_dc4048_047548bc sslmode=disable
+2026/11/27 20:38:19 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s209_p209_dc4048_047548bc
+2026/11/27 20:38:20 [DB] Connected to database 'tuneloop_test_node_ip_172_31_5__s209_p209_dc4048_047548bc'
 === RUN   TestConfirmationSession2542_IAMCallbackFailureReceipt
-2026/11/27 19:58:48 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e sslmode=disable
-2026/11/27 19:58:48 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e
-2026/11/27 19:58:48 [DB] Connected to database 'tuneloop_test_node_opencode_s13_p13_1a0a50_46d5790e'
+2026/11/27 20:38:20 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s209_p209_dc4048_047548bc sslmode=disable
+2026/11/27 20:38:20 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_ip_172_31_5__s209_p209_dc4048_047548bc
+2026/11/27 20:38:20 [DB] Connected to database 'tuneloop_test_node_ip_172_31_5__s209_p209_dc4048_047548bc'
 
-2026/11/27 19:58:49 [32m/tmp/opencode/tuneloop/wt-2542/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[571.823ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_levels", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
-2026/11/27 19:58:49 [IAMCallback] Received callback: session=ac848abd-ff4d-4a96-bf6f-c669ba7e2286, result=accept, confirm_type=email
-2026/11/27 19:58:49 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:42391, clientID=test-ns, namespace=test-ns
-2026/11/27 19:58:49 [IAMClient] Obtained client credentials token, expires in 3600s
-2026/11/27 19:58:49 [IAMClient] Bound user dc09986d-9a09-4bca-87c6-d5f21284d78e to org 14c02fc8-fe9b-45d2-afb3-213be87ca1f9 with role OWNER
-2026/11/27 19:58:49 [IAMClient] Incremented perm_version
-2026/11/27 19:58:49 [IAMClient] Unbound user dc09986d-9a09-4bca-87c6-d5f21284d78e from org 14c02fc8-fe9b-45d2-afb3-213be87ca1f9
-2026/11/27 19:58:49 [IAMClient] Incremented perm_version
-2026/11/27 19:58:49 [IAMCallback] Failed to execute action: IAM set customer permissions failed: SetUserCustomerPermissions returned status 500: {"error":"permission bitmap unavailable"}
+2026/11/27 20:38:20 [32m/home/coder/worktrees/tuneloop/wt-2542/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[613.291ms] [33m[rows:0][35m TRUNCATE TABLE "membership_level_benefits", "instrument_levels", "_test_template_meta", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants" RESTART IDENTITY CASCADE[0m
+2026/11/27 20:38:20 [IAMCallback] Received callback: session=480da9c3-af14-4075-a9ee-7759545d5876, result=accept, confirm_type=email
+2026/11/27 20:38:20 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:42177, clientID=test-ns, namespace=test-ns
+2026/11/27 20:38:20 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/27 20:38:20 [IAMClient] Bound user 561ee32d-1b30-4099-ac39-cbf15ea93db9 to org 9a501f13-bec2-46fd-bbf8-7fb53e311626 with role OWNER
+2026/11/27 20:38:20 [IAMClient] Incremented perm_version
+2026/11/27 20:38:20 [IAMClient] Unbound user 561ee32d-1b30-4099-ac39-cbf15ea93db9 from org 9a501f13-bec2-46fd-bbf8-7fb53e311626
+2026/11/27 20:38:20 [IAMClient] Incremented perm_version
+2026/11/27 20:38:20 [IAMCallback] Failed to execute action: IAM set customer permissions failed: SetUserCustomerPermissions returned status 500: {"error":"permission bitmap unavailable"}
     confirmation_session_2542_test.go:386: REDIRECT_CODE=302 LOCATION=/confirmation-result?status=failed&action=merchant_admin SESSION_STATUS=failed CUSPERM_CALLS=1
---- PASS: TestConfirmationSession2542_IAMCallbackFailureReceipt (0.84s)
+--- PASS: TestConfirmationSession2542_IAMCallbackFailureReceipt (0.80s)
 PASS
-ok  	tuneloop-backend/handlers	1.589s
+ok  	tuneloop-backend/handlers	1.568s
 GO_TEST_EXIT=0
 GO_TEST_EXIT=0
 REDIRECT_CODE=302

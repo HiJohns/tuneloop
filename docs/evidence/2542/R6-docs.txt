@@ -1,5 +1,4 @@
 # build=1.0.7ef3e0271 # commit=7ef3e027143c3ec41896c79a2c68aa87b9f1357f # dirty=false
-GENERATED_AT_HEAD=26b9f806fdb041a339cb1c22a1460df621523207
 == R6 contract docs (confirm execution failure semantics) ==
 DOC_SESSION_FAILED=1
 DOC_UNBIND_COMPENSATION=1
