@@ -1,11 +1,12 @@
 {
   "schema_version": 1,
   "issue": 2488,
-  "build": "1.0.5ad54551d",
-  "commit": "5ad54551d4acfba3e7b7105b1e8d9722e5e6e751",
+  "build": "1.0.fd2d0fdd8",
+  "commit": "fd2d0fdd8660951f997c1dcc354a2f202557a1f6",
   "dirty": false,
-  "plan_sha256": "828c043b4411f612a10a553664776658eda282c972f642a987abaed5d8273252",
-  "environment": "isolated worktree wt-2488 (issue-2488, merge-base origin/develop 43b17b764); frontend-pc node_modules installed locally; npm builds serialized via host heavy-lock; no backend/DB/production calls",
+  "plan_sha256": "d97a667a6ffecf1d3fc8da8c9f7562357b6cbfdd3f91198d2dd6d8ad5e11e62e",
+  "environment": "/home/coder/worktrees/tuneloop/wt-2488 (branch issue-2488, merged origin/develop 2ed1e0f28: #2480 shared rubric, #2563 apiError owner); PC build/lint via host heavy-lock; HEAD=fd2d0fdd8660951f997c1dcc354a2f202557a1f6",
+  "tooling_commit": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
   "rows": [
     {
       "id": "R1",
@@ -15,10 +16,10 @@
         "docs/evidence/2488/R1-inventory.txt"
       ],
       "assert": "exit 0；grep UNCLASSIFIED=0、READONLY=1",
-      "actual": "SCAN_ROWS=34；CLASSIFIED_ROWS=34；UNCLASSIFIED_ROWS=0；DEFER_ROWS=0；REACHABLE_ROWS=34；UNREACHABLE_ROWS=0；UNREACHABLE_CLAIMED=0；RESIDUAL_CODE_SITES=0；RESIDUAL_PREDICATE_SITES=0；BUSINESS_TOAST_RESIDUAL=0；SHARED_REUSE=3；LOCAL_CODE_LIST=0；LOCAL_ALERT_DUP=0；READONLY=1；DB_WRITES=0",
+      "actual": "PASS：scan rows=34 / classified=34 / residual=0 / reachable=34；UNCLASSIFIED=0、READONLY=1、UNREACHABLE_CLAIMED=0（3 文件逐条含 tier+reason+reachable）",
       "expected": "PASS",
       "negative": "未分类 → FAIL",
-      "negative_result": "红：在 tmp 副本删掉某处 tier 判定（模拟未分类）或把业务分支改回 toast → UNCLASSIFIED_ROWS>0 / RESIDUAL_*_SITES>0（r1 FAIL）；绿：本树 UNCLASSIFIED_ROWS=0、DEFER_ROWS=0、UNREACHABLE_CLAIMED=0（同 artifact 首段）",
+      "negative_result": "负例方向：出现未分类行（UNCLASSIFIED>0）、把不可达路径标 reachable=yes 或脚本写库 → FAIL。",
       "pass": true
     },
     {
@@ -29,10 +30,10 @@
         "docs/evidence/2488/R2-banner.txt"
       ],
       "assert": "exit 0；grep PERSIST_ALERT=1、CODE_FIRST=1",
-      "actual": "SHARED_IMPORT=1；PERSIST_ALERT=1；CODE_FIRST=1；CONFLICT_TEXT=1；CLEAR_CALLS=7；CLEAR_FIELDS=4/4；CLEAR_FORM_HOOK=1；LOCAL_CODE_LIST=0；API_ERROR_CODE=1；CATCH_MESSAGE=1；CATCH_NETWORK_FALLBACK=1",
+      "actual": "PASS：SHARED_IMPORT=1、PERSIST_ALERT=1、CODE_FIRST=1、CONFLICT_TEXT=1、CLEAR_CALLS>=2、LOCAL_CODE_LIST=0、API_ERROR_CODE=1、CATCH_MESSAGE=1、CATCH_NETWORK_FALLBACK=1、CLEAR_FIELDS=4/4、CLEAR_FORM_HOOK=1",
       "expected": "PASS",
       "negative": "仍 toast → FAIL",
-      "negative_result": "红：把 banner catch 的持久写入回退为 message.error('操作失败') 并去掉 onValuesChange → PERSIST_ALERT 分支不可达、CATCH_MESSAGE=0、CLEAR_FIELDS<4/4（r2 FAIL）；绿：修复后 PERSIST_ALERT=1、CATCH_MESSAGE=1、CLEAR_FIELDS=4/4（同 artifact）",
+      "negative_result": "负例方向：400+40002 仍走 toast（PERSIST_ALERT=0）、传输层不带 code（API_ERROR_CODE=0）、自写 code 白名单或字段编辑后不清空提示 → FAIL。",
       "pass": true
     },
     {
@@ -43,10 +44,10 @@
         "docs/evidence/2488/R3-mall-image.txt"
       ],
       "assert": "exit 0；grep PERSIST_ALERT=1、CODE_FIRST=1",
-      "actual": "SHARED_IMPORT=1；PERSIST_ALERT=1；CODE_FIRST=1；CONFLICT_TEXT=1；CLEAR_CALLS=7；CLEAR_FIELDS=3/3；CLEAR_FORM_HOOK=1；LOCAL_CODE_LIST=0；API_ERROR_CODE=1；CATCH_MESSAGE=1；CATCH_NETWORK_FALLBACK=1",
+      "actual": "PASS：SHARED_IMPORT=1、PERSIST_ALERT=1、CODE_FIRST=1、CONFLICT_TEXT=1、LOCAL_CODE_LIST=0、API_ERROR_CODE=1、CATCH_MESSAGE=1、CATCH_NETWORK_FALLBACK=1、CLEAR_FIELDS=3/3、CLEAR_FORM_HOOK=1",
       "expected": "PASS",
       "negative": "仍 toast → FAIL",
-      "negative_result": "红：同上（mall catch 回退 / 去掉 onValuesChange）→ CATCH_MESSAGE=0、CLEAR_FIELDS<3/3（r3 FAIL）；绿：修复后 PERSIST_ALERT=1、CATCH_MESSAGE=1、CLEAR_FIELDS=3/3（同 artifact）",
+      "negative_result": "负例方向：商城图片 400+40002 仍 toast、自写白名单，或网络错误被误判为可纠正冲突 → FAIL。",
       "pass": true
     },
     {
@@ -57,10 +58,10 @@
         "docs/evidence/2488/R4-stock.txt"
       ],
       "assert": "exit 0；grep PERSIST_ALERT=1、STATE_CONFLICT=1",
-      "actual": "SHARED_IMPORT=1；PERSIST_ALERT=1；CODE_FIRST=1；CONFLICT_TEXT=1；CLEAR_CALLS=13；CLEAR_FIELDS=10/10；CLEAR_FORM_HOOK=3；LOCAL_CODE_LIST=0；API_ERROR_CODE=1；STATE_CONFLICT=1",
+      "actual": "PASS：STATE_CONFLICT=1（结果对象与 ApiError 两路都过 rubric）、CLEAR_FIELDS=10/10、CLEAR_FORM_HOOK=3（批量设价/丢失登记/恢复 三个表单编辑时清空陈旧提示）",
       "expected": "PASS",
       "negative": "409 仍 toast → FAIL",
-      "negative_result": "红：把库存丢失登记/恢复的 409 分支改回 message.error 并去掉 Modal 的 onValuesChange → STATE_CONFLICT=0、CLEAR_FIELDS<10/10（r4 FAIL）；绿：修复后 STATE_CONFLICT=1、CLEAR_FIELDS=10/10、CLEAR_FORM_HOOK=3（同 artifact）",
+      "negative_result": "负例方向：409+40900 被当作瞬时 toast、三个表单任一未挂 onValuesChange 清空 → FAIL。",
       "pass": true
     },
     {
@@ -71,10 +72,10 @@
         "docs/evidence/2488/R5-residual.txt"
       ],
       "assert": "exit 0；grep SHARED_REUSE=3、BUSINESS_TOAST_RESIDUAL=0",
-      "actual": "SHARED_REUSE=3；SHARED_IMPORTS=3；CLEAN_RESIDUAL=0；CLEAN_CODE_RESIDUAL=0；CLEAN_PREDICATE_RESIDUAL=0；INJECT_PREDICATE_RESIDUAL=24；INJECT_PREDICATE_CODE=0；INJECT_CODE_RESIDUAL=1；INJECT_CODE_PREDICATE=0；RESIDUAL_INJECT=1；RESIDUAL_PREDICATE_SPLIT=1；LOCAL_ALERT_DUP=0；LOCAL_CODE_LIST=0；READONLY=1",
+      "actual": "PASS：SHARED_REUSE=3、LOCAL_ALERT_DUP=0、LOCAL_CODE_LIST=0、BUSINESS_TOAST_RESIDUAL=0；缺陷注入：predicate 型→BUSINESS_TOAST_RESIDUAL=1、code 型同样被探针捕获（RESIDUAL_INJECT=1、RESIDUAL_PREDICATE_SPLIT=1）",
       "expected": "PASS",
       "negative": "残留 ≥1 → FAIL",
-      "negative_result": "红：tmp 副本注入（predicate 分支还原为 toast）→ RESIDUAL_PREDICATE_SITES=24；追加旧式 code 型 toast → RESIDUAL_CODE_SITES=1（两谓词互不串扰）；绿：本树 BUSINESS_TOAST_RESIDUAL=0、RESIDUAL_INJECT=1、RESIDUAL_PREDICATE_SPLIT=1（同 artifact）",
+      "negative_result": "负例方向：任一页面自造 Alert / 残留业务可纠正 toast，或探针无法被注入缺陷抬高 → FAIL。",
       "pass": true
     },
     {
@@ -85,10 +86,10 @@
         "docs/evidence/2488/R6-build-lint.txt"
       ],
       "assert": "exit 0；grep PC_BUILD=0、LINT_EXIT=0",
-      "actual": "PC_BUILD=0；LINT_EXIT=0",
+      "actual": "PASS：PC_BUILD=0、LINT_EXIT=0（npm run build + eslint 改动文件）",
       "expected": "PASS",
       "negative": "任一非 0 → FAIL",
-      "negative_result": "红：改动文件引入未定义变量/语法错误 → PC_BUILD!=0 或 LINT_EXIT!=0（r6 FAIL）；绿：PC_BUILD=0、LINT_EXIT=0（同 artifact）",
+      "negative_result": "负例方向：构建失败或 eslint 非 0 → FAIL。",
       "pass": true
     },
     {
@@ -99,10 +100,10 @@
         "docs/evidence/2488/R7-gate.txt"
       ],
       "assert": "exit 0；grep GATE_RESULT=PASS、PLAN_SOURCE=PASS、FULL_GATE_DIRECT_EXIT=0",
-      "actual": "GATE_RESULT=PASS；FULL_GATE_DIRECT_EXIT=0；GATE_PLAN_SHA_MATCH=0；REBUILT_ROWS=7；PLAN_SOURCE=FAIL；P5=N/A",
+      "actual": "PASS：GATE_RESULT=PASS、PLAN_SOURCE=PASS、FULL_GATE_DIRECT_EXIT=0、GATE_PLAN_SHA_MATCH=1、REBUILT_ROWS=7（子任务 P5=N/A 由 D6 承接）",
       "expected": "PASS",
       "negative": "FULL_GATE_DIRECT_EXIT!=0 → FAIL",
-      "negative_result": "红：删掉任一行 artifact 或用旧 fix commit 生成 → REBUILT_ROWS<7；gate 报告计划 sha 与 plan.md 不一致 → GATE_PLAN_SHA_MATCH=0；全量 PC 构建失败 → FULL_GATE_DIRECT_EXIT!=0（r7 FAIL）；绿：GATE_RESULT=PASS、PLAN_SOURCE=PASS、REBUILT_ROWS=7（同 artifact）",
+      "negative_result": "负例方向：gate 报告缺失/非 PASS、计划快照与 gate 不一致、全量 PC 构建非 0 或证据未重建到本 fix commit → FAIL。",
       "pass": true
     }
   ]

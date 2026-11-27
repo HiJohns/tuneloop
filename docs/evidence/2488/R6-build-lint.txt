@@ -1,23 +1,23 @@
-# build=1.0.5ad54551d # commit=5ad54551d4acfba3e7b7105b1e8d9722e5e6e751 # dirty=false
-# tree=5ad54551d4acfba3e7b7105b1e8d9722e5e6e751
+# build=1.0.fd2d0fdd8 # commit=fd2d0fdd8660951f997c1dcc354a2f202557a1f6 # dirty=false
+# tree=fd2d0fdd8660951f997c1dcc354a2f202557a1f6
 PC_BUILD_CMD=cd frontend-pc && npm run build
 dist/index.html                     0.53 kB │ gzip:   0.34 kB
-dist/assets/index-B9174E9n.css     38.39 kB │ gzip:   7.13 kB
-dist/assets/index-Bo0yjM7q.js   2,629.38 kB │ gzip: 809.39 kB
+dist/assets/index-B9sZY7eW.css     38.17 kB │ gzip:   7.11 kB
+dist/assets/index--6bJ1ROx.js   2,627.87 kB │ gzip: 809.92 kB
 
 (!) Some chunks are larger than 500 kB after minification. Consider:
 - Using dynamic import() to code-split the application
 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-✓ built in 38.94s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795721247199 hold_ms=40615
+✓ built in 51.26s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795807177920 hold_ms=53647
 PC_BUILD=0
 LINT_CMD=npx eslint 2488 changed files
 /home/coder/worktrees/tuneloop/wt-2488/frontend-pc/src/pages/InstrumentStock.jsx
-   79:6   warning  React Hook useEffect has a missing dependency: 'loadData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
-  174:56  warning  'openRestoreModal' was used before it was defined                                                            no-use-before-define
-  177:56  warning  'openLostModal' was used before it was defined                                                               no-use-before-define
-  182:59  warning  'handleDeleteInstrument' was used before it was defined                                                      no-use-before-define
+   82:6   warning  React Hook useEffect has a missing dependency: 'loadData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  208:56  warning  'openRestoreModal' was used before it was defined                                                            no-use-before-define
+  211:56  warning  'openLostModal' was used before it was defined                                                               no-use-before-define
+  216:59  warning  'handleDeleteInstrument' was used before it was defined                                                      no-use-before-define
 
 ✖ 4 problems (0 errors, 4 warnings)
 
