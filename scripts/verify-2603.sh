@@ -69,7 +69,7 @@ PROV="# build=1.0.$FIX_SHORT # commit=$FIX_SHA # dirty=$DIRTY"
 HEAVY_RUN="${HEAVY_RUN:-$HOME/.config/opencode/scripts/heavy-run.sh}"
 LOCK_DIR="${HEAVY_LOCK_DIR:-/tmp/opencode/locks}"
 WORK="$(mktemp -d "$REPO/tmp/verify-$ISSUE-XXXXXX")" || exit 2
-trap 'rm -rf "$WORK"' EXIT
+trap '[ -n "${KEEP_WORK:-}" ] || rm -rf "$WORK"' EXIT
 
 heavy() {
   if [ -x "$HEAVY_RUN" ]; then bash "$HEAVY_RUN" --dir "$LOCK_DIR" -- "$@"; else "$@"; fi
@@ -117,17 +117,17 @@ TOUCHED_GO=("$BINDMSG_GO" "$BINDMSG_TEST" "$HANDLER_TEST" "${HANDLER_FILES[@]}")
 case "$MODE" in
   r1)
     NAME="R1-bindmsg-unit.txt"
-    ( cd "$REPO/backend" && heavy go test ./bindmsg -run 'TestBindErrorMessage2603|TestBindFieldLabelsCoverage2603' -count=1 -v -timeout 10m ) > "$WORK/r1.log" 2>&1
+    ( cd "$REPO/backend" && heavy go test ./bindmsg -run 'TestBindErrorMessage2603|TestBindFieldLabelsCoverage2603' -count=1 -v -timeout 10m ) > "$WORK/r1.test.log" 2>&1
     TEST_RC=$?
     {
       printf '%s\n' "$PROV"
       echo "GENERATED_AT_HEAD=$HEAD_SHA"
       echo "# backend/bindmsg：9 条文案模板 + 称呼表覆盖 26 端点字段全集（无 ASCII）"
-      grep -E 'BMSG_[A-Z]+=|LABEL_[A-Z_]+=' "$WORK/r1.log" | sed 's/^[[:space:]]*//'
+      grep -E 'BMSG_[A-Z]+=|LABEL_[A-Z_]+=' "$WORK/r1.test.log" | sed 's/^[[:space:]]*//'
       printf 'BINDMSG_UNIT_EXIT=%s\n' "$TEST_RC"
       if [ "$TEST_RC" != "0" ]; then
         echo "--- go test output ---"
-        tail -40 "$WORK/r1.log"
+        tail -40 "$WORK/r1.test.log"
       fi
     } > "$LOG" 2>&1
     require_tokens "$LOG" 'BINDMSG_UNIT_EXIT=0' \
@@ -144,17 +144,17 @@ case "$MODE" in
 
   r2)
     NAME="R2-handler-messages.txt"
-    ( cd "$REPO/backend" && heavy go test ./handlers -run '^TestBindErrorMessages2603$' -count=1 -v -timeout 20m ) > "$WORK/r2.log" 2>&1
+    ( cd "$REPO/backend" && heavy go test ./handlers -run '^TestBindErrorMessages2603$' -count=1 -v -timeout 20m ) > "$WORK/r2.test.log" 2>&1
     TEST_RC=$?
     {
       printf '%s\n' "$PROV"
       echo "GENERATED_AT_HEAD=$HEAD_SHA"
       echo "# 26 个绑定点 × 2 用例（损坏体 / 缺必填或类型不符）= 52；handler 直调 + 一次性 PG"
-      grep -E 'BIND2603_[A-Z_]+=' "$WORK/r2.log" | sed 's/^[[:space:]]*//'
+      grep -E 'BIND2603_[A-Z_]+=' "$WORK/r2.test.log" | sed 's/^[[:space:]]*//'
       printf 'GO_TEST_EXIT=%s\n' "$TEST_RC"
       if [ "$TEST_RC" != "0" ]; then
         echo "--- go test output ---"
-        tail -60 "$WORK/r2.log"
+        tail -60 "$WORK/r2.test.log"
       fi
     } > "$LOG" 2>&1
     require_tokens "$LOG" 'GO_TEST_EXIT=0' \
@@ -247,10 +247,19 @@ case "$MODE" in
 esac
 
 ART="$OUT_DIR/$NAME"
-cp "$LOG" "$ART"
-echo "ARTIFACT=$ART"
+# Documented usage redirects stdout straight into $ART
+# (`bash scripts/verify-2603.sh r1 > docs/evidence/2603/R1-*.txt`). Copying
+# then would race with the shell's write offset and corrupt the artifact, so
+# only copy when stdout is a different file.
+STDOUT_PATH="$(readlink /proc/self/fd/1 2>/dev/null || true)"
+ART_PATH="$(readlink -f "$ART" 2>/dev/null || true)"
+if [ -z "$STDOUT_PATH" ] || [ "$STDOUT_PATH" != "$ART_PATH" ]; then
+  cp "$LOG" "$ART"
+fi
+cat "$LOG"
+echo "ARTIFACT=$ART" >&2
 if [ "$RC" != "0" ]; then
   echo "RESULT: FAIL ($MODE)" >&2
   exit 1
 fi
-echo "RESULT: PASS ($MODE)"
+echo "RESULT: PASS ($MODE)" >&2
