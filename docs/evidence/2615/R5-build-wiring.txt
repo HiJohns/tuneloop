@@ -1,5 +1,5 @@
-# build=1.0.5e3d9c53b # commit=5e3d9c53b5fa3dc07ce88ba7fe0815eaf3b2bea3 # dirty=false
-GENERATED_AT_HEAD=5e3d9c53b5fa3dc07ce88ba7fe0815eaf3b2bea3
+# build=1.0.b56bea461 # commit=b56bea461b4781e6c1e77b12cbc4d0b884a88789 # dirty=false
+GENERATED_AT_HEAD=b56bea461b4781e6c1e77b12cbc4d0b884a88789
 WEAPP_PAGES_REGISTERED=2
 H5_PAGES_REGISTERED=2
 H5_ROUTES_REGISTERED=2
@@ -10,14 +10,14 @@ WEAPP_BUILD_OK=1
 Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
   npx update-browserslist-db@latest
   Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795815586550 hold_ms=41260
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795840742193 hold_ms=42437
 H5_BUILD_CMD=cd frontend-mobile && npm run build:h5
 H5_BUILD_OK=1
 [39m[22m
 
-webpack 5.91.0 compiled with [1m[33m2 warnings[39m[22m in 110067 ms
+webpack 5.91.0 compiled with [1m[33m2 warnings[39m[22m in 123070 ms
 
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795815716035 hold_ms=129378
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795840885766 hold_ms=143460
 WXML_SCAN_FILES:
 WXML_NATIVE_TAG=0
 WEAPP_PAGE_WXML_PRODUCED=3

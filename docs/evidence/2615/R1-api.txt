@@ -1,19 +1,19 @@
-# build=1.0.5e3d9c53b # commit=5e3d9c53b5fa3dc07ce88ba7fe0815eaf3b2bea3 # dirty=false
-GENERATED_AT_HEAD=5e3d9c53b5fa3dc07ce88ba7fe0815eaf3b2bea3
+# build=1.0.b56bea461 # commit=b56bea461b4781e6c1e77b12cbc4d0b884a88789 # dirty=false
+GENERATED_AT_HEAD=b56bea461b4781e6c1e77b12cbc4d0b884a88789
 BACKEND_CMD=cd backend && go test ./handlers/ -run '^TestInstrumentLoss2615' -count=1 -v
 [WARNING] No .env file found in common paths
-2026/11/27 21:38:45 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s117_p117_87c71e_adb495a2 sslmode=disable
-2026/11/27 21:38:45 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s117_p117_87c71e_adb495a2
-2026/11/27 21:38:45 [DB] Connected to database 'tuneloop_test_node_opencode_s117_p117_87c71e_adb495a2'
+2026/11/28 04:37:57 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f sslmode=disable
+2026/11/28 04:37:58 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f
+2026/11/28 04:37:58 [DB] Connected to database 'tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f'
 === RUN   TestInstrumentLoss2615_ListAndGet
-2026/11/27 21:38:45 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s117_p117_87c71e_adb495a2 sslmode=disable
-2026/11/27 21:38:45 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s117_p117_87c71e_adb495a2
-2026/11/27 21:38:45 [DB] Connected to database 'tuneloop_test_node_opencode_s117_p117_87c71e_adb495a2'
+2026/11/28 04:37:58 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f sslmode=disable
+2026/11/28 04:37:58 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f
+2026/11/28 04:37:58 [DB] Connected to database 'tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f'
 
-2026/11/27 21:38:46 [32m/tmp/opencode/tuneloop/wt-2615/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[624.301ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_levels", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
-2026/11/27 21:38:46 [TenantScope][observe] auto-scope injected for table=instrument_loss_records (add explicit scope, then set ExplicitTenantScopeOnly)
-2026/11/27 21:38:46 [TenantScope][observe] auto-scope injected for table=instruments (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/28 04:37:59 [32m/tmp/opencode/tuneloop/wt-2615/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[625.522ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_levels", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/28 04:37:59 [TenantScope][observe] auto-scope injected for table=instrument_loss_records (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/28 04:37:59 [TenantScope][observe] auto-scope injected for table=instruments (add explicit scope, then set ExplicitTenantScopeOnly)
     instrument_loss_list_2615_test.go:123: LOSS_LIST_TOTAL=3
     instrument_loss_list_2615_test.go:124: LOSS_LIST_PAGE_LEN=2
     instrument_loss_list_2615_test.go:135: LOSS_LIST_STATUS_OPEN=2
@@ -24,18 +24,27 @@ BACKEND_CMD=cd backend && go test ./handlers/ -run '^TestInstrumentLoss2615' -co
     instrument_loss_list_2615_test.go:209: LOSS_GET_CODE=20000
     instrument_loss_list_2615_test.go:215: LOSS_GET_BRIEF_SN=1
 
-2026/11/27 21:38:46 [31;1m/tmp/opencode/tuneloop/wt-2615/backend/handlers/instrument_loss.go:478 [35;1mrecord not found
-[0m[33m[0.420ms] [34;1m[rows:0][0m SELECT * FROM "instrument_loss_records" WHERE (id = '270a83d4-1b7b-4774-b10c-1ba905b89d45' AND tenant_id = '2dcfa2cd-69a9-4fee-95b9-e5d2960627a7') AND "instrument_loss_records"."tenant_id" = '2dcfa2cd-69a9-4fee-95b9-e5d2960627a7' ORDER BY "instrument_loss_records"."id" LIMIT 1
+2026/11/28 04:37:59 [31;1m/tmp/opencode/tuneloop/wt-2615/backend/handlers/instrument_loss.go:491 [35;1mrecord not found
+[0m[33m[0.404ms] [34;1m[rows:0][0m SELECT * FROM "instrument_loss_records" WHERE (id = 'd0db01f4-539c-47fc-816e-6c370f03e7ee' AND tenant_id = '35ba5fef-0fd7-415b-b77f-556a229e6aa7') AND "instrument_loss_records"."tenant_id" = '35ba5fef-0fd7-415b-b77f-556a229e6aa7' ORDER BY "instrument_loss_records"."id" LIMIT 1
     instrument_loss_list_2615_test.go:233: LOSS_GET_MISSING_CODE=40400
 
-2026/11/27 21:38:46 [31;1m/tmp/opencode/tuneloop/wt-2615/backend/handlers/instrument_loss.go:478 [35;1mERROR: invalid input syntax for type uuid: "not-a-uuid" (SQLSTATE 22P02)
-[0m[33m[0.299ms] [34;1m[rows:0][0m SELECT * FROM "instrument_loss_records" WHERE (id = 'not-a-uuid' AND tenant_id = '2dcfa2cd-69a9-4fee-95b9-e5d2960627a7') AND "instrument_loss_records"."tenant_id" = '2dcfa2cd-69a9-4fee-95b9-e5d2960627a7' ORDER BY "instrument_loss_records"."id" LIMIT 1
+2026/11/28 04:37:59 [31;1m/tmp/opencode/tuneloop/wt-2615/backend/handlers/instrument_loss.go:491 [35;1mERROR: invalid input syntax for type uuid: "not-a-uuid" (SQLSTATE 22P02)
+[0m[33m[1.129ms] [34;1m[rows:0][0m SELECT * FROM "instrument_loss_records" WHERE (id = 'not-a-uuid' AND tenant_id = '35ba5fef-0fd7-415b-b77f-556a229e6aa7') AND "instrument_loss_records"."tenant_id" = '35ba5fef-0fd7-415b-b77f-556a229e6aa7' ORDER BY "instrument_loss_records"."id" LIMIT 1
 
-2026/11/27 21:38:46 [31;1m/tmp/opencode/tuneloop/wt-2615/backend/handlers/instrument_loss.go:478 [35;1mrecord not found
-[0m[33m[0.451ms] [34;1m[rows:0][0m SELECT * FROM "instrument_loss_records" WHERE (id = '431df8bc-4342-4ec3-ab50-ab3b09ee6d83' AND tenant_id = '5531efaf-2f0a-4f68-8e99-77a807c5a363') AND "instrument_loss_records"."tenant_id" = '5531efaf-2f0a-4f68-8e99-77a807c5a363' ORDER BY "instrument_loss_records"."id" LIMIT 1
+2026/11/28 04:37:59 [31;1m/tmp/opencode/tuneloop/wt-2615/backend/handlers/instrument_loss.go:491 [35;1mrecord not found
+[0m[33m[0.412ms] [34;1m[rows:0][0m SELECT * FROM "instrument_loss_records" WHERE (id = '516da239-bbca-4b25-94e6-d54a4986c2b8' AND tenant_id = '92c6b957-79be-4ae6-a36d-6bb9a21284e7') AND "instrument_loss_records"."tenant_id" = '92c6b957-79be-4ae6-a36d-6bb9a21284e7' ORDER BY "instrument_loss_records"."id" LIMIT 1
     instrument_loss_list_2615_test.go:258: LOSS_GET_CROSS_TENANT_CODE=40400
-2026/11/27 21:38:46 [wechatpay] failed to create HTTP client: load key: read private key: open : no such file or directory, falling back to mock
---- PASS: TestInstrumentLoss2615_ListAndGet (0.91s)
+2026/11/28 04:37:59 [wechatpay] failed to create HTTP client: load key: read private key: open : no such file or directory, falling back to mock
+--- PASS: TestInstrumentLoss2615_ListAndGet (0.92s)
+=== RUN   TestInstrumentLoss2615_LegacyNoParams
+
+2026/11/28 04:38:00 [32m/tmp/opencode/tuneloop/wt-2615/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[535.659ms] [33m[rows:0][35m TRUNCATE TABLE "instruments", "membership_levels", "pricing_templates", "sites", "tenants", "users", "instrument_loss_records" RESTART IDENTITY CASCADE[0m
+    instrument_loss_list_2615_test.go:302: LOSS_LEGACY_NO_PARAMS_ROWS=200
+    instrument_loss_list_2615_test.go:303: LOSS_LEGACY_NO_PARAMS_TOTAL=200
+    instrument_loss_list_2615_test.go:313: LOSS_LEGACY_PAGE_ONLY_SIZE=20
+2026/11/28 04:38:00 [wechatpay] failed to create HTTP client: load key: read private key: open : no such file or directory, falling back to mock
+--- PASS: TestInstrumentLoss2615_LegacyNoParams (0.75s)
 PASS
-ok  	tuneloop-backend/handlers	1.667s
+ok  	tuneloop-backend/handlers	2.417s
 RESULT: PASS (r1)

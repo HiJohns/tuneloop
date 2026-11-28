@@ -1,4 +1,11 @@
-## Accepted Plan — #2615 [Design] 丢失登记页信息架构：记录列表 + 单一登记入口 + 详情页恢复
+## Accepted Plan — #2615 [Design] 丢失登记页信息架构：记录列表 + 单一登记入口 + 详情页恢复｜Rev.3（legacy 无参调用兼容 200；编号修正 D7→D8）
+> **Rev.3 说明（内容同 Rev.2，仅修正编号冲突）**：Rev.2 新增的 legacy 规则误用了已存在的 `D7`（原 D7 = 照片上传链路），本版改为 **D8**；语义与断言不变。
+>
+> **Rev.2 说明（采纳 Investigation Packet 选项 1）**：
+> ① 修正 Input Truth **事实 14**（PC 确实有无参调用 `lossApi.list()`）；
+> ② 新增 **D8 legacy 兼容规则**：`page` 与 `pageSize` **两者皆缺**时按 legacy `page=1&pageSize=200`（不走 100 上限）；只缺其一时仍走新默认（`page=1` / `pageSize=20`）；
+> ③ R1 增 3 个 legacy token（`LOSS_LEGACY_NO_PARAMS_ROWS=200`、`LOSS_LEGACY_NO_PARAMS_TOTAL=<n>`、`LOSS_LEGACY_PAGE_ONLY_SIZE=20` 负例）；
+> ④ PC 台账分页 UI 另立 Issue（长期方案），本单只保证「旧调用方不丢数据」。
 
 基线：`origin/develop` @ `bdd14b69d`（`frontend-mobile/src/pages/InstrumentLossManage.jsx` 334 行、`backend/handlers/instrument_loss.go` 434 行，行号以该基线为准）。
 
@@ -19,7 +26,7 @@
 | 11 | weapp 页面统一用原生导航栏 + `index.config.ts` 标题（页内不画标题条）；H5 页保留页内头部（`!env.isMiniProgram` 守卫） | `pages-weapp/instrument-loss-manage/index.config.ts`、`InstrumentLossManage.jsx:203-209` |
 | 12 | 渲染测试档位可复用：`vitest.config.js` 只收 `scripts/page-smoke/**/*.test.jsx`；`taro-stub` 提供 `getStorageSync`（localStorage 底座）/`showModal`/`previewImage`/`chooseImage`；`mock-platform.js` 的 `installFetchMock` 是所有页面测试的 fetch 桩 | `frontend-mobile/vitest.config.js`、`scripts/page-smoke/taro-stub.js`、`scripts/page-smoke/mock-platform.js` |
 | 13 | 后端测试档位可复用：`testfixtures.SetupTestDB`（Postgres）+ `SeedTenantFK`/`SeedSiteFK` + `lossPost` 等既有 helper，夹具必须区分 `sites.id` 与 `sites.org_id`（#2510 教训） | `backend/handlers/instrument_loss_test.go:24-70`、`:380-430` |
-| 14 | `lossApi.list` 在 PC `api.js` 有定义但**无任何页面调用**（`grep -rn "lossApi" frontend-pc/src --include=*.jsx` = 0），因此本次归一化 `photos`/新增 `instrument_brief` 不会破坏既有消费方 | `frontend-pc/src/services/api.js:530-535` |
+| 14 | `lossApi` 在 PC **有 3 处调用**（`frontend-pc/src/pages/InstrumentStock.jsx:344/366/384`），其中 `:384` 是**无参** `lossApi.list()`，台账表格 `:536` **无服务端分页控件**；基线服务端上限为 `Limit(200)`（`bdd14b69d:instrument_loss.go:420`）→ 若默认页大小收到 20，PC 台账在 >20 条时**静默少显示** | `frontend-pc/src/services/api.js:530-535`、`InstrumentStock.jsx:384/536` |
 
 ### 变更点
 
@@ -148,7 +155,7 @@ func (h *InstrumentLossHandler) Get(c *gin.Context) {
 
 | 变更点 | 文件/组件 | 入口/路由 | 触发状态 | 目标平台 | 期望结果 | 证据（命令/日志/截图） |
 |---|---|---|---|---|---|---|
-| R1 台账列表分页/状态过滤/乐器摘要/详情端点（集成测试，Postgres fixture） | `backend/handlers/instrument_loss.go`、`backend/handlers/instrument_loss_list_2615_test.go`、`backend/main.go` | `GET /api/instrument-loss`、`GET /api/instrument-loss/:id` | 3 条记录（2 未恢复 + 1 已恢复，不同乐器）；另一租户 token 请求同 id | backend（Postgres 测试库） | `LOSS_LIST_TOTAL=3`、`LOSS_LIST_PAGE_LEN=2`、`LOSS_LIST_STATUS_OPEN=2`、`LOSS_LIST_STATUS_RESTORED=1`、`LOSS_LIST_BRIEF_SN=1`、`LOSS_LIST_PHOTOS_ARRAY=1`、`LOSS_GET_CODE=20000`、`LOSS_GET_BRIEF_SN=1`、`LOSS_GET_MISSING_CODE=40400`、`LOSS_GET_CROSS_TENANT_CODE=40400` | `bash scripts/verify-2615.sh r1 > docs/evidence/2615/R1-api.txt` |
+| R1 台账列表分页/状态过滤/乐器摘要/详情端点（集成测试，Postgres fixture） | `backend/handlers/instrument_loss.go`、`backend/handlers/instrument_loss_list_2615_test.go`、`backend/main.go` | `GET /api/instrument-loss`、`GET /api/instrument-loss/:id` | 3 条记录（2 未恢复 + 1 已恢复，不同乐器）；另一租户 token 请求同 id | backend（Postgres 测试库） | `LOSS_LIST_TOTAL=3`、`LOSS_LIST_PAGE_LEN=2`、`LOSS_LIST_STATUS_OPEN=2`、`LOSS_LIST_STATUS_RESTORED=1`、`LOSS_LIST_BRIEF_SN=1`、`LOSS_LIST_PHOTOS_ARRAY=1`、`LOSS_GET_CODE=20000`、`LOSS_GET_BRIEF_SN=1`、`LOSS_GET_MISSING_CODE=40400`、`LOSS_GET_CROSS_TENANT_CODE=40400`、**`LOSS_LEGACY_NO_PARAMS_ROWS=200`**、**`LOSS_LEGACY_NO_PARAMS_TOTAL=200`**、**`LOSS_LEGACY_PAGE_ONLY_SIZE=20`** | `bash scripts/verify-2615.sh r1 > docs/evidence/2615/R1-api.txt` |
 | R2 列表页 render：记录行信息 + 单一登记入口 + 无行内危险按钮 + 行点击进详情 | `frontend-mobile/src/pages/InstrumentLossManage.jsx`、`frontend-mobile/scripts/page-smoke/instrument-loss-2615.test.jsx` | H5 `/instrument-loss-manage`（`render(` + `fireEvent`） | 3 条记录（2 丢失中 / 1 已恢复） | H5 + weapp 共用 `.jsx`（jsdom） | `LOSS_LIST_ROWS=3`、`LOSS_LIST_SN_SHOWN=1`、`LOSS_LIST_TIME_SHOWN=1`、`LOSS_LIST_STATUS_BADGE=2`、`LOSS_LIST_DANGER_BUTTON_IN_ROW=0`、`LOSS_LIST_REGISTER_ENTRY=1`、`LOSS_LIST_ROW_NAV=1`、`LOSS_LIST_RENDER_FAIL=0` | `bash scripts/verify-2615.sh r2 > docs/evidence/2615/R2-list.txt` |
 | R3 登记页 render：SN 检索选择器 + 校验 + 提交载荷 + 返回列表 | `frontend-mobile/src/pages/InstrumentLossRegister.jsx`、`frontend-mobile/scripts/page-smoke/instrument-loss-2615.test.jsx` | H5 `/instrument-loss-register`（`render(` + `fireEvent`） | 未选乐器提交 / 描述为空 / 正常提交 | H5 + weapp 共用 `.jsx`（jsdom） | `LOSS_REG_SELECTOR_QUERY=1`、`LOSS_REG_PARTY_RATIO_DEFAULT=1`、`LOSS_REG_VALIDATE_NO_INSTRUMENT=1`、`LOSS_REG_VALIDATE_DESC_REQUIRED=1`、`LOSS_REG_SUBMIT_PAYLOAD=1`、`LOSS_REG_SUBMIT_BACK=1`、`LOSS_REG_RENDER_FAIL=0` | `bash scripts/verify-2615.sh r3 > docs/evidence/2615/R3-register.txt` |
 | R4 详情页 render：记录全文 + 照片 + 恢复提交 + 已恢复态隐藏恢复按钮 | `frontend-mobile/src/pages/InstrumentLossDetail.jsx`、`frontend-mobile/scripts/page-smoke/instrument-loss-2615.test.jsx` | H5 `/instrument-loss-detail?id=<id>`（`render(` + `fireEvent`） | 丢失中记录 / 已恢复记录 / 提交恢复 | H5 + weapp 共用 `.jsx`（jsdom） | `LOSS_DETAIL_FIELDS=1`、`LOSS_DETAIL_PHOTOS=1`、`LOSS_DETAIL_OPEN_HAS_RESTORE=1`、`LOSS_DETAIL_RESTORED_HIDES_RESTORE=1`、`LOSS_DETAIL_RESTORE_PAYLOAD=1`、`LOSS_DETAIL_RENDER_FAIL=0` | `bash scripts/verify-2615.sh r4 > docs/evidence/2615/R4-detail.txt` |
@@ -207,6 +214,7 @@ func (h *InstrumentLossHandler) Get(c *gin.Context) {
 | D9 | 列表返回后刷新用 `useDidShow`（platform 封装；H5 幂等），不依赖 `useEffect` 重挂载 | 本计划锁定 |
 | D10 | 后端复用 `clampPageSize` 与既有 `loadLossInstrument` 语义；不新增表/列/迁移，不改 `models.InstrumentLossRecord` | 本计划锁定 |
 | D11 | 重命令（`go test` / `build:weapp` / `build:h5` / `vitest` / `eslint`）经 `scripts/heavy-run.sh` 取锁；`gate` 模式只跑定向（本单 Go 测试 + 本单渲染用例 + 定向 eslint），全量构建在 R5 一次性产出 | 本计划锁定 |
+| **D8** | **legacy 无参兼容**：`page` 与 `pageSize` **均未显式传**时按 `page=1&pageSize=200`（允许 200 > 新上限 100，注释写明「历史 PC 调用方兼容」）；**只缺其一**仍走新默认（`page=1` / `pageSize=20`）。理由：基线 PC 端 `lossApi.list()` 无参取 ≤200 条，收到 20 会让台账静默少显示最多 180 条。改该规则需重开分析。 | 本计划锁定（Rev.2） |
 | D12 | 若执行期发现 `InstrumentLossManage.jsx` / `instrument_loss.go` 同 hunk 被他人改动（如 #2520 后续、#2510 相关）→ HOLD 并回 Architect，禁止就地改写他人语义 | 本计划锁定 |
 
 ### Out of Scope
@@ -302,4 +310,5 @@ func (h *InstrumentLossHandler) Get(c *gin.Context) {
 无
 
 *Model: deepseek/deepseek-flash*
+
 

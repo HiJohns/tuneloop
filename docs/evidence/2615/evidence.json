@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
   "issue": 2615,
-  "build": "1.0.5e3d9c53b",
-  "commit": "5e3d9c53b5fa3dc07ce88ba7fe0815eaf3b2bea3",
+  "build": "1.0.b56bea461",
+  "commit": "b56bea461b4781e6c1e77b12cbc4d0b884a88789",
   "dirty": false,
-  "plan_sha256": "8b498d33a2cf1be3630d55233fdf7d4686fdfd7adaf2abd36f20a4e8b2f1d0a5",
-  "tooling_commit": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
+  "plan_sha256": "93957ba4172e03ca0526988ee3374d2bcdf3954fdd9bc719538683696d5b511e",
+  "tooling_commit": "a29b2b35530c77f2bae31c509207199e6572ad9c",
   "environment": {
     "os": "linux",
     "node": "22",
@@ -20,11 +20,11 @@
       "artifacts": [
         "docs/evidence/2615/R1-api.txt"
       ],
-      "assert": "exit 0 且含 LOSS_LIST_TOTAL=3、LOSS_LIST_PAGE_LEN=2、LOSS_LIST_STATUS_OPEN=2、LOSS_LIST_STATUS_RESTORED=1、LOSS_LIST_BRIEF_SN=1、LOSS_LIST_PHOTOS_ARRAY=1、LOSS_GET_CODE=20000、LOSS_GET_BRIEF_SN=1、LOSS_GET_MISSING_CODE=40400、LOSS_GET_CROSS_TENANT_CODE=40400",
-      "actual": "PASS：exit 0 / RESULT: PASS (r1)。十项合同 token 全为期望值（LOSS_LIST_TOTAL=3、LOSS_LIST_PAGE_LEN=2、LOSS_LIST_STATUS_OPEN=2、LOSS_LIST_STATUS_RESTORED=1、LOSS_LIST_BRIEF_SN=1、LOSS_LIST_PHOTOS_ARRAY=1、LOSS_GET_CODE=20000、LOSS_GET_BRIEF_SN=1、LOSS_GET_MISSING_CODE=40400、LOSS_GET_CROSS_TENANT_CODE=40400）；Round 1 追加：LOSS_RESPONSE_KEEPS_REVERSED_FIELDS=1（列表每行 + 详情均保留 reversed_at / reversed_amount_cents / deducted_damage_cents / deducted_idle_cents / reverse_note 五个历史列）。",
-      "expected": "十项 token 全为期望值",
-      "negative": "分页失效、total 非真实计数、photos 仍字符串、brief 缺失、跨租户 200 → FAIL",
-      "negative_result": "负例已实测：status=bogus → 400/40002；不存在/非法 id/跨租户 → 404/40400（无 200 泄漏）；跨租户用例另建 tenant 上下文，确认不泄漏存在性。Round 1 新增负例：把 lossRecordJSON 回退到缺陷版 bc543314a(=HEAD^) 后 LOSS_RESPONSE_KEEPS_REVERSED_FIELDS=0 且测试 FAIL（list row drops legacy field / detail drops reversed_at…），修复后为 1。",
+      "assert": "exit 0 且含 LOSS_LIST_TOTAL=3、LOSS_LIST_PAGE_LEN=2、LOSS_LIST_STATUS_OPEN=2、LOSS_LIST_STATUS_RESTORED=1、LOSS_LIST_BRIEF_SN=1、LOSS_LIST_PHOTOS_ARRAY=1、LOSS_GET_CODE=20000、LOSS_GET_BRIEF_SN=1、LOSS_GET_MISSING_CODE=40400、LOSS_GET_CROSS_TENANT_CODE=40400、LOSS_LEGACY_NO_PARAMS_ROWS=200、LOSS_LEGACY_NO_PARAMS_TOTAL=200、LOSS_LEGACY_PAGE_ONLY_SIZE=20",
+      "actual": "PASS：exit 0 / RESULT: PASS (r1)。十三项合同 token 全为期望值（LOSS_LIST_TOTAL=3、LOSS_LIST_PAGE_LEN=2、LOSS_LIST_STATUS_OPEN=2、LOSS_LIST_STATUS_RESTORED=1、LOSS_LIST_BRIEF_SN=1、LOSS_LIST_PHOTOS_ARRAY=1、LOSS_GET_CODE=20000、LOSS_GET_BRIEF_SN=1、LOSS_GET_MISSING_CODE=40400、LOSS_GET_CROSS_TENANT_CODE=40400、LOSS_LEGACY_NO_PARAMS_ROWS=200、LOSS_LEGACY_NO_PARAMS_TOTAL=200、LOSS_LEGACY_PAGE_ONLY_SIZE=20）；另含 LOSS_RESPONSE_KEEPS_REVERSED_FIELDS=1（列表每行 + 详情保留 reversed_at / reversed_amount_cents / deducted_damage_cents / deducted_idle_cents / reverse_note 五个历史列）。Rev.3 D8：TestInstrumentLoss2615_LegacyNoParams 在 200 条记录夹具下无参调用返回 200 行/200 total，仅传 page 时为 20，显式 pageSize=1000 时 clamp 到 100。",
+      "expected": "十三项 token 全为期望值",
+      "negative": "分页失效、total 非真实计数、photos 仍字符串、brief 缺失、跨租户 200、无参调用被截断到 20 行（PC 台账静默少显示）→ FAIL",
+      "negative_result": "负例已实测：status=bogus → 400/40002；不存在/非法 id/跨租户 → 404/40400（无 200 泄漏）；把 lossRecordJSON 回退到缺陷版后 LOSS_RESPONSE_KEEPS_REVERSED_FIELDS=0 且测试 FAIL；Rev.3 D8 红样：stash 掉 instrument_loss.go 的 legacy 判定（保留新用例）→ LOSS_LEGACY_NO_PARAMS_ROWS=20 且测试 FAIL（legacy no-params broke PC ledger: rows=20 total=200 page_size=20 want 200），恢复后 200 → PASS。",
       "pass": true
     },
     {

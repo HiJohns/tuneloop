@@ -1,8 +1,42 @@
-## Work Summary — #2615 (Round 2 / fixreview) 丢失登记页信息架构收敛
+## Work Summary — #2615 (Round 3 / Rev.3 D8) 丢失登记页信息架构收敛
+
+
+### 本轮（Round 3，Rev.3 D8）变更：legacy 无参调用兼容 200
+
+Rev.3 采纳 Investigation Packet 选项 1（后端兼容旧调用方）。Round 2 审计阻断项 B1 的根因是
+`GET /api/instrument-loss` 默认页大小从旧的 `Limit(200)` 收到 20，而 PC 台账
+（`frontend-pc/src/pages/InstrumentStock.jsx:384` `lossApi.list()`）仍是无参调用且表格无服务端分页
+→ >20 条的租户静默少显示最多 180 条。
+
+| 变更点 | 实现 |
+|---|---|
+| D8 legacy 判定 | `backend/handlers/instrument_loss.go`：`page` 与 `pageSize` **均未显式传**（`c.GetQuery` 存在性判定）→ `legacyLossPageSize=200`；**只缺其一**仍走新默认（`page=1` / `pageSize=20`）；显式 `pageSize` 仍 `clamp` 到 100 |
+| 单测 | `backend/handlers/instrument_loss_list_2615_test.go` 新增 `TestInstrumentLoss2615_LegacyNoParams`（200 条记录夹具）：无参 → 200 行/200 total/page_size=200；仅 `page=1` → 20（负例）；`pageSize=1000` → clamp 100 |
+| 契约文档 | `docs/spec/api/api.md` §5.12.1 登记 legacy 例外（实现与文档逐字一致） |
+| 证据断言 | `scripts/verify-2615.sh` r1/gate 增 `LOSS_LEGACY_NO_PARAMS_ROWS=200`、`LOSS_LEGACY_NO_PARAMS_TOTAL=200`、`LOSS_LEGACY_PAGE_ONLY_SIZE=20` |
+
+**红绿实证（D8）**：同一条命令、同一 harness，只回退实现（`git stash push -- backend/handlers/instrument_loss.go`）：
+
+```text
+缺陷版（HEAD^=f313bf78f 的 List）：
+  LOSS_LEGACY_NO_PARAMS_ROWS=20        ← PC 台账被截断
+  LOSS_LEGACY_NO_PARAMS_TOTAL=200
+  --- FAIL: TestInstrumentLoss2615_LegacyNoParams (legacy no-params broke PC ledger: rows=20 total=200 page_size=20 (want 200))
+修复版 b56bea461：
+  LOSS_LEGACY_NO_PARAMS_ROWS=200
+  LOSS_LEGACY_NO_PARAMS_TOTAL=200
+  LOSS_LEGACY_PAGE_ONLY_SIZE=20
+  --- PASS: TestInstrumentLoss2615_LegacyNoParams
+  --- PASS: TestInstrumentLoss2615_ListAndGet
+```
+
+**范围声明**：本轮只落 Rev.3 的 D8 例外与其 3 个断言（+ 契约文档一行），未改矩阵行数、未改
+Decision Lock、未改共享验收工具，也未把默认页大小改回 200（新移动端仍显式 `pageSize=20`）。
+PC 台账分页 UI 仍按 Rev.2 说明另立 Issue（Out of Scope）。
 
 ### Remote
 
-- `origin/issue-2615`；fix `5e3d9c53b`（替换 Round 1 的 `474380094`）+ 证据提交，均已 push。
+- `origin/issue-2615`；本轮 fix `b56bea461`（Round 2 的 `5e3d9c53b` 为其祖先）+ 证据提交，均已 push。
 - 分支 `issue-2615`（基于 Accepted Plan 基线 `bdd14b69d`）。
 
 ### 针对审计意见的改进（Round 1 阻断项逐条）
@@ -98,7 +132,7 @@ $ cd backend && go test ./... -count=1 -timeout 20m -p 2
 
 | 行 | 状态 | 证据 |
 |---|---|---|
-| R1 台账列表分页/状态过滤/乐器摘要/详情端点（集成测试，Postgres fixture） | PASS | `docs/evidence/2615/R1-api.txt`：LOSS_LIST_TOTAL=3、LOSS_LIST_PAGE_LEN=2、LOSS_LIST_STATUS_OPEN=2、LOSS_LIST_STATUS_RESTORED=1、LOSS_LIST_BRIEF_SN=1、LOSS_LIST_PHOTOS_ARRAY=1、LOSS_GET_CODE=20000、LOSS_GET_BRIEF_SN=1、LOSS_GET_MISSING_CODE=40400、LOSS_GET_CROSS_TENANT_CODE=40400；新增 LOSS_RESPONSE_KEEPS_REVERSED_FIELDS=1 |
+| R1 台账列表分页/状态过滤/乐器摘要/详情端点（集成测试，Postgres fixture） | PASS | `docs/evidence/2615/R1-api.txt`：LOSS_LIST_TOTAL=3、LOSS_LIST_PAGE_LEN=2、LOSS_LIST_STATUS_OPEN=2、LOSS_LIST_STATUS_RESTORED=1、LOSS_LIST_BRIEF_SN=1、LOSS_LIST_PHOTOS_ARRAY=1、LOSS_GET_CODE=20000、LOSS_GET_BRIEF_SN=1、LOSS_GET_MISSING_CODE=40400、LOSS_GET_CROSS_TENANT_CODE=40400、**LOSS_LEGACY_NO_PARAMS_ROWS=200、LOSS_LEGACY_NO_PARAMS_TOTAL=200、LOSS_LEGACY_PAGE_ONLY_SIZE=20**；另含 LOSS_RESPONSE_KEEPS_REVERSED_FIELDS=1 |
 | R2 列表页 render：记录行信息 + 单一登记入口 + 无行内危险按钮 + 行点击进详情 | PASS | `docs/evidence/2615/R2-list.txt`：LOSS_LIST_ROWS=3、LOSS_LIST_SN_SHOWN=1、LOSS_LIST_TIME_SHOWN=1、LOSS_LIST_STATUS_BADGE=2、LOSS_LIST_DANGER_BUTTON_IN_ROW=0、LOSS_LIST_REGISTER_ENTRY=1、LOSS_LIST_ROW_NAV=1、LOSS_LIST_RENDER_FAIL=0；新增 LOSS_LIST_COVER_SRC_ABSOLUTE=1、LOSS_LIST_COVER_RAW_INPUT=0 |
 | R3 登记页 render：SN 检索选择器 + 校验 + 提交载荷 + 返回列表 | PASS | `docs/evidence/2615/R3-register.txt`：LOSS_REG_SELECTOR_QUERY=1、LOSS_REG_PARTY_RATIO_DEFAULT=1、LOSS_REG_VALIDATE_NO_INSTRUMENT=1、LOSS_REG_VALIDATE_DESC_REQUIRED=1、LOSS_REG_SUBMIT_PAYLOAD=1、LOSS_REG_SUBMIT_BACK=1、LOSS_REG_RENDER_FAIL=0 |
 | R4 详情页 render：记录全文 + 照片 + 恢复提交 + 已恢复态隐藏恢复按钮 | PASS | `docs/evidence/2615/R4-detail.txt`：LOSS_DETAIL_FIELDS=1、LOSS_DETAIL_PHOTOS=1、LOSS_DETAIL_PHOTO_SRC_ABSOLUTE=1、LOSS_DETAIL_PHOTO_RAW_KEY=0、LOSS_DETAIL_PHOTO_PREVIEW_URLS_ABSOLUTE=1、LOSS_DETAIL_RESTORE_PHOTO_SRC_ABSOLUTE=1、LOSS_DETAIL_RESTORE_PHOTO_RAW_KEY=0、LOSS_DETAIL_RESTORE_PHOTO_PREVIEW_URLS_ABSOLUTE=1、LOSS_DETAIL_OPEN_HAS_RESTORE=1、LOSS_DETAIL_RESTORED_HIDES_RESTORE=1、LOSS_DETAIL_RESTORE_PAYLOAD=1、LOSS_DETAIL_RENDER_FAIL=0 |
@@ -119,21 +153,21 @@ $ cd backend && go test ./... -count=1 -timeout 20m -p 2
 
 | 行 | 结果 | 产物 | 关键断言 |
 |---|---|---|---|
-| R1 | PASS | `docs/evidence/2615/R1-api.txt` | 十项合同 token + LOSS_RESPONSE_KEEPS_REVERSED_FIELDS=1；负例 status=bogus→400/40002、缺失/非法 id/跨租户→404/40400 |
+| R1 | PASS | `docs/evidence/2615/R1-api.txt` | 十三项合同 token（含 LOSS_LEGACY_NO_PARAMS_ROWS=200 / LOSS_LEGACY_NO_PARAMS_TOTAL=200 / LOSS_LEGACY_PAGE_ONLY_SIZE=20）+ LOSS_RESPONSE_KEEPS_REVERSED_FIELDS=1；负例 status=bogus→400/40002、缺失/非法 id/跨租户→404/40400、无参调用被截断到 20 行 |
 | R2 | PASS | `docs/evidence/2615/R2-list.txt` | 八项合同 token + 封面归一化两项；负例行内按钮 = 0、裸 key 计数 = 0 |
 | R3 | PASS | `docs/evidence/2615/R3-register.txt` | 七项合同 token；负例 未选乐器/描述空均不发请求 |
 | R4 | PASS | `docs/evidence/2615/R4-detail.txt` | 六项合同 token + 照片/恢复照片/预览归一化六项；负例 裸 key src 计数 = 0、已恢复无恢复按钮 |
 | R5 | PASS | `docs/evidence/2615/R5-build-wiring.txt` | 七项合同 token；负例 wxml 原生标签 = 0、eslint no-undef = 0 |
 | R6 | PASS | `docs/evidence/2615/pre-ready-2615.json` | overall=PASS、P12 每行 pass=true、P13 提交在 origin/issue-2615 |
 
-机读合同：`docs/evidence/2615/evidence.json`（build=1.0.5e3d9c53b、commit=5e3d9c53b、dirty=false，6 行各一条记录且 pass=true；R2/R3/R4 产物按行前缀切分，未互相复用断言）。
+机读合同：`docs/evidence/2615/evidence.json`（build=1.0.b56bea461、commit=b56bea461、dirty=false、plan_sha256=93957ba4…，6 行各一条记录且 pass=true；R2/R3/R4 产物按行前缀切分，未互相复用断言）。
 
 ### 契约三向核对
 
 | 维度 | Plan / `docs/spec/api/api.md` §5.12 | Handler 实现 | 前端调用 |
 |---|---|---|---|
 | 路径 | `GET /api/instrument-loss`、`GET /api/instrument-loss/:id`、`POST /api/instruments/:id/lost`、`POST /api/instruments/:id/restore` | `backend/main.go` 注册 4 条 | 列表 → `GET /instrument-loss?page&pageSize&status`；详情 → `GET /instrument-loss/<id>` + `POST /instruments/<id>/restore`；登记 → `GET /instruments?sn&exclude_status` + `POST /instruments/<id>/lost` |
-| 参数名 | `page`/`pageSize`/`status`/`instrument_id`/`open`（兼容） | 沿用未改 | query/body 逐字段一致 |
+| 参数名 | `page`/`pageSize`/`status`/`instrument_id`/`open`（兼容）；`page`+`pageSize` 皆缺 → legacy `page=1&pageSize=200`（Rev.3 D8，api.md §5.12.1 已登记） | `c.GetQuery` 存在性判定 + `legacyLossPageSize=200`；只缺其一走新默认、显式值仍 clamp 100 | 移动端三页显式传 `page&pageSize=20`（不受 legacy 影响）；PC `lossApi.list()` 无参 → 200 行上限（不回退） |
 | 响应/错误 | `{code,data:{list,total,page,page_size}}`；行内 `photos`/`restore_photos` 数组 + `instrument_brief`；详情 404/40400、无 tid 403/40300；非法 status 400/40002 | `lossRecordJSON` 现输出全部模型字段（含 5 个历史冲正列）、`instrument_brief` 未命中为 `null` | 列表读 data.list / data.total；详情读 data；均判 `code === 20000` 并对错误提示（不静默） |
 
 媒体契约（本次修复的核心）：`/upload` 返回的 `file_key` 是裸文件名、instruments.cover_image 是 `/uploads/media/` 下的相对路径 相对路径 —— 两者都必须经 `frontend-mobile/src/utils/media.js` 的 photoSrc 补 origin 后交给 `<Image>`（weapp `<Image>` 不吃相对路径）。
