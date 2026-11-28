@@ -1,14 +1,14 @@
-# build=1.0.b85169cda # commit=b85169cda9b202a5ac4945d28c80398964fc8226 # dirty=false
-# tree=b85169cda9b202a5ac4945d28c80398964fc8226
+# build=1.0.d7626281c # commit=d7626281cf9022b55fe2b7a731aa96a1cd1d18f6 # dirty=false
+# tree=d7626281cf9022b55fe2b7a731aa96a1cd1d18f6
 BUILD_CMD=cd frontend-pc && npm run build
 PC_BUILD=0
 BUILD_TAIL: - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-BUILD_TAIL: ✓ built in 24.47s
-BUILD_TAIL: [heavy-lock] released scope=host slot=0 rc=0 at_ms=1795847741871 hold_ms=25905
+BUILD_TAIL: ✓ built in 32.17s
+BUILD_TAIL: [heavy-lock] released scope=host slot=0 rc=0 at_ms=1795882237610 hold_ms=34450
 LINT_CMD=cd frontend-pc && npx eslint src/pages/MerchantManagement.jsx src/pages/admin/transit/TransitCenter.jsx
 LINT_EXIT=0
-LINT_TAIL:   41:6  warning  React Hook useEffect has a missing dependency: 'fetchMerchants'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+LINT_TAIL:   45:6  warning  React Hook useEffect has a missing dependency: 'fetchMerchants'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
 LINT_TAIL: 
 LINT_TAIL: ✖ 2 problems (0 errors, 2 warnings)
 LINT_TAIL: 
-LINT_TAIL: [heavy-lock] released scope=host slot=0 rc=0 at_ms=1795847744550 hold_ms=2519
+LINT_TAIL: [heavy-lock] released scope=host slot=0 rc=0 at_ms=1795882615828 hold_ms=3523

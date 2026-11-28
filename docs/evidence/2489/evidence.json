@@ -1,15 +1,15 @@
 {
   "schema_version": 1,
   "issue": 2489,
-  "build": "1.0.b85169cda",
-  "commit": "b85169cda9b202a5ac4945d28c80398964fc8226",
+  "build": "1.0.d7626281c",
+  "commit": "d7626281cf9022b55fe2b7a731aa96a1cd1d18f6",
   "dirty": false,
-  "plan_sha256": "4f0aa71b1a54e48b031e67037f35a124de76ef0e3aaf1cc8b20a170fb7be73e4",
+  "plan_sha256": "c9efd0970fa7b80cbc7d67aae34256a7b43e7fae3c00e18a015cfff7bc05e65d",
   "gate": {
-    "plan_sha256": "4f0aa71b1a54e48b031e67037f35a124de76ef0e3aaf1cc8b20a170fb7be73e4"
+    "plan_sha256": "c9efd0970fa7b80cbc7d67aae34256a7b43e7fae3c00e18a015cfff7bc05e65d"
   },
   "tooling_commit": "c00d84454cc7589086f25ef3a871be1d00a12644",
-  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2489 (issue-2489, base origin/develop incl. #2480/#2563); frontend-pc static branch scan + npm run build + eslint + node transport assertions; no browser/real backend",
+  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2489 (issue-2489, base origin/develop incl. #2480/#2563); frontend-pc static branch scan + page-level success invariant + npm run build + eslint + node transport assertions; no browser/real backend",
   "rows": [
     {
       "id": "R1",
@@ -19,10 +19,10 @@
         "docs/evidence/2489/R1-inventory.txt"
       ],
       "assert": "exit 0；grep UNCLASSIFIED=0、READONLY=1",
-      "actual": "SCAN_ROWS=30、UNCLASSIFIED=0、KEEP_ROWS=6、BUSINESS_FALLBACK_ROWS=6、RESIDUAL_ROWS=0；READONLY=1、DB_WRITES=0、WINDOW_HEURISTIC=0（按 if/else/catch 分支块归类，无固定行窗口）；PAGE_KEEP_ROWS: PermissionManage=3 / MerchantPricingConfig=1 / TransitCenter=0 / MembershipLevelsPage=2 / MerchantManagement=0",
+      "actual": "SCAN_ROWS=32、UNCLASSIFIED=0、KEEP_ROWS=6、BUSINESS_FALLBACK_ROWS=7、RESIDUAL_ROWS=0；READONLY=1、DB_WRITES=0、WINDOW_HEURISTIC=0（按 if/else/catch 分支块归类，无固定行窗口）；PAGE_KEEP_ROWS: PermissionManage=3 / MerchantPricingConfig=1 / TransitCenter=0 / MembershipLevelsPage=2 / MerchantManagement=0；MerchantManagement.jsx:115 与 :129 的 reason 现按真实契约写 delete conflict: 40400 not found / 40002 active sites or unfinished orders → list toast 30s (Rev.9 D9 exception)",
       "expected": "PASS",
       "negative": "未分类 → FAIL",
-      "negative_result": "修复前扫描器用 12 行窗口近似，会把相邻分支/删除分支误并到本行；改为分支块回溯后 UNCLASSIFIED=0、WINDOW_HEURISTIC=0，且每行都带 branch + reason。",
+      "negative_result": "修复前该两条 delete 分支被归为 keep:instant / catch-all（network / unknown / permission），未反映 40400/40002 真实契约；本轮改为 delete 专属 reason，并把「列表视图 30 秒 toast」写成例外决策（R6 用 LIST_TOAST_SECONDS=30 反向锁死）。",
       "pass": true
     },
     {
@@ -88,11 +88,11 @@
       "artifacts": [
         "docs/evidence/2489/R6-merchant.txt"
       ],
-      "assert": "exit 0；grep PERSIST_ALERT=1、THEME_2459=1",
-      "actual": "PERSIST_ALERT=1、CODE_FIRST=1（UNGUARDED_SITES=0）、THEME_2459=1（注释引用 #2459、LOCAL_CODE_WHITELIST=0）、NO_FALSE_SUCCESS=1（handleSubmit guard 行 141 < 成功行 150，仅 1 个成功出口）、SETTLEMENT_NO_FALSE_SUCCESS=1（saveSettlement guard=141 < success=150，SETTLEMENT_SUCCESS_COUNT=1）、SETTLEMENT_ERR_DIRECT=1（catch 直接判 isBusinessCorrectableConflict(err)）、ERR_RESPONSE_USES=0、CLEAR_ON_EDIT=1（CLEAR_ON_EDIT_FORMS=2：主表单 + 分账表单）、DEFER_2459=1（改名沿用后端 409 语义，本单不自写白名单）",
+      "assert": "exit 0；含 UNGUARDED_SUCCESS_PATHS=0、DELETE_GUARD_LINE<DELETE_SUCCESS_LINE、DELETE_NO_FALSE_SUCCESS=1、PERSIST_ALERT=1、LIST_TOAST_SECONDS=30",
+      "actual": "PERSIST_ALERT=1、CODE_FIRST=1（UNGUARDED_SITES=0）、THEME_2459=1（LOCAL_CODE_WHITELIST=0）、NO_FALSE_SUCCESS=1（handleSubmit guard=189 < success=198，1 个成功出口）、SETTLEMENT_NO_FALSE_SUCCESS=1（guard=157 < success=166）、SETTLEMENT_ERR_DIRECT=1、ERR_RESPONSE_USES=0、CLEAR_ON_EDIT=1；Rev.9 页面级不变量：SUCCESS_PATHS=15、UNGUARDED_SUCCESS_PATHS=0（5 文件全部 await api.* → message.success 路径均有 code 守卫，逐路径 PATH 行见 artifact）；DELETE_GUARD_LINE=114 < DELETE_SUCCESS_LINE=121、DELETE_SUCCESS_COUNT=1、DELETE_NO_FALSE_SUCCESS=1、DELETE_ERR_SITES=2 / DELETE_TOAST_SITES=2、LIST_TOAST_SECONDS=30",
       "expected": "PASS",
       "negative": "自写白名单 → FAIL",
-      "negative_result": "红绿实证（Round 9 失败项 1/2）：旧版 `saveSettlement` 的守卫扫描为 guard=0 / success=139（成功提示在无守卫下可达），`err.response` 计数 3，`onValuesChange` 计数 0 → SETTLEMENT_NO_FALSE_SUCCESS=0、ERR_RESPONSE_USES≠0、CLEAR_ON_EDIT=0；修复版四项翻转为 1/0/1。",
+      "negative_result": "红绿实证（Rev.9 R6 页面级不变量，同一 HANDLE_DELETE 路径）：红 = 修复前（HEAD 版 handleDelete 丢弃 api.delete 返回值）UNGUARDED_SUCCESS_PATHS=1、PATH pages/MerchantManagement.jsx:handleDelete guard_line=0 success_line=108、DELETE_NO_FALSE_SUCCESS=0、LIST_TOAST_SECONDS=0；绿 = 修复后（fix d7626281c）UNGUARDED_SUCCESS_PATHS=0、guard_line=114 < success_line=121、DELETE_NO_FALSE_SUCCESS=1、LIST_TOAST_SECONDS=30。既有负例（Round 9）：旧 saveSettlement guard=0 / err.response 计数 3 / onValuesChange 0 → 三项翻转。",
       "pass": true
     },
     {

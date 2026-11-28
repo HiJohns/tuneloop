@@ -1,43 +1,75 @@
-# build=1.0.b85169cda # commit=b85169cda9b202a5ac4945d28c80398964fc8226 # dirty=false
-# tree=b85169cda9b202a5ac4945d28c80398964fc8226
+# build=1.0.d7626281c # commit=d7626281cf9022b55fe2b7a731aa96a1cd1d18f6 # dirty=false
+# tree=d7626281cf9022b55fe2b7a731aa96a1cd1d18f6
 PAGE=pages/MerchantManagement.jsx
-SHARED_USES=18
+SHARED_USES=20
 PERSIST_ALERT=1
-CONFLICT_TEXT_SITES=4
+CONFLICT_TEXT_SITES=6
 UNGUARDED_SITES=0
 CODE_FIRST=1
 THEME_2459_REF=3
 LOCAL_CODE_WHITELIST=0
 THEME_2459=1
-HANDLE_SUBMIT_GUARD_LINE=173
-HANDLE_SUBMIT_SUCCESS_LINE=182
+HANDLE_SUBMIT_GUARD_LINE=189
+HANDLE_SUBMIT_SUCCESS_LINE=198
 HANDLE_SUBMIT_SUCCESS_COUNT=1
 NO_FALSE_SUCCESS=1
-SETTLEMENT_GUARD_LINE=141
-SETTLEMENT_SUCCESS_LINE=150
+SETTLEMENT_GUARD_LINE=157
+SETTLEMENT_SUCCESS_LINE=166
 SETTLEMENT_SUCCESS_COUNT=1
 SETTLEMENT_NO_FALSE_SUCCESS=1
 SETTLEMENT_ERR_DIRECT=1
 ERR_RESPONSE_USES=0
 CLEAR_ON_EDIT_FORMS=2
 CLEAR_ON_EDIT=1
+DELETE_GUARD_LINE=114
+DELETE_SUCCESS_LINE=121
+DELETE_SUCCESS_COUNT=1
+DELETE_ERR_SITES=2
+DELETE_TOAST_SITES=2
+DELETE_NO_FALSE_SUCCESS=1
+LIST_TOAST_SECONDS=30
+--- success paths ---
+PATH pages/admin/PermissionManage/index.jsx:onSave@135 guard_line=143 success_line=144
+PATH pages/admin/PermissionManage/index.jsx:handleDelete guard_line=244 success_line=245
+PATH pages/admin/PermissionManage/index.jsx:onSave@298 guard_line=307 success_line=308
+PATH pages/admin/pricing/MerchantPricingConfig.jsx:handleSave guard_line=116 success_line=117
+PATH pages/admin/transit/TransitCenter.jsx:handleSiteSubmit guard_line=79 success_line=87
+PATH pages/admin/transit/TransitCenter.jsx:handleSiteSubmit guard_line=90 success_line=98
+PATH pages/admin/transit/TransitCenter.jsx:handleDeactivate guard_line=107 success_line=107
+PATH pages/admin/transit/TransitCenter.jsx:handleRouteCreate guard_line=120 success_line=121
+PATH pages/admin/transit/TransitCenter.jsx:handleRouteDelete guard_line=135 success_line=135
+PATH pages/System/MembershipLevelsPage.jsx:saveBenefits guard_line=42 success_line=43
+PATH pages/System/MembershipLevelsPage.jsx:handleSave guard_line=55 success_line=56
+PATH pages/System/MembershipLevelsPage.jsx:onOk@68 guard_line=70 success_line=70
+PATH pages/MerchantManagement.jsx:handleDelete guard_line=114 success_line=121
+PATH pages/MerchantManagement.jsx:saveSettlement guard_line=157 success_line=166
+PATH pages/MerchantManagement.jsx:handleSubmit guard_line=189 success_line=198
+SUCCESS_PATHS=15
+UNGUARDED_SUCCESS_PATHS=0
 DEFER_2459=1
 --- wiring ---
 WIRE 8:import FormConflictAlert from '../components/FormConflictAlert';
-WIRE 35:  // 409 语义由后端（#2459 IAM 优先 + namespace 唯一）决定，本页只消费共享判定，不自写 code 白名单。
-WIRE 141:      if (resp && resp.code !== 20000) {
-WIRE 142:        if (isBusinessCorrectableConflict(resp)) {
-WIRE 143:          setSettlementConflict(conflictText(resp, '保存失败，请调整后重试'))
-WIRE 155:      if (isBusinessCorrectableConflict(err)) {
-WIRE 157:        setSettlementConflict(conflictText(err, '保存失败，请调整后重试'))
-WIRE 173:      if (resp && resp.code !== 20000) {
-WIRE 174:        if (isBusinessCorrectableConflict(resp)) {
-WIRE 175:          // #2489：商户重名等 409 业务冲突改为表单内持久提示（语义以 #2459 为准）。
-WIRE 176:          setFormConflict(conflictText(resp, '操作失败，请调整后重试'))
-WIRE 189:      if (isBusinessCorrectableConflict(error)) {
-WIRE 190:        // #2489：商户重名等 409 业务冲突改为表单内持久提示（语义以 #2459 为准）。
-WIRE 191:        setFormConflict(conflictText(error, '操作失败，请调整后重试'))
-WIRE 311:                onValuesChange={() => { if (settlementConflict) setSettlementConflict(''); }}
-WIRE 313:                <FormConflictAlert text={settlementConflict} testId="merchant-settlement-conflict" />
-WIRE 368:        onValuesChange={() => { if (formConflict) setFormConflict(''); }}
-WIRE 370:        <FormConflictAlert text={formConflict} testId="merchant-form-conflict" />
+WIRE 12:// 用停留 30 秒的 toast 呈现；表单/弹窗仍用 FormConflictAlert 常驻。
+WIRE 13:const LIST_TOAST_SECONDS = 30;
+WIRE 39:  // 409 语义由后端（#2459 IAM 优先 + namespace 唯一）决定，本页只消费共享判定，不自写 code 白名单。
+WIRE 114:      if (resp && resp.code !== 20000) {
+WIRE 116:          isBusinessCorrectableConflict(resp) ? conflictText(resp, '删除商户失败') : (resp.message || '删除商户失败'),
+WIRE 117:          LIST_TOAST_SECONDS,
+WIRE 130:        isBusinessCorrectableConflict(error) ? conflictText(error, '删除商户失败') : (error?.message || '删除商户失败'),
+WIRE 131:        LIST_TOAST_SECONDS,
+WIRE 157:      if (resp && resp.code !== 20000) {
+WIRE 158:        if (isBusinessCorrectableConflict(resp)) {
+WIRE 159:          setSettlementConflict(conflictText(resp, '保存失败，请调整后重试'))
+WIRE 171:      if (isBusinessCorrectableConflict(err)) {
+WIRE 173:        setSettlementConflict(conflictText(err, '保存失败，请调整后重试'))
+WIRE 189:      if (resp && resp.code !== 20000) {
+WIRE 190:        if (isBusinessCorrectableConflict(resp)) {
+WIRE 191:          // #2489：商户重名等 409 业务冲突改为表单内持久提示（语义以 #2459 为准）。
+WIRE 192:          setFormConflict(conflictText(resp, '操作失败，请调整后重试'))
+WIRE 205:      if (isBusinessCorrectableConflict(error)) {
+WIRE 206:        // #2489：商户重名等 409 业务冲突改为表单内持久提示（语义以 #2459 为准）。
+WIRE 207:        setFormConflict(conflictText(error, '操作失败，请调整后重试'))
+WIRE 327:                onValuesChange={() => { if (settlementConflict) setSettlementConflict(''); }}
+WIRE 329:                <FormConflictAlert text={settlementConflict} testId="merchant-settlement-conflict" />
+WIRE 384:        onValuesChange={() => { if (formConflict) setFormConflict(''); }}
+WIRE 386:        <FormConflictAlert text={formConflict} testId="merchant-form-conflict" />

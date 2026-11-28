@@ -1,10 +1,10 @@
-# build=1.0.b85169cda # commit=b85169cda9b202a5ac4945d28c80398964fc8226 # dirty=false
-# tree=b85169cda9b202a5ac4945d28c80398964fc8226
+# build=1.0.d7626281c # commit=d7626281cf9022b55fe2b7a731aa96a1cd1d18f6 # dirty=false
+# tree=d7626281cf9022b55fe2b7a731aa96a1cd1d18f6
 PAGE=frontend-pc/src/pages/admin/PermissionManage/index.jsx shared_uses=0
 PAGE=frontend-pc/src/pages/admin/pricing/MerchantPricingConfig.jsx shared_uses=0
 PAGE=frontend-pc/src/pages/admin/transit/TransitCenter.jsx shared_uses=18
 PAGE=frontend-pc/src/pages/System/MembershipLevelsPage.jsx shared_uses=0
-PAGE=frontend-pc/src/pages/MerchantManagement.jsx shared_uses=18
+PAGE=frontend-pc/src/pages/MerchantManagement.jsx shared_uses=20
 SHARED_REUSE=2
 KEEP_PAGES_NO_ALERT=3
 LOCAL_ALERT_DUP=0
