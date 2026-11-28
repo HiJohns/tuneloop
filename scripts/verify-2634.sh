@@ -72,15 +72,16 @@ case "$MODE" in
     else
       OPEN_DEF="$(printf '%s\n' "$PRE_PAGE" | grep -c 'handleOpenScanner' || true)"
       OPEN_CALLERS=$((OPEN_DEF > 0 ? OPEN_DEF - 1 : 0))
+      # 注意：用 herestring 而非 `printf | grep -q`（pipefail 下 SIGPIPE 会让管道非 0）。
       ENTRY_BUTTON=0
-      printf '%s\n' "$PRE_PAGE" | grep -q 'onClick={handleOpenScanner}' && ENTRY_BUTTON=1
+      grep -q 'onClick={handleOpenScanner}' <<< "$PRE_PAGE" && ENTRY_BUTTON=1
       INPUT_BOUND=0
-      printf '%s\n' "$PRE_PAGE" | grep -q 'value={scanCode}' && INPUT_BOUND=1
+      grep -q 'value={scanCode}' <<< "$PRE_PAGE" && INPUT_BOUND=1
       QR_COMMENTED=0
-      printf '%s\n' "$PRE_PAGE" | grep -qE "^// import QrScanner" && QR_COMMENTED=1
-      QR_NEW="$(printf '%s\n' "$PRE_PAGE" | grep -c 'new QrScanner(' || true)"
+      grep -qE '^// import QrScanner' <<< "$PRE_PAGE" && QR_COMMENTED=1
+      QR_NEW="$(grep -c 'new QrScanner(' <<< "$PRE_PAGE" || true)"
       MANUAL_HINT=0
-      printf '%s\n' "$PRE_PAGE" | grep -q '暂不支持自动识别' && MANUAL_HINT=1
+      grep -q '暂不支持自动识别' <<< "$PRE_PAGE" && MANUAL_HINT=1
       emit "PRE_REF=$PRE_REF"
       emit "PRE_PAGE_HEADER=$PAGE"
       emit "PRE_OPEN_SCANNER_CALLERS=$OPEN_CALLERS"
