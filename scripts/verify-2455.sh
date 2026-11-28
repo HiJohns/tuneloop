@@ -316,6 +316,10 @@ GO
 
 row_r10() {
   local artifact="$EDIR/R10-gate.txt" services_db="$SERVICES_DB" rc=0
+  # 一次性 scratch 库完全由本脚本从模板克隆（脚本尾部会 drop）。上一次 run 中断
+  # 会留下同名库，使 CREATE DATABASE 直接失败（42P04）→ R10 变成不可重跑。
+  # 先 drop 残留保证幂等；不触碰任何业务库。
+  dbprov drop "$services_db" >/dev/null 2>&1 || true
   dbprov create "$services_db" "$SERVICES_TEMPLATE" || {
     echo "FATAL: could not provision $services_db from $SERVICES_TEMPLATE" >&2
     return 1
