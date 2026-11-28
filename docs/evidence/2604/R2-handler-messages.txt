@@ -1,5 +1,5 @@
 # build=1.0.d9a6f2156 # commit=d9a6f215678d8959abda558c463331e228e26308 # dirty=false
-GENERATED_AT_HEAD=d9a6f215678d8959abda558c463331e228e26308
+GENERATED_AT_HEAD=e4b20df8452db2c9824829a565465af50b083bca
 # 25 个绑定点 × 2 用例（损坏体 / 缺必填或类型不符）= 50；handler 直调 + 一次性 PG
 bind_error_2604_test.go:249: BIND2604_CASES_TOTAL=50
 bind_error_2604_test.go:250: BIND2604_CASES_FAIL=0

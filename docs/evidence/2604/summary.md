@@ -105,7 +105,8 @@
 ### Pre-ready gate
 
 - 命令：`~/.config/opencode/scripts/pre-ready-check.sh 2604 --summary-file docs/evidence/2604/summary.md --changed-files docs/evidence/2604/changed-files.txt --evidence-file docs/evidence/2604/evidence.json --affected-cmd "bash scripts/verify-2604.sh r2" --report docs/evidence/2604/pre-ready-2604.json`
-- 结果：见下方 gate 报告行（`RESULT: PASS` 才置 ready）。
+- 结果：`RESULT: PASS`（overall=PASS）。P1/P2/P3/P4/P6/P11/P12/P13/P14/P17/P18 PASS；P5 N/A（仓库根无 go.mod/package.json，`go build ./...` 与全包编译冒烟见 R4）；P7/P8/P9/P10/P15/P16 N/A。
+- 关键输出：`P12 PASS Evidence Contract complete: 5 row(s)`、`P14 PASS artifact provenance matches evidence (5 artifacts)`、`P13 PASS fix commit and evidence artifacts are on origin/issue-2604`、`P17 PASS plan snapshot and Accepted Plan comment match the gated plan`、`P18 PASS tooling_commit matches the running scripts`。
 - 报告：docs/evidence/2604/pre-ready-2604.json
 
 *Model: deepseek/deepseek-flash*
