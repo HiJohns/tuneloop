@@ -6,6 +6,6 @@
     site_name_2477_test.go:199: LOCAL_NAME_TRIMMED=1
     site_name_2477_test.go:200: NAMES_EQUAL=1
     site_name_2477_test.go:201: IAM_CALLS=1
---- PASS: TestCreateSiteNormalizedName2477 (0.79s)
+--- PASS: TestCreateSiteNormalizedName2477 (0.82s)
 PASS
-ok  	tuneloop-backend/handlers	1.560s
+ok  	tuneloop-backend/handlers	1.847s

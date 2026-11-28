@@ -11,4 +11,4 @@
     site_name_2477_test.go:160: GREEN_NORMALIZED_SAME=1
 --- PASS: TestTrimSpaceMissesWhitespaceVariants2477 (0.00s)
 PASS
-ok  	tuneloop-backend/handlers	0.705s
+ok  	tuneloop-backend/handlers	1.321s

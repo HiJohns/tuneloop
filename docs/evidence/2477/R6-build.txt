@@ -1,7 +1,7 @@
 # build=1.0.a4007fd72 # commit=a4007fd727c5649e89003d2ac3209eb36efe22ed # dirty=false
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 at_ms=1795879621187 wait_ms=35
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 wait_ms=35
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795879631594 hold_ms=10407
+[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 at_ms=1795880187358 wait_ms=18740
+[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 wait_ms=18740
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795880201420 hold_ms=14062
 GO_BUILD_OK=1
 GOFMT_FILES=0
 GOFMT_DIFF=0
