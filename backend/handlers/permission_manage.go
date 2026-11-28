@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
 	"gorm.io/gorm"
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
@@ -116,7 +117,7 @@ func (h *PermissionManageHandler) SetUserPermissions(c *gin.Context) {
 
 	var req setUserPermReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40000, "message": "invalid request: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40000, "message": bindmsg.Message(err)})
 		return
 	}
 
@@ -165,7 +166,7 @@ func (h *PermissionManageHandler) SetUserRole(c *gin.Context) {
 
 	var req setUserRoleReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40000, "message": "invalid request: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40000, "message": bindmsg.Message(err)})
 		return
 	}
 	log.Printf("[SetUserRole] request body: role_code=%s", req.RoleCode)

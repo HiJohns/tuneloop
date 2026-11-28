@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
 	"gorm.io/gorm"
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/services"
 )
@@ -122,7 +123,7 @@ func (h *RoleManageHandler) CreateRole(c *gin.Context) {
 
 	var req createRoleReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40000, "message": "invalid request: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40000, "message": bindmsg.Message(err, bindmsg.ScopeRole)})
 		return
 	}
 
@@ -173,7 +174,7 @@ func (h *RoleManageHandler) UpdateRole(c *gin.Context) {
 
 	var req updateRoleReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40000, "message": "invalid request: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40000, "message": bindmsg.Message(err, bindmsg.ScopeRole)})
 		return
 	}
 

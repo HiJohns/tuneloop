@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -300,7 +301,7 @@ func UpsertSettlementConfig(c *gin.Context) {
 		IsEnabled        *bool   `json:"is_enabled"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": bindmsg.Message(err)})
 		return
 	}
 

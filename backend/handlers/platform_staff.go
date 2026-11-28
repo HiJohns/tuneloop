@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -142,7 +143,7 @@ func (h *PlatformStaffHandler) Create(c *gin.Context) {
 		ForcePasswordChange bool   `json:"force_password_change"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": bindmsg.Message(err, bindmsg.ScopePerson)})
 		return
 	}
 

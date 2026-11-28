@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -74,7 +75,7 @@ func (h *GuarantorHandler) CreateGuarantor(c *gin.Context) {
 		OtherCertPhoto string `json:"other_cert_photo" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": bindmsg.Message(err, bindmsg.ScopePerson)})
 		return
 	}
 
@@ -141,7 +142,7 @@ func (h *GuarantorHandler) OCRIDCard(c *gin.Context) {
 		Side       string `json:"side" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": bindmsg.Message(err)})
 		return
 	}
 

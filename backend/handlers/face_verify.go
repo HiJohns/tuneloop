@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"time"
 
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -43,7 +44,7 @@ func (h *FaceVerifyHandler) Token(c *gin.Context) {
 
 	var req faceVerifyTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "invalid request: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": bindmsg.Message(err, bindmsg.ScopePerson)})
 		return
 	}
 	if !idCardRegex.MatchString(req.IdCardNo) {
@@ -102,7 +103,7 @@ func (h *FaceVerifyHandler) Result(c *gin.Context) {
 
 	var req faceVerifyResultRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "invalid request: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": bindmsg.Message(err)})
 		return
 	}
 

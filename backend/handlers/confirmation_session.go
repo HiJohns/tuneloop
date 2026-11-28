@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"time"
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -41,7 +42,7 @@ func (h *ConfirmationSessionHandler) Create(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40001,
-			"message": "invalid request: " + err.Error(),
+			"message": bindmsg.Message(err),
 		})
 		return
 	}

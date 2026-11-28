@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
 
@@ -130,7 +131,7 @@ func (h *RegistrationSessionHandler) CreateRegistrationSession(c *gin.Context) {
 		AgreedTerms      bool                   `json:"agreed_terms"`        // #1923: 协议同意（必填）
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": bindmsg.Message(err, bindmsg.ScopePerson)})
 		return
 	}
 
@@ -388,7 +389,7 @@ func (h *RegistrationSessionHandler) RebindRegistrationSession(c *gin.Context) {
 		WxCode string `json:"wx_code"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": bindmsg.Message(err)})
 		return
 	}
 	if req.WxCode == "" {

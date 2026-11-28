@@ -7,6 +7,7 @@ import (
 	"net/mail"
 	"strings"
 
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -68,7 +69,7 @@ func UpdateSMTPConfig(c *gin.Context) {
 	}
 	var rec services.SMTPConfigRecord
 	if err := c.ShouldBindJSON(&rec); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": bindmsg.Message(err)})
 		return
 	}
 	if rec.From != "" {

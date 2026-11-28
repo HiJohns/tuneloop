@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
@@ -33,7 +34,7 @@ func (h *UserManagementHandler) UpdateIdCard(c *gin.Context) {
 		IdCardAddress   *string `json:"id_card_address"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": bindmsg.Message(err)})
 		return
 	}
 
