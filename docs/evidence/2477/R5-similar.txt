@@ -1,0 +1,15 @@
+# build=1.0.a4007fd72 # commit=a4007fd727c5649e89003d2ac3209eb36efe22ed # dirty=false
+READONLY=1
+TOTAL_ROWS=5
+COLLIDING_GROUPS=1
+COLLIDING_ROWS=3
+GROUP tenant=tenant-a key='测试网点 A' count=3
+  ROW id=- name='测试网点  A'
+  ROW id=- name='测试网点 A'
+  ROW id=- name='测试网点\u3000A'
+READONLY=1
+TOTAL_ROWS=3
+COLLIDING_GROUPS=0
+COLLIDING_ROWS=0
+NO_COLLISION=1
+NEGATIVE_NO_COLLISION=1

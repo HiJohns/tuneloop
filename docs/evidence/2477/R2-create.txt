@@ -1,0 +1,11 @@
+# build=1.0.a4007fd72 # commit=a4007fd727c5649e89003d2ac3209eb36efe22ed # dirty=false
+=== RUN   TestCreateSiteNormalizedName2477
+    site_name_2477_test.go:196: IAM_NAME=海淀 店
+    site_name_2477_test.go:197: LOCAL_NAME=海淀 店
+    site_name_2477_test.go:198: IAM_NAME_TRIMMED=1
+    site_name_2477_test.go:199: LOCAL_NAME_TRIMMED=1
+    site_name_2477_test.go:200: NAMES_EQUAL=1
+    site_name_2477_test.go:201: IAM_CALLS=1
+--- PASS: TestCreateSiteNormalizedName2477 (0.79s)
+PASS
+ok  	tuneloop-backend/handlers	1.560s

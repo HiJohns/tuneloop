@@ -1,0 +1,13 @@
+# build=1.0.a4007fd72 # commit=a4007fd727c5649e89003d2ac3209eb36efe22ed # dirty=false
+=== RUN   TestUpdateSiteNormalizedNoop2477
+    site_name_2477_test.go:264: LOCAL_NAME=海淀 店
+    site_name_2477_test.go:265: NAMES_EQUAL=1
+    site_name_2477_test.go:266: IAM_CALLS=0
+--- PASS: TestUpdateSiteNormalizedNoop2477 (0.77s)
+=== RUN   TestUpdateSiteNormalizedRename2477
+    site_name_2477_test.go:292: RENAME_IAM_NAME=新 店
+    site_name_2477_test.go:293: RENAME_LOCAL_NAME=新 店
+    site_name_2477_test.go:294: RENAME_IAM_CALLS=1
+--- PASS: TestUpdateSiteNormalizedRename2477 (0.64s)
+PASS
+ok  	tuneloop-backend/handlers	1.982s

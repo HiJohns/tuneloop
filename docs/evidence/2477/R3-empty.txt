@@ -1,0 +1,9 @@
+# build=1.0.a4007fd72 # commit=a4007fd727c5649e89003d2ac3209eb36efe22ed # dirty=false
+=== RUN   TestCreateSiteEmptyName2477
+    site_name_2477_test.go:235: HTTP=400
+    site_name_2477_test.go:236: CODE=40002
+    site_name_2477_test.go:237: MSG_ZH=1
+    site_name_2477_test.go:238: IAM_CALLS=0
+--- PASS: TestCreateSiteEmptyName2477 (0.78s)
+PASS
+ok  	tuneloop-backend/handlers	1.357s

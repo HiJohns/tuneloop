@@ -1,0 +1,14 @@
+# build=1.0.a4007fd72 # commit=a4007fd727c5649e89003d2ac3209eb36efe22ed # dirty=false
+=== RUN   TestNormalizeSiteName2477
+    site_name_2477_test.go:140: NORM_TRIM=1
+    site_name_2477_test.go:141: NORM_FULLWIDTH=1
+    site_name_2477_test.go:142: NORM_TAB=1
+    site_name_2477_test.go:143: NORM_EMPTY=1
+    site_name_2477_test.go:144: NORM_CASE_KEPT=1
+--- PASS: TestNormalizeSiteName2477 (0.00s)
+=== RUN   TestTrimSpaceMissesWhitespaceVariants2477
+    site_name_2477_test.go:159: RED_OLD_TRIMSPACE_DISTINCT=1
+    site_name_2477_test.go:160: GREEN_NORMALIZED_SAME=1
+--- PASS: TestTrimSpaceMissesWhitespaceVariants2477 (0.00s)
+PASS
+ok  	tuneloop-backend/handlers	0.705s

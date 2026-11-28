@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "issue": 2477,
+  "build": "1.0.a4007fd72",
+  "commit": "a4007fd727c5649e89003d2ac3209eb36efe22ed",
+  "dirty": false,
+  "plan_sha256": "4a5536cae8cd8f0944bc7bc260036e017c9b14ab4915b3ba63a619b5451a85fa",
+  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2477 (branch issue-2477, base origin/develop af7eacdc4); Postgres test DB 127.0.0.1:15433/tuneloop_test_local (local tuneloop cluster, #2341 template+clone); fake IAM via httptest (services.SetIAMInternalURLForTesting); go1.25.0; heavy-run host lock for go build / go test",
+  "tooling_commit": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2477.sh r1",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2477/R1-normalize.txt"
+      ],
+      "assert": "exit 0；含 NORM_TRIM=1、NORM_FULLWIDTH=1、NORM_TAB=1、NORM_EMPTY=1、NORM_CASE_KEPT=1、RED_OLD_TRIMSPACE_DISTINCT=1、GREEN_NORMALIZED_SAME=1",
+      "actual": "PASS：NormalizeSiteName 对 \" 海淀店 \"→\"海淀店\"、\"海淀\\u3000\\u3000店\"→\"海淀 店\"、\"海淀\\t店\"→\"海淀 店\"、\"   \"→\"\"、大小写原样保留；红绿样本 RED_OLD_TRIMSPACE_DISTINCT=1（旧 TrimSpace 口径下两串不同）→ GREEN_NORMALIZED_SAME=1（归一化后同串）",
+      "expected": "PASS",
+      "negative": "任一规则缺失、或误做大小写折叠 → FAIL",
+      "negative_result": "红格真实成立：修复前口径 strings.TrimSpace(\"测试网点\\u3000A\") 与 strings.TrimSpace(\"测试网点 A\") 不相等（断言 NotEqual 通过即证明缺陷存在）；若实现改成折叠大小写，NORM_CASE_KEPT 用例的 \"haidian\" 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2477.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2477/R2-create.txt"
+      ],
+      "assert": "exit 0；含 IAM_NAME_TRIMMED=1、LOCAL_NAME_TRIMMED=1、NAMES_EQUAL=1、IAM_CALLS=1",
+      "actual": "PASS：POST /api/merchant/sites {\"name\":\"  海淀\\u3000店  \"} → 201；IAM_NAME=\"海淀 店\"、LOCAL_NAME=\"海淀 店\"、NAMES_EQUAL=1、IAM_CALLS=1",
+      "expected": "PASS",
+      "negative": "本地/IAM 名字不一致，或出现本地预检（IAM_CALLS=0）→ FAIL",
+      "negative_result": "若 CreateSite 仍原样写 req.Name，IAM_NAME 会保留 U+3000 与首尾空格 → IAM_NAME_TRIMMED=0；若加入本地预检，IAM_CALLS 会变成 0 → 断言失败（裁 B 禁止本地预检）",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2477.sh r3",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2477/R3-empty.txt"
+      ],
+      "assert": "exit 0；含 HTTP=400、CODE=40002、MSG_ZH=1、IAM_CALLS=0",
+      "actual": "PASS：POST /api/merchant/sites {\"name\":\"\\u3000  \"} → HTTP=400、CODE=40002、MSG_ZH=1、IAM_CALLS=0，且本地 sites 计数为 0",
+      "expected": "PASS",
+      "negative": "调用了 IAM 或返回 500/201 → FAIL",
+      "negative_result": "空名守卫放在 binding 之后、商户锚点解析与 IAM 调用之前：若挪到 IAM 之后，IAM_CALLS 会 >0；若移除守卫，全空白名会走 IAM 建组织（201 或 409），HTTP=400 断言失败",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2477.sh r4",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2477/R4-update.txt"
+      ],
+      "assert": "exit 0；含 IAM_CALLS=0、NAMES_EQUAL=1、RENAME_IAM_NAME=新 店、RENAME_LOCAL_NAME=新 店",
+      "actual": "PASS：既有网点 \"海淀 店\" + PUT {\"name\":\"海淀\\u3000店\"} → 归一化后等于现值，视为未改名，IAM_CALLS=0、本地名保持 \"海淀 店\"；另一例真实改名 PUT {\"name\":\" 新\\u3000店 \"} → IAM body 与本地均为 \"新 店\"、RENAME_IAM_CALLS=1",
+      "expected": "PASS",
+      "negative": "两处不一致、或全角空格变体被当成改名而调用 IAM → FAIL",
+      "negative_result": "若 UpdateSite 仍用 strings.TrimSpace，\"海淀\\u3000店\" 会 ≠ \"海淀 店\" → 触发改名（IAM_CALLS=1）并把本地名覆盖成全角空格变体（NAMES_EQUAL=0），两个断言同时失败",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2477.sh r5",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2477/R5-similar.txt"
+      ],
+      "assert": "exit 0；含 READONLY=1、COLLIDING_GROUPS=1、COLLIDING_ROWS=3、GROUP tenant=tenant-a、NEGATIVE_NO_COLLISION=1",
+      "actual": "PASS：同租户「单个半角空格 / 全角空格 U+3000 / 连续两个半角空格」三种变体折叠为同一 key（key='测试网点 A' count=3）；无空格的「测试网点A」不并入该组；另一租户同名行不报；负例（互不相同名称）输出 NO_COLLISION=1",
+      "expected": "PASS",
+      "negative": "脚本写库、或把互不相同的名称误报为冲突 → FAIL",
+      "negative_result": "负例夹具 测试网点A / 测试网点B / 跨租户同名 → NEGATIVE_NO_COLLISION=1，证明分组未过宽；脚本仅执行 SELECT 与 awk/python 只读处理，无任何写语句",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2477.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2477/R6-build.txt"
+      ],
+      "assert": "exit 0；含 GO_BUILD_OK=1、GOFMT_DIFF=0",
+      "actual": "PASS：backend `go build ./...` 成功（重命令经 heavy-run host 锁）；site.go / site_name_2477.go / site_name_2477_test.go 的 gofmt -l 输出 0 行",
+      "expected": "PASS",
+      "negative": "构建失败或 gofmt 有差异 → FAIL",
+      "negative_result": "任一编译错误会使 go build 非零 → GO_BUILD_OK=0 且 RC=1；gofmt 列出文件时 GOFMT_FILES>0 → GOFMT_DIFF=1",
+      "pass": true
+    }
+  ]
+}
