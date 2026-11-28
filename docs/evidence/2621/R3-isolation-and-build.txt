@@ -1,0 +1,25 @@
+# build=1.0.38e6be443 # commit=38e6be4435e17c6f612b703798d0a02365dd1f16 # dirty=false
+GENERATED_AT_HEAD=38e6be4435e17c6f612b703798d0a02365dd1f16
+# 隔离未放松（他人行仍隐藏 / 域查询仍有租户过滤）+ 构建/编译冒烟 + 残留静态扫描
+ISOLATION_CMD=cd backend && go test ./handlers -run 'TestSelfQueryTenantScope2621/(cross_tenant_scoped|points_balance)$' -count=1 -v
+self_query_tenant_scope_2621_test.go:160: POINTS_BALANCE_HTTP=200
+self_query_tenant_scope_2621_test.go:261: CROSS_TENANT_HIDDEN=1
+self_query_tenant_scope_2621_test.go:273: DOMAIN_QUERY_STILL_SCOPED=1
+ISOLATION_TEST_EXIT=0
+BUILD_CMD=cd backend && go build ./...
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 at_ms=1795842477457 wait_ms=98
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 wait_ms=98
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795842497904 hold_ms=20447
+GO_BUILD_EXIT=0
+TEST_COMPILE_CMD=cd backend && go test ./... -run '^$' -count=1
+?   	tuneloop-backend/testutil	[no test files]
+?   	tuneloop-backend/tools/backfill_transit_site_orgs	[no test files]
+?   	tuneloop-backend/tools/merge_duplicate_accounts	[no test files]
+?   	tuneloop-backend/tools/oss_smoke	[no test files]
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795842513876 hold_ms=15791
+TEST_COMPILE_EXIT=0
+RESIDUAL_SCAN_CMD=grep -rn 'WithContext(ctx).Where("iam_sub' backend --include=*.go | grep -v _test | wc -l
+IDENTITY_CTX_SITES_IAM_GO=3
+RESIDUAL_PLAIN_CTX_SELF_QUERY=0
+--- residual hits (must be empty) ---
+(none)

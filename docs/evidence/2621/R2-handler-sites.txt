@@ -1,0 +1,17 @@
+# build=1.0.38e6be443 # commit=38e6be4435e17c6f612b703798d0a02365dd1f16 # dirty=false
+GENERATED_AT_HEAD=38e6be4435e17c6f612b703798d0a02365dd1f16
+# 9 个直连点 + 共享解析器 + 跨租户负例 = 11 子用例（handler 直调 + 一次性 PG）
+BACKEND_CMD=cd backend && go test ./handlers -run '^TestSelfQueryTenantScope2621$' -count=1 -v
+self_query_tenant_scope_2621_test.go:160: POINTS_BALANCE_HTTP=200
+self_query_tenant_scope_2621_test.go:168: POINTS_TX_HTTP=200
+self_query_tenant_scope_2621_test.go:183: PENDING_ORDER_HTTP=200
+self_query_tenant_scope_2621_test.go:191: FACE_CAPTURE_NOT_404=1
+self_query_tenant_scope_2621_test.go:199: ADDRESSES_HTTP=200
+self_query_tenant_scope_2621_test.go:217: PAY_CALC_NO_USER_ERROR=1
+self_query_tenant_scope_2621_test.go:236: DEPOSIT_WAIVER_NOT_PROFILE_NOT_READY=1
+self_query_tenant_scope_2621_test.go:244: CUSTOMER_ROLE_HTTP=200
+self_query_tenant_scope_2621_test.go:261: CROSS_TENANT_HIDDEN=1
+self_query_tenant_scope_2621_test.go:273: DOMAIN_QUERY_STILL_SCOPED=1
+self_query_tenant_scope_2621_test.go:279: CASES_TOTAL=11
+self_query_tenant_scope_2621_test.go:280: CASES_FAIL=0
+TEST_EXIT=0

@@ -1,0 +1,12 @@
+backend/handlers/customer_role.go
+backend/handlers/deposit_waiver.go
+backend/handlers/face_capture.go
+backend/handlers/gift_policy_test.go
+backend/handlers/payment_calculate.go
+backend/handlers/pending_order.go
+backend/handlers/self_query_tenant_scope_2621_test.go
+backend/handlers/user_address.go
+backend/handlers/user_points.go
+backend/middleware/iam.go
+docs/evidence/2621/plan.md
+scripts/verify-2621.sh

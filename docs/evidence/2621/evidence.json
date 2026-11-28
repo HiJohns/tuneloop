@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "issue": 2621,
+  "build": "1.0.38e6be443",
+  "commit": "38e6be4435e17c6f612b703798d0a02365dd1f16",
+  "dirty": false,
+  "plan_sha256": "07c3eb3caf70daab0c6561d7d558d40d41aff8325552d0c504dcf6c4edaa6e76",
+  "tooling_commit": "c00d84454cc7589086f25ef3a871be1d00a12644",
+  "environment": {
+    "os": "linux",
+    "go": "1.25",
+    "db": "postgres:127.0.0.1:15433"
+  },
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2621.sh r1 > docs/evidence/2621/R1-resolver.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2621/R1-resolver.txt"
+      ],
+      "assert": "exit 0 且含 TEST_EXIT=0 ENSURE_HIT=1 ENSURE_NO_NEW_ROW=1 USERS_ROW_COUNT_DELTA=0 LOCAL_USER_ID_HIT=1",
+      "actual": "PASS：exit 0 / RESULT: PASS (r1)。TEST_EXIT=0、ENSURE_HIT=1、ENSURE_NO_NEW_ROW=1、USERS_ROW_COUNT_DELTA=0、LOCAL_USER_ID_HIT=1（夹具：users.tenant_id=cacheTenant ≠ JWT tid=jwtTenant，TestActor 写 database 键使自动 scope 真实生效）。",
+      "expected": "PASS（5 项 token 全为期望值）",
+      "negative": "返回 error、重复建户、LocalUserID 空 → FAIL",
+      "negative_result": "负例已实测：回退 middleware/iam.go 的三处身份句柄（保留用例）后 ensure_local_user 报 `failed to create user … duplicate key … iam_sub`（shadow user 唯一索引冲突）、local_user_id 返回空串，两个子用例 FAIL；修复后均命中本地行且 users 行数增量为 0。",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2621.sh r2 > docs/evidence/2621/R2-handler-sites.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2621/R2-handler-sites.txt"
+      ],
+      "assert": "exit 0 且含 TEST_EXIT=0 CASES_TOTAL=11 CASES_FAIL=0 POINTS_BALANCE_HTTP=200 POINTS_TX_HTTP=200 PENDING_ORDER_HTTP=200 FACE_CAPTURE_NOT_404=1 ADDRESSES_HTTP=200 PAY_CALC_NO_USER_ERROR=1 DEPOSIT_WAIVER_NOT_PROFILE_NOT_READY=1 CUSTOMER_ROLE_HTTP=200",
+      "actual": "PASS：exit 0 / RESULT: PASS (r2)。TEST_EXIT=0、CASES_TOTAL=11、CASES_FAIL=0、POINTS_BALANCE_HTTP=200、POINTS_TX_HTTP=200、PENDING_ORDER_HTTP=200（读取入口 ListPendingOrders；写入入口 CreatePendingOrder 保持 201 = PENDING_ORDER_CREATE_HTTP=201）、FACE_CAPTURE_NOT_404=1、ADDRESSES_HTTP=200、PAY_CALC_NO_USER_ERROR=1、DEPOSIT_WAIVER_NOT_PROFILE_NOT_READY=1、CUSTOMER_ROLE_HTTP=200。",
+      "expected": "PASS（11 项 token 全为期望值）",
+      "negative": "任一端点仍 404/500/误报、用例数 <11 → FAIL",
+      "negative_result": "负例已实测：回退 8 个实现文件（保留用例）后 10/11 子用例 FAIL —— points/transactions/pending/face_capture 404、addresses 500（建 shadow 冲突）、pay_calculate `record not found`、deposit_waiver 误报 profile_not_ready、customer_role 404 用户不存在；修复后 11/11 PASS。",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2621.sh r3 > docs/evidence/2621/R3-isolation-and-build.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2621/R3-isolation-and-build.txt"
+      ],
+      "assert": "exit 0 且含 CROSS_TENANT_HIDDEN=1 DOMAIN_QUERY_STILL_SCOPED=1 GO_BUILD_EXIT=0 TEST_COMPILE_EXIT=0 RESIDUAL_PLAIN_CTX_SELF_QUERY=0",
+      "actual": "PASS：exit 0 / RESULT: PASS (r3)。CROSS_TENANT_HIDDEN=1（他人 users 行仍 ErrRecordNotFound、Find 只返回 JWT tid 租户行）、DOMAIN_QUERY_STILL_SCOPED=1（pending_orders 域查询仍被租户过滤，对照行经 IdentityCtx 可见）、GO_BUILD_EXIT=0、TEST_COMPILE_EXIT=0（`go test ./... -run '^$'` 全包编译冒烟）、RESIDUAL_PLAIN_CTX_SELF_QUERY=0（另 IDENTITY_CTX_SITES_IAM_GO=3）。",
+      "expected": "PASS（5 项 token 全为期望值）",
+      "negative": "跨租户可见、域查询失去过滤、构建/编译失败、残留自查询 → FAIL",
+      "negative_result": "负例已实测：`cross_tenant_scoped` 断言他人行 `ErrRecordNotFound` 且 `Find` 仅 1 行（jwtTenantUser），并把域查询换成 IdentityCtx 时能读到对照行 → 证明是租户过滤而非行缺失；残留扫描 `grep -rn 'WithContext(ctx).Where(\"iam_sub' backend --include=*.go | grep -v _test` 命中 0。",
+      "pass": true
+    }
+  ]
+}
