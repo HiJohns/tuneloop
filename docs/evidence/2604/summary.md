@@ -3,7 +3,18 @@
 ### Remote
 
 - 分支 `issue-2604`（基线 `083a32c9c` = `origin/develop`）；fix `d9a6f2156` + 证据提交，均 push 到 `origin/issue-2604`。
+- Round 2（审计返工）fix `6b4c078ae`，全部证据在该提交上重生成（`dirty=false`）。
 - `git status --porcelain` 空（证据生成时 `dirty=false`）。
+
+### Round 2（审计返工：Round 1 失败项 1–3）
+
+| 审计项 | 修复 | 同一命令的修复前 → 修复后 |
+|---|---|---|
+| 1 Medium 计划 Input Truth 两条命令在 head 不可复现（1 / 54） | `backend/handlers/bind_error_2604_test.go` 注释拆成两段，不再构成可匹配字面量 | `grep -rn '"invalid request: " + err.Error()' backend/handlers/*.go \| wc -l`：**1 → 0**；`grep -rho 'bindmsg.Message' backend/handlers/*.go \| wc -l`：**54 → 53**（= 计划「修后 0 / 53」） |
+| 2 Medium R1 未执行 `go test ./bindmsg`（`-run 'TestBindMsg.*2604'` 把 #2603 全过滤，共享函数回归无执行证据） | `scripts/verify-2604.sh` r1 改为全包 `go test ./bindmsg -count=1 -v`（= 计划 G0 R1 entry），新增回归 token | `BINDMSG_PKG_PASS=8`、`BINDMSG_REGRESSION_2603_PASS=3`（`TestBindErrorMessage2603` / `TestBindFieldLabelsCoverage2603` / `TestMessageGinBinding2603` 全部 `--- PASS`），`BINDMSG_UNIT_EXIT=0` |
+| 3 Low R1 token 与计划期望不等值（`=姓名不能为空` vs `=姓名`） | scope 行改为输出称呼本身（`FieldLabel`），完整文案仍由 R2 的 `BIND2604_*_MSG` 锁定 | `SCOPE_PERSON_NAME=姓名不能为空 → 姓名`、`SCOPE_ROLE_CODE=角色编码不能为空 → 角色编码`、`SCOPE_DEFAULT_CODE=优惠码不能为空 → 优惠码`（与计划 G0 R1 期望值逐字相等） |
+
+- 审计**观察项 1**（`### Files` 漏登记 `docs/evidence/2604/summary.md` / `changed-files.txt`）属计划登记项，需 Architect 在下次计划修订补两行；本轮**未自行改计划/验收**。P6 使用与上一轮 PASS gate 相同的 `--changed-files`（源文件 + 已登记证据）口径，证据完整性由 P12/P13 承担。
 
 ### 实施前差异核对（计划 Input Truth）
 
@@ -15,6 +26,8 @@
 | `grep -rn '"invalid parameters: " + err.Error()'` | 0（#2603 继承） | **0** |
 | grep -n 'dive' backend/handlers/instrument.go | 1（`IDs`） | **1** |
 | #2605 范围 28 处（5 类字面量） | base = head | **28 = 28**（`OUT_OF_SCOPE_UNCHANGED=1`） |
+
+> Round 2 复核：以上两条 grep 命令在 head（修后树，**不排除 `_test.go`**）实测为 **0 / 53**，与计划「修后」数字逐字一致（审计失败项 1 已消除）。
 
 ### 变更内容
 
@@ -60,7 +73,7 @@
 | 行 | 状态 | 证据 |
 |---|---|---|
 | R0 修前红样基线（25 处 / 17 文件外泄原文） | PASS | `docs/evidence/2604/R0-red-baseline.txt`：RED_BASE_SITES=25、RED_BASE_FILES=17、RED_BASE_ASCII_MESSAGES=25、RED_HEAD_SITES=0 |
-| R1 bindmsg 扩面（56 条称呼 + 2 作用域 + 复数缩写/下标归一） | PASS | `docs/evidence/2604/R1-bindmsg-unit.txt`：BINDMSG_UNIT_EXIT=0、LABEL_NEW_2604=56、LABEL_ASCII_LEAK=0、LABEL_COVERAGE_MISSING=0、SCOPE_PERSON_NAME=姓名不能为空、SCOPE_ROLE_CODE=角色编码不能为空、SCOPE_DEFAULT_CODE=优惠码不能为空、CAMEL_IDS=ids、CAMEL_USER_IDS=user_ids、DIVE_INDEX_LABEL=乐器列表 |
+| R1 bindmsg 扩面（56 条称呼 + 2 作用域 + 复数缩写/下标归一） | PASS | `docs/evidence/2604/R1-bindmsg-unit.txt`：BINDMSG_UNIT_EXIT=0、BINDMSG_PKG_PASS=8、BINDMSG_REGRESSION_2603_PASS=3、LABEL_NEW_2604=56、LABEL_ASCII_LEAK=0、LABEL_COVERAGE_MISSING=0、SCOPE_PERSON_NAME=姓名、SCOPE_ROLE_CODE=角色编码、SCOPE_DEFAULT_CODE=优惠码、CAMEL_IDS=ids、CAMEL_USER_IDS=user_ids、DIVE_INDEX_LABEL=乐器列表 |
 | R2 25 端点绑定失败文案（50 例契约测试） | PASS | `docs/evidence/2604/R2-handler-messages.txt`：GO_TEST_EXIT=0、BIND2604_CASES_TOTAL=50、BIND2604_CASES_FAIL=0、BIND2604_ASCII_LEAK=0、BIND2604_RAW_PHRASE_LEAK=0、BIND2604_ROLE_CODE_MSG=参数不合法：角色编码不能为空、BIND2604_PERSON_NAME_MSG=参数不合法：姓名不能为空、BIND2604_IDS_MSG=参数不合法：乐器列表不能为空、BIND2604_SYNTAX_MSG=请求体格式不正确，请检查后重试 |
 | R3 25 处收口 / 同类不外溢（静态扫描） | PASS | `docs/evidence/2604/R3-residual-scan.txt`：RESIDUAL_INVALID_REQUEST_RAW=0、RESIDUAL_INVALID_PARAMETERS_RAW=0、SITES_REPLACED_2604=25、HANDLER_FILES_2604=17、BINDMSG_DELTA_2604=25、OUT_OF_SCOPE_UNCHANGED=1 |
 | R4 构建 / gofmt / 测试包编译 | PASS | `docs/evidence/2604/R4-build-compile.txt`：GO_BUILD_EXIT=0、GOFMT_DIFF=0、TEST_COMPILE_EXIT=0 |
@@ -69,12 +82,12 @@
 
 ### Evidence Contract
 
-机读合同：`docs/evidence/2604/evidence.json`（build=1.0.d9a6f2156、commit=d9a6f2156、dirty=false，5 行各一条记录且 pass=true）。
+机读合同：`docs/evidence/2604/evidence.json`（build=1.0.6b4c078ae、commit=6b4c078ae、dirty=false，5 行各一条记录且 pass=true）。
 
 | 行 | 结果 | 产物 | 关键断言 |
 |---|---|---|---|
 | R0 | PASS | `docs/evidence/2604/R0-red-baseline.txt` | RED_BASE_SITES=25 / RED_BASE_FILES=17 / RED_BASE_ASCII_MESSAGES=25 / RED_HEAD_SITES=0 |
-| R1 | PASS | `docs/evidence/2604/R1-bindmsg-unit.txt` | 10 项 token（56 称呼 / 无 ASCII / 覆盖 71 字段 / 2 作用域 / 复数缩写 / dive 下标） |
+| R1 | PASS | `docs/evidence/2604/R1-bindmsg-unit.txt` | 11 项 token（56 称呼 / 无 ASCII / 覆盖 71 字段 / 2 作用域=称呼本身 / 复数缩写 / dive 下标 / #2603 回归 3） |
 | R2 | PASS | `docs/evidence/2604/R2-handler-messages.txt` | 9 项 token（50 例 / 0 失败 / 无 ASCII / 无原文 / 4 条抽检文案） |
 | R3 | PASS | `docs/evidence/2604/R3-residual-scan.txt` | 6 项 token（残留 0 / 25 处 / 17 文件 / delta 25 / 越界未变） |
 | R4 | PASS | `docs/evidence/2604/R4-build-compile.txt` | 3 项 token（build / gofmt / 编译冒烟） |

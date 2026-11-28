@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "issue": 2604,
-  "build": "1.0.d9a6f2156",
-  "commit": "d9a6f215678d8959abda558c463331e228e26308",
+  "build": "1.0.6b4c078ae",
+  "commit": "6b4c078ae881559c0873e025df8e5d24ff924e7d",
   "dirty": false,
   "plan_sha256": "7f5817cdc10c16ab96fe94b4c4a5fa3e39b72105acbeb5664871f1f70df22466",
   "environment": {
@@ -32,11 +32,11 @@
       "artifacts": [
         "docs/evidence/2604/R1-bindmsg-unit.txt"
       ],
-      "assert": "exit 0 且含 BINDMSG_UNIT_EXIT=0 LABEL_NEW_2604=56 LABEL_ASCII_LEAK=0 LABEL_COVERAGE_MISSING=0 SCOPE_PERSON_NAME=姓名 SCOPE_ROLE_CODE=角色编码 SCOPE_DEFAULT_CODE=优惠码 CAMEL_IDS=ids CAMEL_USER_IDS=user_ids DIVE_INDEX_LABEL=乐器列表",
-      "actual": "PASS：exit 0 / RESULT: PASS (r1)。BINDMSG_UNIT_EXIT=0、LABEL_NEW_2604=56、LABEL_ASCII_LEAK=0、LABEL_COVERAGE_TOTAL=71、LABEL_COVERAGE_MISSING=0、SCOPE_PERSON_NAME=姓名不能为空、SCOPE_PERSON_COMPANY=工作单位不能为空、SCOPE_ROLE_CODE=角色编码不能为空、SCOPE_DEFAULT_CODE=优惠码不能为空、SCOPE_DEFAULT_NAME=名称不能为空、CAMEL_IDS=ids、CAMEL_USER_IDS=user_ids、CAMEL_TRANSIT_SITE_ID=transit_site_id、DIVE_INDEX_LABEL=乐器列表。",
+      "assert": "exit 0 且含 BINDMSG_UNIT_EXIT=0 BINDMSG_PKG_PASS=8 BINDMSG_REGRESSION_2603_PASS=3 LABEL_NEW_2604=56 LABEL_ASCII_LEAK=0 LABEL_COVERAGE_MISSING=0 SCOPE_PERSON_NAME=姓名 SCOPE_ROLE_CODE=角色编码 SCOPE_DEFAULT_CODE=优惠码 CAMEL_IDS=ids CAMEL_USER_IDS=user_ids DIVE_INDEX_LABEL=乐器列表",
+      "actual": "PASS：exit 0 / RESULT: PASS (r1)。全包执行 `go test ./bindmsg -count=1 -v`（= 计划 G0 R1 entry）：BINDMSG_UNIT_EXIT=0、BINDMSG_PKG_PASS=8、BINDMSG_REGRESSION_2603_PASS=3（#2603 三个既有测试全部 --- PASS）、LABEL_NEW_2604=56、LABEL_ASCII_LEAK=0、LABEL_COVERAGE_TOTAL=71、LABEL_COVERAGE_MISSING=0、SCOPE_PERSON_NAME=姓名、SCOPE_PERSON_COMPANY=工作单位、SCOPE_ROLE_CODE=角色编码、SCOPE_DEFAULT_CODE=优惠码、SCOPE_DEFAULT_NAME=名称、CAMEL_IDS=ids、CAMEL_USER_IDS=user_ids、CAMEL_TRANSIT_SITE_ID=transit_site_id、DIVE_INDEX_LABEL=乐器列表。（Round 2：scope token 改为称呼本身，与计划期望值逐字相等；完整文案由 R2 的 BIND2604_*_MSG 锁定。）",
       "expected": "PASS（10 项 token 全为期望值）",
       "negative": "称呼含 ASCII、漏登记字段、默认作用域漂移、IDs 输出 i_ds → FAIL",
-      "negative_result": "负例已实测：TestBindMsgLabels2604 断言 56 条称呼逐条等值且 `[A-Za-z]` 计数 0（`LABEL_ASCII_LEAK=0`）；TestBindMsgCamelToSnake2604 覆盖修前缺陷 `IDs`→`i_ds`（现为 `ids`）；TestBindMsgScope2604 断言默认作用域不漂移（`code`→优惠码、`name`→名称）；TestBindMsgDiveIndex2604 断言 `IDs[0]`/`IDs[12]` 与 `IDs` 同称呼。",
+      "negative_result": "负例已实测：TestBindMsgLabels2604 断言 56 条称呼逐条等值且 `[A-Za-z]` 计数 0（`LABEL_ASCII_LEAK=0`）；TestBindMsgCamelToSnake2604 覆盖修前缺陷 `IDs`→`i_ds`（现为 `ids`）；TestBindMsgScope2604 断言默认作用域不漂移（`code`→优惠码、`name`→名称）；TestBindMsgDiveIndex2604 断言 `IDs[0]`/`IDs[12]` 与 `IDs` 同称呼。 Round 2 负例补充：把 r1 恢复为 `-run 'TestBindMsg.*2604'` 时 BINDMSG_REGRESSION_2603_PASS=0（#2603 被过滤 → 断言失败），本次全包执行为 3。",
       "pass": true
     },
     {

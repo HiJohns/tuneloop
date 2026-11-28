@@ -1,17 +1,23 @@
-# build=1.0.d9a6f2156 # commit=d9a6f215678d8959abda558c463331e228e26308 # dirty=false
-GENERATED_AT_HEAD=d9a6f215678d8959abda558c463331e228e26308
-# backend/bindmsg：56 条新称呼 + 2 作用域 + 复数缩写 + dive 下标归一
+# build=1.0.6b4c078ae # commit=6b4c078ae881559c0873e025df8e5d24ff924e7d # dirty=false
+GENERATED_AT_HEAD=6b4c078ae881559c0873e025df8e5d24ff924e7d
+# backend/bindmsg：全包（56 条新称呼 + 2 作用域 + 复数缩写 + dive 下标 + #2603 回归）
 bindmsg_2604_test.go:132: LABEL_NEW_2604=56
 bindmsg_2604_test.go:133: LABEL_ASCII_LEAK=0
 bindmsg_2604_test.go:166: LABEL_COVERAGE_TOTAL=71
 bindmsg_2604_test.go:167: LABEL_COVERAGE_MISSING=0
-bindmsg_2604_test.go:226: SCOPE_PERSON_NAME=姓名不能为空
-bindmsg_2604_test.go:227: SCOPE_PERSON_COMPANY=工作单位不能为空
-bindmsg_2604_test.go:228: SCOPE_ROLE_CODE=角色编码不能为空
-bindmsg_2604_test.go:229: SCOPE_DEFAULT_CODE=优惠码不能为空
-bindmsg_2604_test.go:230: SCOPE_DEFAULT_NAME=名称不能为空
-bindmsg_2604_test.go:250: CAMEL_IDS=ids
-bindmsg_2604_test.go:251: CAMEL_USER_IDS=user_ids
-bindmsg_2604_test.go:252: CAMEL_TRANSIT_SITE_ID=transit_site_id
-bindmsg_2604_test.go:280: DIVE_INDEX_LABEL=乐器列表
+bindmsg_2604_test.go:228: SCOPE_PERSON_NAME=姓名
+bindmsg_2604_test.go:229: SCOPE_PERSON_COMPANY=工作单位
+bindmsg_2604_test.go:230: SCOPE_ROLE_CODE=角色编码
+bindmsg_2604_test.go:231: SCOPE_DEFAULT_CODE=优惠码
+bindmsg_2604_test.go:232: SCOPE_DEFAULT_NAME=名称
+bindmsg_2604_test.go:252: CAMEL_IDS=ids
+bindmsg_2604_test.go:253: CAMEL_USER_IDS=user_ids
+bindmsg_2604_test.go:254: CAMEL_TRANSIT_SITE_ID=transit_site_id
+bindmsg_2604_test.go:282: DIVE_INDEX_LABEL=乐器列表
+bindmsg_test.go:237: LABEL_TABLE_SIZE=141
+bindmsg_test.go:238: LABEL_COVERAGE_FIELDS=84
+bindmsg_test.go:239: LABEL_COVERAGE_MISSING=0
+bindmsg_test.go:240: LABEL_ASCII_LEAK=0
+BINDMSG_PKG_PASS=8
+BINDMSG_REGRESSION_2603_PASS=3
 BINDMSG_UNIT_EXIT=0
