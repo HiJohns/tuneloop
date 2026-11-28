@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/services"
@@ -64,7 +65,7 @@ func UpdateMerchantWebhook(c *gin.Context) {
 		URL     string `json:"url"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": bindmsg.Message(err)})
 		return
 	}
 	ctx := c.Request.Context()

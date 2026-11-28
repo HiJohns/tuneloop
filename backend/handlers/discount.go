@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"time"
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/database"
 	"tuneloop-backend/models"
 
@@ -22,7 +23,7 @@ func CreateDiscountPolicy(c *gin.Context) {
 		ValidTo          *time.Time `json:"valid_to"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": bindmsg.Message(err)})
 		return
 	}
 	ctx := c.Request.Context()
@@ -69,7 +70,7 @@ func CreateDiscountCode(c *gin.Context) {
 		ExpiresAt *time.Time `json:"expires_at"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": bindmsg.Message(err)})
 		return
 	}
 	ctx := c.Request.Context()

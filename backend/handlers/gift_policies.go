@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -131,7 +132,7 @@ func UpdateGiftPolicy(c *gin.Context) {
 		IsActive          *bool    `json:"is_active"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": bindmsg.Message(err)})
 		return
 	}
 	// #1944 Sub-A：负数 level_id 非法（0=兜底行，正数=会员等级）
@@ -220,7 +221,7 @@ func UpdatePointSettings(c *gin.Context) {
 		PointExpiryReminderDays  *float64 `json:"point_expiry_reminder_days"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": bindmsg.Message(err)})
 		return
 	}
 	if req.PayRatioMax != nil && (*req.PayRatioMax < 0 || *req.PayRatioMax > 1) {

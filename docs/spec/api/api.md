@@ -31,6 +31,8 @@
 
 > **请求体绑定失败（#2603）**：`c.ShouldBindJSON` 校验/解析失败时，`message` **必须**由唯一出口 `backend/bindmsg` 的 `bindmsg.Message(err)` 生成——中文点名「哪一项不能为空 / 格式不对 / 类型不正确」，或整体不可解析时给出「请求体格式不正确，请检查后重试」。**禁止**把 `err.Error()` 的 Go/JSON 原文（`invalid character '\x17' in string`、`invalid parameters: …`、`cannot unmarshal …`、`Field validation for …`）拼进 `message`：前端 L2 只透传含 CJK 的可读文案，英文技术串会被判「无具体原因」并降级为 L3/L5 通用兜底，用户因此看不到**哪个字段**错了。绑定失败沿用原 `code`（`40002`，`instrument` 状态更新分支为 `40001`）与 HTTP 400，不得改为其它 code 或 HTTP 200；`40002` 属业务可纠正冲突白名单（见 `frontend-pc/src/utils/formConflict.js`），可落表单内常驻提示（#2569 口径）。字段称呼表与文案模板的唯一 owner 为 `backend/bindmsg/bindmsg.go`，新增请求体字段须同步登记称呼（称呼不得含 ASCII 字母）。
 
+> **同名异义字段的作用域（#2608）**：若同一 JSON 字段名在不同端点含义不同（如 `items` 在库存批量改租金中是「乐器列表」、在会员权益批量替换中是「权益项」），该端点**必须**调用 `bindmsg.MessageScoped(<端点作用域>, err)`，由作用域覆盖表给出本端点的称呼；**禁止**在 handler 内自定义称呼、复制文案，或为了单端点改写全局称呼表（全局表仍是单一 owner，作用域表同样唯一 owner 为 `backend/bindmsg/bindmsg.go`）。未登记作用域或作用域内未覆盖的字段一律回落全局表，因此 `bindmsg.Message(err)` 的既有语义（#2603 已交付的 28 处调用点与断言）保持不变。
+
 **PC 客户端非 2xx 契约（#2563）**：本节定义**服务端**响应格式；客户端如何消费非 2xx 由 `frontend-pc/src/services/apiError.js`（唯一 owner，纯函数 `resolveHttpFailure`）决定，不得在页面内联解析：
 
 | HTTP 状态 | 客户端形态 | 说明 |

@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"time"
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -132,7 +133,7 @@ func GetWarningSettings(c *gin.Context) {
 func UpdateWarningSettings(c *gin.Context) {
 	var cfg services.WarningNotifyConfig
 	if err := c.ShouldBindJSON(&cfg); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": bindmsg.Message(err)})
 		return
 	}
 	ctx := c.Request.Context()

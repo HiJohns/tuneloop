@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/database"
 	"tuneloop-backend/models"
 
@@ -44,7 +45,7 @@ func UpdateLevelBenefits(c *gin.Context) {
 		Items []benefitItem `json:"items"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": bindmsg.MessageScoped("membership_benefits", err)})
 		return
 	}
 	ctx := c.Request.Context()

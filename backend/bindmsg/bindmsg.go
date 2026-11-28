@@ -47,27 +47,40 @@ const (
 //	*json.SyntaxError                           → 请求体格式不正确，请检查后重试
 //	anything else (io.EOF, unexpected EOF, nil) → 参数不合法，请检查后重试
 func Message(err error) string {
+	return MessageScoped("", err)
+}
+
+// MessageScoped renders a binding failure with endpoint-scoped field labels.
+//
+// Scoped labels only override fields whose JSON name carries a different
+// meaning in the given endpoint (#2608): `items` is 乐器列表 for
+// `inventory.BatchUpdateRent` but 权益项 for
+// `membership_benefits.UpdateLevelBenefits`. The global table stays the single
+// owner; a scope only supplies overrides. An unknown/empty scope falls back to
+// the global table, so `Message(err)` keeps the exact #2603 semantics.
+func MessageScoped(scope string, err error) string {
 	if err == nil {
 		return FallbackMessage
 	}
+	label := func(field string) string { return FieldLabelScoped(scope, field) }
 
 	var validationErrs validator.ValidationErrors
 	if errors.As(err, &validationErrs) && len(validationErrs) > 0 {
 		fe := validationErrs[0]
-		label := FieldLabel(fe.Field())
+		fieldLabel := label(fe.Field())
 		switch fe.Tag() {
 		case "required":
-			return messagePrefix + label + "不能为空"
+			return messagePrefix + fieldLabel + "不能为空"
 		case "email":
-			return messagePrefix + label + "格式不正确"
+			return messagePrefix + fieldLabel + "格式不正确"
 		case "uuid", "uuid4":
-			return messagePrefix + label + "不是合法的唯一标识"
+			return messagePrefix + fieldLabel + "不是合法的唯一标识"
 		case "numeric", "number", "gte", "lte", "gt", "lt", "min", "max":
-			return messagePrefix + label + "取值不合法"
+			return messagePrefix + fieldLabel + "取值不合法"
 		case "oneof":
-			return messagePrefix + label + "取值不在允许范围内"
+			return messagePrefix + fieldLabel + "取值不在允许范围内"
 		default:
-			return messagePrefix + label + "不合法"
+			return messagePrefix + fieldLabel + "不合法"
 		}
 	}
 
@@ -77,7 +90,7 @@ func Message(err error) string {
 		if field == "" {
 			return FallbackMessage
 		}
-		return messagePrefix + FieldLabel(field) + "类型不正确"
+		return messagePrefix + label(field) + "类型不正确"
 	}
 
 	var syntaxErr *json.SyntaxError
@@ -95,9 +108,21 @@ func Message(err error) string {
 // back to the JSON snake_case name so that a freshly added field still reads as
 // an API name — never as a Go identifier such as `ManagerPhone`.
 func FieldLabel(field string) string {
+	return FieldLabelScoped("", field)
+}
+
+// FieldLabelScoped is FieldLabel with endpoint-scoped overrides applied first.
+// Scoped labels win only for fields listed in bindFieldLabelsScoped[scope];
+// everything else resolves through the global table (#2608 D6).
+func FieldLabelScoped(scope, field string) string {
 	field = strings.TrimSpace(field)
 	if field == "" {
 		return ""
+	}
+	if scoped, ok := bindFieldLabelsScoped[scope]; ok {
+		if label, ok := scoped[field]; ok && label != "" {
+			return label
+		}
 	}
 	if label, ok := bindFieldLabels[field]; ok {
 		return label
@@ -107,6 +132,16 @@ func FieldLabel(field string) string {
 		return label
 	}
 	return snake
+}
+
+// bindFieldLabelsScoped is the single owner of endpoint-scoped 称呼 overrides
+// (#2608 D6). A field lands here only when the same JSON name means different
+// things in different endpoints; the global table must never be bent to one
+// endpoint. Rule of Three: one real conflict, one scope.
+var bindFieldLabelsScoped = map[string]map[string]string{
+	"membership_benefits": {
+		"items": "权益项",
+	},
 }
 
 // bindFieldLabels is the single owner of field→称呼 mapping (#2603 D1/D3).
@@ -215,25 +250,77 @@ var bindFieldLabels = map[string]string{
 	"additional_days": "续租天数",
 	"code":            "优惠码",
 	"amount_cents":    "金额",
+
+	// 折扣（discount.go，#2608）
+	"rent_discount":     "租金折扣",
+	"deposit_discount":  "押金折扣",
+	"shipping_discount": "物流费折扣",
+	"max_amount":        "最高优惠金额",
+	"valid_from":        "生效时间",
+	"valid_to":          "失效时间",
+	"policy_id":         "折扣策略",
+	"max_uses":          "最大使用次数",
+	"expires_at":        "过期时间",
+
+	// 礼品 / 积分（gift_policies.go、points_policy.go，#2608）
+	"level_id":                    "会员等级",
+	"pay_ratio":                   "乐币抵扣比例",
+	"referral_ratio":              "推荐奖励比例",
+	"referral_reg_points":         "推荐注册赠点",
+	"is_active":                   "启用状态",
+	"pay_ratio_max":               "最高抵扣比例",
+	"point_batch_validity_months": "乐币有效期月数",
+	"point_expiry_reminder_days":  "到期提醒提前天数",
+	"scope_id":                    "作用范围",
+	"max_pay_ratio":               "最高抵扣比例",
+	"valid_days":                  "有效天数",
+
+	// 推广 / 会员（instrument_promo_override.go、membership_level.go，#2608）
+	"override_type": "推广类型",
+	"enabled":       "启用状态",
+	"content":       "推广内容",
+	"min_amount":    "最低消费金额",
+
+	// 返点 / 用户（merchant_rebate.go、user_management.go，#2608）
+	"opt_in": "返点开关",
+
+	// 通知（warning.go、webhook_config.go，#2608）
+	"emails":           "收件邮箱",
+	"cooldown_minutes": "冷却间隔",
+	"webhook_enabled":  "企业微信通知开关",
+	"webhook_url":      "企业微信通知地址",
+	"url":              "通知地址",
+
+	// 缩写复数（#2608 §3）
+	"ids": "编号列表",
 }
 
 // camelToSnake converts a Go struct field name into its JSON snake_case name.
 //
 // Run-scoped acronyms are kept as one token: `RelatedCategoryID` →
 // `related_category_id`, `InstrumentSN` → `instrument_sn`.
+//
+// A trailing lowercase `s` whose predecessor is uppercase is a plural suffix,
+// not a new token (#2608 §3): `IDs` → `ids`, `GuarantorIDs` → `guarantor_ids`,
+// `URLs` → `urls`. Fields whose final `s` follows a lowercase letter
+// (`Status`, `Address`, `Notes`) take the normal path and are unaffected.
 func camelToSnake(s string) string {
 	if s == "" {
 		return ""
 	}
 	runes := []rune(s)
+	last := len(runes) - 1
 	var b strings.Builder
 	b.Grow(len(s) + 4)
 	for i, r := range runes {
 		if unicode.IsUpper(r) {
 			if i > 0 {
 				prev := runes[i-1]
-				nextIsLower := i+1 < len(runes) && unicode.IsLower(runes[i+1])
-				if unicode.IsLower(prev) || unicode.IsDigit(prev) || (unicode.IsUpper(prev) && nextIsLower) {
+				nextIsLower := i+1 <= last && unicode.IsLower(runes[i+1])
+				// `…IDs`: the trailing `s` pluralises the acronym instead of
+				// starting a new token, so no underscore before `D`.
+				pluralSuffix := i == last-1 && runes[last] == 's'
+				if (unicode.IsLower(prev) || unicode.IsDigit(prev) || (unicode.IsUpper(prev) && nextIsLower)) && !pluralSuffix {
 					b.WriteRune('_')
 				}
 			}

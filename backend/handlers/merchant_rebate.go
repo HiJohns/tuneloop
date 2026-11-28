@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 
@@ -29,7 +30,7 @@ func UpdateMerchantRebateOptIn(c *gin.Context) {
 		OptIn bool `json:"opt_in" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": bindmsg.Message(err)})
 		return
 	}
 	ctx := c.Request.Context()

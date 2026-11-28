@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -60,7 +61,7 @@ func UpdateInstrumentPromoOverride(c *gin.Context) {
 		Content      *string `json:"content"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": bindmsg.Message(err)})
 		return
 	}
 	if req.OverrideType != "discount" && req.OverrideType != "rebate" && req.OverrideType != "rent_to_own" {
