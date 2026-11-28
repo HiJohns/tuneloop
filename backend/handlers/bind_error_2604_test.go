@@ -1,7 +1,8 @@
 package handlers
 
-// #2604: 25 binding points (`"invalid request: " + err.Error()`) now funnel into
-// `bindmsg.Message`. The response must name the offending field in Chinese; raw
+// #2604: 25 binding points (旧写法：`"invalid request: "` 与 `err.Error()`
+// 直接相加) now funnel into the shared bindmsg message builder. The response must
+// name the offending field in Chinese; raw
 // Go/JSON wording (`invalid character '\x17' in string`, `cannot unmarshal …`,
 // `Field validation …`) must never reach the client, and the business code must
 // stay exactly what it was before the fix (40000/40001/40002 are not unified).

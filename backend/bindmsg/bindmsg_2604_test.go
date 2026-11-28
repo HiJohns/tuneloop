@@ -223,11 +223,13 @@ func TestBindMsgScope2604(t *testing.T) {
 		t.Errorf("explicit ScopeDefault = %q, want %q", got, defaultName)
 	}
 
-	t.Logf("SCOPE_PERSON_NAME=%s", strings.TrimPrefix(personName, "参数不合法："))
-	t.Logf("SCOPE_PERSON_COMPANY=%s", strings.TrimPrefix(personCompany, "参数不合法："))
-	t.Logf("SCOPE_ROLE_CODE=%s", strings.TrimPrefix(roleCode, "参数不合法："))
-	t.Logf("SCOPE_DEFAULT_CODE=%s", strings.TrimPrefix(defaultCode, "参数不合法："))
-	t.Logf("SCOPE_DEFAULT_NAME=%s", strings.TrimPrefix(defaultName, "参数不合法："))
+	// scope 行统一输出「称呼」本身（= 计划 G0 R1 的期望 token），完整文案由上方
+	// 的 Message 断言锁定；两处口径不再用一个 token 混表（Round 1 审计失败项 3）。
+	t.Logf("SCOPE_PERSON_NAME=%s", FieldLabel("name", ScopePerson))
+	t.Logf("SCOPE_PERSON_COMPANY=%s", FieldLabel("company", ScopePerson))
+	t.Logf("SCOPE_ROLE_CODE=%s", FieldLabel("code", ScopeRole))
+	t.Logf("SCOPE_DEFAULT_CODE=%s", FieldLabel("code"))
+	t.Logf("SCOPE_DEFAULT_NAME=%s", FieldLabel("name"))
 }
 
 // TestBindMsgCamelToSnake2604 锁定复数缩写（本单）与既有缩写断言（#2603 不回归）。

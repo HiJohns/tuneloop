@@ -150,23 +150,34 @@ case "$MODE" in
 
   r1)
     NAME="R1-bindmsg-unit.txt"
-    ( cd "$REPO/backend" && heavy go test ./bindmsg -run 'TestBindMsg.*2604' -count=1 -v -timeout 10m ) > "$WORK/r1.test.log" 2>&1
+    # 全包执行（= 计划 G0 R1 的 entry `go test ./bindmsg -count=1 -v`）：既跑本单 2604
+    # 用例，也执行 #2603 既有断言，使「共享函数改动无回归」有执行证据
+    # （Round 1 审计失败项 2：此前 -run 'TestBindMsg.*2604' 把 #2603 全过滤）。
+    ( cd "$REPO/backend" && heavy go test ./bindmsg -count=1 -v -timeout 10m ) > "$WORK/r1.test.log" 2>&1
     TEST_RC=$?
+    PKG_PASS="$(grep -cE '^--- PASS: ' "$WORK/r1.test.log")"
+    # #2603 既有断言 3 个（bindmsg_test.go ×2 + gin_binding_test.go ×1）。
+    R2603_PASS="$(grep -cE '^--- PASS: (TestBindErrorMessage2603|TestBindFieldLabelsCoverage2603|TestMessageGinBinding2603)' "$WORK/r1.test.log")"
     {
       printf '%s\n' "$PROV"
       echo "GENERATED_AT_HEAD=$HEAD_SHA"
-      echo "# backend/bindmsg：56 条新称呼 + 2 作用域 + 复数缩写 + dive 下标归一"
+      echo "# backend/bindmsg：全包（56 条新称呼 + 2 作用域 + 复数缩写 + dive 下标 + #2603 回归）"
       grep -E 'LABEL_[A-Z0-9_]+=|SCOPE_[A-Z0-9_]+=|CAMEL_[A-Z0-9_]+=|DIVE_[A-Z0-9_]+=' "$WORK/r1.test.log" | sed 's/^[[:space:]]*//'
+      printf 'BINDMSG_PKG_PASS=%s\n' "${PKG_PASS:-0}"
+      printf 'BINDMSG_REGRESSION_2603_PASS=%s\n' "${R2603_PASS:-0}"
       printf 'BINDMSG_UNIT_EXIT=%s\n' "$TEST_RC"
       if [ "$TEST_RC" != "0" ]; then
         echo "--- go test output ---"
         tail -40 "$WORK/r1.test.log"
       fi
     } > "$LOG" 2>&1
+    # SCOPE_* token 取「称呼」本身（= 计划 G0 R1 期望值），完整文案由 R2 的
+    # BIND2604_*_MSG 锁定；避免同一 token 两种口径（Round 1 审计失败项 3）。
     require_tokens "$LOG" 'BINDMSG_UNIT_EXIT=0' \
+      'BINDMSG_REGRESSION_2603_PASS=3' \
       'LABEL_NEW_2604=56' 'LABEL_ASCII_LEAK=0' 'LABEL_COVERAGE_MISSING=0' \
-      'SCOPE_PERSON_NAME=姓名不能为空' 'SCOPE_ROLE_CODE=角色编码不能为空' \
-      'SCOPE_DEFAULT_CODE=优惠码不能为空' \
+      'SCOPE_PERSON_NAME=姓名' 'SCOPE_ROLE_CODE=角色编码' \
+      'SCOPE_DEFAULT_CODE=优惠码' \
       'CAMEL_IDS=ids' 'CAMEL_USER_IDS=user_ids' \
       'DIVE_INDEX_LABEL=乐器列表' || RC=1
     ;;
