@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "issue": 2647,
+  "build": "1.0.67e24bf",
+  "commit": "67e24bf9537fc3c1d355d98d747554a4026f5d38",
+  "dirty": false,
+  "plan_sha256": "bc1d50730b8ad882fe585bda4919f331662cd16668a27a365833de4afc17af8f",
+  "tooling_commit": "5c2dfc1c59555a2c3e36c5b6c3b8cbe730238054",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2647 (branch issue-2647, base origin/develop d53d1e6b1); Go 1.x + PostgreSQL 127.0.0.1:15433 (node-scoped tuneloop_test_* clone from migration-replayed template); artifacts generated after fix commit 67e24bf9 with a clean tree",
+  "rows": [
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2647.sh r2",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2647/R2-write-sites.txt"
+      ],
+      "assert": "exit 0；grep WRITE_SITES=6、WRITE_INLINE_LITERAL=0、ROLE_ASSIGN_WITHOUT_MIRROR=0、R2_NEGATIVE_CONTROL_VAR=1、ALLOWLIST_ENTRIES=3、ALLOWLIST_UNLINKED=0",
+      "actual": "PASS：WRITE_SITES=6 WRITE_INLINE_LITERAL=0 ROLE_ASSIGN_WITHOUT_MIRROR=0 R2_NEGATIVE_CONTROL_VAR=1 ALLOWLIST_ENTRIES=3 ALLOWLIST_UNLINKED=0",
+      "expected": "PASS",
+      "negative": "删掉改角色的 updates[\"roles\"] 后 ROLE_ASSIGN_WITHOUT_MIRROR>0，或变量形态负例未命中 → FAIL",
+      "negative_result": "红样实测：缺陷版（UpdateUser 只写 updates[\"role\"]、不写镜像）→ TestUpdateUserRoleMirror_2647 `--- FAIL ... Messages: 镜像必须含新角色`；恢复镜像写后 PASS。变量形态负例由合成文件 tmp/evidence-2647/negative-var-2647.go 命中（R2_NEGATIVE_CONTROL_VAR=1）。",
+      "pass": true
+    },
+    {
+      "id": "R7",
+      "command": "bash scripts/verify-2647.sh r7",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2647/R7-users-roles-jsonb.txt"
+      ],
+      "assert": "exit 0；grep USERS_MIRROR_JSONB_EXPR=1、USERS_MIRROR_RAW_SLICE=0、JSONB_TYPE_IS_ARRAY=1、JSONB_IS_NULL=0、RAW_SLICE_WRITE_ERROR=1",
+      "actual": "PASS：USERS_MIRROR_JSONB_EXPR=1 USERS_MIRROR_RAW_SLICE=0 JSONB_TYPE_IS_ARRAY=1 JSONB_IS_NULL=0 RAW_SLICE_WRITE_ERROR=1",
+      "expected": "PASS",
+      "negative": "任一写点回到裸切片（USERS_MIRROR_RAW_SLICE>0）或 jsonb_typeof 非 array → FAIL",
+      "negative_result": "红样实测：同一用例内以 Updates(map[string]interface{}{\"roles\": []string{...}}) 反证裸切片 → 驱动拒绝（RAW_SLICE_WRITE_ERROR=1）；正例 jsonb_typeof(roles)=array 且非 null。",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash scripts/verify-2647.sh r8",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2647/R8-role-change-mirror.txt"
+      ],
+      "assert": "exit 0；grep HTTP=200、ROLE_ASSIGN_WITHOUT_MIRROR=0、MIRROR_PRIMARY=site_admin、MIRROR_ALL_CONTAINS_SITE_ADMIN=1、MIRROR_ALL_CONTAINS_OLD=1、READBACK_PREFERS_MIRROR=1",
+      "actual": "PASS：HTTP=200 ROLE_ASSIGN_WITHOUT_MIRROR=0 MIRROR_PRIMARY=site_admin MIRROR_ALL_CONTAINS_SITE_ADMIN=1 MIRROR_ALL_CONTAINS_OLD=1 READBACK_PREFERS_MIRROR=1",
+      "expected": "PASS",
+      "negative": "只写 role（MIRROR_ALL_CONTAINS_SITE_ADMIN=0）或读回旧角色（READBACK_PREFERS_MIRROR=0）→ FAIL",
+      "negative_result": "红样实测：去掉 UpdateUser 镜像写（恢复 `updates[\"role\"] = newRole`）→ `--- FAIL: TestUpdateUserRoleMirror_2647 ... Messages: 镜像必须含新角色`；恢复后 PASS。",
+      "pass": true
+    },
+    {
+      "id": "R9",
+      "command": "bash scripts/verify-2647.sh r9",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2647/R9-mirror-source.txt"
+      ],
+      "assert": "exit 0；grep MIRROR_SOURCE_DERIVE_ONLY=1、WRITE_SIDE_SECOND_ASSIGNMENT=0、SYNC_SKIPS_NONEMPTY_MIRROR_OVERWRITE=1、SYNC_DEGRADES_NONEMPTY_MIRROR=0",
+      "actual": "PASS：MIRROR_SOURCE_DERIVE_ONLY=1 WRITE_SIDE_SECOND_ASSIGNMENT=0 SYNC_SKIPS_NONEMPTY_MIRROR_OVERWRITE=1 SYNC_DEGRADES_NONEMPTY_MIRROR=0",
+      "expected": "PASS",
+      "negative": "同步覆盖非空镜像（SYNC_DEGRADES_NONEMPTY_MIRROR=1）或出现第二处镜像赋值 → FAIL",
+      "negative_result": "红样实测：去掉「既有镜像非空则不覆盖」守卫 → `--- FAIL: TestSyncUsersMirrorNonDegrade_2647`（镜像由 [repair_technician,site_member] 退化）；恢复后 PASS，MIRROR_AFTER 保持原集合。",
+      "pass": true
+    }
+  ],
+  "gate": {
+    "plan_sha256": "bc1d50730b8ad882fe585bda4919f331662cd16668a27a365833de4afc17af8f",
+    "report": "docs/evidence/2647/pre-ready-2647.json",
+    "result": "PENDING"
+  }
+}

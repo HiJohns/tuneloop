@@ -1,0 +1,16 @@
+# build=1.0.67e24bf # commit=67e24bf9537fc3c1d355d98d747554a4026f5d38 # dirty=false
+FILE=backend/handlers/iam_callback.go derive_calls=1 struct_roles=0 mirror_expr_calls=1
+FILE=backend/handlers/merchant_member.go derive_calls=2 struct_roles=2 mirror_expr_calls=0
+FILE=backend/handlers/user_staff.go derive_calls=2 struct_roles=2 mirror_expr_calls=1
+FILE=backend/handlers/merchant.go derive_calls=1 struct_roles=0 mirror_expr_calls=1
+FILE=backend/handlers/iam_proxy.go derive_calls=2 struct_roles=2 mirror_expr_calls=1
+ROLE_ASSIGN_SITES=1
+MIRROR_WRITES_IN_USER_STAFF=1
+ALLOWLIST=backend/handlers/site.go hits=2 reason=建号初始化（D1）ref=#2626 D1/D7
+ALLOWLIST=backend/handlers/site_member_common.go hits=1 reason=建号初始化（D1）ref=#2626 D1/D7
+WRITE_SITES=6
+WRITE_INLINE_LITERAL=0
+ROLE_ASSIGN_WITHOUT_MIRROR=0
+R2_NEGATIVE_CONTROL_VAR=1
+ALLOWLIST_ENTRIES=3
+ALLOWLIST_UNLINKED=0
