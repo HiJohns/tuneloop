@@ -1,16 +1,16 @@
 {
   "issue": 2647,
   "overall": "PASS",
-  "plan": "/tmp/opencode/tuneloop/wt-2647/tmp/pre-ready-2647.HA7T5b/plan.md",
-  "plan_sha256": "bc1d50730b8ad882fe585bda4919f331662cd16668a27a365833de4afc17af8f",
-  "config_sha": "5c2dfc1c59555a2c3e36c5b6c3b8cbe730238054",
+  "plan": "/tmp/opencode/tuneloop/wt-2647/tmp/pre-ready-2647.d7L4Av/plan.md",
+  "plan_sha256": "b5dea027434ca54b9756ae6091de1f37d2736d4e69f9099d0fe92881ed0e8be8",
+  "config_sha": "ed9e29efab5f56cb2a336c010a09e06933572da8",
   "provenance": {
-    "build": "1.0.67e24bf",
-    "commit": "67e24bf9537fc3c1d355d98d747554a4026f5d38",
+    "build": "1.0.10314c0",
+    "commit": "10314c0f58039710628983ae0e251709712969a2",
     "dirty": false
   },
   "summary": "tmp/work-summary-2647.md",
-  "timestamp": "20261128-173420",
+  "timestamp": "20261128-181611",
   "checks": [
     {
       "id": "P1",
@@ -20,7 +20,7 @@
     {
       "id": "P2",
       "status": "PASS",
-      "detail": "Work Summary covers all 4 matrix rows with PASS/N/A"
+      "detail": "Work Summary covers all 6 matrix rows with PASS/N/A"
     },
     {
       "id": "P3",
@@ -35,17 +35,17 @@
     {
       "id": "P12",
       "status": "PASS",
-      "detail": "Evidence Contract complete: 4 row(s) match the plan and have durable artifacts"
+      "detail": "Evidence Contract complete: 6 row(s) match the plan and have durable artifacts"
     },
     {
       "id": "P14",
       "status": "PASS",
-      "detail": "artifact provenance matches evidence (4 artifacts)"
+      "detail": "artifact provenance matches evidence (6 artifacts)"
     },
     {
       "id": "P18",
       "status": "PASS",
-      "detail": "tooling_commit matches the running scripts (5c2dfc1c59555a2c3e36c5b6c3b8cbe730238054)"
+      "detail": "tooling_commit matches the running scripts (ed9e29efab5f56cb2a336c010a09e06933572da8)"
     },
     {
       "id": "P15",

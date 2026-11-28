@@ -5,7 +5,7 @@
   "commit": "10314c0f58039710628983ae0e251709712969a2",
   "dirty": false,
   "plan_sha256": "b5dea027434ca54b9756ae6091de1f37d2736d4e69f9099d0fe92881ed0e8be8",
-  "tooling_commit": "7db8c93d09b08ae049652250049159953d2cda12",
+  "tooling_commit": "ed9e29efab5f56cb2a336c010a09e06933572da8",
   "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2647 (branch issue-2647, base origin/develop 633e18ac7 = contains merge of #2626); Go 1.27.4 + PostgreSQL 127.0.0.1:15433 (node-scoped tuneloop_test_* template clone); artifacts regenerated after fix commit 10314c0 with a clean tree (dirty=false)",
   "rows": [
     {
@@ -95,8 +95,28 @@
   ],
   "gate": {
     "report": "docs/evidence/2647/pre-ready-2647.json",
-    "result": "PENDING",
+    "result": "PASS",
     "plan_sha256": "b5dea027434ca54b9756ae6091de1f37d2736d4e69f9099d0fe92881ed0e8be8",
-    "timestamp": "PENDING"
+    "checks": {
+      "P1": "PASS",
+      "P2": "PASS",
+      "P3": "PASS",
+      "P4": "PASS",
+      "P12": "PASS",
+      "P14": "PASS",
+      "P18": "PASS",
+      "P15": "N/A",
+      "P16": "N/A",
+      "P17": "PASS",
+      "P5": "N/A",
+      "P6": "PASS",
+      "P7": "N/A",
+      "P8": "N/A",
+      "P9": "N/A",
+      "P10": "N/A",
+      "P11": "PASS",
+      "P13": "PASS"
+    },
+    "timestamp": "20261128-181611"
   }
 }
