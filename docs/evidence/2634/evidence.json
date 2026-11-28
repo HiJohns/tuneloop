@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "issue": 2634,
-  "build": "1.0.910b93412",
-  "commit": "910b93412ce99e20266ac36dda097c953620bfa3",
+  "build": "1.0.8d0226e24",
+  "commit": "8d0226e24de73970e79bc74061e67f38f4087344",
   "dirty": false,
   "plan_sha256": "c2d2433625d0daceab42cb84fb234b81bad6e0267bcde980cbc5444e1d6789b6",
   "gate": {
     "plan_sha256": "c2d2433625d0daceab42cb84fb234b81bad6e0267bcde980cbc5444e1d6789b6"
   },
-  "tooling_commit": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
+  "tooling_commit": "c00d84454cc7589086f25ef3a871be1d00a12644",
   "pre_ref": "4e368f692489a94336c081e5ccb11353dcb3a2a6",
-  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2634 (issue-2634, base origin/develop); frontend-pc static wiring assertions + node --test (pure resolver) + npm run build + eslint; real browser clicks/camera covered by [Ops-Followup of #2634]",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2634 (issue-2634, base origin/develop, node v22.22.3); frontend-pc static wiring assertions + node --test (pure resolver) + npm run build + eslint; real browser clicks/camera covered by [Ops-Followup of #2634]",
   "rows": [
     {
       "id": "R1",
@@ -33,11 +33,11 @@
       "artifacts": [
         "docs/evidence/2634/R2-resolve-unit.txt"
       ],
-      "assert": "exit 0 且含 SCAN_RESOLVE_CASES=9 EXACT_ORDER_NO=1 EXACT_SN=1 CASE_INSENSITIVE=1 FUZZY_FALLBACK=1 EMPTY_CODE_NONE=1 NO_MATCH_NONE=1 CANDIDATE_CAP_5=1 NULL_LIST_GUARD=1 EXIT=0",
-      "actual": "SCAN_RESOLVE_CASES=9、EXACT_ORDER_NO=1、EXACT_SN=1、CASE_INSENSITIVE=1、FUZZY_FALLBACK=1、EMPTY_CODE_NONE=1、NO_MATCH_NONE=1、CANDIDATE_CAP_5=1、NULL_LIST_GUARD=1、EXIT=0",
-      "expected": "PASS（10 项 token 全为期望值）",
-      "negative": "精确退化模糊、SN 不可匹配、空串全量、候选 >5、null 抛错 → FAIL",
-      "negative_result": "若精确匹配退化为模糊、SN 不可匹配、空串返回全量、候选超过 5 条或 null 列表抛 TypeError，对应 token 变 0 → R2 FAIL；9 个 fixture 全部通过。",
+      "assert": "exit 0 且含 SCAN_RESOLVE_CASES=10 EXACT_ORDER_NO=1 EXACT_SN=1 CASE_INSENSITIVE=1 FUZZY_FALLBACK=1 EMPTY_CODE_NONE=1 NO_MATCH_NONE=1 CANDIDATE_CAP_5=1 TOTAL_BEFORE_CAP=1 NULL_LIST_GUARD=1 EXIT=0",
+      "actual": "SCAN_RESOLVE_CASES=10、EXACT_ORDER_NO=1、EXACT_SN=1、CASE_INSENSITIVE=1、FUZZY_FALLBACK=1、EMPTY_CODE_NONE=1、NO_MATCH_NONE=1、CANDIDATE_CAP_5=1、TOTAL_BEFORE_CAP=1、NULL_LIST_GUARD=1、EXIT=0",
+      "expected": "PASS（11 项 token 全为期望值）",
+      "negative": "精确退化模糊、SN 不可匹配、空串全量、候选 >5、`total` 不反映截断前条数、null 抛错 → FAIL",
+      "negative_result": "红绿实证（审计 Round 1 失败项 1）：把旧 resolver（origin/issue-2634 版，无 total）与同一测试文件放入 tmp/redgreen 运行 `node --test` → `# pass 7 / # fail 3`，TOTAL_BEFORE_CAP 报 `expected: 8`（实得 undefined）、EMPTY_CODE_NONE/NULL_LIST_GUARD 的 deepEqual 缺 total → 修复版 10/10 全绿。",
       "pass": true
     },
     {
@@ -47,11 +47,11 @@
       "artifacts": [
         "docs/evidence/2634/R3-wiring.txt"
       ],
-      "assert": "exit 0 且含 ENTRY_BUTTON=1 OPEN_SCANNER_CALLERS=1 SCAN_INPUT_BOUND=1 SCAN_SUBMIT=1 SCAN_API_KEYWORD=1 ACTION_REUSE_DELIVERY=1 ACTION_REUSE_INSPECT=1 CAMERA_GUARD=1 STREAM_CLEANUP=1 HELPER_USED=1 MANUAL_HINT=1 QR_DEAD_CALL=0 QR_IMPORT_COMMENTED=0 LEGACY_SCAN_STATE=0",
-      "actual": "ENTRY_BUTTON=1、OPEN_SCANNER_CALLERS=1、SCAN_INPUT_BOUND=1、SCAN_SUBMIT=1、SCAN_API_KEYWORD=1、ACTION_REUSE_DELIVERY=1、ACTION_REUSE_INSPECT=1、CAMERA_GUARD=1、STREAM_CLEANUP=1、HELPER_USED=1、MANUAL_HINT=1、QR_DEAD_CALL=0、QR_IMPORT_COMMENTED=0、LEGACY_SCAN_STATE=0",
-      "expected": "PASS（14 项 token 全为期望值）",
-      "negative": "无入口、无录入、动作不复用、相机失败阻断、死码残留 → FAIL",
-      "negative_result": "修复前 OPEN_SCANNER_CALLERS=0、SCAN_INPUT_BOUND=0、QR_DEAD_CALL=1、LEGACY_SCAN_STATE=1；修复后入口/录入/动作复用/相机降级全部就位，死码与旧 state 归零。",
+      "assert": "exit 0 且含 ENTRY_BUTTON=1 OPEN_SCANNER_CALLERS=1 SCAN_INPUT_BOUND=1 SCAN_SUBMIT=1 SCAN_API_KEYWORD=1 ACTION_REUSE_DELIVERY=1 ACTION_REUSE_INSPECT=1 CAMERA_GUARD=1 STREAM_CLEANUP=1 HELPER_USED=1 MANUAL_HINT=1 QR_DEAD_CALL=0 QR_IMPORT_COMMENTED=0 LEGACY_SCAN_STATE=0 CAP_HINT=1 CAP_HINT_DEAD=0 ACTION_AWAIT_SUCCESS=1 SCAN_STATE_RESET=1",
+      "actual": "ENTRY_BUTTON=1、OPEN_SCANNER_CALLERS=1、SCAN_INPUT_BOUND=1、SCAN_SUBMIT=1、SCAN_API_KEYWORD=1、ACTION_REUSE_DELIVERY=1、ACTION_REUSE_INSPECT=1、CAMERA_GUARD=1、STREAM_CLEANUP=1、HELPER_USED=1、MANUAL_HINT=1、QR_DEAD_CALL=0、QR_IMPORT_COMMENTED=0、LEGACY_SCAN_STATE=0、CAP_HINT=1、CAP_HINT_DEAD=0、ACTION_AWAIT_SUCCESS=1、SCAN_STATE_RESET=1",
+      "expected": "PASS（18 项 token 全为期望值）",
+      "negative": "无入口、无录入、动作不复用、相机失败阻断、死码残留、超上限提示不可达（`scanCandidates.length > 5` 残留）、动作未 await 即关窗、二次打开残留旧结果 → 任一即 FAIL",
+      "negative_result": "修复前（Round 1 交付态）：CAP_HINT=0（提示用已被截断的 list 判断，分支永假）、CAP_HINT_DEAD=1（`scanCandidates.length > 5` 仍在）、ACTION_AWAIT_SUCCESS=0、SCAN_STATE_RESET=0；修复后四项翻转为 1/0/1/1。",
       "pass": true
     },
     {
@@ -62,7 +62,7 @@
         "docs/evidence/2634/R4-build-lint.txt"
       ],
       "assert": "exit 0 且含 PC_BUILD=0 LINT_EXIT=0 BUNDLE_ENTRY=1 BUNDLE_QUERY=1 BUNDLE_HINT=1 BUILD_LINT_OK=1",
-      "actual": "PC_BUILD=0、LINT_EXIT=0、BUNDLE_ENTRY=1、BUNDLE_QUERY=1、BUNDLE_HINT=1、BUILD_LINT_OK=1",
+      "actual": "PC_BUILD=0、LINT_EXIT=0（0 errors / 13 warnings，均为既有 no-use-before-define 类）、BUNDLE_ENTRY=1、BUNDLE_QUERY=1、BUNDLE_HINT=1、BUILD_LINT_OK=1",
       "expected": "PASS（6 项 token 全为期望值）",
       "negative": "构建失败 / ESLint 非 0 / 产物缺入口文案 → FAIL",
       "negative_result": "构建失败或 eslint 非 0 → BUILD_LINT_OK=0；产物里找不到「扫码验收」/「查询并定位」/「暂不支持自动识别」→ 对应 BUNDLE_* token 变 0 → FAIL。",

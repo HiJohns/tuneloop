@@ -1,5 +1,5 @@
-# build=1.0.910b93412 # commit=910b93412ce99e20266ac36dda097c953620bfa3 # dirty=false
-# tree=31752dcb06145b98a3599a1fe624da303698e344
+# build=1.0.8d0226e24 # commit=8d0226e24de73970e79bc74061e67f38f4087344 # dirty=false
+# tree=8d0226e24de73970e79bc74061e67f38f4087344
 # pre_ref=4e368f692489a94336c081e5ccb11353dcb3a2a6
 PRE_REF=4e368f692489a94336c081e5ccb11353dcb3a2a6
 PRE_PAGE_HEADER=frontend-pc/src/pages/WarehouseManagement.jsx

@@ -1,5 +1,5 @@
-# build=1.0.910b93412 # commit=910b93412ce99e20266ac36dda097c953620bfa3 # dirty=false
-# tree=31752dcb06145b98a3599a1fe624da303698e344
+# build=1.0.8d0226e24 # commit=8d0226e24de73970e79bc74061e67f38f4087344 # dirty=false
+# tree=8d0226e24de73970e79bc74061e67f38f4087344
 # pre_ref=4e368f692489a94336c081e5ccb11353dcb3a2a6
 PAGE=frontend-pc/src/pages/WarehouseManagement.jsx
 ENTRY_BUTTON=1
@@ -16,31 +16,35 @@ MANUAL_HINT=1
 QR_DEAD_CALL=0
 QR_IMPORT_COMMENTED=0
 LEGACY_SCAN_STATE=0
+CAP_HINT=1
+CAP_HINT_DEAD=0
+ACTION_AWAIT_SUCCESS=1
+SCAN_STATE_RESET=1
 --- wiring ---
 WIRE 71:  // #2634：扫码验收 = 手动录入 + 相机辅助（零新依赖；自动识别另立评估）。
 WIRE 72:  const [scanCode, setScanCode] = useState('');
 WIRE 73:  const [scanCameraError, setScanCameraError] = useState('');
-WIRE 80:    const stream = streamRef.current;
-WIRE 84:      streamRef.current = null;
-WIRE 89:  const handleOpenScanner = async () => {
-WIRE 100:      streamRef.current = stream;
-WIRE 115:  const handleScanQuery = async () => {
-WIRE 116:    const code = (scanCode || '').trim();
-WIRE 123:      const resp = await api.get('/warehouse/orders', { params: { keyword: code, page: 1, pageSize: 20 } });
-WIRE 128:      const resolved = resolveScanCandidates(resp?.data?.list || [], code);
-WIRE 175:  const streamRef = useRef(null);
-WIRE 204:    // #2634：扫码验收弹窗已定位 SN 时直接传入，不再二次 prompt（列表行调用点不传第三参）。
-WIRE 403:            <Button icon={<QrcodeOutlined />} onClick={handleOpenScanner}>扫码验收</Button>
-WIRE 480:      {/* 扫码验收 Modal（#2634：手动录入定位 + 复用列表验收动作；相机仅作辅助） */}
-WIRE 482:        title="扫码验收"
-WIRE 496:            message="暂不支持自动识别，请手动输入订单号或乐器序列号"
-WIRE 498:          {scanCameraError && <Alert type="warning" showIcon message={scanCameraError} />}
-WIRE 506:              display: scanCameraError ? 'none' : 'block',
-WIRE 515:              value={scanCode}
-WIRE 517:              onPressEnter={handleScanQuery}
-WIRE 520:            <Button type="primary" loading={scanQuerying} onClick={handleScanQuery}>
-WIRE 527:          {scanKind === 'none' && scanCandidates.length === 0 && (scanCode || '').trim() !== '' && !scanQuerying && (
-WIRE 571:                          handleConfirmDelivery(scanOrder.id, scanSn);
-WIRE 586:                            handleInspectReturn(scanOrder.id, true, scanSn);
-WIRE 598:                            handleInspectReturn(scanOrder.id, false, scanSn);
+WIRE 82:    const stream = streamRef.current;
+WIRE 86:      streamRef.current = null;
+WIRE 101:  const handleOpenScanner = async () => {
+WIRE 113:      streamRef.current = stream;
+WIRE 129:  const handleScanQuery = async () => {
+WIRE 130:    const code = (scanCode || '').trim();
+WIRE 137:      const resp = await api.get('/warehouse/orders', { params: { keyword: code, page: 1, pageSize: 20 } });
+WIRE 147:      const resolved = resolveScanCandidates(resp?.data?.list || [], code);
+WIRE 199:  const streamRef = useRef(null);
+WIRE 230:    // #2634：扫码验收弹窗已定位 SN 时直接传入，不再二次 prompt（列表行调用点不传第三参）。
+WIRE 431:            <Button icon={<QrcodeOutlined />} onClick={handleOpenScanner}>扫码验收</Button>
+WIRE 508:      {/* 扫码验收 Modal（#2634：手动录入定位 + 复用列表验收动作；相机仅作辅助） */}
+WIRE 510:        title="扫码验收"
+WIRE 524:            message="暂不支持自动识别，请手动输入订单号或乐器序列号"
+WIRE 526:          {scanCameraError && <Alert type="warning" showIcon message={scanCameraError} />}
+WIRE 534:              display: scanCameraError ? 'none' : 'block',
+WIRE 543:              value={scanCode}
+WIRE 545:              onPressEnter={handleScanQuery}
+WIRE 548:            <Button type="primary" loading={scanQuerying} onClick={handleScanQuery}>
+WIRE 555:          {scanKind === 'none' && scanCandidates.length === 0 && (scanCode || '').trim() !== '' && !scanQuerying && (
+WIRE 603:                          const ok = await handleConfirmDelivery(scanOrder.id, scanSn);
+WIRE 619:                            const ok = await handleInspectReturn(scanOrder.id, true, scanSn);
+WIRE 631:                            const ok = await handleInspectReturn(scanOrder.id, false, scanSn);
 RESULT: PASS (r3)

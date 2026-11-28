@@ -1,63 +1,78 @@
-# build=1.0.910b93412 # commit=910b93412ce99e20266ac36dda097c953620bfa3 # dirty=false
-# tree=31752dcb06145b98a3599a1fe624da303698e344
+# build=1.0.8d0226e24 # commit=8d0226e24de73970e79bc74061e67f38f4087344 # dirty=false
+# tree=8d0226e24de73970e79bc74061e67f38f4087344
 # pre_ref=4e368f692489a94336c081e5ccb11353dcb3a2a6
 TEST TAP version 13
 TEST # Subtest: EXACT_ORDER_NO: 订单号精确命中（单条）
 TEST ok 1 - EXACT_ORDER_NO: 订单号精确命中（单条）
 TEST   ---
-TEST   duration_ms: 2.907471
+TEST   duration_ms: 1.39354
+TEST   type: 'test'
 TEST   ...
 TEST # Subtest: EXACT_SN: 乐器序列号精确命中
 TEST ok 2 - EXACT_SN: 乐器序列号精确命中
 TEST   ---
-TEST   duration_ms: 1.393683
+TEST   duration_ms: 0.823168
+TEST   type: 'test'
 TEST   ...
 TEST # Subtest: CASE_INSENSITIVE: 大小写不敏感
 TEST ok 3 - CASE_INSENSITIVE: 大小写不敏感
 TEST   ---
-TEST   duration_ms: 0.33958
+TEST   duration_ms: 0.234825
+TEST   type: 'test'
 TEST   ...
 TEST # Subtest: FUZZY_FALLBACK: 无精确命中时按包含匹配
 TEST ok 4 - FUZZY_FALLBACK: 无精确命中时按包含匹配
 TEST   ---
-TEST   duration_ms: 0.453224
+TEST   duration_ms: 0.227375
+TEST   type: 'test'
 TEST   ...
 TEST # Subtest: EMPTY_CODE_NONE: 空串 / 纯空白不查
 TEST ok 5 - EMPTY_CODE_NONE: 空串 / 纯空白不查
 TEST   ---
-TEST   duration_ms: 0.539047
+TEST   duration_ms: 0.315987
+TEST   type: 'test'
 TEST   ...
 TEST # Subtest: NO_MATCH_NONE: 无匹配返回 none
 TEST ok 6 - NO_MATCH_NONE: 无匹配返回 none
 TEST   ---
-TEST   duration_ms: 0.29922
+TEST   duration_ms: 0.232445
+TEST   type: 'test'
 TEST   ...
 TEST # Subtest: CANDIDATE_CAP_5: 候选上限 5 条
 TEST ok 7 - CANDIDATE_CAP_5: 候选上限 5 条
 TEST   ---
-TEST   duration_ms: 0.611539
+TEST   duration_ms: 0.455789
+TEST   type: 'test'
+TEST   ...
+TEST # Subtest: TOTAL_BEFORE_CAP: total = 截断前命中数（页面据此提示「仅列出前 5 条」，list 不可用）
+TEST ok 8 - TOTAL_BEFORE_CAP: total = 截断前命中数（页面据此提示「仅列出前 5 条」，list 不可用）
+TEST   ---
+TEST   duration_ms: 0.392818
+TEST   type: 'test'
 TEST   ...
 TEST # Subtest: NULL_LIST_GUARD: orders 为 null / 非数组视为空列表
-TEST ok 8 - NULL_LIST_GUARD: orders 为 null / 非数组视为空列表
+TEST ok 9 - NULL_LIST_GUARD: orders 为 null / 非数组视为空列表
 TEST   ---
-TEST   duration_ms: 0.372831
+TEST   duration_ms: 0.50067
+TEST   type: 'test'
 TEST   ...
 TEST # Subtest: MISSING_FIELDS_SAFE: 缺 order_no/instrument_sn 的行不误命中
-TEST ok 9 - MISSING_FIELDS_SAFE: 缺 order_no/instrument_sn 的行不误命中
+TEST ok 10 - MISSING_FIELDS_SAFE: 缺 order_no/instrument_sn 的行不误命中
 TEST   ---
-TEST   duration_ms: 0.490006
+TEST   duration_ms: 0.638834
+TEST   type: 'test'
 TEST   ...
-TEST 1..9
-TEST # tests 9
+TEST 1..10
+TEST # tests 10
 TEST # suites 0
-TEST # pass 9
+TEST # pass 10
 TEST # fail 0
 TEST # cancelled 0
 TEST # skipped 0
 TEST # todo 0
-TEST # duration_ms 230.259019
+TEST # duration_ms 94.402046
 TEST_CMD=node --test frontend-pc/tests/scanResolve.test.mjs
-SCAN_RESOLVE_CASES=9
+SCAN_RESOLVE_CASES=10
 EXACT_ORDER_NO=1
 EXACT_SN=1
 CASE_INSENSITIVE=1
@@ -65,6 +80,7 @@ FUZZY_FALLBACK=1
 EMPTY_CODE_NONE=1
 NO_MATCH_NONE=1
 CANDIDATE_CAP_5=1
+TOTAL_BEFORE_CAP=1
 NULL_LIST_GUARD=1
 EXIT=0
 RESULT: PASS (r2)
