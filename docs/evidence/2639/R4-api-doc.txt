@@ -1,0 +1,10 @@
+# build=1.0.3ef18ac9b # commit=3ef18ac9b38666625ed471212fc7783cf6baf4f2 # dirty=false
+GENERATED_AT_HEAD=3ef18ac9b38666625ed471212fc7783cf6baf4f2
+# docs/spec/api/api.md §1.3：400 族中文业务文案口径 / 禁英文常量与字段名 / bindmsg 唯一出口
+API_400_RULE=1
+API_400_NO_ASCII=1
+API_400_BINDMSG_REF=1
+API_2639_REF=1
+API_SECTION_LINES=38
+--- §1.3 #2639 paragraph ---
+> **400 族服务校验文案（#2639）**：非绑定失败的 `400xx` 服务校验分支（`40001` / `40002` / `40003`）`message` **必须**是中文业务原因——例如「优惠码已过期」「推荐奖励比例必须在 0~1 之间」「推广类型必须是折扣、返利或租转售」「会员等级编号不正确」。**禁止**两种写法：① 英文常量（`invalid id`、`status required`、`could not determine scope from path`）；② 点名 JSON 字段的文案（`level_id 不能为负数`、`referral_ratio 必须在 0~1.0 之间`）——字段名属 API 词汇，不是用户词汇。原因同 #2603：前端 L2 只透传含 CJK 的文案，纯 ASCII 会被判「无具体原因」并降级为 L3 `code_map`（`40002` → 「信息不完整，请补充必填项」），把「优惠码已过期」「折扣未生效」这类**可纠正**的业务原因整体吞掉。需点名某项时唯一出口仍是 `backend/bindmsg`（`FieldLabel` / `Message`）；不点名字段的业务原因直接写中文，**不得**在 handler 内复制 bindmsg 模板或自建称呼表。HTTP 状态与 `code` 维持修前基线（400 + 原 `40001`/`40002`/`40003`），不得借文案收敛改码或改分支顺序。

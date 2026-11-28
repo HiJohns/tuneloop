@@ -1,0 +1,15 @@
+# build=1.0.3ef18ac9b # commit=3ef18ac9b38666625ed471212fc7783cf6baf4f2 # dirty=false
+GENERATED_AT_HEAD=3ef18ac9b38666625ed471212fc7783cf6baf4f2
+# 33 站点 + 2 绑定形态变体（损坏体）= 35；handler 直调 + 一次性 PG
+error_message_2639_test.go:330: MSG2639_CASES_TOTAL=35
+error_message_2639_test.go:331: MSG2639_CASES_FAIL=0
+error_message_2639_test.go:332: MSG2639_ASCII_LEAK=0
+error_message_2639_test.go:333: MSG2639_FIELDNAME_LEAK=0
+error_message_2639_test.go:334: MSG2639_HTTP_CODE_DRIFT=0
+error_message_2639_test.go:335: MSG2639_DISCOUNT_EXPIRED=优惠码已过期
+error_message_2639_test.go:336: MSG2639_REFERRAL_RANGE=推荐奖励比例必须在 0~1 之间
+error_message_2639_test.go:337: MSG2639_OVERRIDE_TYPE=推广类型必须是折扣、返利或租转售
+error_message_2639_test.go:338: MSG2639_BIND_CODE=参数不合法：优惠码不能为空
+error_message_2639_test.go:339: MSG2639_BIND_STATUS=参数不合法：状态类型不正确
+error_message_2639_test.go:340: MSG2639_WARNING_REASON=请求参数有误，请填写预警原因
+GO_TEST_EXIT=0

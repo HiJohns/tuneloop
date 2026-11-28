@@ -1,0 +1,54 @@
+# build=1.0.3ef18ac9b # commit=3ef18ac9b38666625ed471212fc7783cf6baf4f2 # dirty=false
+GENERATED_AT_HEAD=3ef18ac9b38666625ed471212fc7783cf6baf4f2
+BASELINE_REF=350689473ca44e01e66f75a38b11bf51d25a6977
+# 多行感知扫描：10 文件 400xx 分支中 message 以 ASCII 字母起始的点位
+BASELINE_400XX_HITS=34
+BASELINE_MULTILINE_HIT=1
+POSTFIX_400XX_HITS=1
+POSTFIX_HIT_IS_OOS_2604=1
+OOS_2604_LINE_UNCHANGED=1
+UNDERSCORE_400XX_HITS=0
+OOS_403_404_COUNT=16
+FRONTEND_DIFF=0
+--- baseline hits (expect 34, one of them multiline) ---
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/discount.go:142 code=40002 code_line=142
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/discount.go:154 code=40002 code_line=154
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/discount.go:158 code=40002 code_line=158
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/discount.go:162 code=40002 code_line=162
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/discount.go:168 code=40002 code_line=168
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/discount.go:172 code=40002 code_line=172
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/discount.go:176 code=40002 code_line=176
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/gift_policies.go:139 code=40002 code_line=139
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/gift_policies.go:158 code=40002 code_line=157
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/gift_policies.go:163 code=40002 code_line=163
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/gift_policies.go:167 code=40002 code_line=167
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/gift_policies.go:227 code=40002 code_line=227
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/gift_policies.go:231 code=40002 code_line=231
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/gift_policies.go:235 code=40002 code_line=235
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/instrument_promo_override.go:34 code=40002 code_line=34
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/instrument_promo_override.go:54 code=40002 code_line=54
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/instrument_promo_override.go:67 code=40002 code_line=67
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/membership_benefits.go:23 code=40002 code_line=23
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/membership_benefits.go:40 code=40002 code_line=40
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/membership_benefits.go:88 code=40002 code_line=88
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/membership_benefits.go:93 code=40002 code_line=93
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/membership_level.go:47 code=40002 code_line=47
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/membership_level.go:79 code=40002 code_line=79
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/points_policy.go:30 code=40002 code_line=30
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/points_policy.go:60 code=40002 code_line=60
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/points_policy.go:105 code=40002 code_line=105
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/user_management.go:142 code=40002 code_line=142
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/user_management.go:161 code=40002 code_line=161
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/user_management.go:173 code=40002 code_line=173
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/user_management.go:393 code=40002 code_line=393
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/user_management.go:398 code=40002 code_line=398
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/warning.go:69 code=40001 code_line=69
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/warning.go:154 code=40002 code_line=154
+HIT /tmp/opencode/tuneloop/wt-2639/tmp/verify-2639-Kw43kT/baseline/warning.go:160 code=40003 code_line=160
+--- postfix hits (expect only the #2604 line) ---
+HIT backend/handlers/user_management.go:142 code=40002 code_line=142
+--- postfix underscore hits (expect none) ---
+--- #2604 out-of-scope line (baseline vs now) ---
+BASELINE_LINE=142:		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request: " + err.Error()})
+CURRENT_LINE=142:		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid request: " + err.Error()})
+SCAN_EXIT=0
