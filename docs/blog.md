@@ -488,3 +488,6 @@
 - 2026-11-27: 批量处理完成，包含任务: Resolved Issues: #2625
 - 2026-11-27: 批量处理完成，包含任务: Resolved Issues: #2631, #2624
 - 2026-11-28: 批量处理完成，包含任务: Resolved Issues: #2615
+- 2026-11-28: 批量处理完成，包含任务: Resolved Issues: #2605, #2604, #2429
+- 2026-11-28: 批量处理完成，包含任务: Resolved Issues: #2608（审计 PASS；fix/evidence 在 origin/issue-2608，代码待集成至 develop；同类残差另立 #2639、Ops Follow-up #2638）
+- 2026-11-28: 批量处理完成，包含任务: Resolved Issues: #2639
