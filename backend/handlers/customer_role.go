@@ -25,8 +25,11 @@ func RegisterAsCustomer(c *gin.Context) {
 		return
 	}
 
+	// #2621：ID 空间修正——JWT 里的 sub 是 iam_sub，不是 users.id；且查询用身份句柄
+	// （users.tenant_id 是 IAM 关系缓存，可能 ≠ JWT tid）。
 	var user models.User
-	if err := database.GetDB().WithContext(ctx).Where("id = ?", localUserID).First(&user).Error; err != nil {
+	if err := database.GetDB().WithContext(database.IdentityCtx(ctx)).
+		Where("iam_sub = ? AND deleted_at IS NULL", localUserID).First(&user).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "用户不存在"})
 		return
 	}

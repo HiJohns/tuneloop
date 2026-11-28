@@ -16,7 +16,8 @@ const pendingOrderMax = 5
 
 func currentLocalUser(c *gin.Context) (models.User, bool) {
 	ctx := c.Request.Context()
-	db := database.GetDB().WithContext(ctx)
+	// #2621 身份查询：本 helper 只查 users 行，直接用身份句柄。
+	db := database.GetDB().WithContext(database.IdentityCtx(ctx))
 	iamSub := middleware.GetUserID(ctx)
 	if iamSub == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"code": 40100, "message": "请先登录"})

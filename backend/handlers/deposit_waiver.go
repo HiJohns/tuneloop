@@ -122,8 +122,9 @@ func GetDepositWaiverEligibility(c *gin.Context) {
 	}
 	db := database.GetDB().WithContext(ctx)
 
+	// #2621 身份查询：查「我自己那行」用身份句柄；EvaluateDepositWaiverEligibility 仍用 db。
 	var user models.User
-	if err := db.Where("iam_sub = ?", iamSub).First(&user).Error; err != nil {
+	if err := db.WithContext(database.IdentityCtx(ctx)).Where("iam_sub = ?", iamSub).First(&user).Error; err != nil {
 		// No local profile yet — the onboarding flow must complete first.
 		c.JSON(http.StatusOK, gin.H{"code": 20000, "data": DepositWaiverEligibility{
 			Eligible:       false,

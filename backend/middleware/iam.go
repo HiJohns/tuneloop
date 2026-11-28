@@ -557,8 +557,10 @@ func EnsureLocalUser(ctx context.Context, db *gorm.DB) (string, error) {
 	if iamSub == "" {
 		return "", fmt.Errorf("no user ID in context")
 	}
+	// #2621 身份查询：users.tenant_id 是 IAM 关系的本地缓存，可能 ≠ JWT tid，
+	// 自动租户 scope 不适用于「查我自己那行」（共享谓词，31 个调用点继承）。
 	var user models.User
-	if err := db.Where("iam_sub = ?", iamSub).First(&user).Error; err == nil {
+	if err := db.WithContext(database.IdentityCtx(ctx)).Where("iam_sub = ?", iamSub).First(&user).Error; err == nil {
 		// Disabled users are blocked from all authenticated access (#1545).
 		if user.Status == "disabled" {
 			return "", fmt.Errorf("user is disabled")
@@ -585,7 +587,8 @@ func EnsureLocalUser(ctx context.Context, db *gorm.DB) (string, error) {
 		IsShadow: true,
 	}
 	if err := db.Create(&user).Error; err != nil {
-		if err2 := db.Where("iam_sub = ?", iamSub).First(&user).Error; err2 == nil {
+		// #2621 回退查询同样走身份句柄（否则建户冲突后仍然查不到自己那行）。
+		if err2 := db.WithContext(database.IdentityCtx(ctx)).Where("iam_sub = ?", iamSub).First(&user).Error; err2 == nil {
 			return user.ID, nil
 		}
 		return "", fmt.Errorf("failed to create user: %w", err)
@@ -607,8 +610,9 @@ func LocalUserID(ctx context.Context, db *gorm.DB) (string, error) {
 		// unread-count anonymously).
 		return "", nil
 	}
+	// #2621 身份查询：同上，按 JWT sub 查本地行为不套用租户过滤。
 	var user models.User
-	if err := db.Where("iam_sub = ?", iamSub).First(&user).Error; err != nil {
+	if err := db.WithContext(database.IdentityCtx(ctx)).Where("iam_sub = ?", iamSub).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return "", nil
 		}

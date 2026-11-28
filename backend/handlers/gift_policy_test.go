@@ -149,7 +149,8 @@ func TestGiftPolicyAffectsPaymentCalculate(t *testing.T) {
 	}).Error)
 
 	// GET /pay/calculate is a different handler; call getWalletInfo directly
-	info, err := getWalletInfo(db, userID, "00000000-0000-4000-8000-000000000001", 100)
+	// (#2621: the wallet resolver now takes the request context explicitly).
+	info, err := getWalletInfo(t.Context(), db, userID, "00000000-0000-4000-8000-000000000001", 100)
 	require.NoError(t, err)
 	require.Equal(t, 0.5, info.MaxGiftRatio)
 	require.Equal(t, 50.0, info.MaxGiftAmount, "100 × 0.5 = 50")

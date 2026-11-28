@@ -80,8 +80,9 @@ func (h *FaceCaptureHandler) SubmitFaceCapture(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 
 	// 解析本地用户 ID（iam_sub → 本地 id，face_capture_batches.user_id 引用 users.id）。
+	// #2621 身份查询：查「我自己那行」用身份句柄；db（带租户过滤）继续用于批次等域查询。
 	var localUser models.User
-	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err != nil {
+	if err := database.GetDB().WithContext(database.IdentityCtx(ctx)).Where("iam_sub = ?", userID).First(&localUser).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
 		return
 	}
@@ -203,8 +204,9 @@ func (h *FaceCaptureHandler) GetFaceCaptureStatus(c *gin.Context) {
 
 	db := database.GetDB().WithContext(ctx)
 
+	// #2621 身份查询：同上（批次查询仍用 db）。
 	var localUser models.User
-	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err != nil {
+	if err := database.GetDB().WithContext(database.IdentityCtx(ctx)).Where("iam_sub = ?", userID).First(&localUser).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
 		return
 	}

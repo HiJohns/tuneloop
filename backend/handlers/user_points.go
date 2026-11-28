@@ -23,8 +23,10 @@ func (h *UserPointsHandler) GetBalance(c *gin.Context) {
 	userID := middleware.GetUserID(ctx)
 	db := database.GetDB().WithContext(ctx)
 
+	// #2621 身份查询：users.tenant_id 是 IAM 关系缓存，可能 ≠ JWT tid，
+	// 查「我自己那行」必须用身份句柄（域数据查询仍用 db，隔离不放宽）。
 	var localUser models.User
-	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err != nil {
+	if err := database.GetDB().WithContext(database.IdentityCtx(ctx)).Where("iam_sub = ?", userID).First(&localUser).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
 		return
 	}
@@ -62,8 +64,10 @@ func (h *UserPointsHandler) ListTransactions(c *gin.Context) {
 	userID := middleware.GetUserID(ctx)
 	db := database.GetDB().WithContext(ctx)
 
+	// #2621 身份查询：users.tenant_id 是 IAM 关系缓存，可能 ≠ JWT tid，
+	// 查「我自己那行」必须用身份句柄（域数据查询仍用 db，隔离不放宽）。
 	var localUser models.User
-	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err != nil {
+	if err := database.GetDB().WithContext(database.IdentityCtx(ctx)).Where("iam_sub = ?", userID).First(&localUser).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "user not found"})
 		return
 	}

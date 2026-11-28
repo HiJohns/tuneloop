@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/google/uuid"
 	"log"
@@ -61,7 +62,7 @@ func CalculatePayment(c *gin.Context) {
 	var resp PaymentCalculateResponse
 	resp.Type = req.Type
 
-	wallet, err := getWalletInfo(db, userID, tenantID, 0)
+	wallet, err := getWalletInfo(ctx, db, userID, tenantID, 0)
 	if err != nil {
 		log.Printf("[CalculatePayment] wallet error: %v", err)
 	}
@@ -108,9 +109,14 @@ func CalculatePayment(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "data": resp})
 }
 
-func getWalletInfo(db *gorm.DB, userID, tenantID string, amount float64) (*WalletInfo, error) {
+// getWalletInfo 解析「我自己那行」users 记录并计算钱包信息。
+//
+// #2621 身份查询：users 行用身份句柄（`users.tenant_id` 是 IAM 关系的本地缓存，
+// 可能 ≠ JWT tid，自动租户 scope 不适用于自查询）；礼品策略 / 积分策略等**域查询**
+// 仍用调用方句柄 `db`（隔离不放宽）。
+func getWalletInfo(ctx context.Context, db *gorm.DB, userID, tenantID string, amount float64) (*WalletInfo, error) {
 	var user models.User
-	if err := db.Where("iam_sub = ?", userID).First(&user).Error; err != nil {
+	if err := db.WithContext(database.IdentityCtx(ctx)).Where("iam_sub = ?", userID).First(&user).Error; err != nil {
 		return nil, err
 	}
 

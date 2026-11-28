@@ -29,8 +29,9 @@ func resolveAddressUserID(c *gin.Context, db *gorm.DB) (string, int, string) {
 	if iamSub == "" {
 		return "", http.StatusUnauthorized, "login required"
 	}
+	// #2621 身份查询：预检同样用身份句柄（域查询仍走 db）。
 	var localUser models.User
-	if err := db.Where("iam_sub = ?", iamSub).First(&localUser).Error; err == nil {
+	if err := db.WithContext(database.IdentityCtx(ctx)).Where("iam_sub = ?", iamSub).First(&localUser).Error; err == nil {
 		return localUser.ID, 0, ""
 	}
 	localID, err := middleware.EnsureLocalUser(ctx, db)
