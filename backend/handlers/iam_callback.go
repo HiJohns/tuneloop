@@ -16,6 +16,7 @@ import (
 
 	"tuneloop-backend/database"
 	"tuneloop-backend/models"
+	"tuneloop-backend/services"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -284,7 +285,18 @@ func handleUserOrgBound(payload map[string]interface{}, c *gin.Context) {
 		updates["org_id"] = orgID
 	}
 	if role, ok := payload["role"].(string); ok {
-		updates["role"] = role
+		// #2626 D1/D2：本地 users.role / users.roles 只是 IAM 的派生镜像 ——
+		// 组织角色（payload.role）+ 功能角色（payload.functional_roles[]）由
+		// DeriveRoles 统一派生，禁止把 IAM 原文直接写进业务角色列。
+		//
+		// 说明（Round 1 audit #4）：beaconiam 目前唯一的 `user.org_bound` 派发
+		// （internal/auth/handler.go）只发 {user_id,email,status}，不带 role /
+		// functional_roles，因此本分支是**防御性/未来事件**路径，不是生产刷新点。
+		// 生产可用的刷新路径 = `POST /api/iam/users/sync`（iam_proxy.go SyncUsers，
+		// 同样走 DeriveRoles）。若 IAM 侧补齐 payload 字段，本分支立即生效。
+		derived := services.DeriveRoles(orgLevelFromPayload(payload), role, stringSlicePayload(payload, "functional_roles"))
+		updates["role"] = derived.Primary
+		updates["roles"] = derived.All
 	}
 	if len(updates) > 0 {
 		db.Model(&existing).Updates(updates)
@@ -292,4 +304,42 @@ func handleUserOrgBound(payload map[string]interface{}, c *gin.Context) {
 
 	log.Printf("[IAMCallback] updated org for iam_sub=%s org_id=%s", userID, orgID)
 	c.JSON(http.StatusOK, gin.H{"code": 20000, "message": "org binding updated"})
+}
+
+// orgLevelFromPayload 从 IAM 回调 payload 读取组织级别（不同事件可能带 org_type/org_level）。
+// 缺失时返回空串（DeriveRoles 会退化为「只看关系角色 / 功能角色」）。
+func orgLevelFromPayload(payload map[string]interface{}) string {
+	for _, key := range []string{"org_type", "org_level", "organization_type"} {
+		if raw, ok := payload[key].(string); ok && strings.TrimSpace(raw) != "" {
+			return services.NormalizeOrgLevel(raw)
+		}
+	}
+	return ""
+}
+
+// stringSlicePayload 读取 []string / []interface{} 形态的字符串数组字段（#2626 functional_roles）。
+func stringSlicePayload(payload map[string]interface{}, key string) []string {
+	raw, ok := payload[key]
+	if !ok || raw == nil {
+		return nil
+	}
+	switch v := raw.(type) {
+	case []string:
+		return v
+	case []interface{}:
+		out := make([]string, 0, len(v))
+		for _, item := range v {
+			if s, ok := item.(string); ok {
+				out = append(out, s)
+			}
+		}
+		return out
+	case string:
+		if strings.TrimSpace(v) == "" {
+			return nil
+		}
+		return strings.Split(v, ",")
+	default:
+		return nil
+	}
 }

@@ -1,0 +1,16 @@
+# build=1.0.71efa1144 # commit=71efa1144e976de00c476b6101bef17ed2d20299 # dirty=false
+# tree=e691325bbd2e1a59297e6dab1e2cbf1403db4bbb
+PREEXISTING: backend/handlers/merchant_member.go:632:	if target.Role == "merchant_admin" {
+PRE_REF=4e368f692489a94336c081e5ccb11353dcb3a2a6
+SINGLE_VALUE_FRONTEND=0
+PREEXISTING_SINGLE_VALUE_JUDGES=1
+SINGLE_VALUE_JUDGE_RESIDUAL=0
+PREEXISTING_SCOPE=与镜像写入无关的历史判据（D7 三步走的第二步按批次迁移，本单不扩面）
+RECON_SINGLE_ONLY=0
+JUDGE: 5:// #2626 D1/D2/D4：判据只用多值集合 users.roles（镜像 IAM functional_roles[]），
+JUDGE: 8:// 存量行的 `roles` 仍是空数组时，回退链在**后端读路径**完成
+JUDGE: 9:// （`GetStaffUser` 的 mirrorRolesForRead：users.roles → users.role → site_role →
+JUDGE: 10:// merchant_role，只读、禁止据此回写）。前端只消费 `roles[]`，不再自行回退单值 ——
+JUDGE: 15:export function roleSet(user = {}) {
+JUDGE: 16:  const roles = Array.isArray(user?.roles) ? user.roles : []
+RESULT: PASS (r6)

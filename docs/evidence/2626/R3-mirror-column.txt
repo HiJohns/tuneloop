@@ -1,0 +1,26 @@
+# build=1.0.71efa1144 # commit=71efa1144e976de00c476b6101bef17ed2d20299 # dirty=false
+# tree=e691325bbd2e1a59297e6dab1e2cbf1403db4bbb
+MIG_UP=backend/database/migrations/20261128001_users_roles_mirror_2626.up.sql
+MIG_DOWN=backend/database/migrations/20261128001_users_roles_mirror_2626.down.sql
+COLUMN_ROLES_EXISTS=1
+BACKFILL_NO_GUESS=1
+DOWN_REMOVES_COLUMN=1
+ARTIFACT_REGISTERED=1
+MODEL_FIELD_EXISTS=1
+--- up.sql ---
+UP: -- #2626: users.roles = 派生自 IAM 的功能角色多值镜像。
+UP: --
+UP: -- 权威来源 = IAM user_org_relations（组织角色 role + 功能角色 functional_roles[]）；
+UP: -- 本列是它的镜像（functional_roles ∪ 派生主角色），派生实现见
+UP: -- backend/services/role_derive.go（DeriveRoles）。users.role 保留为派生主角色，
+UP: -- 仅用于兼容旧读路径；三步走（镜像多值 → 前端改读 → 删列）的第三步另立 Issue。
+UP: --
+UP: -- 本迁移只加列：存量行一律留空数组，**不在 SQL 内跨库推导或猜测角色值**
+UP: -- （IAM 在 beaconiam 库，跨库回填属部署侧；历史数据修复见 #2626 F1–F4 记录）。
+UP: ALTER TABLE users ADD COLUMN IF NOT EXISTS roles JSONB NOT NULL DEFAULT '[]'::jsonb;
+UP: 
+UP: COMMENT ON COLUMN users.roles IS
+UP:     '#2626 派生自 IAM user_org_relations（role + functional_roles[]）的多值镜像，禁止独立写；users.role 仅为派生主角色';
+--- artifact registration ---
+ARTIFACT: 492:	{20261128001, "users", "roles", "用户功能角色镜像列（#2626，派生自 IAM）"},
+RESULT: PASS (r3)

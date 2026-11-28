@@ -8,28 +8,31 @@ import (
 )
 
 type User struct {
-	ID                  string `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	IAMSub              string `gorm:"type:varchar(255);not null;-:migration" json:"iam_sub"`
-	TenantID            string `gorm:"type:uuid;index;not null" json:"tenant_id"`
-	OrgID               string `gorm:"type:uuid;index;not null" json:"org_id"`
-	Username            string `gorm:"type:varchar(255)" json:"username"`
-	Nickname            string `gorm:"type:varchar(64)" json:"nickname"`
-	Name                string `gorm:"type:varchar(255)" json:"name"`
-	Phone               string `gorm:"type:varchar(50)" json:"phone"`
-	Email               string `gorm:"type:varchar(255)" json:"email"`
-	CreditScore         int    `gorm:"default:600" json:"credit_score"`
-	DepositMode         string `gorm:"type:varchar(20);default:'standard'" json:"deposit_mode"` // 已弃用，仅用于兼容旧数据，勿写入新值
-	IsShadow            bool   `gorm:"default:true" json:"is_shadow"`
-	IsSystemAdmin       bool   `gorm:"default:false" json:"is_system_admin"`
-	Status              string `gorm:"type:varchar(20);default:'pending'" json:"status"`
-	Position            string `gorm:"type:varchar(100)" json:"position"`
-	Role                string `gorm:"type:varchar(50)" json:"role"`
-	ForcePasswordChange bool   `gorm:"default:false" json:"force_password_change"`
-	AvatarURL           string `gorm:"type:varchar(500)" json:"avatar"`
-	IsProfileCompleted  bool   `gorm:"default:false" json:"is_profile_completed"`
-	MembershipLevelID   *int   `gorm:"type:int" json:"membership_level_id"`
-	TotalSpending       Cents  `gorm:"type:bigint;default:0" json:"total_spending"`
-	PrepaidPoints       Cents  `gorm:"type:bigint;default:0" json:"-"` // deprecated (#1531)
+	ID            string `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	IAMSub        string `gorm:"type:varchar(255);not null;-:migration" json:"iam_sub"`
+	TenantID      string `gorm:"type:uuid;index;not null" json:"tenant_id"`
+	OrgID         string `gorm:"type:uuid;index;not null" json:"org_id"`
+	Username      string `gorm:"type:varchar(255)" json:"username"`
+	Nickname      string `gorm:"type:varchar(64)" json:"nickname"`
+	Name          string `gorm:"type:varchar(255)" json:"name"`
+	Phone         string `gorm:"type:varchar(50)" json:"phone"`
+	Email         string `gorm:"type:varchar(255)" json:"email"`
+	CreditScore   int    `gorm:"default:600" json:"credit_score"`
+	DepositMode   string `gorm:"type:varchar(20);default:'standard'" json:"deposit_mode"` // 已弃用，仅用于兼容旧数据，勿写入新值
+	IsShadow      bool   `gorm:"default:true" json:"is_shadow"`
+	IsSystemAdmin bool   `gorm:"default:false" json:"is_system_admin"`
+	Status        string `gorm:"type:varchar(20);default:'pending'" json:"status"`
+	Position      string `gorm:"type:varchar(100)" json:"position"`
+	// #2626: Role 是派生主角色（兼容旧读路径，禁止独立赋值）；Roles 是 IAM
+	// functional_roles ∪ 派生主角色的多值镜像 —— 派生自 IAM，禁止独立写。
+	Role                string   `gorm:"type:varchar(50)" json:"role"`
+	Roles               []string `gorm:"type:jsonb;serializer:json;not null;default:'[]'" json:"roles"`
+	ForcePasswordChange bool     `gorm:"default:false" json:"force_password_change"`
+	AvatarURL           string   `gorm:"type:varchar(500)" json:"avatar"`
+	IsProfileCompleted  bool     `gorm:"default:false" json:"is_profile_completed"`
+	MembershipLevelID   *int     `gorm:"type:int" json:"membership_level_id"`
+	TotalSpending       Cents    `gorm:"type:bigint;default:0" json:"total_spending"`
+	PrepaidPoints       Cents    `gorm:"type:bigint;default:0" json:"-"` // deprecated (#1531)
 	// PromoPoints removed in #1983 (stage 2): points balance = SUM(point_batches.remaining_cents).
 	OnboardingCompleted  bool       `gorm:"default:false" json:"onboarding_completed"`
 	IdPhotoFront         *string    `gorm:"type:varchar(500)" json:"id_photo_front"`

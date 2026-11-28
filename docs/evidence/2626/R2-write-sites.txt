@@ -1,0 +1,19 @@
+# build=1.0.71efa1144 # commit=71efa1144e976de00c476b6101bef17ed2d20299 # dirty=false
+# tree=e691325bbd2e1a59297e6dab1e2cbf1403db4bbb
+FILE=backend/handlers/iam_callback.go derive_calls=1 mirror_primary=1 mirror_all=1 inline_literals=0
+FILE=backend/handlers/merchant_member.go derive_calls=2 mirror_primary=2 mirror_all=2 inline_literals=0
+FILE=backend/handlers/user_staff.go derive_calls=1 mirror_primary=1 mirror_all=1 inline_literals=0
+FILE=backend/handlers/merchant.go derive_calls=1 mirror_primary=1 mirror_all=1 inline_literals=0
+FILE=backend/handlers/iam_proxy.go derive_calls=1 mirror_primary=3 mirror_all=3 inline_literals=0
+WRITE_SITES=5
+WRITE_INLINE_LITERAL=0
+MIRROR_WRITE_DELEGATED=1
+HANDLERS_DIR_SCANNED=135
+WRITE_SITES_DIR_LITERALS=0
+STRUCT_ROLE_LEGACY: backend/handlers/member_invite_2114.go
+STRUCT_ROLE_LEGACY: backend/handlers/site.go
+STRUCT_ROLE_LEGACY: backend/handlers/site_member_common.go
+ALLOWLIST_HITS=0
+R2_NEGATIVE_CONTROL=1
+NEGATIVE_SAMPLE=/tmp/opencode/tuneloop/wt-2626/tmp/verify-2626-r2-neg/synthetic.go dir_hits=2 per_file_hits=2
+RESULT: PASS (r2)

@@ -31,6 +31,18 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 - 商户管理员可访问，含「成员权限」和「角色管理」两个 Tab
 - 网点管理员无此权限，通过人员管理页面（`/staff`）分配角色
 
+**角色术语（#2626，唯一口径）**：
+
+| 概念 | 定义 | 存哪 |
+|------|------|------|
+| **组织角色** | `OWNER` / `ADMIN` / `STAFF` / `WORKER` / `member`，决定管理权层级 | IAM `user_org_relations.role` |
+| **功能角色** | `merchant_admin` / `site_admin` / `merchant_staff` / `site_member` / `repair_technician` / `namespace_admin`，决定业务能力（模板码，**可多个**） | IAM `user_org_relations.functional_roles[]`；本地镜像 `users.roles jsonb` |
+| **组织级别** | `namespace` / `merchant`(tenant) / `franchise` / `branch`(site) —— **是组织的属性，不是角色的属性** | IAM `organizations.type` / 派生 |
+
+> **权威来源（#2626 D1/D2）**：IAM `user_org_relations`（`role` + `functional_roles[]`）是唯一权威；本地 `users.role` / `users.roles` 只是**派生镜像**，禁止独立赋值。一人可多角色：`users.roles` 存多值集合，`users.role` 存派生主角色（派生优先级 `merchant_admin > site_admin > repair_technician > merchant_staff > site_member`；`namespace_admin` / `sys_admin` 直接保留）。派生唯一实现 = `backend/services/role_derive.go::DeriveRoles`；`users.role` 仅用于兼容旧读路径（三步走：镜像多值 → 前端改读 → 删列）。
+>
+> 术语说明：「`site_admin`」的准确读法是「**级别 = site 的组织上的 ADMIN 组织角色**」，它是派生标签而非独立词汇；沟通中继续使用这些模板码，但**写库与判据只用**「组织角色 / 功能角色 / 组织级别」三词，禁止新增 `*_admin` / `*_staff` 形态的存储列。
+
 **角色层级结构**（IAM 定义）：
 
 | 角色 | 功能角色代码 | 角色说明 |
@@ -219,12 +231,12 @@ TuneLoop 使用 BeaconIAM JWT 中的双层位图实现权限控制：
 > **#2129 角色模板新增**：`merchant_staff`（**商户直属员工**，不挂靠网点）——cus_perm = 网点员工集合 **+ `repair:read`**；用于区分商户直属与网点员工（前端据此对 `site_staff` 隐藏维修服务入口）。
 > **授权范围原则**：维修服务单**关联商户组织**——可见性由组织范围决定（网点员工 oid=网点组织，天然不可见）；`repair:read` 仅作操作谓词。
 
-> **#2462 `users.role` 的域语义（强制）**：`users.role` 是**域角色落库字段**，创建时按用户类型写入并与域表保持一致——
-> - `merchant_direct`（商户直属员工）→ `users.role = merchant_staff`，且 `merchant_members.role = merchant_staff`；
-> - `site_staff`（网点员工）→ `users.role = site_member|site_admin`，且 `site_members.role` 与之一致；
-> - `repair_technician`（维修师傅）→ `users.role = repair_technician`（建 `technician_profiles`，不写 `merchant_members`）。
+> **#2462 / #2626 `users.role` 与 `users.roles` 的写入语义（强制）**：两列都是 IAM 的派生镜像（`DeriveRoles` 产出），创建时按用户类型写入并与域表保持一致——
+> - `merchant_direct`（商户直属员工）→ 功能角色 `merchant_staff`（`users.roles` 含该码，`users.role` 为其派生主角色），且 `merchant_members.role = merchant_staff`；
+> - `site_staff`（网点员工）→ 功能角色 `site_member|site_admin`（`users.roles` 含该码），且 `site_members.role` 与之一致；
+> - `repair_technician`（维修师傅）→ 功能角色 `repair_technician`（建 `technician_profiles`，不写 `merchant_members`）。
 >
-> 编辑时角色**未变化**（`role` 提交值等于现值）视为未变更：不写 `users.role`、不写域表、不触发 IAM 角色同步。
+> 编辑时角色**未变化**（`role` 提交值等于现值）视为未变更：不写 `users.role` / `users.roles`、不写域表、不触发 IAM 角色同步。
 > 存量脏数据（`merchant_members.role='site_member'` 且无 `site_members` 行）只出**只读清单**（`scripts/report-merchant-direct-role-drift-2462.sh`），回填需 Owner 显式授权（`OWNER_APPROVED_MERCHANT_DIRECT_ROLE=1`），禁止静默改名。
 
 ### 4.3 系统级角色对 cus_perm 门控路由的放行（#1964）

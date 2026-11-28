@@ -245,6 +245,7 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 				var existingLocal models.User
 				if err := db.Where("iam_sub = ?", userResult.UserID).First(&existingLocal).Error; err != nil {
 					existingUser := userResult.ExistingUsers[0]
+					mirror := services.DeriveRoles(services.OrgLevelMerchant, services.IAMRoleStaff, nil)
 					localUser := models.User{
 						ID:       userResult.UserID,
 						IAMSub:   userResult.UserID,
@@ -253,7 +254,8 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 						Name:     existingUser.Name,
 						Email:    existingUser.Email,
 						Phone:    createReq.Phone,
-						Role:     "site_member",
+						Role:     mirror.Primary,
+						Roles:    mirror.All,
 						Status:   "active",
 					}
 					if err := db.Create(&localUser).Error; err != nil {
@@ -277,9 +279,13 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 					}
 				}
 
+				// #2626 观察项：这里的 role 是**功能角色模板码**，仅用于 IAM 关系绑定
+				// 与模板分配（BindUserToOrganization / AssignRoleTemplate），
+				// **不写入 `users.role` / `users.roles`** —— 本地镜像另由上方
+				// DeriveRoles 产出（D1/D2）。
 				role := nu.Role
 				if role == "" {
-					role = "site_member"
+					role = services.RoleSiteMember
 				}
 				usersToProcess = append(usersToProcess, map[string]interface{}{
 					"user_id": userResult.UserID,
@@ -297,6 +303,9 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 				})
 			}
 
+			// #2626 D2：商户直属成员的功能角色 = merchant_staff（STAFF 关系），
+			// 由派生函数产出 users.role（主角色）+ users.roles（多值镜像）。
+			mirror := services.DeriveRoles(services.OrgLevelMerchant, services.IAMRoleStaff, nil)
 			localUser := models.User{
 				ID:       userResult.UserID,
 				IAMSub:   userResult.UserID,
@@ -305,15 +314,17 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 				Name:     createReq.Name,
 				Email:    createReq.Email,
 				Phone:    createReq.Phone,
-				Role:     "site_member",
+				Role:     mirror.Primary,
+				Roles:    mirror.All,
 				Status:   "active",
 			}
 			if err := db.Create(&localUser).Error; err != nil {
 				log.Printf("[MerchantAddMember] Failed to create local user %s: %v", userResult.UserID, err)
 			}
+			// #2626 观察项：同上，功能角色模板码仅用于 IAM 绑定，不写本地镜像列。
 			role := nu.Role
 			if role == "" {
-				role = "site_member"
+				role = services.RoleSiteMember
 			}
 			usersToProcess = append(usersToProcess, map[string]interface{}{
 				"user_id": userResult.UserID,

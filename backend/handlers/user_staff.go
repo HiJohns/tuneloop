@@ -371,9 +371,18 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	// #2462 D1：users.role = 域角色（merchant_direct → merchant_staff 等），
-	// 与 merchant_members/site_members 保持一致；此前从不写入导致恒为空串。
-	user.Role = resolvedRole
+	// #2626 D2：users.role = 派生主角色、users.roles = 多值镜像（功能角色 ∪ 主角色）。
+	// 角色码本身仍是功能角色（site_admin / merchant_staff …），但写入必须先经
+	// DeriveRoles 统一派生，避免各处再各自拼装 role 词汇（#2626 三写侧口径问题）。
+	{
+		orgLevel := services.OrgLevelSite
+		if userType == "merchant_direct" {
+			orgLevel = services.OrgLevelMerchant
+		}
+		mirror := services.DeriveRoles(orgLevel, services.ToIAMRole(resolvedRole), []string{resolvedRole})
+		user.Role = mirror.Primary
+		user.Roles = mirror.All
+	}
 
 	if resolvedRole == "site_admin" {
 		callerRole := middleware.GetBusinessRole(c.Request.Context())
@@ -1116,6 +1125,9 @@ func (h *UserStaffHandler) GetStaffUser(c *gin.Context) {
 	db.Model(&models.TechnicianProfile{}).Where("user_id = ?", user.ID).Count(&techCount)
 	isSiteStaff := len(memberships) > 0
 	isDirectStaff := mm.MerchantID != "" || !isSiteStaff
+	// #2626 D1（过渡兜底，只读侧）：镜像列尚未回填完时按
+	// `users.roles` → `users.role` → `site_role` → `merchant_role` 顺序回退，
+	// 保证编辑页角色初值不为空。该回退**只用于读**，写侧禁止据此回写。
 	c.JSON(http.StatusOK, gin.H{
 		"code":    20000,
 		"message": "success",
@@ -1128,6 +1140,7 @@ func (h *UserStaffHandler) GetStaffUser(c *gin.Context) {
 			"email":            user.Email,
 			"position":         user.Position,
 			"role":             user.Role,
+			"roles":            mirrorRolesForRead(user.Roles, user.Role, primary.Role, mm.Role),
 			"status":           user.Status,
 			"tenant_id":        user.TenantID,
 			"org_id":           user.OrgID,
@@ -1142,6 +1155,36 @@ func (h *UserStaffHandler) GetStaffUser(c *gin.Context) {
 			"is_direct_staff":  isDirectStaff,
 		},
 	})
+}
+
+// mirrorRolesForRead 是 #2626 D1 的读侧回退链（只读，禁止据此回写）：
+// users.roles（IAM 派生的多值镜像）→ users.role（派生主角色）→ site_role → merchant_role。
+// 存量行 roles 仍是空数组时用它兜底，避免编辑页角色初值退化为空。
+func mirrorRolesForRead(roles []string, fallbacks ...string) []string {
+	cleaned := make([]string, 0, len(roles))
+	seen := make(map[string]struct{}, len(roles))
+	for _, raw := range roles {
+		code := strings.ToLower(strings.TrimSpace(raw))
+		if code == "" {
+			continue
+		}
+		if _, ok := seen[code]; ok {
+			continue
+		}
+		seen[code] = struct{}{}
+		cleaned = append(cleaned, code)
+	}
+	if len(cleaned) > 0 {
+		return cleaned
+	}
+	for _, raw := range fallbacks {
+		code := strings.ToLower(strings.TrimSpace(raw))
+		if code == "" {
+			continue
+		}
+		return []string{code}
+	}
+	return []string{}
 }
 
 func (h *UserStaffHandler) UpdateUser(c *gin.Context) {

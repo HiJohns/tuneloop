@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"reflect"
 	"strconv"
 	"time"
 	"tuneloop-backend/bindmsg"
@@ -906,8 +907,12 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 	// Filters out users that don't belong to this merchant's hierarchy
 	userOrgID := middleware.GetOrgID(ctx)
 	validOrgIDs := map[string]bool{userOrgID: true}
+	// #2626 D1/D4：派生需要组织级别，而 user_org_relations 只带关系角色 —— 组织类型
+	// 从组织列表取（同一批次已拉取，无额外请求）。
+	orgLevels := map[string]string{}
 	if orgs, err := client.ListOrganizationsWithToken(userToken); err == nil {
 		for _, org := range orgs {
+			orgLevels[org.ID] = services.NormalizeOrgLevel(org.Type)
 			if org.ParentID != nil && *org.ParentID == userOrgID {
 				validOrgIDs[org.ID] = true
 			}
@@ -951,6 +956,11 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 		var existingUser models.User
 		err := db.Where("iam_sub = ?", user.ID).Or("email = ?", user.Email).First(&existingUser).Error
 
+		// #2626 D1/D2：本地 role/roles 是 IAM 的派生镜像 —— 由关系角色 + 组织级别
+		// 经 DeriveRoles 统一派生。此前这里直接写 matchedRole（IAM 组织角色
+		// ADMIN/STAFF），会把派生主角色覆写成 IAM 词汇，正是本单要消除的三套口径。
+		mirror := services.DeriveRoles(orgLevels[matchedOrgID], matchedRole, nil)
+
 		if err == gorm.ErrRecordNotFound {
 			// Create new shadow user
 			newUser := models.User{
@@ -961,7 +971,8 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 				Phone:    user.Phone,
 				TenantID: tenantID,
 				OrgID:    matchedOrgID,
-				Role:     matchedRole,
+				Role:     mirror.Primary,
+				Roles:    mirror.All,
 				IsShadow: true,
 				Status:   user.Status,
 			}
@@ -991,8 +1002,12 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 				updates["phone"] = user.Phone
 				needsUpdate = true
 			}
-			if existingUser.Role != matchedRole {
-				updates["role"] = matchedRole
+			if existingUser.Role != mirror.Primary {
+				updates["role"] = mirror.Primary
+				needsUpdate = true
+			}
+			if !reflect.DeepEqual(existingUser.Roles, mirror.All) {
+				updates["roles"] = mirror.All
 				needsUpdate = true
 			}
 			if existingUser.Status != user.Status {
