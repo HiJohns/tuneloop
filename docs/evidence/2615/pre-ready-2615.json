@@ -1,7 +1,7 @@
 {
   "issue": 2615,
-  "overall": "FAIL",
-  "plan": "/tmp/opencode/tuneloop/wt-2615/tmp/pre-ready-2615.anKBFJ/plan.md",
+  "overall": "PASS",
+  "plan": "/tmp/opencode/tuneloop/wt-2615/tmp/pre-ready-2615.Zkj2fZ/plan.md",
   "plan_sha256": "93957ba4172e03ca0526988ee3374d2bcdf3954fdd9bc719538683696d5b511e",
   "config_sha": "a29b2b35530c77f2bae31c509207199e6572ad9c",
   "provenance": {
@@ -10,7 +10,7 @@
     "dirty": false
   },
   "summary": "docs/evidence/2615/summary.md",
-  "timestamp": "20261128-044206",
+  "timestamp": "20261128-044334",
   "checks": [
     {
       "id": "P1",
@@ -24,8 +24,8 @@
     },
     {
       "id": "P3",
-      "status": "FAIL",
-      "detail": "evidence paths do not exist: c.GetQuery frontend-pc/src/pages/InstrumentStock.jsx:384 lossApi.list()"
+      "status": "PASS",
+      "detail": "all referenced evidence paths exist and are durable"
     },
     {
       "id": "P4",
@@ -34,8 +34,8 @@
     },
     {
       "id": "P12",
-      "status": "FAIL",
-      "detail": "R1: assert does not match the plan contract; R1: expected does not match the plan contract; R1: negative does not match the plan contract"
+      "status": "PASS",
+      "detail": "Evidence Contract complete: 6 row(s) match the plan and have durable artifacts"
     },
     {
       "id": "P14",
@@ -65,7 +65,7 @@
     {
       "id": "P5",
       "status": "N/A",
-      "detail": "skipped: P12/P14/P15/P16 static checks failed (static checks run first)"
+      "detail": "no go.mod/package.json and no --full-gate-cmd: full gate not applicable"
     },
     {
       "id": "P6",
