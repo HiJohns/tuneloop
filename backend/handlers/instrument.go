@@ -288,7 +288,7 @@ func CreateInstrument(c *gin.Context) {
 		log.Printf("[DEBUG] CreateInstrument - BindJSON error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40001,
-			"message": err.Error(),
+			"message": bindmsg.Message(err),
 		})
 		return
 	}
@@ -402,7 +402,7 @@ func CreateInstrument(c *gin.Context) {
 			log.Printf("[ERROR] Failed to marshal images: %v", err)
 			c.JSON(http.StatusBadRequest, gin.H{
 				"code":    40003,
-				"message": "invalid images format: " + err.Error(),
+				"message": "参数不合法：图片格式不正确",
 			})
 			return
 		}
@@ -418,7 +418,7 @@ func CreateInstrument(c *gin.Context) {
 			log.Printf("[ERROR] Failed to marshal specifications: %v", err)
 			c.JSON(http.StatusBadRequest, gin.H{
 				"code":    40004,
-				"message": "invalid specifications format: " + err.Error(),
+				"message": "参数不合法：规格格式不正确",
 			})
 			return
 		}
@@ -442,7 +442,7 @@ func CreateInstrument(c *gin.Context) {
 			log.Printf("[ERROR] Failed to marshal pricing: %v", err)
 			c.JSON(http.StatusBadRequest, gin.H{
 				"code":    40005,
-				"message": "invalid pricing format: " + err.Error(),
+				"message": "参数不合法：价格格式不正确",
 			})
 			return
 		}
@@ -550,7 +550,7 @@ func UpdateInstrument(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40001,
-			"message": err.Error(),
+			"message": bindmsg.Message(err),
 		})
 		return
 	}
@@ -652,7 +652,7 @@ func UpdateInstrument(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"code":    40003,
-				"message": "invalid images format: " + err.Error(),
+				"message": "参数不合法：图片格式不正确",
 			})
 			return
 		}
@@ -664,7 +664,7 @@ func UpdateInstrument(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"code":    40004,
-				"message": "invalid specifications format: " + err.Error(),
+				"message": "参数不合法：规格格式不正确",
 			})
 			return
 		}
@@ -676,7 +676,7 @@ func UpdateInstrument(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"code":    40005,
-				"message": "invalid pricing format: " + err.Error(),
+				"message": "参数不合法：价格格式不正确",
 			})
 			return
 		}

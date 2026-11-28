@@ -142,6 +142,17 @@ var bindFieldLabels = map[string]string{
 	// 乐器（instrument.go）
 	"stock_status": "库存状态",
 	"quantity":     "数量",
+	// #2606：乐器新建/编辑请求体的其余字段称呼（全部不含 ASCII 字母）。
+	"category_id":    "分类",
+	"level_id":       "等级",
+	"level":          "级别",
+	"sn":             "序列号",
+	"pricing":        "价格配置",
+	"total_price":    "总价",
+	"video":          "视频",
+	"poster":         "海报",
+	"specifications": "规格清单",
+	"properties":     "属性值",
 
 	// 仓储（warehouse.go）
 	"tracking_number":         "物流单号",
