@@ -92,11 +92,23 @@ case "$MODE" in
     exit "${PIPESTATUS[0]}"
     ;;
   r4-manual)
-    if tail -5 docs/evidence/2429/R4-manual.md | grep -q '^RESULT: PASS'; then
-      echo "MANUAL_OK: docs/evidence/2429/R4-manual.md"
+    # 人工回执不是命令产出，但 P14（evidence-artifacts.sh）要求每个 artifact 首行为
+    # `# build=… # commit=… # dirty=…`。此处由脚本幂等维护首行 provenance，
+    # Owner 的核对内容与 RESULT 行保持原样、不被改写。
+    {
+      existing="$(cat "$ART" 2>/dev/null || true)"
+      printf '%s\n' "$PROVENANCE"
+      if printf '%s\n' "$existing" | head -n 1 | grep -Eq '^# build=[^ ]+ # commit=[0-9a-f]{7,40} # dirty=(true|false)$'; then
+        printf '%s\n' "$existing" | tail -n +2
+      else
+        printf '%s\n' "$existing"
+      fi
+    } > "$ART.tmp" && mv "$ART.tmp" "$ART"
+    if tail -5 "$ART" | grep -q '^RESULT: PASS'; then
+      echo "MANUAL_OK: $ART"
       exit 0
     fi
-    echo "MANUAL_PENDING: docs/evidence/2429/R4-manual.md（Owner 未签）"
+    echo "MANUAL_PENDING: $ART（Owner 未签）"
     exit 1
     ;;
 esac
