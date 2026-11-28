@@ -1,4 +1,9 @@
-## Accepted Plan — #2621 [Bug] 其余身份自查询仍被自动租户过滤：共享解析器 + `/user/*` 家庭 7 处收口｜Rev.3
+## Accepted Plan — #2621 [Bug] 其余身份自查询仍被自动租户过滤：共享解析器 + `/user/*` 家庭 7 处收口｜Rev.4（order 员工订单按当前网点 + fail-closed；显示面 defer）
+
+> **Rev.4 说明（Owner 2026-11-28 裁定）**：
+> ① **员工不应看到跨网点订单**：订单可见范围 = **当前组织上下文（JWT `oid`，登录时选定的网点）**，不是「该用户 `site_members` 的全部网点」；多网点员工登录时须选网点（IAM `select-org` 已具备）。
+> ② **fail-closed**：`order.go` 员工分支的自查询失败或 `oid` 为空时 → **返回空列表**，绝不退化为按商户/租户放宽（现状 `order.go:46-58` 自查询失败会跳过整段网点过滤 = 跨网点可见，属隔离缺陷）。
+> ③ 显示面（`:1317` / `:1542` / `api.go:333` / `audit_log.go:77` / `iam_proxy.go:952`）**defer 到 follow-up**（带 Issue 号），不在本单扩面。
 
 > **Rev.3（修第二处 Files 缺口）**：变更点序 7 给 `getWalletInfo` 加 `ctx` 参数，其**另一个调用点** `backend/handlers/gift_policy_test.go:152` 必须同改（否则 `handlers` 包编译失败），本版把该测试文件登记进 `### Files`。
 
@@ -96,12 +101,16 @@ if err := database.GetDB().WithContext(database.IdentityCtx(ctx)).
 - `backend/handlers/payment_calculate.go`
 - `backend/handlers/deposit_waiver.go`
 - `backend/handlers/customer_role.go`
+- `backend/handlers/order.go`（员工订单列表按 ctx `oid` 过滤 + fail-closed）
+- `backend/handlers/order_visibility_2621_test.go`
 - `backend/handlers/self_query_tenant_scope_2621_test.go`
 - `backend/handlers/gift_policy_test.go`（`getWalletInfo` 加 `ctx` 后的调用点同步）
 - `docs/evidence/2621/plan.md`
 - `docs/evidence/2621/R1-resolver.txt`
 - `docs/evidence/2621/R2-handler-sites.txt`
 - `docs/evidence/2621/R3-isolation-and-build.txt`
+- `docs/evidence/2621/R4-staff-site-order-scope.txt`
+- `docs/evidence/2621/R5-self-query-scan.txt`
 - `docs/evidence/2621/evidence.json`
 - `docs/evidence/2621/pre-ready-2621.json`
 - `scripts/verify-2621.sh`（R1/R2/R3 证据生成器）
@@ -113,6 +122,8 @@ if err := database.GetDB().WithContext(database.IdentityCtx(ctx)).
 | R1 共享解析器（1 谓词，31 调用点继承） | `backend/middleware/iam.go`、`backend/handlers/self_query_tenant_scope_2621_test.go` | `go test ./handlers -run 'TestSelfQueryTenantScope2621/ensure_local_user|local_user_id'` | `users.tenant_id=cacheTenant` ≠ ctx `tid=jwtTenant` | backend（一次性 PG 15433） | `TEST_EXIT=0`、`ENSURE_HIT=1`、`ENSURE_NO_NEW_ROW=1`、`LOCAL_USER_ID_HIT=1` | R1 |
 | R2 7 处直连收口（9 改动点） | `backend/handlers/user_points.go`、`backend/handlers/pending_order.go`、`backend/handlers/face_capture.go`、`backend/handlers/user_address.go`、`backend/handlers/payment_calculate.go`、`backend/handlers/deposit_waiver.go`、`backend/handlers/customer_role.go` | `go test ./handlers -run 'TestSelfQueryTenantScope2621'` | 同上（缓存 tenant ≠ JWT tid） | backend（一次性 PG 15433） | `CASES_TOTAL=11`、`CASES_FAIL=0`、`POINTS_BALANCE_HTTP=200`、`POINTS_TX_HTTP=200`、`PENDING_ORDER_HTTP=200`、`FACE_CAPTURE_NOT_404=1`、`ADDRESSES_HTTP=200`、`PAY_CALC_NO_USER_ERROR=1`、`DEPOSIT_WAIVER_NOT_PROFILE_NOT_READY=1`、`CUSTOMER_ROLE_HTTP=200` | R2 |
 | R3 隔离未放松 + 构建/编译冒烟 + 残留扫描 | `backend/handlers/self_query_tenant_scope_2621_test.go` | `bash scripts/verify-2621.sh r3` | 跨租户数据查询；修后工作树 | backend | `CROSS_TENANT_HIDDEN=1`、`DOMAIN_QUERY_STILL_SCOPED=1`、`GO_BUILD_EXIT=0`、`TEST_COMPILE_EXIT=0`、`RESIDUAL_PLAIN_CTX_SELF_QUERY=0` | R3 |
+| R4 员工订单按当前网点（fail-closed） | `backend/handlers/order.go`、`order_visibility_2621_test.go` | `go test ./handlers -run TestOrderVisibility2621 -v` | 双网点员工以 A 网点 `oid` 请求；自查询失败（缓存 tenant ≠ JWT tid）；`oid` 为空 | backend（一次性 PG 15433） | `STAFF_ORDER_SITE_SCOPED=1`、`CROSS_SITE_ORDER_HIDDEN=1`、`SELF_QUERY_FAIL_CLOSED=1`、`NO_OID_EMPTY_LIST=1`、`TENANT_WIDE_FALLBACK=0` | R4 |
+| R5 语义级自查询扫描（不靠单点正则） | `scripts/verify-2621.sh` | `bash scripts/verify-2621.sh r5` | 修后树 | repo（静态） | `SELF_QUERY_WITH_TENANT_CTX=0`、`DEFERRED_SITES=5`、`DEFERRED_ISSUE_LINKED=1` | R5 |
 
 ### G0 Golden Acceptance
 
@@ -121,6 +132,8 @@ if err := database.GetDB().WithContext(database.IdentityCtx(ctx)).
 | R1 | 一次性 PG：`users` 行（`iam_sub=iam-sub-2621`、`tenant_id=cacheTenant`）+ `TestActor{TenantID: jwtTenant≠cacheTenant}` | `TestSelfQueryTenantScope2621/{ensure_local_user,local_user_id}` | `docs/evidence/2621/R1-resolver.txt` | `TEST_EXIT=0`、`ENSURE_HIT=1`、`ENSURE_NO_NEW_ROW=1`、`USERS_ROW_COUNT_DELTA=0`、`LOCAL_USER_ID_HIT=1` | `EnsureLocalUser` 返回 error、或新建了第二行 `users`（唯一冲突/重复建户）、`LocalUserID` 返回空 → 任一即 FAIL |
 | R2 | 同上 + IAM mock + 9 个端点各自的最小请求体（积分/地址/人脸/支付计算/押金减免/待处理订单/顾客身份） | `TestSelfQueryTenantScope2621`（11 子用例） | `docs/evidence/2621/R2-handler-sites.txt` | `TEST_EXIT=0`、`CASES_TOTAL=11`、`CASES_FAIL=0`、`POINTS_BALANCE_HTTP=200`、`POINTS_TX_HTTP=200`、`PENDING_ORDER_HTTP=200`、`FACE_CAPTURE_NOT_404=1`、`ADDRESSES_HTTP=200`、`PAY_CALC_NO_USER_ERROR=1`、`DEPOSIT_WAIVER_NOT_PROFILE_NOT_READY=1`、`CUSTOMER_ROLE_HTTP=200` | 任一端点仍 404 `user not found`/`40400`、地址落 `500 user sync failed`、押金减免误报 `profile_not_ready`、`customer_role` 仍按 `id` 查 → 任一即 FAIL |
 | R3 | 跨租户数据行（tenant A/B 各 1 行 `users`）+ 修后工作树 | `bash scripts/verify-2621.sh r3` | `docs/evidence/2621/R3-isolation-and-build.txt` | `CROSS_TENANT_HIDDEN=1`、`DOMAIN_QUERY_STILL_SCOPED=1`、`GO_BUILD_EXIT=0`、`TEST_COMPILE_EXIT=0`、`RESIDUAL_PLAIN_CTX_SELF_QUERY=0` | 跨租户可见、域查询（积分批次/礼品策略/押金评估）失去租户过滤、构建或测试包编译失败、残留 `WithContext(ctx)` 自查询 → 任一即 FAIL |
+| R4 | 双网点员工（`site_members` 两行）+ 网点 A/B 各 1 单；请求上下文 `oid=A` | `TestOrderVisibility2621` | `docs/evidence/2621/R4-staff-site-order-scope.txt` | `STAFF_ORDER_SITE_SCOPED=1`、`CROSS_SITE_ORDER_HIDDEN=1`、`SELF_QUERY_FAIL_CLOSED=1`、`NO_OID_EMPTY_LIST=1`、`TENANT_WIDE_FALLBACK=0` | 看到 B 网点订单、自查询失败后放宽到商户范围、`oid` 空却返回全量 → 任一即 FAIL |
+| R5 | 修后树 + 白名单（5 处 defer 带 Issue 号） | `bash scripts/verify-2621.sh r5` | `docs/evidence/2621/R5-self-query-scan.txt` | `SELF_QUERY_WITH_TENANT_CTX=0`、`DEFERRED_SITES=5`、`DEFERRED_ISSUE_LINKED=1` | 仍有带租户 ctx 的自查询、defer 项无 Issue 号 → FAIL |
 
 ### Evidence Contract
 
@@ -129,6 +142,8 @@ if err := database.GetDB().WithContext(database.IdentityCtx(ctx)).
 | R1 | `bash scripts/verify-2621.sh r1 > docs/evidence/2621/R1-resolver.txt` | `docs/evidence/2621/R1-resolver.txt` | exit 0 且含 `TEST_EXIT=0` `ENSURE_HIT=1` `ENSURE_NO_NEW_ROW=1` `USERS_ROW_COUNT_DELTA=0` `LOCAL_USER_ID_HIT=1` | PASS（5 项 token 全为期望值） | 返回 error、重复建户、`LocalUserID` 空 → FAIL | dev |
 | R2 | `bash scripts/verify-2621.sh r2 > docs/evidence/2621/R2-handler-sites.txt` | `docs/evidence/2621/R2-handler-sites.txt` | exit 0 且含 `TEST_EXIT=0` `CASES_TOTAL=11` `CASES_FAIL=0` `POINTS_BALANCE_HTTP=200` `POINTS_TX_HTTP=200` `PENDING_ORDER_HTTP=200` `FACE_CAPTURE_NOT_404=1` `ADDRESSES_HTTP=200` `PAY_CALC_NO_USER_ERROR=1` `DEPOSIT_WAIVER_NOT_PROFILE_NOT_READY=1` `CUSTOMER_ROLE_HTTP=200` | PASS（11 项 token 全为期望值） | 任一端点仍 404/500/误报、用例数 <11 → FAIL | dev |
 | R3 | `bash scripts/verify-2621.sh r3 > docs/evidence/2621/R3-isolation-and-build.txt` | `docs/evidence/2621/R3-isolation-and-build.txt` | exit 0 且含 `CROSS_TENANT_HIDDEN=1` `DOMAIN_QUERY_STILL_SCOPED=1` `GO_BUILD_EXIT=0` `TEST_COMPILE_EXIT=0` `RESIDUAL_PLAIN_CTX_SELF_QUERY=0` | PASS（5 项 token 全为期望值） | 跨租户可见、域查询失去过滤、构建/编译失败、残留自查询 → FAIL | dev |
+| R4 | `bash scripts/verify-2621.sh r4 > docs/evidence/2621/R4-staff-site-order-scope.txt` | `docs/evidence/2621/R4-staff-site-order-scope.txt` | exit 0 且含 `STAFF_ORDER_SITE_SCOPED=1` `CROSS_SITE_ORDER_HIDDEN=1` `SELF_QUERY_FAIL_CLOSED=1` `NO_OID_EMPTY_LIST=1` `TENANT_WIDE_FALLBACK=0` | PASS（5 项 token） | 跨网点可见/放宽 → FAIL | dev |
+| R5 | `bash scripts/verify-2621.sh r5 > docs/evidence/2621/R5-self-query-scan.txt` | `docs/evidence/2621/R5-self-query-scan.txt` | exit 0 且含 `SELF_QUERY_WITH_TENANT_CTX=0` `DEFERRED_SITES=5` `DEFERRED_ISSUE_LINKED=1` | PASS（3 项 token） | 残留言租户 ctx 的自查询 → FAIL | dev |
 
 ### Artifact Provenance
 
@@ -140,6 +155,8 @@ if err := database.GetDB().WithContext(database.IdentityCtx(ctx)).
   - `docs/evidence/2621/R3-isolation-and-build.txt`
 - gate：`~/.config/opencode/scripts/pre-ready-check.sh 2621 --summary-file tmp/pre-ready-2621-summary.md --changed-files tmp/pre-ready-2621-changed.txt --evidence-file docs/evidence/2621/evidence.json --report docs/evidence/2621/pre-ready-2621.json`
 - evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
+  - `docs/evidence/2621/R4-staff-site-order-scope.txt`
+  - `docs/evidence/2621/R5-self-query-scan.txt`
 
 ### Input Truth & Tool Preflight
 
@@ -176,7 +193,15 @@ if err := database.GetDB().WithContext(database.IdentityCtx(ctx)).
 | D9 | 预生产真机复验（积分/地址/人脸/支付计算路径）归部署侧 → closing 时建 `[Ops-Followup of #2621]`（`waitForConfirm`） | 本计划锁定 |
 | D10 | `property.go:73`（`Table("users")` 无 Schema，自动 scope 不注入）不改，只在 R3 加回归守卫断言其行为未变 | 背景第 9 条 |
 
-### Out of Scope
+### Decision Lock（Rev.4 追加）
+
+| ID | 项 | 裁定 |
+|---|---|---|
+| D8 | 员工订单可见范围 | **当前组织上下文（JWT `oid`）**；多网点员工须登录时选网点（IAM select-org） |
+| D9 | 自查询失败语义 | **fail-closed**：返回空列表；禁止退化为商户/租户范围（现状 bug 即放宽） |
+| D10 | 显示面 defer | `:1317`/`:1542`/`api.go:333`/`audit_log.go:77`/`iam_proxy.go:952` 进 follow-up，Out of Scope 登记 Issue 号 |
+
+## Out of Scope
 
 - `/users/me/*`（#2620 已修）。
 - `users.tenant_id/role` 缓存行纠正与回填（#2527 / #2553–#2557）；对账工具（#2622 族：#2623/#2624/#2625）。
@@ -213,5 +238,6 @@ if err := database.GetDB().WithContext(database.IdentityCtx(ctx)).
 | 10 | 未修边界（deferred） | 缓存行纠正 #2527、对账族 #2622、角色权威 #2626、`UPDATE` 型自写、真机复验 `[Ops-Followup]` | Out of Scope、D5/D8/D9 |
 
 *Model: deepseek/deepseek-flash*
+
 
 
