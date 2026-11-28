@@ -371,6 +371,7 @@ _row_r10_body() { # <artifact> <services-db>
         --affected-cmd "cd backend && go test ./handlers -run 'TestSiteNameUnique|TestCreateSite_DuplicateNameRejectedByIAM_2455|TestCreateSite_CrossTenantSameNameAllowed_2455|TestUpdateSite_DuplicateNameRejectedBeforeIAM_2455|TestWxAccounts_ContextLabelDisambiguatesSameNamedSites_2455' -count=1 -timeout 15m" \
         --remote-ref "origin/issue-$ISSUE" \
         --gate-adapter go \
+        --baseline "${P5_BASELINE:-origin/develop}" \
         --full-gate-cmd "$full_cmd" \
         --gate-lock-scope host \
         --report "$report" ) > "$log.gate" 2>&1 || true
