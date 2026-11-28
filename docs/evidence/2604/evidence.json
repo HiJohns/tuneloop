@@ -81,5 +81,6 @@
       "negative_result": "负例已实测：`gofmt -l` 覆盖 20 个改动 Go 文件，输出为空才记 0；`go build ./...` 与全包编译冒烟经 heavy-run 取锁执行，任一非 0 即 FAIL。",
       "pass": true
     }
-  ]
+  ],
+  "tooling_commit": "c00d84454cc7589086f25ef3a871be1d00a12644"
 }
