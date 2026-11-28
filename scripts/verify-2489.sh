@@ -52,6 +52,13 @@ PAGE_MEMBER="$SRC_DIR/pages/System/MembershipLevelsPage.jsx"
 PAGE_MERCHANT="$SRC_DIR/pages/MerchantManagement.jsx"
 KEEP_PAGES=("$PAGE_PERM" "$PAGE_PRICING" "$PAGE_MEMBER")
 BATCH_PAGES=("$PAGE_PERM" "$PAGE_PRICING" "$PAGE_TRANSIT" "$PAGE_MEMBER" "$PAGE_MERCHANT")
+BATCH_RELS=(
+  "pages/admin/PermissionManage/index.jsx"
+  "pages/admin/pricing/MerchantPricingConfig.jsx"
+  "pages/admin/transit/TransitCenter.jsx"
+  "pages/System/MembershipLevelsPage.jsx"
+  "pages/MerchantManagement.jsx"
+)
 
 LOG="$REPO/tmp/verify-2489-${MODE}.log"
 mkdir -p "$REPO/tmp"
@@ -120,6 +127,62 @@ code_first_check() { # file
       printf "OK=%d BAD=%d\n", ok, bad
     }
   ' "$1"
+}
+
+# 页面级不变量（Rev.9 R6）：枚举 `await api.* → message.success` 路径，逐路径给出
+# 成功行与其前的 code 守卫行（`code === 20000` 前置 或 `code !== 20000` 早退）。
+# 输出：<rel>\t<fn>\t<guard_line>\t<success_line>\t<guarded 0|1>
+success_path_rows() { # rel-path...
+  python3 - "$@" <<'PY'
+import os
+import re
+import sys
+
+CONST_FN = re.compile(r'^([ \t]*)(?:const|let|var)\s+([A-Za-z0-9_]+)\s*=\s*(.*)$')
+PROP_FN = re.compile(r'^([ \t]*)([A-Za-z0-9_]+)\s*[=:]\s*\{?\s*(?:async\s*)?\([^)]*\)\s*=>')
+FUNC_FN = re.compile(r'^([ \t]*)function\s+([A-Za-z0-9_]+)')
+ARROW_REST = re.compile(r'^(?:async\s*)?(?:\([^)]*\)|[A-Za-z0-9_]+)\s*=>')
+NAMED_FUNC_REST = re.compile(r'^(?:async\s+)?function\b')
+API_CALL = re.compile(r'await\s+api\.(?:get|post|put|delete|patch)\(')
+CODE_GUARD = re.compile(r'(?:\.code|(?<![A-Za-z0-9_])code)\s*(?:!==|===|!=|==)\s*20000\b')
+SUCCESS = re.compile(r'message\.success\(')
+
+for rel in sys.argv[1:]:
+    path = os.path.join('frontend-pc/src', rel)
+    try:
+        lines = open(path, encoding='utf-8').read().splitlines()
+    except OSError as exc:
+        sys.stderr.write('SCANNER_ERROR: %s: %s\n' % (rel, exc))
+        sys.exit(2)
+    starts = []  # (line_no, name)
+    for i, line in enumerate(lines, 1):
+        m = CONST_FN.match(line)
+        if m and (ARROW_REST.match(m.group(3)) or NAMED_FUNC_REST.match(m.group(3))):
+            starts.append((i, m.group(2)))
+            continue
+        m = PROP_FN.match(line)
+        if m:
+            starts.append((i, '%s@%d' % (m.group(2), i)))
+            continue
+        m = FUNC_FN.match(line)
+        if m:
+            starts.append((i, m.group(2)))
+    for idx, line in enumerate(lines, 1):
+        if not SUCCESS.search(line):
+            continue
+        prior = [s for s in starts if s[0] < idx]
+        fn_line, fn_name = prior[-1] if prior else (1, 'top')
+        api_line = 0
+        guard_line = 0
+        for j in range(fn_line, idx + 1):
+            text = lines[j - 1]
+            if API_CALL.search(text):
+                api_line = j
+            if CODE_GUARD.search(text):
+                guard_line = j
+        guarded = 1 if (guard_line and (not api_line or guard_line >= api_line)) else 0
+        print('%s\t%s\t%d\t%d\t%d' % (rel, fn_name, guard_line, idx, guarded))
+PY
 }
 
 # Round 9（审计失败项 1）：函数级「无假成功」扫描 —— 成功提示必须出现在
@@ -305,10 +368,38 @@ case "$MODE" in
     coe="$(clear_on_edit_count "$PAGE_MERCHANT")"
     emit "CLEAR_ON_EDIT_FORMS=${coe:-0}"
     emit "CLEAR_ON_EDIT=$([ "${coe:-0}" -ge 2 ] && echo 1 || echo 0)"
+    # Rev.9 R6：列表视图删除（无输入可改）→ 先判 code 再成功 + 失败用 30 秒 toast。
+    del="$(fn_guard_scan "$PAGE_MERCHANT" handleDelete)"
+    d_guard="$(printf '%s' "$del" | sed -n 's/.*guard=\([0-9]*\).*/\1/p')"
+    d_succ="$(printf '%s' "$del" | sed -n 's/.*success=\([0-9]*\).*/\1/p')"
+    d_count="$(printf '%s' "$del" | sed -n 's/.*count=\([0-9]*\).*/\1/p')"
+    del_block="$(awk '/const handleDelete = async/ { infn = 1 } infn { print } infn && /^  };$/ { infn = 0 }' "$PAGE_MERCHANT")"
+    d_errs="$(printf '%s\n' "$del_block" | grep -c 'message\.error(' || true)"
+    d_toast="$(printf '%s\n' "$del_block" | grep -c 'LIST_TOAST_SECONDS' || true)"
+    d_const="$(grep -c '^const LIST_TOAST_SECONDS = 30;' "$PAGE_MERCHANT" || true)"
+    emit "DELETE_GUARD_LINE=${d_guard:-0}"
+    emit "DELETE_SUCCESS_LINE=${d_succ:-0}"
+    emit "DELETE_SUCCESS_COUNT=${d_count:-0}"
+    emit "DELETE_ERR_SITES=${d_errs:-0}"
+    emit "DELETE_TOAST_SITES=${d_toast:-0}"
+    emit "DELETE_NO_FALSE_SUCCESS=$([ "${d_guard:-0}" -gt 0 ] && [ "${d_succ:-0}" -gt "${d_guard:-0}" ] && [ "${d_count:-0}" = "1" ] && echo 1 || echo 0)"
+    emit "LIST_TOAST_SECONDS=$([ "${d_const:-0}" = "1" ] && [ "${d_errs:-0}" -ge 1 ] && [ "${d_toast:-0}" -ge "${d_errs:-0}" ] && echo 30 || echo 0)"
+    # Rev.9 R6 页面级不变量：本单 5 文件每条 `await api.* → message.success` 路径都必须有 code 守卫。
+    emit "--- success paths ---"
+    success_paths=0
+    unguarded_paths=0
+    while IFS=$'\t' read -r rel fn g s guarded; do
+      [ -n "${rel:-}" ] || continue
+      emit "PATH ${rel}:${fn} guard_line=${g} success_line=${s}"
+      success_paths=$((success_paths + 1))
+      [ "${guarded:-0}" = "1" ] || unguarded_paths=$((unguarded_paths + 1))
+    done < <(success_path_rows "${BATCH_RELS[@]}")
+    emit "SUCCESS_PATHS=${success_paths}"
+    emit "UNGUARDED_SUCCESS_PATHS=${unguarded_paths}"
     # 改名 409 语义由后端 #2459 决定（本单不自写白名单）→ 显式标注延后项。
     emit "DEFER_2459=$([ "${theme_ref:-0}" -gt 0 ] && [ "${local_whitelist:-0}" = "0" ] && echo 1 || echo 0)"
     emit "--- wiring ---"
-    grep -nE "FormConflictAlert|isBusinessCorrectableConflict\(|conflictText\(|resp\.code !== 20000|onValuesChange=|#2459" "$PAGE_MERCHANT" | sed 's/^/WIRE /' | while IFS= read -r l; do emit "$l"; done
+    grep -nE "FormConflictAlert|isBusinessCorrectableConflict\(|conflictText\(|resp\.code !== 20000|onValuesChange=|#2459|LIST_TOAST_SECONDS" "$PAGE_MERCHANT" | sed 's/^/WIRE /' | while IFS= read -r l; do emit "$l"; done
     require 'PERSIST_ALERT=1'
     require 'THEME_2459=1'
     require 'CODE_FIRST=1'
@@ -318,6 +409,12 @@ case "$MODE" in
     require 'SETTLEMENT_ERR_DIRECT=1'
     require 'ERR_RESPONSE_USES=0'
     require 'CLEAR_ON_EDIT=1'
+    require 'DELETE_NO_FALSE_SUCCESS=1'
+    require 'LIST_TOAST_SECONDS=30'
+    require 'UNGUARDED_SUCCESS_PATHS=0'
+    [ "${success_paths:-0}" -gt 0 ] || { echo "ASSERT_FAIL: SUCCESS_PATHS=0 (scanner blind)" >&2; RC=1; }
+    [ "${unguarded_paths:-0}" = "0" ] || { echo "ASSERT_FAIL: UNGUARDED_SUCCESS_PATHS!=0" >&2; RC=1; }
+    [ "${d_guard:-0}" -gt 0 ] && [ "${d_succ:-0}" -gt "${d_guard:-0}" ] || { echo "ASSERT_FAIL: DELETE_GUARD_LINE !< DELETE_SUCCESS_LINE" >&2; RC=1; }
     finish R6-merchant.txt || RC=1
     ;;
 

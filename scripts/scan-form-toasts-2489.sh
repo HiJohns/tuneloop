@@ -158,7 +158,12 @@ for rel in "${TARGETS[@]}"; do
       rubric_codes_toasted=1
     fi
 
-    if [ "$rubric_in_chain" = "1" ]; then
+    if [ "$rel" = "pages/MerchantManagement.jsx" ] && printf '%s' "$fn" | grep -qE '^handleDelete$'; then
+      # Rev.9 D9（Owner 裁定）：删除是不可纠正前置条件（商户还有网点/未完成订单），
+      # 列表视图不做常驻提示 → 30 秒 toast。reason 按真实后端契约写。
+      tier="keep:instant"
+      reason="delete conflict: 40400 not found / 40002 active sites or unfinished orders → list toast 30s (Rev.9 D9 exception)"
+    elif [ "$rubric_in_chain" = "1" ]; then
       tier="keep:instant"
       reason="rubric-fallback: non-business fallback of a code-classified submit branch"
       fallback=$((fallback + 1))

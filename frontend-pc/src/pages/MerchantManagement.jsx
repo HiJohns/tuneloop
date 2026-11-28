@@ -8,6 +8,10 @@ import MerchantMemberManagement from '../components/MerchantMemberManagement';
 import FormConflictAlert from '../components/FormConflictAlert';
 import { conflictText, isBusinessCorrectableConflict } from '../utils/formConflict';
 
+// #2489 Rev.9 D9：列表视图（删除这类无输入可改的动作）不做常驻提示，
+// 用停留 30 秒的 toast 呈现；表单/弹窗仍用 FormConflictAlert 常驻。
+const LIST_TOAST_SECONDS = 30;
+
 const MerchantManagement = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -104,7 +108,16 @@ const MerchantManagement = () => {
 
   const handleDelete = async (merchantId) => {
     try {
-      await api.delete(`/merchants/${merchantId}`);
+      const resp = await api.delete(`/merchants/${merchantId}`);
+      // #2489 Rev.9：DELETE 的真实契约是 40400（商户不存在）/ 40002（还有网点或未完成订单）。
+      // 传输层（#2563）对 404/409 返回对象而不抛错 —— 不判 code 就会「假成功」。
+      if (resp && resp.code !== 20000) {
+        message.error(
+          isBusinessCorrectableConflict(resp) ? conflictText(resp, '删除商户失败') : (resp.message || '删除商户失败'),
+          LIST_TOAST_SECONDS,
+        );
+        return;
+      }
       message.success('商户删除成功');
       fetchMerchants();
       if (selectedMerchant?.id === merchantId) {
@@ -112,8 +125,11 @@ const MerchantManagement = () => {
         navigate('/merchants');
       }
     } catch (error) {
-      // #2489 Round 9：ApiError 的中文 message 直接可用（传输层已 resolveErrorMessage）。
-      message.error(error?.message || '删除商户失败');
+      // 400 族由传输层抛 ApiError（code/message 挂在 error 上，无 response 属性）。
+      message.error(
+        isBusinessCorrectableConflict(error) ? conflictText(error, '删除商户失败') : (error?.message || '删除商户失败'),
+        LIST_TOAST_SECONDS,
+      );
     }
   };
 
