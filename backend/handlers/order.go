@@ -24,6 +24,19 @@ import (
 	"gorm.io/gorm"
 )
 
+// respondEmptyOrderList 输出空订单列表（#2621 fail-closed 统一出口，保持响应形状不变）。
+func respondEmptyOrderList(c *gin.Context, page, pageSize int) {
+	c.JSON(http.StatusOK, gin.H{
+		"code": 20000,
+		"data": gin.H{
+			"list":      []interface{}{},
+			"total":     0,
+			"page":      page,
+			"page_size": pageSize,
+		},
+	})
+}
+
 // GetOrders retrieves order list with pagination and status filter
 func GetOrders(c *gin.Context) {
 	page := 1
@@ -43,37 +56,41 @@ func GetOrders(c *gin.Context) {
 	db := database.GetDB().WithContext(ctx)
 	tenantID := middleware.GetTenantID(c.Request.Context())
 	userID := middleware.GetUserID(c.Request.Context())
+	orgID := middleware.GetOrgID(c.Request.Context())
 	query := db.Model(&models.Order{})
 	if tenantID != "" {
-		// 员工：按所属网点过滤（从 site_members 获取用户关联的所有网点）
+		// #2621 D8/D9（Owner 2026-11-28 裁定）：员工订单可见范围 = **当前组织上下文**
+		// （JWT oid，登录时选定的网点），不是该用户 site_members 的全部网点。
+		// 身份自查询失败或 oid 为空 → fail-closed（空列表），禁止退化为商户/租户范围
+		// （旧实现自查询失败时跳过网点过滤 → 跨网点可见，属隔离缺陷）。
+		if userID == "" || orgID == "" {
+			respondEmptyOrderList(c, page, pageSize)
+			return
+		}
+		// 身份查询用身份句柄（#2621 D1）：users.tenant_id 是 IAM 关系缓存，可能 ≠ JWT tid。
 		var currentUser models.User
-		if err := db.Where("iam_sub = ?", userID).First(&currentUser).Error; err == nil && currentUser.ID != "" {
-			var memberSiteIDs []string
-			db.Table("site_members").
-				Where("user_id = ?", currentUser.ID).
-				Pluck("site_id", &memberSiteIDs)
-			if len(memberSiteIDs) > 0 {
-				query = query.Joins("JOIN instruments ON instruments.id = orders.instrument_id").
-					Where("instruments.site_id IN ?", memberSiteIDs)
-			}
+		identityDB := database.GetDB().WithContext(database.IdentityCtx(ctx))
+		if err := identityDB.Where("iam_sub = ?", userID).First(&currentUser).Error; err != nil || currentUser.ID == "" {
+			respondEmptyOrderList(c, page, pageSize)
+			return
+		}
+		// oid == tid 表示当前上下文就是商户级（商户管理员），可见本商户全部订单；
+		// 否则 oid 是网点级组织 → 只返回该网点名下订单（org_id 直达，或经 sites.org_id 映射）。
+		if orgID != tenantID {
+			query = query.Joins("JOIN instruments ON instruments.id = orders.instrument_id").
+				Where("instruments.org_id = ? OR instruments.site_id IN (SELECT id FROM sites WHERE org_id = ?)", orgID, orgID)
 		}
 	} else {
 		// 顾客无租户：只看自己的订单。匿名（无 token / 游客）不得查看
 		// 任何订单——空 userID 不加过滤会泄漏全库订单（#1694 修复）。
 		if userID == "" {
-			c.JSON(http.StatusOK, gin.H{
-				"code": 20000,
-				"data": gin.H{
-					"list":      []interface{}{},
-					"total":     0,
-					"page":      page,
-					"page_size": pageSize,
-				},
-			})
+			respondEmptyOrderList(c, page, pageSize)
 			return
 		}
+		// #2621 D1：身份自查询用身份句柄（顾客 tenant 为空，但口径必须唯一）。
 		var localUser models.User
-		if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
+		identityDB := database.GetDB().WithContext(database.IdentityCtx(ctx))
+		if err := identityDB.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
 			query = query.Where("user_id = ?", localUser.ID)
 		} else {
 			query = query.Where("user_id = ?", userID)
@@ -387,7 +404,8 @@ func GetOrder(c *gin.Context) {
 	if middleware.GetRole(c.Request.Context()) == "USER" && userID != "" {
 		// Resolve local user ID from IAM sub (order stores local UUID, not IAM sub)
 		var localUser models.User
-		if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
+		// #2621 D1：身份查询用身份句柄（users.tenant_id 是 IAM 关系缓存，可能 ≠ JWT tid）。
+		if err := database.GetDB().WithContext(database.IdentityCtx(c.Request.Context())).Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
 			query = query.Where("user_id = ?", localUser.ID)
 		} else {
 			// Fallback to direct IAM sub comparison (shadow user where ID == iam_sub)
@@ -760,7 +778,8 @@ func PayOrder(c *gin.Context) {
 	if middleware.GetRole(c.Request.Context()) == "USER" {
 		iamSub := middleware.GetUserID(c.Request.Context())
 		var localUser models.User
-		if err := db.Where("iam_sub = ?", iamSub).First(&localUser).Error; err == nil {
+		// #2621 D1：身份查询用身份句柄（users.tenant_id 是 IAM 关系缓存，可能 ≠ JWT tid）。
+		if err := database.GetDB().WithContext(database.IdentityCtx(c.Request.Context())).Where("iam_sub = ?", iamSub).First(&localUser).Error; err == nil {
 			query = query.Where("user_id = ?", localUser.ID)
 		} else {
 			query = query.Where("user_id = ?", iamSub)
@@ -870,7 +889,8 @@ func PickupOrder(c *gin.Context) {
 	if middleware.GetRole(c.Request.Context()) == "USER" {
 		iamSub := middleware.GetUserID(c.Request.Context())
 		var localUser models.User
-		if err := db.Where("iam_sub = ?", iamSub).First(&localUser).Error; err == nil {
+		// #2621 D1：身份查询用身份句柄（users.tenant_id 是 IAM 关系缓存，可能 ≠ JWT tid）。
+		if err := database.GetDB().WithContext(database.IdentityCtx(c.Request.Context())).Where("iam_sub = ?", iamSub).First(&localUser).Error; err == nil {
 			query = query.Where("user_id = ?", localUser.ID)
 		} else {
 			query = query.Where("user_id = ?", iamSub)
@@ -955,7 +975,8 @@ func ReturnOrder(c *gin.Context) {
 	// Verify user ownership (customer-facing, no tenant context)
 	userID := middleware.GetUserID(ctx)
 	var localUser models.User
-	if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
+	// #2621 D1：身份查询用身份句柄（users.tenant_id 是 IAM 关系缓存，可能 ≠ JWT tid）。
+	if err := database.GetDB().WithContext(database.IdentityCtx(ctx)).Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
 		userID = localUser.ID
 	}
 	if order.UserID != userID {
@@ -1488,7 +1509,8 @@ func GetOrderLogs(c *gin.Context) {
 	}
 	if role == "USER" && userID != "" {
 		var localUser models.User
-		if err := db.Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
+		// #2621 D1：身份/归属判定用身份句柄（users.tenant_id 是 IAM 关系缓存，可能 ≠ JWT tid）。
+		if err := database.GetDB().WithContext(database.IdentityCtx(ctx)).Where("iam_sub = ?", userID).First(&localUser).Error; err == nil {
 			if order.UserID != localUser.ID {
 				c.JSON(http.StatusNotFound, gin.H{"code": 40400, "message": "order not found"})
 				return
