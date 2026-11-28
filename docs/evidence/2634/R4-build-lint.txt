@@ -1,0 +1,24 @@
+# build=1.0.910b93412 # commit=910b93412ce99e20266ac36dda097c953620bfa3 # dirty=false
+# tree=31752dcb06145b98a3599a1fe624da303698e344
+# pre_ref=4e368f692489a94336c081e5ccb11353dcb3a2a6
+BUILD_CMD=cd frontend-pc && npm run build (heavy-run.sh)
+PC_BUILD=0
+BUILD_TAIL: - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+BUILD_TAIL: - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+BUILD_TAIL: ✓ built in 30.59s
+BUILD_TAIL: [heavy-lock] released scope=host slot=0 rc=0 at_ms=1795843798740 hold_ms=32559
+LINT_CMD=cd frontend-pc && npx eslint src/pages/WarehouseManagement.jsx src/utils/scanResolve.js
+LINT_EXIT=0
+LINT_TAIL:   101:29  warning  'videoRef' was used before it was defined                                                                       no-use-before-define
+LINT_TAIL:   152:7   warning  'setPhotos' was used before it was defined                                                                      no-use-before-define
+LINT_TAIL:   152:21  warning  'photos' was used before it was defined                                                                         no-use-before-define
+LINT_TAIL:   162:60  warning  'damageAssessment' was used before it was defined                                                               no-use-before-define
+LINT_TAIL:   164:7   warning  'setDamageModalVisible' was used before it was defined                                                          no-use-before-define
+LINT_TAIL: 
+LINT_TAIL: ✖ 13 problems (0 errors, 13 warnings)
+LINT_TAIL: 
+BUNDLE_ENTRY=1
+BUNDLE_QUERY=1
+BUNDLE_HINT=1
+BUILD_LINT_OK=1
+RESULT: PASS (r4)

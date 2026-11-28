@@ -1,0 +1,50 @@
+# build=1.0.910b93412 # commit=910b93412ce99e20266ac36dda097c953620bfa3 # dirty=false
+# tree=31752dcb06145b98a3599a1fe624da303698e344
+# pre_ref=4e368f692489a94336c081e5ccb11353dcb3a2a6
+PRE_REF=4e368f692489a94336c081e5ccb11353dcb3a2a6
+PRE_PAGE_HEADER=frontend-pc/src/pages/WarehouseManagement.jsx
+PRE_OPEN_SCANNER_CALLERS=0
+PRE_SCAN_ENTRY_BUTTON=0
+PRE_SCAN_INPUT_BOUND=0
+PRE_QR_IMPORT_COMMENTED=1
+PRE_QR_NEW_CALLS=1
+PRE_MANUAL_HINT=0
+--- pre-fix scanner block ---
+PRE   const [photoModalVisible, setPhotoModalVisible] = useState(false);
+PRE   const [scannedData, setScannedData] = useState("");
+PRE   const handleOpenScanner = async () => {
+PRE     setScanModalVisible(true);
+PRE     try {
+PRE       const stream = await navigator.mediaDevices.getUserMedia({ 
+PRE         video: { facingMode: "environment" } 
+PRE       });
+PRE       if (videoRef.current) {
+PRE         videoRef.current.srcObject = stream;
+PRE         scannerRef.current = new QrScanner(
+PRE           videoRef.current,
+PRE           result => {
+PRE             setScannedData(result.data);
+PRE             handleScanResult(result.data);
+PRE           },
+PRE           { highlightScanRegion: true }
+PRE         );
+PRE         scannerRef.current.start();
+PRE       }
+PRE     } catch (error) {
+PRE       message.error("相机访问失败: " + error.message);
+PRE     }
+PRE   };
+PRE 
+PRE   const handleScanResult = (data) => {
+PRE     message.success("扫描成功: " + data);
+PRE     scannerRef.current?.stop();
+PRE     setScanModalVisible(false);
+PRE   };
+PRE 
+PRE   const handleTakePhoto = async () => {
+PRE     try {
+PRE       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+PRE       const track = stream.getVideoTracks()[0];
+PRE       const imageCapture = new ImageCapture(track);
+EXIT=0
+RESULT: PASS (r1)

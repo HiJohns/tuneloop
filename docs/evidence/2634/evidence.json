@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "issue": 2634,
+  "build": "1.0.910b93412",
+  "commit": "910b93412ce99e20266ac36dda097c953620bfa3",
+  "dirty": false,
+  "plan_sha256": "c2d2433625d0daceab42cb84fb234b81bad6e0267bcde980cbc5444e1d6789b6",
+  "gate": {
+    "plan_sha256": "c2d2433625d0daceab42cb84fb234b81bad6e0267bcde980cbc5444e1d6789b6"
+  },
+  "tooling_commit": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
+  "pre_ref": "4e368f692489a94336c081e5ccb11353dcb3a2a6",
+  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2634 (issue-2634, base origin/develop); frontend-pc static wiring assertions + node --test (pure resolver) + npm run build + eslint; real browser clicks/camera covered by [Ops-Followup of #2634]",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2634.sh r1 > docs/evidence/2634/R1-prefix-defect.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2634/R1-prefix-defect.txt"
+      ],
+      "assert": "exit 0 且含 PRE_OPEN_SCANNER_CALLERS=0 PRE_SCAN_ENTRY_BUTTON=0 PRE_SCAN_INPUT_BOUND=0 PRE_QR_IMPORT_COMMENTED=1 PRE_QR_NEW_CALLS=1 PRE_MANUAL_HINT=0",
+      "actual": "PRE_OPEN_SCANNER_CALLERS=0、PRE_SCAN_ENTRY_BUTTON=0、PRE_SCAN_INPUT_BOUND=0、PRE_QR_IMPORT_COMMENTED=1、PRE_QR_NEW_CALLS=1、PRE_MANUAL_HINT=0（PRE_REF=4e368f692）",
+      "expected": "PASS（6 项 token 全为期望值）",
+      "negative": "修前快照已含入口/录入控件（PRE_REF 取错）→ FAIL",
+      "negative_result": "修前快照实证：入口 0 调用（handleOpenScanner 仅定义）、无扫码按钮、无录入控件、QrScanner import 被注释但 `new QrScanner(` 仍存在（打开即 ReferenceError）、无手动提示。",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2634.sh r2 > docs/evidence/2634/R2-resolve-unit.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2634/R2-resolve-unit.txt"
+      ],
+      "assert": "exit 0 且含 SCAN_RESOLVE_CASES=9 EXACT_ORDER_NO=1 EXACT_SN=1 CASE_INSENSITIVE=1 FUZZY_FALLBACK=1 EMPTY_CODE_NONE=1 NO_MATCH_NONE=1 CANDIDATE_CAP_5=1 NULL_LIST_GUARD=1 EXIT=0",
+      "actual": "SCAN_RESOLVE_CASES=9、EXACT_ORDER_NO=1、EXACT_SN=1、CASE_INSENSITIVE=1、FUZZY_FALLBACK=1、EMPTY_CODE_NONE=1、NO_MATCH_NONE=1、CANDIDATE_CAP_5=1、NULL_LIST_GUARD=1、EXIT=0",
+      "expected": "PASS（10 项 token 全为期望值）",
+      "negative": "精确退化模糊、SN 不可匹配、空串全量、候选 >5、null 抛错 → FAIL",
+      "negative_result": "若精确匹配退化为模糊、SN 不可匹配、空串返回全量、候选超过 5 条或 null 列表抛 TypeError，对应 token 变 0 → R2 FAIL；9 个 fixture 全部通过。",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2634.sh r3 > docs/evidence/2634/R3-wiring.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2634/R3-wiring.txt"
+      ],
+      "assert": "exit 0 且含 ENTRY_BUTTON=1 OPEN_SCANNER_CALLERS=1 SCAN_INPUT_BOUND=1 SCAN_SUBMIT=1 SCAN_API_KEYWORD=1 ACTION_REUSE_DELIVERY=1 ACTION_REUSE_INSPECT=1 CAMERA_GUARD=1 STREAM_CLEANUP=1 HELPER_USED=1 MANUAL_HINT=1 QR_DEAD_CALL=0 QR_IMPORT_COMMENTED=0 LEGACY_SCAN_STATE=0",
+      "actual": "ENTRY_BUTTON=1、OPEN_SCANNER_CALLERS=1、SCAN_INPUT_BOUND=1、SCAN_SUBMIT=1、SCAN_API_KEYWORD=1、ACTION_REUSE_DELIVERY=1、ACTION_REUSE_INSPECT=1、CAMERA_GUARD=1、STREAM_CLEANUP=1、HELPER_USED=1、MANUAL_HINT=1、QR_DEAD_CALL=0、QR_IMPORT_COMMENTED=0、LEGACY_SCAN_STATE=0",
+      "expected": "PASS（14 项 token 全为期望值）",
+      "negative": "无入口、无录入、动作不复用、相机失败阻断、死码残留 → FAIL",
+      "negative_result": "修复前 OPEN_SCANNER_CALLERS=0、SCAN_INPUT_BOUND=0、QR_DEAD_CALL=1、LEGACY_SCAN_STATE=1；修复后入口/录入/动作复用/相机降级全部就位，死码与旧 state 归零。",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2634.sh r4 > docs/evidence/2634/R4-build-lint.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2634/R4-build-lint.txt"
+      ],
+      "assert": "exit 0 且含 PC_BUILD=0 LINT_EXIT=0 BUNDLE_ENTRY=1 BUNDLE_QUERY=1 BUNDLE_HINT=1 BUILD_LINT_OK=1",
+      "actual": "PC_BUILD=0、LINT_EXIT=0、BUNDLE_ENTRY=1、BUNDLE_QUERY=1、BUNDLE_HINT=1、BUILD_LINT_OK=1",
+      "expected": "PASS（6 项 token 全为期望值）",
+      "negative": "构建失败 / ESLint 非 0 / 产物缺入口文案 → FAIL",
+      "negative_result": "构建失败或 eslint 非 0 → BUILD_LINT_OK=0；产物里找不到「扫码验收」/「查询并定位」/「暂不支持自动识别」→ 对应 BUNDLE_* token 变 0 → FAIL。",
+      "pass": true
+    }
+  ]
+}
