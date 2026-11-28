@@ -8,7 +8,7 @@
   "gate": {
     "plan_sha256": "c9efd0970fa7b80cbc7d67aae34256a7b43e7fae3c00e18a015cfff7bc05e65d"
   },
-  "tooling_commit": "c00d84454cc7589086f25ef3a871be1d00a12644",
+  "tooling_commit": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
   "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2489 (issue-2489, base origin/develop incl. #2480/#2563); frontend-pc static branch scan + page-level success invariant + npm run build + eslint + node transport assertions; no browser/real backend",
   "rows": [
     {
@@ -88,10 +88,10 @@
       "artifacts": [
         "docs/evidence/2489/R6-merchant.txt"
       ],
-      "assert": "exit 0；含 UNGUARDED_SUCCESS_PATHS=0、DELETE_GUARD_LINE<DELETE_SUCCESS_LINE、DELETE_NO_FALSE_SUCCESS=1、PERSIST_ALERT=1、LIST_TOAST_SECONDS=30",
+      "assert": "exit 0 且含 UNGUARDED_SUCCESS_PATHS=0 DELETE_NO_FALSE_SUCCESS=1 PERSIST_ALERT=1 LIST_TOAST_SECONDS=30",
       "actual": "PERSIST_ALERT=1、CODE_FIRST=1（UNGUARDED_SITES=0）、THEME_2459=1（LOCAL_CODE_WHITELIST=0）、NO_FALSE_SUCCESS=1（handleSubmit guard=189 < success=198，1 个成功出口）、SETTLEMENT_NO_FALSE_SUCCESS=1（guard=157 < success=166）、SETTLEMENT_ERR_DIRECT=1、ERR_RESPONSE_USES=0、CLEAR_ON_EDIT=1；Rev.9 页面级不变量：SUCCESS_PATHS=15、UNGUARDED_SUCCESS_PATHS=0（5 文件全部 await api.* → message.success 路径均有 code 守卫，逐路径 PATH 行见 artifact）；DELETE_GUARD_LINE=114 < DELETE_SUCCESS_LINE=121、DELETE_SUCCESS_COUNT=1、DELETE_NO_FALSE_SUCCESS=1、DELETE_ERR_SITES=2 / DELETE_TOAST_SITES=2、LIST_TOAST_SECONDS=30",
-      "expected": "PASS",
-      "negative": "自写白名单 → FAIL",
+      "expected": "PASS（4 项 token）",
+      "negative": "无 guard 的 success 路径 / 列表删除误用常驻 → FAIL",
       "negative_result": "红绿实证（Rev.9 R6 页面级不变量，同一 HANDLE_DELETE 路径）：红 = 修复前（HEAD 版 handleDelete 丢弃 api.delete 返回值）UNGUARDED_SUCCESS_PATHS=1、PATH pages/MerchantManagement.jsx:handleDelete guard_line=0 success_line=108、DELETE_NO_FALSE_SUCCESS=0、LIST_TOAST_SECONDS=0；绿 = 修复后（fix d7626281c）UNGUARDED_SUCCESS_PATHS=0、guard_line=114 < success_line=121、DELETE_NO_FALSE_SUCCESS=1、LIST_TOAST_SECONDS=30。既有负例（Round 9）：旧 saveSettlement guard=0 / err.response 计数 3 / onValuesChange 0 → 三项翻转。",
       "pass": true
     },

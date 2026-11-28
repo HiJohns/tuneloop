@@ -1,21 +1,21 @@
-# build=1.0.b85169cda # commit=b85169cda9b202a5ac4945d28c80398964fc8226 # dirty=false
-# tree=d74a41b3118dc5fe0e1d6eb10424d77449a3bacc
+# build=1.0.d7626281c # commit=d7626281cf9022b55fe2b7a731aa96a1cd1d18f6 # dirty=false
+# tree=f351d3d2e57c62572a5b34a3097a8c56b798865f
 PLAN_FILE=docs/evidence/2489/plan.md
-PLAN_SHA256=4f0aa71b1a54e48b031e67037f35a124de76ef0e3aaf1cc8b20a170fb7be73e4
+PLAN_SHA256=c9efd0970fa7b80cbc7d67aae34256a7b43e7fae3c00e18a015cfff7bc05e65d
 GATE_REPORT=docs/evidence/2489/pre-ready-2489.json
 GATE_OVERALL=PASS
-GATE_PLAN_SHA256=4f0aa71b1a54e48b031e67037f35a124de76ef0e3aaf1cc8b20a170fb7be73e4
+GATE_PLAN_SHA256=c9efd0970fa7b80cbc7d67aae34256a7b43e7fae3c00e18a015cfff7bc05e65d
 GATE_P5=N/A (D6: sub-task full gate belongs to parent #2486)
 GATE_RESULT=PASS
 --- plan-source ---
-PLAN_SOURCE_LINE: PLAN_SOURCE: plan sha=4f0aa71b1a54e48b031e67037f35a124de76ef0e3aaf1cc8b20a170fb7be73e4 source=/tmp/opencode/tuneloop/wt-2489/docs/evidence/2489/plan.md
-PLAN_SOURCE_LINE: PLAN_SOURCE: gate sha=4f0aa71b1a54e48b031e67037f35a124de76ef0e3aaf1cc8b20a170fb7be73e4 source=/tmp/opencode/tuneloop/wt-2489/docs/evidence/2489/pre-ready-2489.json
-PLAN_SOURCE_LINE: PLAN_SOURCE: evidence sha=4f0aa71b1a54e48b031e67037f35a124de76ef0e3aaf1cc8b20a170fb7be73e4 source=/tmp/opencode/tuneloop/wt-2489/docs/evidence/2489/evidence.json
-PLAN_SOURCE_LINE: PLAN_SOURCE: PASS sha=4f0aa71b1a54e48b031e67037f35a124de76ef0e3aaf1cc8b20a170fb7be73e4
+PLAN_SOURCE_LINE: PLAN_SOURCE: plan sha=c9efd0970fa7b80cbc7d67aae34256a7b43e7fae3c00e18a015cfff7bc05e65d source=/home/coder/worktrees/tuneloop/wt-2489/docs/evidence/2489/plan.md
+PLAN_SOURCE_LINE: PLAN_SOURCE: gate sha=c9efd0970fa7b80cbc7d67aae34256a7b43e7fae3c00e18a015cfff7bc05e65d source=/home/coder/worktrees/tuneloop/wt-2489/docs/evidence/2489/pre-ready-2489.json
+PLAN_SOURCE_LINE: PLAN_SOURCE: evidence sha=c9efd0970fa7b80cbc7d67aae34256a7b43e7fae3c00e18a015cfff7bc05e65d source=/home/coder/worktrees/tuneloop/wt-2489/docs/evidence/2489/evidence.json
+PLAN_SOURCE_LINE: PLAN_SOURCE: PASS sha=c9efd0970fa7b80cbc7d67aae34256a7b43e7fae3c00e18a015cfff7bc05e65d
 PLAN_SOURCE=PASS
 TREE_CLEAN=1
 FULL_GATE_CMD=cd frontend-pc && npm run build
 FULL_GATE_DIRECT_EXIT=0
 FULL_GATE_TAIL: - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-FULL_GATE_TAIL: ✓ built in 24.46s
-FULL_GATE_TAIL: [heavy-lock] released scope=host slot=0 rc=0 at_ms=1795847884051 hold_ms=25201
+FULL_GATE_TAIL: ✓ built in 34.80s
+FULL_GATE_TAIL: [heavy-lock] released scope=host slot=0 rc=0 at_ms=1795883062815 hold_ms=36684

@@ -1,16 +1,16 @@
 {
   "issue": 2489,
   "overall": "PASS",
-  "plan": "/tmp/opencode/tuneloop/wt-2489/tmp/pre-ready-2489.Y4Wyzt/plan.md",
-  "plan_sha256": "4f0aa71b1a54e48b031e67037f35a124de76ef0e3aaf1cc8b20a170fb7be73e4",
-  "config_sha": "c00d84454cc7589086f25ef3a871be1d00a12644",
+  "plan": "docs/evidence/2489/plan.md",
+  "plan_sha256": "c9efd0970fa7b80cbc7d67aae34256a7b43e7fae3c00e18a015cfff7bc05e65d",
+  "config_sha": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
   "provenance": {
-    "build": "1.0.b85169cda",
-    "commit": "b85169cda9b202a5ac4945d28c80398964fc8226",
+    "build": "1.0.d7626281c",
+    "commit": "d7626281cf9022b55fe2b7a731aa96a1cd1d18f6",
     "dirty": false
   },
-  "summary": "tmp/pre-ready-2489-summary.md",
-  "timestamp": "20261128-063812",
+  "summary": "tmp/work-summary-2489.md",
+  "timestamp": "20261128-162443",
   "checks": [
     {
       "id": "P1",
@@ -45,7 +45,7 @@
     {
       "id": "P18",
       "status": "PASS",
-      "detail": "tooling_commit matches the running scripts (c00d84454cc7589086f25ef3a871be1d00a12644)"
+      "detail": "tooling_commit matches the running scripts (be61a790605b0b65759d0fd2be9b258bc6c41b49)"
     },
     {
       "id": "P15",
@@ -54,8 +54,8 @@
     },
     {
       "id": "P16",
-      "status": "N/A",
-      "detail": "no UI render rows in the plan"
+      "status": "PASS",
+      "detail": "UI rows use render evidence or a recorded static exemption"
     },
     {
       "id": "P17",
@@ -84,8 +84,8 @@
     },
     {
       "id": "P9",
-      "status": "N/A",
-      "detail": "no session/build_version/aiaudit/.rpt/.dat evidence referenced"
+      "status": "PASS",
+      "detail": "build provenance verified for 1 version(s)"
     },
     {
       "id": "P10",
@@ -95,7 +95,7 @@
     {
       "id": "P11",
       "status": "PASS",
-      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /tmp/opencode/tuneloop/wt-2489; worktree guard: PASS isolated worktree=/tmp/opencode/tuneloop/wt-2489"
+      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /home/coder/worktrees/tuneloop/wt-2489; worktree guard: PASS isolated worktree=/home/coder/worktrees/tuneloop/wt-2489"
     },
     {
       "id": "P13",
