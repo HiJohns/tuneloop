@@ -16,6 +16,13 @@ esac
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"; cd "$REPO_ROOT"
 export PATH="/usr/local/go/bin:${PATH}"
+# node 不在默认 PATH（nvm 安装）时补 v22 LTS 目录；R6 的 node --test 需要它。
+if ! command -v node >/dev/null 2>&1; then
+  for _node_bin in "$HOME"/.nvm/versions/node/v22*/bin; do
+    [ -d "$_node_bin" ] && PATH="$_node_bin:${PATH}" && break
+  done
+  export PATH
+fi
 if [ -f "$REPO_ROOT/backend/.env" ]; then
   set -a; . "$REPO_ROOT/backend/.env"; set +a
 fi
@@ -71,7 +78,7 @@ case "$MODE" in
       chk() { if eval "$1"; then echo "OK: $2"; else echo "MISSING: $2"; fail=1; fi; }
       chk "! grep -q 'siteIDChanged' backend/handlers/user_staff.go" "siteIDChanged removed"
       chk "! grep -q 'currentSiteID' backend/handlers/user_staff.go" "single-site Scan removed"
-      chk "grep -q 'newOrgID != oldOrgID' backend/handlers/user_staff.go" "org-level compare"
+      chk "grep -q 'orgChanged := targetOrg != oldOrg' backend/handlers/user_staff.go" "org-level compare (performSiteTransfer, #2466)"
       chk "grep -q 'site_memberships' backend/handlers/user_staff.go" "memberships returned"
       chk "grep -q 'func (h \\*UserStaffHandler) GetStaffUser' backend/handlers/user_staff.go" "GetStaffUser present"
       chk "grep -q '/admin/staff/:id' backend/main.go" "route registered"
