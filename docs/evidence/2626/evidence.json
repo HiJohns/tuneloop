@@ -92,5 +92,6 @@
       "negative_result": "对 PRE_REF..HEAD 的 + 行扫描单值判据正则；新增行命中即 SINGLE_VALUE_JUDGE_RESIDUAL>0 → RECON_SINGLE_ONLY=1 → exit 1",
       "pass": true
     }
-  ]
+  ],
+  "tooling_commit": "5c2dfc1c59555a2c3e36c5b6c3b8cbe730238054"
 }
