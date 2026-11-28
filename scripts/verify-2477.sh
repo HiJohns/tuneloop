@@ -69,7 +69,9 @@ heavy() { if [ -x "$HEAVY_RUN" ]; then bash "$HEAVY_RUN" --timeout 3600 -- "$@";
 run_test() { # selector logfile
   ( cd "$REPO/backend" && heavy go test ./handlers -run "$1" -count=1 -v -timeout 10m ) > "$2" 2>&1
   local rc=$?
-  grep -E '^(=== RUN|--- PASS|--- FAIL|ok|FAIL|PASS)|^ *(NORM_|IAM_|LOCAL_|NAMES_|HTTP=|CODE=|MSG_|RENAME_)' "$2" | tee -a "$BODY" >/dev/null
+  # t.Logf lines are emitted as "    file_test.go:NN: TOKEN=VALUE", so the token
+  # match must not be anchored to the start of the line.
+  grep -E '^(=== RUN|--- PASS|--- FAIL|ok|FAIL|PASS)|(NORM_|IAM_|LOCAL_|NAMES_|MSG_|RENAME_)[A-Z0-9_]*=|(HTTP|CODE)=[0-9]+' "$2" | tee -a "$BODY" >/dev/null
   return $rc
 }
 
@@ -120,10 +122,11 @@ r4)
   finish "R4-update.txt"
   ;;
 r5)
-  # 正例：同租户三种「视觉同串」（无空格 / 半角空格 / 全角空格 U+3000）+ 另一租户单行。
-  # 期望：只有 tenant-a 构成 1 组 3 行冲突，tenant-b 的单行不报。
+  # 正例：同租户三种「空白变体」（单个半角空格 / 全角空格 U+3000 / 连续两个半角空格）
+  # 必须折叠成同一个 key；无空格的 `测试网点A` 不属于该组（D2 只折叠连续空白，不删空格）；
+  # 另一租户的同名行不报（唯一性 scope = 租户内）。
   FIXTURE="$TMPDIR/r5-$ISSUE.tsv"
-  printf 'tenant-a\t测试网点A\ntenant-a\t测试网点 A\ntenant-a\t测试网点\u3000A\ntenant-b\t测试网点A\n' > "$FIXTURE"
+  printf 'tenant-a\t测试网点 A\ntenant-a\t测试网点\u3000A\ntenant-a\t测试网点  A\ntenant-a\t测试网点A\ntenant-b\t测试网点 A\n' > "$FIXTURE"
   bash "$REPO/scripts/site-name-similar-2477.sh" --source "$FIXTURE" 2>&1 | tee -a "$BODY" >/dev/null
   require "READONLY=1"
   require "COLLIDING_GROUPS=1"
@@ -131,7 +134,7 @@ r5)
   require "GROUP tenant=tenant-a"
   rm -f "$FIXTURE"
 
-  # 负例：全部互不相同的名称不得被误报为冲突（防止归一化过宽/分组逻辑写错）。
+  # 负例：互不相同的名称不得被误报为冲突（防止归一化过宽/分组逻辑写错）。
   NEG_FIXTURE="$TMPDIR/r5-neg-$ISSUE.tsv"
   printf 'tenant-a\t测试网点A\ntenant-a\t测试网点B\ntenant-b\t测试网点A\n' > "$NEG_FIXTURE"
   NEG_OUT="$(bash "$REPO/scripts/site-name-similar-2477.sh" --source "$NEG_FIXTURE" 2>&1)"
