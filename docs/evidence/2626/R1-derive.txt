@@ -1,0 +1,24 @@
+# build=1.0.a232c0c9c # commit=a232c0c9c68b8a9b72d30aa7a9b97c3d7fd8c45c # dirty=false
+# tree=127f4d2e2aeaab2fe9aa81961db439c8f31e1d72
+GO_TEST_CMD=cd backend && go test ./services -run TestDeriveRoles2626 -v
+GO_TEST_EXIT=0
+GOTEST: DERIVE_PRIMARY_SITE_ADMIN=site_admin
+GOTEST: DERIVE_PRIMARY_MULTI=merchant_staff
+GOTEST: DERIVE_ALL_LEN=2
+GOTEST: DERIVE_NAMESPACE_ADMIN_KEPT=1
+GOTEST: === RUN   TestDeriveRoles2626
+GOTEST: === RUN   TestDeriveRoles2626/single_site_admin
+GOTEST: === RUN   TestDeriveRoles2626/multi_functional_roles_keep_priority
+GOTEST: === RUN   TestDeriveRoles2626/platform_role_kept_verbatim
+GOTEST: === RUN   TestDeriveRoles2626/empty_functional_roles_derive_from_relation_+_level
+GOTEST: --- PASS: TestDeriveRoles2626 (0.00s)
+GOTEST: === RUN   TestDeriveRoles2626Tokens
+GOTEST: --- PASS: TestDeriveRoles2626Tokens (0.00s)
+GOTEST: === RUN   TestDeriveRoles2626EdgeCases
+GOTEST: --- PASS: TestDeriveRoles2626EdgeCases (0.00s)
+DERIVE_PRIMARY_SITE_ADMIN=site_admin
+DERIVE_PRIMARY_MULTI=merchant_staff
+DERIVE_ALL_LEN=2
+DERIVE_NAMESPACE_ADMIN_KEPT=1
+EXIT=0
+RESULT: PASS (r1)

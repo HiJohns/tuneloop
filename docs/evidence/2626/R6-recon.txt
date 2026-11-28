@@ -1,0 +1,16 @@
+# build=1.0.a232c0c9c # commit=a232c0c9c68b8a9b72d30aa7a9b97c3d7fd8c45c # dirty=false
+# tree=127f4d2e2aeaab2fe9aa81961db439c8f31e1d72
+PREEXISTING: backend/handlers/merchant_member.go:627:	if target.Role == "merchant_admin" {
+PRE_REF=4e368f692489a94336c081e5ccb11353dcb3a2a6
+SINGLE_VALUE_FRONTEND=0
+PREEXISTING_SINGLE_VALUE_JUDGES=1
+SINGLE_VALUE_JUDGE_RESIDUAL=0
+PREEXISTING_SCOPE=与镜像写入无关的历史判据（D7 三步走的第二步按批次迁移，本单不扩面）
+RECON_SINGLE_ONLY=0
+JUDGE: 5:// #2626 D2/D4：判据只用多值集合 users.roles（镜像 IAM functional_roles[]），
+JUDGE: 10:export function roleSet(user = {}) {
+JUDGE: 11:  const roles = Array.isArray(user?.roles) ? user.roles : []
+JUDGE: 12:  return roles
+JUDGE: 18:export function primaryRole(user = {}) {
+JUDGE: 19:  const roles = roleSet(user)
+RESULT: PASS (r6)

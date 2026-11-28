@@ -1,0 +1,10 @@
+# build=1.0.a232c0c9c # commit=a232c0c9c68b8a9b72d30aa7a9b97c3d7fd8c45c # dirty=false
+# tree=127f4d2e2aeaab2fe9aa81961db439c8f31e1d72
+TEST_CMD=node --test frontend-pc/tests/staffForm.test.mjs
+NODE_TEST_EXIT=0
+NODE: # tests 4
+NODE: # pass 4
+NODE: # fail 0
+PC_USES_ROLES_SET=1
+PC_READS_USERS_ROLE=0
+RESULT: PASS (r4)

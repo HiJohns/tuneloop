@@ -1,0 +1,15 @@
+# build=1.0.a232c0c9c # commit=a232c0c9c68b8a9b72d30aa7a9b97c3d7fd8c45c # dirty=false
+# tree=127f4d2e2aeaab2fe9aa81961db439c8f31e1d72
+DOC_TERM_DOMAIN_ROLE=0
+DOC_TERM_SET_OK=1
+DOC_ROLES_FIELD=1
+--- three-term definition ---
+DOC: 38:| **组织角色** | `OWNER` / `ADMIN` / `STAFF` / `WORKER` / `member`，决定管理权层级 | IAM `user_org_relations.role` |
+DOC: 39:| **功能角色** | `merchant_admin` / `site_admin` / `merchant_staff` / `site_member` / `repair_technician` / `namespace_admin`，决定业务能力（模板码，**可多个**） | IAM `user_org_relations.functional_roles[]`；本地镜像 `users.roles jsonb` |
+DOC: 40:| **组织级别** | `namespace` / `merchant`(tenant) / `franchise` / `branch`(site) —— **是组织的属性，不是角色的属性** | IAM `organizations.type` / 派生 |
+DOC: 44:> 术语说明：「`site_admin`」的准确读法是「**级别 = site 的组织上的 ADMIN 组织角色**」，它是派生标签而非独立词汇；沟通中继续使用这些模板码，但**写库与判据只用**「组织角色 / 功能角色 / 组织级别」三词，禁止新增 `*_admin` / `*_staff` 形态的存储列。
+DOC: 48:| 角色 | 功能角色代码 | 角色说明 |
+DOC: 172:| 角色 | 功能角色代码 | cus_perm 数量 | 分配的权限 |
+DOC: 235:> - `merchant_direct`（商户直属员工）→ 功能角色 `merchant_staff`（`users.roles` 含该码，`users.role` 为其派生主角色），且 `merchant_members.role = merchant_staff`；
+DOC: 236:> - `site_staff`（网点员工）→ 功能角色 `site_member|site_admin`（`users.roles` 含该码），且 `site_members.role` 与之一致；
+RESULT: PASS (r5)

@@ -1,0 +1,9 @@
+# build=1.0.a232c0c9c # commit=a232c0c9c68b8a9b72d30aa7a9b97c3d7fd8c45c # dirty=false
+# tree=127f4d2e2aeaab2fe9aa81961db439c8f31e1d72
+FILE=backend/handlers/iam_callback.go derive_calls=1 mirror_primary=1 mirror_all=1 inline_literals=0
+FILE=backend/handlers/merchant_member.go derive_calls=2 mirror_primary=2 mirror_all=2 inline_literals=0
+FILE=backend/handlers/user_staff.go derive_calls=1 mirror_primary=1 mirror_all=1 inline_literals=0
+WRITE_SITES=3
+WRITE_INLINE_LITERAL=0
+MIRROR_WRITE_DELEGATED=1
+RESULT: PASS (r2)
