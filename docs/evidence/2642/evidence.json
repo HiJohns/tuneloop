@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "issue": 2642,
+  "build": "1.0.2d6d3cd6c",
+  "commit": "2d6d3cd6ca0db7f82f6e71c0f5585a764f327d98",
+  "dirty": false,
+  "plan_sha256": "c4498958559cbd8066f9c8b6856defde2141131205cb2293e1797611cf6f270c",
+  "environment": "repo-static(read-only),no-db",
+  "tooling_commit": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2642.sh r1 > docs/evidence/2642/R1-inventory.tsv",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2642/R1-inventory.tsv"
+      ],
+      "assert": "exit 0 且含 # INV_SNAPSHOT=52 # INV_PRE_ONLY=3 # INV_LIVE= # POST_SNAPSHOT_TABLES= # CLASS_SUM_CHECK=（后三者相等且符合公式）",
+      "actual": "INV_SNAPSHOT=52;INV_PRE_ONLY=3;INV_LIVE=53;CLASS_BACKUP=3;CLASS_REDUNDANT=21;CLASS_METADATA=7;CLASS_ANCHOR=22;CLASS_SUM_CHECK=53;MODEL_STRUCTS=52;MODEL_TABLE_ROWS=49;MODEL_NO_TABLE=2;MODEL_POST_SNAPSHOT=1;PLUMBING_REFS=155;FRONTEND_REFS_GLOBAL=34;SQL_REFS_TOTAL=27;FIELD_REFS_TOTAL=332;LIVE_LITERAL_BASE=1031;DETERMINISTIC=1",
+      "expected": "INV_SNAPSHOT=52、INV_PRE_ONLY=3、CLASS_SUM_CHECK=INV_LIVE",
+      "negative": "口径漂移 / 已 DROP 表计入 / 分类空值 / 脚本连库 → FAIL",
+      "negative_result": "formula_ok=1 class_sum_ok=1 enums_nonempty=1 scanner_no_db=1 rejects:",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2642.sh r2 > docs/evidence/2642/R2-doc-coverage.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2642/R2-doc-coverage.txt"
+      ],
+      "assert": "exit 0 且含 DOC_TABLES=52、DOC_MISSING=0、DOC_LISTS=2、DOC_CLASS_COVERED=1、DOC_DB_BACKLOG=1",
+      "actual": "DOC_TABLES=52;DOC_MISSING=0;DOC_LISTS=2;DOC_CLASS_COVERED=1;DOC_DB_BACKLOG=1",
+      "expected": "五项全为期望值",
+      "negative": "文档缺表/缺清单段/缺 class/缺 ops 模板 → FAIL",
+      "negative_result": "no_missing_tables=1 both_lists_present=1 class_covered=1 ops_template_present=1 rejects:",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2642.sh r3 > docs/evidence/2642/R3-determinism.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2642/R3-determinism.txt"
+      ],
+      "assert": "exit 0 且含 DETERMINISTIC=1、DIFF_LINES=0、OUTPUT_HAS_TIMESTAMP=0、OUTPUT_HAS_ABS_PATH=0",
+      "actual": "DETERMINISTIC=1",
+      "expected": "四项全为期望值",
+      "negative": "输出抖动/含时间戳或绝对路径 → FAIL",
+      "negative_result": "no_output_jitter=1 no_timestamp=1 no_abs_path=1",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2642.sh r4 > docs/evidence/2642/R4-gate-redgreen.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2642/R4-gate-redgreen.txt"
+      ],
+      "assert": "exit 0 且含 GATE_RED_EXIT=1、GATE_GREEN_EXIT=0、LIVE_LITERAL_RED_EXIT=1、FIXTURE_CLEANED=1；另含 LIVE_LITERAL_BASE= 与 R1 同值",
+      "actual": "FIXTURE_TABLE=brand_configs;FIXTURE_RED_REFS=2;FIXTURE_GREEN_REFS=0;GATE_RED_EXIT=1;GATE_GREEN_EXIT=0;LIVE_LITERAL_BASE=1031;LIVE_LITERAL_RED_EXIT=1;FIXTURE_CLEANED=1;LIVE_LITERAL_BASE=1031",
+      "expected": "四项 + 基线一致",
+      "negative": "门禁红绿颠倒/夹具残留/基线漂移 → FAIL",
+      "negative_result": "fixture_turns_gate_red=1 cleanup_turns_gate_green=1 literal_gate_rejects=1 fixture_removed=1 rejects:",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2642.sh r5 > docs/evidence/2642/R5-build.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2642/R5-build.txt"
+      ],
+      "assert": "exit 0 且含 GO_BUILD_EXIT=0、BACKEND_DIFF_FILES=0、FRONTEND_DIFF_FILES=0、TABLES_FILE_LINES=52",
+      "actual": "GO_BUILD_EXIT=0;BACKEND_DIFF_FILES=0;FRONTEND_DIFF_FILES=0;TABLES_FILE_LINES=52",
+      "expected": "四项全为期望值",
+      "negative": "构建失败/本单改动 backend 或 frontend/清单行数≠52 → FAIL",
+      "negative_result": "build_ok=1 read_only_backend=1 read_only_frontend=1 table_list_rows=52 rejects:",
+      "pass": true
+    }
+  ]
+}

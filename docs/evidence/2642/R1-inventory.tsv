@@ -1,0 +1,76 @@
+# build=1.0.2d6d3cd6c # commit=2d6d3cd6ca0db7f82f6e71c0f5585a764f327d98 # dirty=false
+GENERATED_AT_HEAD=2d6d3cd6ca0db7f82f6e71c0f5585a764f327d98
+table	source	model	has_org_id	sql_refs	field_refs	test_refs	frontend_refs	doc_refs	db_default	index_names	class	env
+appeals	model	Appeal	yes	0	4	10	34	11	none	idx_appeals_tenant	redundant	pre
+audit_logs	model	AuditLog	yes	0	7	4	34	9	none	idx_audit_logs_tenant_id	redundant	pre
+bak_2211_order_payment_records	backup-only	-	unknown	0	0	0	34	3	none	-	backup	pre-only
+bak_2211_points_transactions	backup-only	-	unknown	0	0	0	34	3	none	-	backup	pre-only
+bak_2211_users	backup-only	-	unknown	0	0	0	34	4	none	-	backup	pre-only
+banners	model	Banner	no	0	1	2	34	5	none	idx_banners_tenant	anchor-candidate	pre
+brand_configs	model	BrandConfig	no	0	0	0	34	5	none	idx_brand_configs_tenant	metadata	pre
+categories	model	Category	no	0	4	14	34	11	zero-uuid	idx_categories_tenant	anchor-candidate	pre
+clients	model	Client	no	0	0	0	34	8	zero-uuid	idx_clients_tenant	metadata	pre
+damage_reports	model	DamageReport	yes	0	6	26	34	8	none	idx_damage_reports_tenant	redundant	pre
+deposits	model	Deposit	no	0	4	70	34	5	none	idx_deposits_tenant	anchor-candidate	pre
+electronic_contracts	model	ElectronicContract	yes	0	2	1	34	4	none	idx_electronic_contracts_tenant_id	redundant	pre
+forwarding_sessions	model	ForwardingSession	yes	0	2	2	34	4	none	idx_fs_tenant	redundant	pre
+instrument_loss_records	model	InstrumentLossRecord	no	0	1	0	34	3	none	idx_instrument_loss_tenant	anchor-candidate	pre
+instrument_media	model	InstrumentMedia	yes	0	12	4	34	10	none	idx_media_tenant	redundant	pre
+instrument_photo_specs	model	InstrumentPhotoSpec	no	0	0	0	34	3	none	idx_instrument_photo_specs_tenant_id	metadata	pre
+instrument_promo_overrides	model	InstrumentPromoOverride	no	0	2	7	34	4	none	-	anchor-candidate	pre
+instrument_properties	model	InstrumentProperty	no	0	1	1	34	6	none	idx_instrument_properties_property_name	anchor-candidate	pre
+instruments	model	Instrument	yes	0	10	230	34	23	none	idx_instruments_tenant	redundant	pre
+inventory_transfers	model	InventoryTransfer	yes	0	0	0	34	5	zero-uuid	idx_inventory_transfers_tenant	redundant	pre
+invoice_applications	model	InvoiceApplication	no	0	2	3	34	5	none	idx_invoice_app_tenant	anchor-candidate	pre
+leases	model	Lease	no	0	1	2	34	7	none	idx_leases_tenant	anchor-candidate	pre
+maintenance_session_records	model	MaintenanceSessionRecord	no	0	0	1	34	4	none	idx_maintenance_session_records_tenant_id	metadata	pre
+maintenance_sessions	model	MaintenanceSession	yes	0	0	1	34	4	none	idx_maintenance_sessions_tenant_id	redundant	pre
+maintenance_tickets	model	MaintenanceTicket	yes	0	0	0	34	8	zero-uuid	idx_maintenance_tenant	redundant	pre
+maintenance_workers	model	MaintenanceWorker	yes	0	0	1	34	4	none	idx_maintenance_workers_tenant_id	redundant	pre
+merchant_members	model	MerchantMember	no	5	4	51	34	17	none	idx_mm_tenant	anchor-candidate	pre
+merchant_pricing_configs	model	MerchantPricingConfig	no	0	5	2	34	7	none	-	anchor-candidate	pre
+merchant_settlement_configs	model	MerchantSettlementConfig	no	1	1	1	34	4	none	idx_settlement_configs_tenant	anchor-candidate	pre
+merchants	model	Merchant	yes	4	27	117	34	23	none	idx_merchants_tenant	redundant	pre
+notifications	model	Notification	yes	0	20	6	34	7	none	idx_notifications_tenant	redundant	pre
+order_payment_allocations	model	OrderPaymentAllocation	no	0	0	1	34	2	none	-	metadata	post-snapshot
+order_payment_records	model	OrderPaymentRecord	yes	0	9	126	34	8	none	idx_payment_records_tenant,idx_payment_tenant	redundant	pre
+order_refund_records	model	OrderRefundRecord	no	0	6	21	34	7	none	-	anchor-candidate	pre
+order_status_history	model	OrderStatusHistory	yes	0	15	5	34	6	none	idx_order_status_history_tenant_id	redundant	pre
+orders	model	Order	yes	7	16	290	34	21	zero-uuid	idx_orders_tenant	redundant	pre
+ownership_certificates	model	OwnershipCertificate	yes	0	0	0	34	6	zero-uuid	idx_certificates_tenant	redundant	pre
+payment_sessions	model	PaymentSession	no	0	0	7	34	4	none	idx_payment_sessions_tenant	metadata	pre
+pending_orders	model	PendingOrder	no	0	3	5	34	5	none	-	anchor-candidate	pre
+points_transactions	model	PointsTransaction	no	0	9	0	34	7	none	idx_points_transactions_tenant_id	anchor-candidate	pre
+properties	model	Property	no	0	1	2	34	9	none	idx_properties_tenant	anchor-candidate	pre
+property_options	model	PropertyOption	no	0	5	0	34	4	none	idx_property_options_property_name	anchor-candidate	pre
+repair_requests	model	RepairRequest	no	1	5	49	34	11	none	idx_repair_requests_tenant	anchor-candidate	pre
+roles	model	Role	no	2	49	439	34	19	none	-	anchor-candidate	pre
+settlement_calculations	model	SettlementCalculation	no	0	3	0	34	5	none	idx_sc_tenant_id	anchor-candidate	pre
+site_images	model	SiteImage	no	0	0	0	34	5	zero-uuid	idx_site_images_tenant	metadata	pre
+site_members	model	SiteMember	no	4	16	125	34	31	none	idx_site_members_tenant	anchor-candidate	pre
+sites	model	Site	yes	1	15	174	34	33	zero-uuid	idx_sites_tenant,idx_sites_tenant_id	redundant	pre
+staff_invites	model	StaffInvite	yes	0	4	25	34	6	none	idx_staff_invites_tenant,idx_staff_invites_tenant_status	redundant	pre
+system_settings	model	SystemSetting	no	0	12	8	34	8	none	idx_settings_tenant	anchor-candidate	pre
+technician_profiles	model	TechnicianProfile	no	0	9	38	34	14	none	idx_technician_profiles_tenant,idx_technician_profiles_user_tenant	anchor-candidate	pre
+technicians	model	Technician	yes	0	1	0	34	8	zero-uuid	idx_technicians_tenant	redundant	pre
+users	model	User	yes	2	38	444	34	36	none	idx_users_tenant,idx_users_wx_unionid_tenant_unique	redundant	pre
+# INV_SNAPSHOT=52
+# INV_PRE_ONLY=3
+# INV_LIVE=53
+# POST_SNAPSHOT_TABLES=1
+# DROPPED_IN_SNAPSHOT=0
+# CLASS_BACKUP=3
+# CLASS_REDUNDANT=21
+# CLASS_METADATA=7
+# CLASS_ANCHOR=22
+# CLASS_SUM_CHECK=53
+# MODEL_STRUCTS=52
+# MODEL_TABLE_ROWS=49
+# MODEL_NO_TABLE=2
+# MODEL_POST_SNAPSHOT=1
+# PLUMBING_REFS=155
+# FRONTEND_REFS_GLOBAL=34
+# SQL_REFS_TOTAL=27
+# FIELD_REFS_TOTAL=332
+# LIVE_LITERAL_BASE=1031
+# DETERMINISTIC=1
