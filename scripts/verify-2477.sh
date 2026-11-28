@@ -71,13 +71,13 @@ run_test() { # selector logfile
   local rc=$?
   # t.Logf lines are emitted as "    file_test.go:NN: TOKEN=VALUE", so the token
   # match must not be anchored to the start of the line.
-  grep -E '^(=== RUN|--- PASS|--- FAIL|ok|FAIL|PASS)|(NORM_|IAM_|LOCAL_|NAMES_|MSG_|RENAME_)[A-Z0-9_]*=|(HTTP|CODE)=[0-9]+' "$2" | tee -a "$BODY" >/dev/null
+  grep -E '^(=== RUN|--- PASS|--- FAIL|ok|FAIL|PASS)|(NORM_|IAM_|LOCAL_|NAMES_|MSG_|RENAME_|RED_|GREEN_)[A-Z0-9_]*=|(HTTP|CODE)=[0-9]+' "$2" | tee -a "$BODY" >/dev/null
   return $rc
 }
 
 case "$ROW" in
 r1)
-  if ! run_test '^TestNormalizeSiteName2477$' "$TMPDIR/r1-$ISSUE.log"; then
+  if ! run_test '^(TestNormalizeSiteName2477|TestTrimSpaceMissesWhitespaceVariants2477)$' "$TMPDIR/r1-$ISSUE.log"; then
     emit "TEST_EXIT=1"
     RC=1
   fi
@@ -86,6 +86,9 @@ r1)
   require "NORM_TAB=1"
   require "NORM_EMPTY=1"
   require "NORM_CASE_KEPT=1"
+  # 红绿：修复前的 TrimSpace 口径下两串不同（缺陷成立），修复后归一化到同串。
+  require "RED_OLD_TRIMSPACE_DISTINCT=1"
+  require "GREEN_NORMALIZED_SAME=1"
   finish "R1-normalize.txt"
   ;;
 r2)
