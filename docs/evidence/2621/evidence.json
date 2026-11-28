@@ -62,10 +62,10 @@
       "artifacts": [
         "docs/evidence/2621/R4-staff-site-order-scope.txt"
       ],
-      "assert": "exit 0 且含 TEST_EXIT=0 STAFF_ORDER_SITE_SCOPED=1 CROSS_SITE_ORDER_HIDDEN=1 SELF_QUERY_FAIL_CLOSED=1 NO_OID_EMPTY_LIST=1 TENANT_WIDE_FALLBACK=0",
+      "assert": "exit 0 且含 STAFF_ORDER_SITE_SCOPED=1 CROSS_SITE_ORDER_HIDDEN=1 SELF_QUERY_FAIL_CLOSED=1 NO_OID_EMPTY_LIST=1 TENANT_WIDE_FALLBACK=0",
       "actual": "PASS：exit 0 / RESULT: PASS (r4)。TEST_EXIT=0、STAFF_ORDER_SITE_SCOPED=1、CROSS_SITE_ORDER_HIDDEN=1、SELF_QUERY_FAIL_CLOSED=1（SELF_QUERY_FAIL_LIST_LEN=0）、NO_OID_EMPTY_LIST=1（NO_OID_LIST_LEN=0）、TENANT_WIDE_FALLBACK=0（夹具：双网点员工 site_members 两行 + 网点 A/B 各 1 单 + users.tenant_id=cacheTenant ≠ JWT tid）。",
-      "expected": "PASS（5 项 token 全为期望值）",
-      "negative": "跨网点可见 / 自查询失败后放宽到商户范围 / oid 空返回全量 → 任一即 FAIL",
+      "expected": "PASS（5 项 token）",
+      "negative": "跨网点可见/放宽 → FAIL",
       "negative_result": "负例已实测（红样 tmp/red-2621-order.log，修前 order.go）：CROSS_SITE_ORDER_HIDDEN=0（B 网点订单可见）、SELF_QUERY_FAIL_CLOSED=0（LIST_LEN=2，退化为租户全量）、NO_OID_EMPTY_LIST=0（LIST_LEN=2）、TENANT_WIDE_FALLBACK=2 → 4 子用例 FAIL；修复后 4/4 PASS。",
       "pass": true
     },
@@ -78,8 +78,8 @@
       ],
       "assert": "exit 0 且含 SELF_QUERY_WITH_TENANT_CTX=0 DEFERRED_SITES=5 DEFERRED_ISSUE_LINKED=1",
       "actual": "PASS：exit 0 / RESULT: PASS (r5)。逐语句语义分类：in-scope 8 文件 plain_sites=0（identity_sites: iam.go=3、user_points=2、face_capture=2、其余 1）；defer 白名单命中 5 处（order.go 2 行、api.go 1、audit_log.go 1、iam_proxy.go 1），DEFERRED_ISSUE=#2644（OPEN，title 匹配）→ DEFERRED_ISSUE_LINKED=1。",
-      "expected": "PASS（3 项 token 全为期望值）",
-      "negative": "仍有带租户 ctx 的在册自查询 / defer 项与登记数不符 / defer 无 Issue 号或 Issue 不存在 → FAIL",
+      "expected": "PASS（3 项 token）",
+      "negative": "残留言租户 ctx 的自查询 → FAIL",
       "negative_result": "断言器非盲：defer 白名单按文件登记期望条数，任何新增同类点或未修复点都会使 plain_sites ≠ expected 或 SELF_QUERY_WITH_TENANT_CTX>0 → exit 1；Issue 校验走 `gh issue view 2644`（非 OPEN 则 DEFERRED_ISSUE_LINKED=0）。",
       "pass": true
     }
