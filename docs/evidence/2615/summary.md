@@ -188,6 +188,7 @@ $ cd backend && go test ./... -count=1 -timeout 20m -p 2
 
 - 命令：`~/.config/opencode/scripts/pre-ready-check.sh 2615 --summary-file docs/evidence/2615/summary.md --changed-files docs/evidence/2615/changed-files.txt --evidence-file docs/evidence/2615/evidence.json --affected-cmd "bash scripts/verify-2615.sh gate" --report docs/evidence/2615/pre-ready-2615.json`
 - 报告：`docs/evidence/2615/pre-ready-2615.json`
-- 结果：`RESULT: PASS`（overall=PASS）。P1/P2/P3/P4/P6/P7/P11/P12/P13/P14/P17 PASS；P5 N/A（仓库根无 go.mod/package.json，全量编译与定向回归见上文）；P8/P9/P10/P15/P16 N/A；P18 WARN（tooling_commit 提示为既有口径，非本单改动）。
+- 结果：`RESULT: PASS`（overall=PASS）。P1/P2/P3/P4/P6/P7/P11/P12/P13/P14/P17/P18 PASS；P5 N/A（仓库根无 go.mod/package.json，全量编译与定向回归见上文）；P8/P9/P10/P15/P16 N/A。
+- 关键输出：`P12 PASS Evidence Contract complete: 6 row(s) match the plan and have durable artifacts`、`P14 PASS artifact provenance matches evidence (6 artifacts)`、`P13 PASS fix commit and evidence artifacts are on origin/issue-2615`、`P17 PASS plan snapshot and Accepted Plan comment match the gated plan`。
 
 Model: deepseek/deepseek-flash
