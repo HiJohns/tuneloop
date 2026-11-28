@@ -1,5 +1,21 @@
 # build=1.0.a5708fe35 # commit=a5708fe35dd788fdc6d8b40917b50bdfa8a3e28c # dirty=false
-GATE_RESULT=PENDING
-PLAN_SOURCE=PENDING
-FULL_GATE_DIRECT_EXIT=PENDING
-# interim placeholder: overwritten by scripts/verify-2489.sh r10 once the gate report exists
+# tree=d8e1dbaabdd0c741ba2898d4a278198a7da4d6dd
+PLAN_FILE=docs/evidence/2489/plan.md
+PLAN_SHA256=4f0aa71b1a54e48b031e67037f35a124de76ef0e3aaf1cc8b20a170fb7be73e4
+GATE_REPORT=docs/evidence/2489/pre-ready-2489.json
+GATE_OVERALL=PASS
+GATE_PLAN_SHA256=4f0aa71b1a54e48b031e67037f35a124de76ef0e3aaf1cc8b20a170fb7be73e4
+GATE_P5=N/A (D6: sub-task full gate belongs to parent #2486)
+GATE_RESULT=PASS
+--- plan-source ---
+PLAN_SOURCE_LINE: PLAN_SOURCE: plan sha=4f0aa71b1a54e48b031e67037f35a124de76ef0e3aaf1cc8b20a170fb7be73e4 source=/home/coder/worktrees/tuneloop/wt-2489/docs/evidence/2489/plan.md
+PLAN_SOURCE_LINE: PLAN_SOURCE: gate sha=4f0aa71b1a54e48b031e67037f35a124de76ef0e3aaf1cc8b20a170fb7be73e4 source=/home/coder/worktrees/tuneloop/wt-2489/docs/evidence/2489/pre-ready-2489.json
+PLAN_SOURCE_LINE: PLAN_SOURCE: evidence sha=4f0aa71b1a54e48b031e67037f35a124de76ef0e3aaf1cc8b20a170fb7be73e4 source=/home/coder/worktrees/tuneloop/wt-2489/docs/evidence/2489/evidence.json
+PLAN_SOURCE_LINE: PLAN_SOURCE: PASS sha=4f0aa71b1a54e48b031e67037f35a124de76ef0e3aaf1cc8b20a170fb7be73e4
+PLAN_SOURCE=PASS
+TREE_CLEAN=1
+FULL_GATE_CMD=cd frontend-pc && npm run build
+FULL_GATE_DIRECT_EXIT=0
+FULL_GATE_TAIL: - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+FULL_GATE_TAIL: ✓ built in 41.35s
+FULL_GATE_TAIL: [heavy-lock] released scope=host slot=0 rc=0 at_ms=1795842007546 hold_ms=43232
