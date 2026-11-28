@@ -3,7 +3,7 @@ import { Table, Tag, Button, Card, Typography, Space, Modal, Descriptions, Steps
 import { TruckOutlined, CheckCircleOutlined, EyeOutlined, CameraOutlined, QrcodeOutlined, DownloadOutlined } from '@ant-design/icons';
 import { api, fetchBlob } from '../services/api';
 import { formatBeijingDateTimeShort } from '../utils/date';
-import { resolveScanCandidates } from '../utils/scanResolve';
+import { resolveScanCandidates, SCAN_CANDIDATE_LIMIT } from '../utils/scanResolve';
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -73,6 +73,8 @@ export default function WarehouseManagement() {
   const [scanCameraError, setScanCameraError] = useState('');
   const [scanKind, setScanKind] = useState('none');
   const [scanCandidates, setScanCandidates] = useState([]);
+  // #2634：total = 截断前命中数（候选列表已被截到上限，不能用它判断是否「超过上限」）。
+  const [scanTotal, setScanTotal] = useState(0);
   const [scanSelectedId, setScanSelectedId] = useState('');
   const [scanQuerying, setScanQuerying] = useState(false);
 
@@ -86,9 +88,20 @@ export default function WarehouseManagement() {
     if (videoRef.current) videoRef.current.srcObject = null;
   };
 
+  // 打开与关闭都清空上一次的录入/候选，避免二次打开看到陈旧结果（审计 Round 1 观察项）。
+  const resetScanState = () => {
+    setScanCode('');
+    setScanKind('none');
+    setScanCandidates([]);
+    setScanTotal(0);
+    setScanSelectedId('');
+    setScanQuerying(false);
+  };
+
   const handleOpenScanner = async () => {
-    setScanModalVisible(true);
+    resetScanState();
     setScanCameraError('');
+    setScanModalVisible(true);
     if (!navigator.mediaDevices?.getUserMedia) {
       setScanCameraError('当前浏览器不支持相机预览，请手动输入');
       return;
@@ -108,6 +121,7 @@ export default function WarehouseManagement() {
   const handleCloseScan = () => {
     stopScanStream();
     setScanModalVisible(false);
+    resetScanState();
   };
 
   useEffect(() => () => { stopScanStream(); }, []);
@@ -122,15 +136,25 @@ export default function WarehouseManagement() {
     try {
       const resp = await api.get('/warehouse/orders', { params: { keyword: code, page: 1, pageSize: 20 } });
       if (resp && resp.code !== undefined && resp.code !== 20000) {
+        // 失败时清空上一次的候选，避免旧结果与新错误并存。
+        setScanKind('none');
+        setScanCandidates([]);
+        setScanTotal(0);
+        setScanSelectedId('');
         message.error(resp.message || '查询订单失败');
         return;
       }
       const resolved = resolveScanCandidates(resp?.data?.list || [], code);
       setScanKind(resolved.kind);
       setScanCandidates(resolved.list);
+      setScanTotal(resolved.total);
       setScanSelectedId(resolved.list.length === 1 ? String(resolved.list[0].id) : '');
     } catch (error) {
       // #2634：查询失败只给中文兜底——不把异常对象/ASCII 技术串弹给用户（api.md §1.3）。
+      setScanKind('none');
+      setScanCandidates([]);
+      setScanTotal(0);
+      setScanSelectedId('');
       message.error('查询订单失败');
     } finally {
       setScanQuerying(false);
@@ -195,15 +219,17 @@ export default function WarehouseManagement() {
       });
       message.success('收货确认成功');
       fetchOrders();
+      return true;
     } catch (error) {
       message.error('确认失败');
+      return false;
     }
   };
 
   const handleInspectReturn = async (orderId, passed, instrumentSn) => {
     // #2634：扫码验收弹窗已定位 SN 时直接传入，不再二次 prompt（列表行调用点不传第三参）。
     const sn = (instrumentSn || '').trim() || prompt('请输入乐器序列号:');
-    if (!sn) return;
+    if (!sn) return false;
     try {
       await api.put(`/warehouse/orders/${orderId}/return-inspect`, {
         instrument_sn: sn,
@@ -212,8 +238,10 @@ export default function WarehouseManagement() {
       });
       message.success(passed ? '验收通过' : '验收失败');
       fetchOrders();
+      return true;
     } catch (error) {
       message.error('操作失败');
+      return false;
     }
   };
 
@@ -539,8 +567,12 @@ export default function WarehouseManagement() {
               }))}
             />
           )}
-          {scanCandidates.length > 5 && (
-            <div className="text-xs text-gray-500">匹配到多条，仅列出前 5 条</div>
+          {scanTotal > SCAN_CANDIDATE_LIMIT && (
+            <Alert
+              type="info"
+              showIcon
+              message={`匹配到 ${scanTotal} 条，仅列出前 ${SCAN_CANDIDATE_LIMIT} 条`}
+            />
           )}
           {(() => {
             const scanOrder = scanCandidates.find((o) => String(o.id) === String(scanSelectedId))
@@ -567,9 +599,10 @@ export default function WarehouseManagement() {
                       <Button
                         type="primary"
                         disabled={!hasSn}
-                        onClick={() => {
-                          handleConfirmDelivery(scanOrder.id, scanSn);
-                          handleCloseScan();
+                        onClick={async () => {
+                          const ok = await handleConfirmDelivery(scanOrder.id, scanSn);
+                          // 只在动作成功后关闭，接口失败时保留弹窗与候选（Round 1 观察项）。
+                          if (ok) handleCloseScan();
                         }}
                       >
                         确认收货
@@ -582,9 +615,9 @@ export default function WarehouseManagement() {
                         <Button
                           type="primary"
                           disabled={!hasSn}
-                          onClick={() => {
-                            handleInspectReturn(scanOrder.id, true, scanSn);
-                            handleCloseScan();
+                          onClick={async () => {
+                            const ok = await handleInspectReturn(scanOrder.id, true, scanSn);
+                            if (ok) handleCloseScan();
                           }}
                         >
                           通过
@@ -594,9 +627,9 @@ export default function WarehouseManagement() {
                         <Button
                           danger
                           disabled={!hasSn}
-                          onClick={() => {
-                            handleInspectReturn(scanOrder.id, false, scanSn);
-                            handleCloseScan();
+                          onClick={async () => {
+                            const ok = await handleInspectReturn(scanOrder.id, false, scanSn);
+                            if (ok) handleCloseScan();
                           }}
                         >
                           拒绝

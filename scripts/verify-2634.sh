@@ -3,7 +3,7 @@
 #
 # 用法：bash scripts/verify-2634.sh <r1|r2|r3|r4>
 #   r1  docs/evidence/2634/R1-prefix-defect.txt   修前快照（PRE_REF = 最早 fix 的父提交）
-#   r2  docs/evidence/2634/R2-resolve-unit.txt    resolveScanCandidates 表驱动（9 fixture）
+#   r2  docs/evidence/2634/R2-resolve-unit.txt    resolveScanCandidates 表驱动（10 fixture）
 #   r3  docs/evidence/2634/R3-wiring.txt          弹窗接线（入口/录入/动作复用/相机降级/死码清零）
 #   r4  docs/evidence/2634/R4-build-lint.txt      PC 构建 + ESLint + 产物文案探针
 #
@@ -123,12 +123,13 @@ case "$MODE" in
     emit "EMPTY_CODE_NONE=$(tok EMPTY_CODE_NONE)"
     emit "NO_MATCH_NONE=$(tok NO_MATCH_NONE)"
     emit "CANDIDATE_CAP_5=$(tok CANDIDATE_CAP_5)"
+    emit "TOTAL_BEFORE_CAP=$(tok TOTAL_BEFORE_CAP)"
     emit "NULL_LIST_GUARD=$(tok NULL_LIST_GUARD)"
     emit "EXIT=$TEST_RC"
     [ "$TEST_RC" = "0" ] || { echo "ASSERT_FAIL: node --test failed" >&2; RC=1; }
-    require 'SCAN_RESOLVE_CASES=9'
+    require 'SCAN_RESOLVE_CASES=10'
     for token in EXACT_ORDER_NO EXACT_SN CASE_INSENSITIVE FUZZY_FALLBACK EMPTY_CODE_NONE \
-                 NO_MATCH_NONE CANDIDATE_CAP_5 NULL_LIST_GUARD; do
+                 NO_MATCH_NONE CANDIDATE_CAP_5 TOTAL_BEFORE_CAP NULL_LIST_GUARD; do
       require "${token}=1"
     done
     require 'EXIT=0'
@@ -163,6 +164,25 @@ case "$MODE" in
     QR_DEAD="$(grep -c 'new QrScanner(' "$PAGE" || true)"
     QR_COMMENTED="$(grep -cE '^// import QrScanner' "$PAGE" || true)"
     LEGACY_STATE="$(grep -cE 'scannedData|scannerRef' "$PAGE" || true)"
+    # 审计 Round 1 失败项 1：候选超上限提示必须可达（用截断前 total，而非已被截断的 list）。
+    CAP_HINT=0
+    grep -q 'scanTotal > SCAN_CANDIDATE_LIMIT' "$PAGE" \
+      && grep -Fq '匹配到 ${scanTotal} 条，仅列出前 ${SCAN_CANDIDATE_LIMIT} 条' "$PAGE" \
+      && grep -q 'setScanTotal(resolved.total)' "$PAGE" \
+      && CAP_HINT=1
+    # 旧口径（用已被截断到 5 条的 list 判 >5）必须清零，否则提示分支永假。
+    CAP_HINT_DEAD="$(grep -c 'scanCandidates.length > 5' "$PAGE" || true)"
+    # 审计 Round 1 观察项：动作成功后才关闭弹窗，失败保留现场。
+    ACTION_AWAIT=0
+    grep -q 'const ok = await handleConfirmDelivery(' "$PAGE" \
+      && grep -q 'const ok = await handleInspectReturn(' "$PAGE" \
+      && grep -q 'if (ok) handleCloseScan()' "$PAGE" \
+      && ACTION_AWAIT=1
+    # 审计 Round 1 观察项：打开/关闭都重置录入与候选，二次打开不残留上次结果。
+    STATE_RESET=0
+    grep -q 'const resetScanState = () => {' "$PAGE" \
+      && [ "$(grep -c 'resetScanState();' "$PAGE")" -ge 2 ] \
+      && STATE_RESET=1
     emit "PAGE=$PAGE"
     emit "ENTRY_BUTTON=$ENTRY"
     emit "OPEN_SCANNER_CALLERS=$OPEN_CALLERS"
@@ -178,12 +198,17 @@ case "$MODE" in
     emit "QR_DEAD_CALL=$QR_DEAD"
     emit "QR_IMPORT_COMMENTED=$QR_COMMENTED"
     emit "LEGACY_SCAN_STATE=$LEGACY_STATE"
+    emit "CAP_HINT=$CAP_HINT"
+    emit "CAP_HINT_DEAD=$CAP_HINT_DEAD"
+    emit "ACTION_AWAIT_SUCCESS=$ACTION_AWAIT"
+    emit "SCAN_STATE_RESET=$STATE_RESET"
     emit "--- wiring ---"
     grep -nE '扫码验收|handleOpenScanner|scanCode|handleScanQuery|keyword: code|handleConfirmDelivery\(scanOrder|handleInspectReturn\(scanOrder|scanCameraError|streamRef|resolveScanCandidates\(|暂不支持自动识别' "$PAGE" | sed 's/^/WIRE /' >> "$LOG"
     for token in 'ENTRY_BUTTON=1' 'OPEN_SCANNER_CALLERS=1' 'SCAN_INPUT_BOUND=1' 'SCAN_SUBMIT=1' \
                  'SCAN_API_KEYWORD=1' 'ACTION_REUSE_DELIVERY=1' 'ACTION_REUSE_INSPECT=1' 'CAMERA_GUARD=1' \
                  'STREAM_CLEANUP=1' 'HELPER_USED=1' 'MANUAL_HINT=1' 'QR_DEAD_CALL=0' \
-                 'QR_IMPORT_COMMENTED=0' 'LEGACY_SCAN_STATE=0'; do
+                 'QR_IMPORT_COMMENTED=0' 'LEGACY_SCAN_STATE=0' 'CAP_HINT=1' 'CAP_HINT_DEAD=0' \
+                 'ACTION_AWAIT_SUCCESS=1' 'SCAN_STATE_RESET=1'; do
       require "$token"
     done
     ;;

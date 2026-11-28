@@ -1,4 +1,4 @@
-// #2634 R2：resolveScanCandidates 表驱动用例（9 个 fixture，纯逻辑、无 DOM/DB）。
+// #2634 R2：resolveScanCandidates 表驱动用例（10 个 fixture，纯逻辑、无 DOM/DB）。
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
@@ -43,8 +43,8 @@ test('FUZZY_FALLBACK: 无精确命中时按包含匹配', () => {
 })
 
 test('EMPTY_CODE_NONE: 空串 / 纯空白不查', () => {
-  assert.deepEqual(resolveScanCandidates(orders, ''), { kind: 'none', list: [] })
-  assert.deepEqual(resolveScanCandidates(orders, '   '), { kind: 'none', list: [] })
+  assert.deepEqual(resolveScanCandidates(orders, ''), { kind: 'none', list: [], total: 0 })
+  assert.deepEqual(resolveScanCandidates(orders, '   '), { kind: 'none', list: [], total: 0 })
 })
 
 test('NO_MATCH_NONE: 无匹配返回 none', () => {
@@ -65,10 +65,29 @@ test('CANDIDATE_CAP_5: 候选上限 5 条', () => {
   assert.equal(r.list.length, 5)
 })
 
+test('TOTAL_BEFORE_CAP: total = 截断前命中数（页面据此提示「仅列出前 5 条」，list 不可用）', () => {
+  const many = Array.from({ length: 8 }, (_, i) => ({
+    id: String(i + 1),
+    order_no: `ORD-Y${i + 1}`,
+    instrument_sn: `SN-Y${i + 1}`,
+    updated_at: `2026-11-0${(i % 9) + 1}T00:00:00Z`,
+  }))
+  const capped = resolveScanCandidates(many, 'ORD-Y')
+  assert.equal(capped.list.length, 5)
+  assert.equal(capped.total, 8)
+  // 未超上限时 total 必须等于 list.length（不得恒等于上限，否则提示永远显示）
+  const few = resolveScanCandidates(orders, 'ORD-300')
+  assert.equal(few.list.length, 3)
+  assert.equal(few.total, 3)
+  // 精确命中同样带 total（弹窗提示不区分精确/模糊）
+  const exact = resolveScanCandidates(orders, 'ORD-1001')
+  assert.equal(exact.total, 1)
+})
+
 test('NULL_LIST_GUARD: orders 为 null / 非数组视为空列表', () => {
-  assert.deepEqual(resolveScanCandidates(null, 'ORD-1'), { kind: 'none', list: [] })
-  assert.deepEqual(resolveScanCandidates(undefined, 'ORD-1'), { kind: 'none', list: [] })
-  assert.deepEqual(resolveScanCandidates('not-an-array', 'ORD-1'), { kind: 'none', list: [] })
+  assert.deepEqual(resolveScanCandidates(null, 'ORD-1'), { kind: 'none', list: [], total: 0 })
+  assert.deepEqual(resolveScanCandidates(undefined, 'ORD-1'), { kind: 'none', list: [], total: 0 })
+  assert.deepEqual(resolveScanCandidates('not-an-array', 'ORD-1'), { kind: 'none', list: [], total: 0 })
 })
 
 test('MISSING_FIELDS_SAFE: 缺 order_no/instrument_sn 的行不误命中', () => {

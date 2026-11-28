@@ -24,13 +24,16 @@ function byUpdatedAtDesc(a, b) {
 /**
  * 把「手动录入的订单号 / 乐器 SN」解析为候选订单。
  *
+ * `total` 是**截断前**的命中条数：调用方据此提示「匹配到 N 条，仅列出前 N 条」，
+ * 不能用 `list.length` 判断（`list` 已被截到上限，永远不可能 > 5）。
+ *
  * @param {Array} orders 服务端返回的订单列表（已按需筛选）
  * @param {string} rawCode 用户录入
- * @returns {{kind: 'exact'|'fuzzy'|'none', list: Array}}
+ * @returns {{kind: 'exact'|'fuzzy'|'none', list: Array, total: number}}
  */
 export function resolveScanCandidates(orders, rawCode) {
   const code = String(rawCode ?? '').trim()
-  if (!code) return { kind: 'none', list: [] }
+  if (!code) return { kind: 'none', list: [], total: 0 }
 
   const list = toList(orders)
   const target = code.toLowerCase()
@@ -41,7 +44,11 @@ export function resolveScanCandidates(orders, rawCode) {
     return orderNo === target || sn === target
   })
   if (exact.length > 0) {
-    return { kind: 'exact', list: exact.sort(byUpdatedAtDesc).slice(0, CANDIDATE_LIMIT) }
+    return {
+      kind: 'exact',
+      list: exact.sort(byUpdatedAtDesc).slice(0, CANDIDATE_LIMIT),
+      total: exact.length,
+    }
   }
 
   const fuzzy = list.filter((order) => {
@@ -50,10 +57,14 @@ export function resolveScanCandidates(orders, rawCode) {
     return (orderNo !== '' && orderNo.includes(target)) || (sn !== '' && sn.includes(target))
   })
   if (fuzzy.length > 0) {
-    return { kind: 'fuzzy', list: fuzzy.sort(byUpdatedAtDesc).slice(0, CANDIDATE_LIMIT) }
+    return {
+      kind: 'fuzzy',
+      list: fuzzy.sort(byUpdatedAtDesc).slice(0, CANDIDATE_LIMIT),
+      total: fuzzy.length,
+    }
   }
 
-  return { kind: 'none', list: [] }
+  return { kind: 'none', list: [], total: 0 }
 }
 
 export const SCAN_CANDIDATE_LIMIT = CANDIDATE_LIMIT
