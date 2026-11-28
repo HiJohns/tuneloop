@@ -354,6 +354,9 @@ _row_r10_body() { # <artifact> <services-db>
   # 2) gate 报告：R10 读的是真实跑过的 gate（P5 不允许 N/A）。首次执行时本行产物尚不存在，
   #    而 gate 的 P12 需要 evidence.json 中每行有记录 → 先落一版 interim（P12/P3 只校验存在性），
   #    再由本函数用 --full-gate-cmd 真跑一次 gate 覆盖为最终结果（与 #2457 R15 同口径）。
+  #    gate 自身的产物（R10 artifact + 报告）都在 Accepted Plan 的 Files 里声明；它们由本次
+  #    gate 写出，P5 的干净树检查必然把它们算作未提交改动 → 用 --allow-file 显式放行
+  #    （不是接纳计划外文件）。
   if [ ! -f "$artifact" ]; then
     {
       printf '%s\n' "$prov"
@@ -374,6 +377,8 @@ _row_r10_body() { # <artifact> <services-db>
         --baseline "${P5_BASELINE:-origin/develop}" \
         --full-gate-cmd "$full_cmd" \
         --gate-lock-scope host \
+        --allow-file "$EDIR/R10-gate.txt" \
+        --allow-file "$EDIR/pre-ready-$ISSUE.json" \
         --report "$report" ) > "$log.gate" 2>&1 || true
   fi
 
