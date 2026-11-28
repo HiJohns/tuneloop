@@ -260,3 +260,65 @@ func TestInstrumentLoss2615_ListAndGet(t *testing.T) {
 		t.Fatalf("cross-tenant read must be 404/40400, got %d/%v", crossCode, crossBody)
 	}
 }
+
+// TestInstrumentLoss2615_LegacyNoParams 守卫 #2615 D8 legacy 兼容：
+// `page` 与 `pageSize` 均未显式传时按历史口径 page=1&pageSize=200
+// （PC 台账 `lossApi.list()` 无参调用，旧实现 Limit(200)）；只缺其一仍走新默认。
+func TestInstrumentLoss2615_LegacyNoParams(t *testing.T) {
+	f := setupLossList2615Fixture(t)
+	now := time.Now().UTC().Truncate(time.Second)
+
+	const legacyRows = 200
+	instrumentID := uuid.New().String()
+	siteUUID, _ := uuid.Parse(f.siteID)
+	tenantID := f.tenantID
+	require.NoError(t, f.db.Create(&models.Instrument{
+		ID: instrumentID, TenantID: tenantID, OrgID: &tenantID,
+		CurrentSiteID: &siteUUID, SN: "SN-2615-LEGACY", CategoryName: "吉他", LevelName: "专业",
+		CoverImage: "cover-legacy.jpg", StockStatus: models.StockStatusLost,
+		CreatedAt: now, UpdatedAt: now,
+	}).Error)
+	records := make([]models.InstrumentLossRecord, 0, legacyRows)
+	for i := 0; i < legacyRows; i++ {
+		records = append(records, models.InstrumentLossRecord{
+			ID: uuid.New().String(), TenantID: tenantID, InstrumentID: instrumentID,
+			ResponsibleParty: "user", UserRatio: 100,
+			CompensationCents: models.FromYuan(100), UserBurdenCents: models.FromYuan(100),
+			Description: "legacy 丢失描述", Photos: `[]`,
+			CreatedAt: now.Add(-time.Duration(i) * time.Second),
+			UpdatedAt: now.Add(-time.Duration(i) * time.Second),
+		})
+	}
+	require.NoError(t, f.db.CreateInBatches(&records, 100).Error)
+
+	// ---- 无参（PC 旧调用方）：legacy page=1&pageSize=200 ----
+	code, resp := lossGet2615(t, f.router, "/instrument-loss")
+	require.Equal(t, http.StatusOK, code)
+	require.Equal(t, float64(20000), resp["code"], "legacy call must return 20000: %v", resp)
+	data := lossData2615(resp)
+	legacyTotal, _ := data["total"].(float64)
+	legacyRowsGot := len(lossList2615(resp))
+	legacySize, _ := data["page_size"].(float64)
+	t.Logf("LOSS_LEGACY_NO_PARAMS_ROWS=%d", legacyRowsGot)
+	t.Logf("LOSS_LEGACY_NO_PARAMS_TOTAL=%d", int(legacyTotal))
+	if legacyRowsGot != legacyRows || int(legacyTotal) != legacyRows || int(legacySize) != legacyRows {
+		t.Fatalf("legacy no-params broke PC ledger: rows=%d total=%v page_size=%v (want %d)",
+			legacyRowsGot, data["total"], data["page_size"], legacyRows)
+	}
+
+	// ---- 只传 page（缺 pageSize）：仍走新默认 20（负例，不得享受 legacy 200）----
+	_, pageOnly := lossGet2615(t, f.router, "/instrument-loss?page=1")
+	pageOnlySize, _ := lossData2615(pageOnly)["page_size"].(float64)
+	pageOnlyRows := len(lossList2615(pageOnly))
+	t.Logf("LOSS_LEGACY_PAGE_ONLY_SIZE=%d", int(pageOnlySize))
+	if int(pageOnlySize) != 20 || pageOnlyRows != 20 {
+		t.Fatalf("page-only must keep new default 20: page_size=%v rows=%d", pageOnlySize, pageOnlyRows)
+	}
+
+	// ---- 只传 pageSize：走 clamp（上限 100），同样不得回落到 legacy 200 ----
+	_, sizeOnly := lossGet2615(t, f.router, "/instrument-loss?pageSize=1000")
+	sizeOnlySize, _ := lossData2615(sizeOnly)["page_size"].(float64)
+	if int(sizeOnlySize) != maxPageSize {
+		t.Fatalf("explicit oversized pageSize must clamp to %d, got %v", maxPageSize, sizeOnlySize)
+	}
+}

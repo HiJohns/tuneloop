@@ -2295,7 +2295,7 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | page | int | 否 | 从 1 起，默认 1（`<1` 归 1） |
-| pageSize | int | 否 | 默认 20，上限 100（越界截断，不改变结果集语义） |
+| pageSize | int | 否 | 默认 20，上限 100（越界截断，不改变结果集语义）；**例外见下「legacy 无参兼容」** |
 | status | string | 否 | `open`（未恢复）/ `restored`（已恢复）/ `all`（默认）；其他值 → `400/40002`，**不得静默按 all 处理** |
 | instrument_id | string | 否 | 按乐器过滤 |
 | open | string | 否 | 旧参数兼容：`open=true` 等价 `status=open`（PC `lossApi.list` 等既有调用方不受影响） |
@@ -2328,6 +2328,7 @@ curl -X GET "http://localhost:5554/api/instruments/123e4567-e89b-12d3-a456-42661
 ```
 
 - `total` 为**真实计数**（`COUNT(*)`），不是 `len(list)`；列表按 `created_at DESC`。
+- **legacy 无参兼容（#2615 D8）**：`page` 与 `pageSize` **均未显式传**时按历史口径 `page=1&pageSize=200`（旧实现是 `Limit(200)` 无分页，PC 台账 `lossApi.list()` 仍无参调用；收到 20 会静默少显示最多 180 条）。**只缺其一**仍走新默认（`page=1` / `pageSize=20`）。该例外只影响默认值，不改变 `status`/`instrument_id` 过滤语义。
 - `photos` / `restore_photos` 原为 `jsonb` 字符串，这里**归一化为字符串数组**（空值/非法 JSON → `[]`，不返回 `null`、不报 500）。
 - `instrument_brief` 为一次 `IN` 查询批量取回的乐器摘要（禁 N+1）；乐器被删或跨租户 → `null`（前端按 `SN: -` 展示）。
 

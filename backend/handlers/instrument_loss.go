@@ -23,6 +23,10 @@ import (
 // #1948 乐器丢失与找回（docs/cases/instrument-loss.md LS-01~LS-06）。
 // 员工裁量制：责任方/比例/赔偿额由员工填写；结算/冲正口径见 LS-03/03a/03b/05a。
 
+// legacyLossPageSize 历史无参调用方的页大小（旧实现 `Limit(200)` 无分页）。
+// 允许超过 maxPageSize：仅用于「page 与 pageSize 均未显式传」的兼容路径（#2615 D8）。
+const legacyLossPageSize = 200
+
 var lossActiveOrderStatuses = []string{
 	models.OrderStatusReserved, models.OrderStatusPaid, models.OrderStatusPendingShipment,
 	models.OrderStatusShipped, models.OrderStatusInLease, models.OrderStatusReturning,
@@ -411,12 +415,21 @@ func (h *InstrumentLossHandler) List(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"code": 40300, "message": "access denied"})
 		return
 	}
+	// #2615 D8 legacy 兼容：`page` 与 `pageSize` **均未显式传**时按历史口径
+	// page=1&pageSize=200（旧实现是 Limit(200) 无分页）。PC 台账
+	// `frontend-pc/src/pages/InstrumentStock.jsx` 仍是无参 `lossApi.list()`，
+	// 若默认收到 20 会静默少显示最多 180 条。只缺其一仍走新默认（page=1 / pageSize=20）。
+	_, hasPage := c.GetQuery("page")
+	_, hasPageSize := c.GetQuery("pageSize")
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	if page < 1 {
 		page = 1
 	}
-	rawSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
-	pageSize := clampPageSize(rawSize, 20, maxPageSize)
+	pageSize := legacyLossPageSize
+	if hasPage || hasPageSize {
+		rawSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
+		pageSize = clampPageSize(rawSize, 20, maxPageSize)
+	}
 
 	// status 默认 all；旧参数 open=true 等价 status=open（兼容既有调用方）。
 	status := c.DefaultQuery("status", "all")
