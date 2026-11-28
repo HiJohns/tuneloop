@@ -151,10 +151,14 @@ row_r5() {
 
 row_r6() {
   local artifact="$EDIR/R6-context-label.txt"
-  go_test_row "$artifact" 'TestWxAccounts_ContextLabelDisambiguatesSameNamedSites_2455' r6 || return 1
+  # #2455 Round 1 Bug 4：同一行同时锁两种上下文形态——跨商户同名可区分（DISTINCT），
+  # 以及 sites 行缺失时**不得**借用别的 context 的商户名（回退自身 org_name）。
+  go_test_row "$artifact" 'TestWxAccounts_ContextLabel' r6 || return 1
   grep -Fq 'DISTINCT=1' "$artifact" || return 1
   grep -Fq 'LABEL_B=卡丹萨 · 卡丹萨乐器' "$artifact" || return 1
   grep -Fq 'ORG_NAME_B=卡丹萨西铁营' "$artifact" || return 1
+  grep -Fq 'MERCHANT_BORROWED=0' "$artifact" || return 1
+  grep -Fq 'FALLBACK_LABEL_OK=1' "$artifact" || return 1
   return 0
 }
 
@@ -419,6 +423,62 @@ _row_r10_body() { # <artifact> <services-db>
     echo "GATE_PLAN_SHA_MATCH=$sha_match"
     echo "PLAN_SOURCE=$plan_source"
   } > "$artifact"
+
+  # #2455 Bug 2：evidence.json 的 R10 actual 必须与 artifact **同批派生**，禁止手抄
+  # （历史缺陷是模板占位 `FULL_SUITE_EXIT={FULL_SUITE_EXIT}` 未展开，账本与产物脱节）。
+  # 同一处把 bundle 的 build/commit/dirty 重新锚定到本次 provenance（P14 要求逐个 artifact
+  # 与账本一致）；值全部来自 artifact 文本，不做任何猜测。
+  if [ -f "$EDIR/evidence.json" ]; then
+    python3 - "$EDIR/evidence.json" "$artifact" <<'PY' || echo "WARN:EVIDENCE_SYNC_FAILED" >&2
+import json
+import re
+import sys
+
+path, artifact = sys.argv[1], sys.argv[2]
+text = open(artifact, encoding="utf-8").read()
+
+tokens = {}
+for match in re.finditer(r"^([A-Z][A-Z0-9_]+)=(\S.*)$", text, re.MULTILINE):
+    tokens.setdefault(match.group(1), match.group(2).strip())
+
+required = ("FULL_SUITE_EXIT", "FAIL_COUNT", "PANIC_COUNT", "GATE_RESULT", "P5",
+            "GATE_PLAN_SHA_MATCH", "PLAN_SOURCE")
+missing = [name for name in required if name not in tokens]
+if missing:
+    sys.exit("artifact missing tokens: " + ",".join(missing))
+
+actual = (
+    "PASS："
+    f"FULL_SUITE_CMD={tokens.get('FULL_SUITE_CMD', '')} "
+    f"FULL_SUITE_EXIT={tokens['FULL_SUITE_EXIT']} "
+    f"FAIL_COUNT={tokens['FAIL_COUNT']} "
+    f"PANIC_COUNT={tokens['PANIC_COUNT']} "
+    f"GATE_RESULT={tokens['GATE_RESULT']} "
+    f"P5={tokens['P5']} "
+    f"GATE_PLAN_SHA_MATCH={tokens['GATE_PLAN_SHA_MATCH']} "
+    f"PLAN_SOURCE={tokens['PLAN_SOURCE']}；"
+    "四源（Accepted Plan 评论 / plan.md / gate / evidence.json）一致"
+)
+
+bundle = json.load(open(path, encoding="utf-8"))
+provenance = re.search(
+    r"^# build=(\S+) # commit=([0-9a-f]{7,40}) # dirty=(true|false)", text, re.MULTILINE
+)
+if provenance:
+    bundle["build"] = provenance.group(1)
+    bundle["commit"] = provenance.group(2)
+    bundle["dirty"] = provenance.group(3) == "true"
+
+for row in bundle.get("rows", []):
+    if row.get("id") == "R10":
+        row["actual"] = actual
+
+with open(path, "w", encoding="utf-8") as handle:
+    json.dump(bundle, handle, ensure_ascii=False, indent=2)
+    handle.write("\n")
+print("EVIDENCE_SYNC=R10")
+PY
+  fi
 
   [ "$full_suite_exit" = "0" ] || return 1
   [ "$fail_count" = "0" ] || return 1

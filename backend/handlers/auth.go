@@ -879,6 +879,8 @@ func (h *AuthHandler) WxAccounts(c *gin.Context) {
 		if !isCustomer {
 			// Staff accounts: enrich with merchant/site display names so the
 			// account list can show 「商户名 · 网点名」 (docs/cases/account-select.md).
+			// Legacy（无 contexts）分支：账号只有一个身份，account 级 tenant 就是它的
+			// tenant，作为 sites 行缺失时的兜底是安全的（多上下文分支必须传 ""，见 Bug 4）。
 			merchantName, siteName := merchantAndSiteName2455(h.db, a.OrgID, a.TenantID)
 			acc["merchant_name"] = merchantName
 			acc["site_name"] = siteName
@@ -902,10 +904,15 @@ func (h *AuthHandler) WxAccounts(c *gin.Context) {
 // merchantAndSiteName2455 resolves the display names used to disambiguate a
 // staff identity: the merchant (tenant) name and the site name for one org.
 // sites.name mirrors the IAM organization name (#2457) and merchants.name mirrors
-// the merchant root organization name, so 「商户名 · 网点名」 distinguishes two
+// the merchant root organization name, so 「商户名 · 网点名」distinguishes two
 // same-named sites that belong to different merchants (#2455 D4).
-func merchantAndSiteName2455(db *gorm.DB, orgID, tenantID string) (merchantName, siteName string) {
-	resolvedTenantID := tenantID
+//
+// fallbackTenantID is only for the legacy single-context path, where the
+// account-level tenant really is that context's tenant. Multi-context callers
+// must pass "" so a missing sites row degrades to the IAM org name instead of
+// borrowing another context's merchant (#2455 Bug 4).
+func merchantAndSiteName2455(db *gorm.DB, orgID, fallbackTenantID string) (merchantName, siteName string) {
+	resolvedTenantID := fallbackTenantID
 	if orgID != "" {
 		var site struct {
 			Name     string
@@ -915,7 +922,10 @@ func merchantAndSiteName2455(db *gorm.DB, orgID, tenantID string) (merchantName,
 		// prefer it over the caller-supplied tenant id when the row exists.
 		if err := db.Raw(
 			"SELECT name, tenant_id FROM sites WHERE org_id = ? AND deleted_at IS NULL LIMIT 1", orgID,
-		).Scan(&site).Error; err == nil {
+		).Scan(&site).Error; err != nil {
+			// Never swallow: a failed lookup silently degrades labels.
+			log.Printf("[wxAuth] #2455 site lookup failed org_id=%s: %v", orgID, err)
+		} else {
 			siteName = site.Name
 			if site.TenantID != "" {
 				resolvedTenantID = site.TenantID
@@ -923,7 +933,10 @@ func merchantAndSiteName2455(db *gorm.DB, orgID, tenantID string) (merchantName,
 		}
 	}
 	if resolvedTenantID != "" {
-		db.Raw("SELECT name FROM merchants WHERE tenant_id = ? LIMIT 1", resolvedTenantID).Scan(&merchantName)
+		if err := db.Raw("SELECT name FROM merchants WHERE tenant_id = ? LIMIT 1", resolvedTenantID).
+			Scan(&merchantName).Error; err != nil {
+			log.Printf("[wxAuth] #2455 merchant lookup failed tenant_id=%s: %v", resolvedTenantID, err)
+		}
 	}
 	return merchantName, siteName
 }
@@ -973,7 +986,11 @@ func enrichWxContexts2455(db *gorm.DB, a services.WxAccount) []map[string]interf
 			out = append(out, item)
 			continue
 		}
-		merchantName, siteName := merchantAndSiteName2455(db, ct.OrgID, a.TenantID)
+		// #2455 Bug 4 / D4：商户名只允许由**该 context 自身**（org → sites → tenant）解析。
+		// account 级 a.TenantID 只属于其中一个 context；用它兜底会把**别的商户**名拼进
+		// 本 context 的 label（甚至让两条 label 变成相同）。解析不到时保持空，
+		// 由 wxIdentityLabel2455 回退 ct.OrgName（D4 规定的顺序）。
+		merchantName, siteName := merchantAndSiteName2455(db, ct.OrgID, "")
 		label := wxIdentityLabel2455(merchantName, siteName, ct.OrgName)
 		if label == "" {
 			label = ct.OrgID

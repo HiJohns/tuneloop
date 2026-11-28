@@ -139,3 +139,83 @@ func TestWxAccounts_ContextLabelDisambiguatesSameNamedSites_2455(t *testing.T) {
 	t.Logf("LEGACY_LABEL=%s", legacyLabel)
 	t.Logf("CUSTOMER_LABEL=%s", customerLabel)
 }
+
+// TestWxAccounts_ContextLabelNoCrossMerchantBorrow_2455 覆盖 #2455 Round 1 审计 Bug 4：
+// 某个 context 的 sites 行缺失（未同步 / 软删）时，**不得**用 account 级 tenant 去猜商户名
+// —— 那个 tenant 只属于同一账号的另一个 context，猜出来的就是别家商户的名字（甚至让两条
+// label 相同）。D4 规定：解析不到就回退该 context 自己的 IAM org_name。
+func TestWxAccounts_ContextLabelNoCrossMerchantBorrow_2455(t *testing.T) {
+	db := testfixtures.SetupTestDB(t)
+
+	tenantCadenza := uuid.NewString()
+	orgHaidian := uuid.NewString()
+	orgUnsynced := uuid.NewString() // IAM 有组织，本地 sites 行缺失
+
+	require.NoError(t, db.Create(&models.Merchant{
+		ID: uuid.NewString(), Code: testfixtures.UniqueCode("L2455"), TenantID: tenantCadenza,
+		OrgID: uuid.NewString(), Name: "cadenza", Address: "x", ContactName: "c",
+		ContactPhone: "1", Status: "active", AdminUID: uuid.NewString(),
+	}).Error)
+	// 只有第一个 context 有本地镜像行；第二个 context 故意缺失。
+	require.NoError(t, db.Create(&models.Site{
+		ID: uuid.NewString(), TenantID: tenantCadenza, OrgID: orgHaidian,
+		Name: "卡丹萨乐器", Status: "active",
+	}).Error)
+
+	accounts := []map[string]interface{}{
+		{
+			"user_id": uuid.NewString(), "name": "员工小王", "nickname": "小王", "role": "STAFF",
+			// account 级 tenant 属于第一个 context —— 不能被第二个 context 借用。
+			"org_id": orgHaidian, "tenant_id": tenantCadenza,
+			"contexts": []map[string]interface{}{
+				{"type": "org", "org_id": orgHaidian, "org_name": "海淀店", "role": "site_admin"},
+				{"type": "org", "org_id": orgUnsynced, "org_name": "未同步网点", "role": "site_member"},
+			},
+		},
+	}
+
+	srv := newWxAccountsMockServer(t, accounts)
+	defer srv.Close()
+	services.SetIAMInternalURLForTesting(srv.URL)
+	t.Cleanup(func() { services.SetIAMInternalURLForTesting("") })
+
+	router := gin.New()
+	router.GET("/api/auth/wx-accounts", NewAuthHandler(db).WxAccounts)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/auth/wx-accounts?code=label-2455-borrow", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, "body=%s", w.Body.String())
+
+	var resp struct {
+		Code int `json:"code"`
+		Data struct {
+			Accounts []map[string]interface{} `json:"accounts"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.EqualValues(t, 20000, resp.Code)
+	require.Len(t, resp.Data.Accounts, 1)
+
+	contexts, ok := resp.Data.Accounts[0]["contexts"].([]interface{})
+	require.True(t, ok, "contexts 必须是数组: %v", resp.Data.Accounts[0]["contexts"])
+	require.Len(t, contexts, 2)
+
+	ctxSynced := contexts[0].(map[string]interface{})
+	ctxUnsynced := contexts[1].(map[string]interface{})
+
+	// 有 sites 行的 context：仍按 org → sites → tenant 解析。
+	require.Equal(t, "cadenza", ctxSynced["merchant_name"], "SYNCED_MERCHANT")
+	require.Equal(t, "卡丹萨乐器", ctxSynced["site_name"], "SYNCED_SITE")
+	require.Equal(t, "cadenza · 卡丹萨乐器", ctxSynced["label"], "SYNCED_LABEL")
+
+	// 缺失 sites 行的 context：不得借用另一上下文的商户名。
+	borrowed, _ := ctxUnsynced["merchant_name"].(string)
+	require.Empty(t, borrowed, "MERCHANT_BORROWED=0：缺失 sites 行时不得借用 account 级 tenant 的商户名")
+	require.Empty(t, ctxUnsynced["site_name"], "缺失 sites 行时 site_name 应为空")
+	require.Equal(t, "未同步网点", ctxUnsynced["label"], "FALLBACK_ORG_NAME：回退该 context 自己的 IAM org_name")
+
+	t.Logf("MERCHANT_BORROWED=%d", map[bool]int{true: 1, false: 0}[borrowed != ""])
+	t.Logf("FALLBACK_LABEL_OK=%d", map[bool]int{true: 1, false: 0}[ctxUnsynced["label"] == "未同步网点"])
+	t.Logf("SYNCED_LABEL=%s", ctxSynced["label"])
+}

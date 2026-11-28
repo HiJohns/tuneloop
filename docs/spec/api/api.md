@@ -1037,7 +1037,7 @@ GET /api/confirmation-sessions/:id
 > - 平台管理员代建：**必须**传 `merchant_id`（可用 `GET /api/merchants` 列表），否则 **40301**；`merchant_id` 无效/商户 `org_id` 为空 → **40002**。
 >
 > **注（#2455）—— 同商户网点名唯一**：同一 `tenant_id`（= 商户 org）下网点名不可重复（`lower(name)` 归一，排除软删除；DB 唯一部分索引 `uq_sites_tenant_name`）。
-> - 重名判定**唯一权威 = IAM `CreateOrganization`**（组织名唯一性），后端不做本地预检：请求先发 IAM，IAM 拒绝 → `409/40900`（`同商户已存在同名网点`，中文），**不创建本地半态行**（无 IAM 放行则本地不写）。
+> - 重名判定**唯一权威 = IAM `CreateOrganization`**（组织名唯一性）。**创建入口（`POST /api/merchant/sites`）不做本地预检**：请求先发 IAM，IAM 拒绝 → `409/40900`（`同商户已存在同名网点`，中文），**不创建本地半态行**（无 IAM 放行则本地不写）。**编辑改名入口（`PUT /api/merchant/sites/:id`）仍沿用「本地预检 + IAM」双保险**（`D2` 只豁免创建入口，不得读成整体网点重名口径）。
 > - `name` 按 `TrimSpace` 归一后再作为 IAM body 与本地写入的单一真值（`" 卡丹萨乐器 "` 与 `卡丹萨乐器` 视为同名，不能靠加空格绕过 IAM 侧组织名唯一性）；空白名 → `400/40002`。
 > - 存储层兜底：**IAM 判重名通过之后**仍可能并发插入同名（或导入脚本绕行），由 `uq_sites_tenant_name` 拒绝，数据库 `23505` 映射为 `409/40900`（不返回 500）。
 > - **不同商户允许同名**（`tenant_id` 不同）；UI 靠「商户名 · 网点名」区分（见 wx-accounts `contexts[].label`）。
