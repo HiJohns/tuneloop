@@ -1,15 +1,16 @@
 {
   "schema_version": 1,
   "issue": 2621,
-  "build": "1.0.38e6be443",
-  "commit": "38e6be4435e17c6f612b703798d0a02365dd1f16",
+  "build": "1.0.26fa3affd",
+  "commit": "26fa3affd85381f59c5422f14b52cf0b446baaee",
   "dirty": false,
-  "plan_sha256": "07c3eb3caf70daab0c6561d7d558d40d41aff8325552d0c504dcf6c4edaa6e76",
-  "tooling_commit": "c00d84454cc7589086f25ef3a871be1d00a12644",
+  "plan_sha256": "6c29a5b6a3d8db67bc7a0dfa0273976d0fa90bf6eee9b7f48a8b70fdc74e883e",
+  "tooling_commit": "5c2dfc1c59555a2c3e36c5b6c3b8cbe730238054",
   "environment": {
     "os": "linux",
     "go": "1.25",
-    "db": "postgres:127.0.0.1:15433"
+    "db": "postgres:127.0.0.1:15433 (one-off container tuneloop-test-pg-15433)",
+    "note": "Rev.4: R4/R5 added (staff order scope fail-closed + semantic self-query scan); plan snapshot = Rev.4"
   },
   "rows": [
     {
@@ -34,10 +35,10 @@
         "docs/evidence/2621/R2-handler-sites.txt"
       ],
       "assert": "exit 0 且含 TEST_EXIT=0 CASES_TOTAL=11 CASES_FAIL=0 POINTS_BALANCE_HTTP=200 POINTS_TX_HTTP=200 PENDING_ORDER_HTTP=200 FACE_CAPTURE_NOT_404=1 ADDRESSES_HTTP=200 PAY_CALC_NO_USER_ERROR=1 DEPOSIT_WAIVER_NOT_PROFILE_NOT_READY=1 CUSTOMER_ROLE_HTTP=200",
-      "actual": "PASS：exit 0 / RESULT: PASS (r2)。TEST_EXIT=0、CASES_TOTAL=11、CASES_FAIL=0、POINTS_BALANCE_HTTP=200、POINTS_TX_HTTP=200、PENDING_ORDER_HTTP=200（读取入口 ListPendingOrders；写入入口 CreatePendingOrder 保持 201 = PENDING_ORDER_CREATE_HTTP=201）、FACE_CAPTURE_NOT_404=1、ADDRESSES_HTTP=200、PAY_CALC_NO_USER_ERROR=1、DEPOSIT_WAIVER_NOT_PROFILE_NOT_READY=1、CUSTOMER_ROLE_HTTP=200。",
+      "actual": "PASS：exit 0 / RESULT: PASS (r2)。11 子用例全绿（CASES_TOTAL=11、CASES_FAIL=0）：POINTS_BALANCE_HTTP=200、POINTS_TX_HTTP=200、PENDING_ORDER_HTTP=200、FACE_CAPTURE_NOT_404=1、ADDRESSES_HTTP=200、PAY_CALC_NO_USER_ERROR=1、DEPOSIT_WAIVER_NOT_PROFILE_NOT_READY=1、CUSTOMER_ROLE_HTTP=200、CROSS_TENANT_HIDDEN=1、DOMAIN_QUERY_STILL_SCOPED=1。",
       "expected": "PASS（11 项 token 全为期望值）",
       "negative": "任一端点仍 404/500/误报、用例数 <11 → FAIL",
-      "negative_result": "负例已实测：回退 8 个实现文件（保留用例）后 10/11 子用例 FAIL —— points/transactions/pending/face_capture 404、addresses 500（建 shadow 冲突）、pay_calculate `record not found`、deposit_waiver 误报 profile_not_ready、customer_role 404 用户不存在；修复后 11/11 PASS。",
+      "negative_result": "负例已实测（Rev.1 红样）：仅落测试不回退实现时 9 个端点分别 404 user not found / 500 user sync failed / 误报 profile_not_ready；cross_tenant_scoped 仍 PASS（隔离基线）。修复后 11/11 PASS。",
       "pass": true
     },
     {
@@ -48,10 +49,38 @@
         "docs/evidence/2621/R3-isolation-and-build.txt"
       ],
       "assert": "exit 0 且含 CROSS_TENANT_HIDDEN=1 DOMAIN_QUERY_STILL_SCOPED=1 GO_BUILD_EXIT=0 TEST_COMPILE_EXIT=0 RESIDUAL_PLAIN_CTX_SELF_QUERY=0",
-      "actual": "PASS：exit 0 / RESULT: PASS (r3)。CROSS_TENANT_HIDDEN=1（他人 users 行仍 ErrRecordNotFound、Find 只返回 JWT tid 租户行）、DOMAIN_QUERY_STILL_SCOPED=1（pending_orders 域查询仍被租户过滤，对照行经 IdentityCtx 可见）、GO_BUILD_EXIT=0、TEST_COMPILE_EXIT=0（`go test ./... -run '^$'` 全包编译冒烟）、RESIDUAL_PLAIN_CTX_SELF_QUERY=0（另 IDENTITY_CTX_SITES_IAM_GO=3）。",
+      "actual": "PASS：exit 0 / RESULT: PASS (r3)。CROSS_TENANT_HIDDEN=1、DOMAIN_QUERY_STILL_SCOPED=1、GO_BUILD_EXIT=0、TEST_COMPILE_EXIT=0、RESIDUAL_PLAIN_CTX_SELF_QUERY=0（IdentityCtx 站点 iam.go=3）。",
       "expected": "PASS（5 项 token 全为期望值）",
       "negative": "跨租户可见、域查询失去过滤、构建/编译失败、残留自查询 → FAIL",
       "negative_result": "负例已实测：`cross_tenant_scoped` 断言他人行 `ErrRecordNotFound` 且 `Find` 仅 1 行（jwtTenantUser），并把域查询换成 IdentityCtx 时能读到对照行 → 证明是租户过滤而非行缺失；残留扫描 `grep -rn 'WithContext(ctx).Where(\"iam_sub' backend --include=*.go | grep -v _test` 命中 0。",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2621.sh r4 > docs/evidence/2621/R4-staff-site-order-scope.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2621/R4-staff-site-order-scope.txt"
+      ],
+      "assert": "exit 0 且含 TEST_EXIT=0 STAFF_ORDER_SITE_SCOPED=1 CROSS_SITE_ORDER_HIDDEN=1 SELF_QUERY_FAIL_CLOSED=1 NO_OID_EMPTY_LIST=1 TENANT_WIDE_FALLBACK=0",
+      "actual": "PASS：exit 0 / RESULT: PASS (r4)。TEST_EXIT=0、STAFF_ORDER_SITE_SCOPED=1、CROSS_SITE_ORDER_HIDDEN=1、SELF_QUERY_FAIL_CLOSED=1（SELF_QUERY_FAIL_LIST_LEN=0）、NO_OID_EMPTY_LIST=1（NO_OID_LIST_LEN=0）、TENANT_WIDE_FALLBACK=0（夹具：双网点员工 site_members 两行 + 网点 A/B 各 1 单 + users.tenant_id=cacheTenant ≠ JWT tid）。",
+      "expected": "PASS（5 项 token 全为期望值）",
+      "negative": "跨网点可见 / 自查询失败后放宽到商户范围 / oid 空返回全量 → 任一即 FAIL",
+      "negative_result": "负例已实测（红样 tmp/red-2621-order.log，修前 order.go）：CROSS_SITE_ORDER_HIDDEN=0（B 网点订单可见）、SELF_QUERY_FAIL_CLOSED=0（LIST_LEN=2，退化为租户全量）、NO_OID_EMPTY_LIST=0（LIST_LEN=2）、TENANT_WIDE_FALLBACK=2 → 4 子用例 FAIL；修复后 4/4 PASS。",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2621.sh r5 > docs/evidence/2621/R5-self-query-scan.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2621/R5-self-query-scan.txt"
+      ],
+      "assert": "exit 0 且含 SELF_QUERY_WITH_TENANT_CTX=0 DEFERRED_SITES=5 DEFERRED_ISSUE_LINKED=1",
+      "actual": "PASS：exit 0 / RESULT: PASS (r5)。逐语句语义分类：in-scope 8 文件 plain_sites=0（identity_sites: iam.go=3、user_points=2、face_capture=2、其余 1）；defer 白名单命中 5 处（order.go 2 行、api.go 1、audit_log.go 1、iam_proxy.go 1），DEFERRED_ISSUE=#2644（OPEN，title 匹配）→ DEFERRED_ISSUE_LINKED=1。",
+      "expected": "PASS（3 项 token 全为期望值）",
+      "negative": "仍有带租户 ctx 的在册自查询 / defer 项与登记数不符 / defer 无 Issue 号或 Issue 不存在 → FAIL",
+      "negative_result": "断言器非盲：defer 白名单按文件登记期望条数，任何新增同类点或未修复点都会使 plain_sites ≠ expected 或 SELF_QUERY_WITH_TENANT_CTX>0 → exit 1；Issue 校验走 `gh issue view 2644`（非 OPEN 则 DEFERRED_ISSUE_LINKED=0）。",
       "pass": true
     }
   ]

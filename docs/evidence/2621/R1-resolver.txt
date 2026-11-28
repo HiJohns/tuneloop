@@ -1,5 +1,5 @@
-# build=1.0.38e6be443 # commit=38e6be4435e17c6f612b703798d0a02365dd1f16 # dirty=false
-GENERATED_AT_HEAD=38e6be4435e17c6f612b703798d0a02365dd1f16
+# build=1.0.26fa3affd # commit=26fa3affd85381f59c5422f14b52cf0b446baaee # dirty=false
+GENERATED_AT_HEAD=baae0b7e5cbb0db19846e7c1bbe5cf34bb02b745
 # 共享解析器：users.tenant_id=cacheTenant ≠ JWT tid 时仍命中本行且不新建 shadow user
 BACKEND_CMD=cd backend && go test ./handlers -run 'TestSelfQueryTenantScope2621/(ensure_local_user|local_user_id)$' -count=1 -v
 self_query_tenant_scope_2621_test.go:140: ENSURE_HIT=1
@@ -7,3 +7,5 @@ self_query_tenant_scope_2621_test.go:141: ENSURE_NO_NEW_ROW=1
 self_query_tenant_scope_2621_test.go:142: USERS_ROW_COUNT_DELTA=0
 self_query_tenant_scope_2621_test.go:152: LOCAL_USER_ID_HIT=1
 TEST_EXIT=0
+ARTIFACT=/tmp/opencode/tuneloop/wt-2621/docs/evidence/2621/R1-resolver.txt
+RESULT: PASS (r1)

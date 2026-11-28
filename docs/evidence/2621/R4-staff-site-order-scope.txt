@@ -1,0 +1,14 @@
+# build=1.0.26fa3affd # commit=26fa3affd85381f59c5422f14b52cf0b446baaee # dirty=false
+GENERATED_AT_HEAD=baae0b7e5cbb0db19846e7c1bbe5cf34bb02b745
+# 员工订单可见范围 = 当前组织上下文（JWT oid）；自查询失败 / oid 空 → fail-closed（空列表）
+BACKEND_CMD=cd backend && go test ./handlers -run '^TestOrderVisibility2621$' -count=1 -v
+order_visibility_2621_test.go:189: STAFF_ORDER_SITE_SCOPED=1
+order_visibility_2621_test.go:190: CROSS_SITE_ORDER_HIDDEN=1
+order_visibility_2621_test.go:205: SELF_QUERY_FAIL_CLOSED=1
+order_visibility_2621_test.go:206: SELF_QUERY_FAIL_LIST_LEN=0
+order_visibility_2621_test.go:220: NO_OID_EMPTY_LIST=1
+order_visibility_2621_test.go:221: NO_OID_LIST_LEN=0
+order_visibility_2621_test.go:237: TENANT_WIDE_FALLBACK=0
+TEST_EXIT=0
+ARTIFACT=/tmp/opencode/tuneloop/wt-2621/docs/evidence/2621/R4-staff-site-order-scope.txt
+RESULT: PASS (r4)

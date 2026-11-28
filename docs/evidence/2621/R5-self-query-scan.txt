@@ -1,0 +1,24 @@
+# build=1.0.26fa3affd # commit=26fa3affd85381f59c5422f14b52cf0b446baaee # dirty=false
+GENERATED_AT_HEAD=baae0b7e5cbb0db19846e7c1bbe5cf34bb02b745
+# 语义级自查询扫描：每个 iam_sub 查询语句是否处于身份句柄链（IdentityCtx）；defer 白名单 5 处带 Issue 号
+SCAN_CMD=python3 tmp/r5_scan.py（逐语句分类 identity/plain/write；UPDATE 型自写按 D5 豁免）
+IN_SCOPE backend/middleware/iam.go identity_sites=3 plain_sites=0 
+IN_SCOPE backend/handlers/user_points.go identity_sites=2 plain_sites=0 
+IN_SCOPE backend/handlers/pending_order.go identity_sites=1 plain_sites=0 
+IN_SCOPE backend/handlers/face_capture.go identity_sites=2 plain_sites=0 
+IN_SCOPE backend/handlers/user_address.go identity_sites=1 plain_sites=0 
+IN_SCOPE backend/handlers/payment_calculate.go identity_sites=1 plain_sites=0 
+IN_SCOPE backend/handlers/deposit_waiver.go identity_sites=1 plain_sites=0 
+IN_SCOPE backend/handlers/customer_role.go identity_sites=1 plain_sites=0 
+DEFERRED backend/handlers/order.go expected=2 plain_sites=2 [1338, 1564] identity_sites=8 write_sites=0 
+DEFERRED backend/handlers/api.go expected=1 plain_sites=1 [333] identity_sites=0 write_sites=0 
+DEFERRED backend/handlers/audit_log.go expected=1 plain_sites=1 [77] identity_sites=0 write_sites=0 
+DEFERRED backend/handlers/iam_proxy.go expected=1 plain_sites=1 [952] identity_sites=0 write_sites=1 [621]
+SELF_QUERY_WITH_TENANT_CTX=0
+DEFERRED_SITES=5
+SCAN_EXIT=0
+DEFERRED_ISSUE=#2644
+DEFERRED_ISSUE_STATE=OPEN [Follow-up of #2621] 显示面 5 处自查询仍走租户 ctx：订单操作人名/状态历史/列表补名/审计回填/SyncUsers 匹配
+DEFERRED_ISSUE_LINKED=1
+ARTIFACT=/tmp/opencode/tuneloop/wt-2621/docs/evidence/2621/R5-self-query-scan.txt
+RESULT: PASS (r5)
