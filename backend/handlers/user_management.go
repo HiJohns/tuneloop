@@ -158,7 +158,7 @@ func (h *UserManagementHandler) Update(c *gin.Context) {
 	// 「加赠乐币」批次入口承接（#1982）。
 	if req.Status != nil {
 		if *req.Status != "active" && *req.Status != "disabled" {
-			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "status must be active or disabled"})
+			c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "用户状态必须是启用或停用"})
 			return
 		}
 		updates["status"] = *req.Status
@@ -170,7 +170,7 @@ func (h *UserManagementHandler) Update(c *gin.Context) {
 		updates["id_photo_back"] = *req.IdPhotoBack
 	}
 	if len(updates) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "no editable fields provided"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "未提供可修改的内容"})
 		return
 	}
 
@@ -390,12 +390,12 @@ func (h *UserManagementHandler) GrantPoints(c *gin.Context) {
 	}
 	req.Reason = strings.TrimSpace(req.Reason)
 	if req.Reason == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "reason is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "请填写赠送原因"})
 		return
 	}
 	amountCents := models.FromYuan(req.Amount)
 	if amountCents <= 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "amount must be positive"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "赠送金额必须大于 0"})
 		return
 	}
 

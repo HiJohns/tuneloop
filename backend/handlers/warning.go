@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"time"
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -66,7 +67,7 @@ func CreateWarning(c *gin.Context) {
 		Description string `json:"description"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil || req.Reason == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "reason is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "请求参数有误，请填写预警原因"})
 		return
 	}
 
@@ -151,13 +152,13 @@ func UpdateWarningStatus(c *gin.Context) {
 		Status string `json:"status"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "status required"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": bindmsg.Message(err)})
 		return
 	}
 
 	valid := map[string]bool{models.WarningStatusAcknowledged: true, models.WarningStatusResolved: true}
 	if !valid[req.Status] {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "invalid status"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40003, "message": "预警状态取值不正确"})
 		return
 	}
 

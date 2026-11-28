@@ -27,7 +27,7 @@ func scopeTypeFromPath(path string) string {
 func ListPointsPolicies(c *gin.Context) {
 	scopeType := scopeTypeFromPath(c.Request.URL.Path)
 	if scopeType == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "could not determine scope from path"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "请求地址不正确"})
 		return
 	}
 	ctx := c.Request.Context()
@@ -57,7 +57,7 @@ func ListPointsPolicies(c *gin.Context) {
 func CreatePointsPolicy(c *gin.Context) {
 	scopeType := scopeTypeFromPath(c.Request.URL.Path)
 	if scopeType == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "could not determine scope from path"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "请求地址不正确"})
 		return
 	}
 	var req struct {
@@ -102,7 +102,7 @@ func CreatePointsPolicy(c *gin.Context) {
 func UpdatePointsPolicy(c *gin.Context) {
 	id := c.Param("id")
 	if _, err := uuid.Parse(id); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid id"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "编号不正确"})
 		return
 	}
 	var req struct {

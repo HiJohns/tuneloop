@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"time"
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/database"
 	"tuneloop-backend/models"
 
@@ -139,7 +140,7 @@ func ApplyDiscountCode(c *gin.Context) {
 		Code string `json:"code" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "code is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": bindmsg.Message(err)})
 		return
 	}
 	ctx := c.Request.Context()
@@ -151,29 +152,29 @@ func ApplyDiscountCode(c *gin.Context) {
 		return
 	}
 	if !code.IsActive {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "discount code is inactive"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "优惠码已停用"})
 		return
 	}
 	if code.MaxUses > 0 && code.UsageCount >= code.MaxUses {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "discount code usage limit reached"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "优惠码使用次数已达上限"})
 		return
 	}
 	if code.ExpiresAt != nil && time.Now().After(*code.ExpiresAt) {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "discount code has expired"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "优惠码已过期"})
 		return
 	}
 
 	var policy models.DiscountPolicy
 	if err := db.Where("id = ? AND is_active = ?", code.PolicyID, true).First(&policy).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "discount policy is inactive or not found"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "折扣策略已停用或不存在"})
 		return
 	}
 	if policy.ValidFrom != nil && time.Now().Before(*policy.ValidFrom) {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "discount policy not yet valid"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "折扣策略尚未生效"})
 		return
 	}
 	if policy.ValidTo != nil && time.Now().After(*policy.ValidTo) {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "discount policy has expired"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "折扣策略已过期"})
 		return
 	}
 

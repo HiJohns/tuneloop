@@ -31,7 +31,7 @@ func resolveOverrideAnchor(c *gin.Context, db *gorm.DB, instrumentID string) (st
 func GetInstrumentPromoOverrides(c *gin.Context) {
 	instrumentID := c.Param("id")
 	if _, err := uuid.Parse(instrumentID); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid instrument id"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "乐器编号不正确"})
 		return
 	}
 	db := database.GetDB().WithContext(c.Request.Context())
@@ -51,7 +51,7 @@ func GetInstrumentPromoOverrides(c *gin.Context) {
 func UpdateInstrumentPromoOverride(c *gin.Context) {
 	instrumentID := c.Param("id")
 	if _, err := uuid.Parse(instrumentID); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid instrument id"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "乐器编号不正确"})
 		return
 	}
 	var req struct {
@@ -64,7 +64,7 @@ func UpdateInstrumentPromoOverride(c *gin.Context) {
 		return
 	}
 	if req.OverrideType != "discount" && req.OverrideType != "rebate" && req.OverrideType != "rent_to_own" {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "override_type must be discount, rebate, or rent_to_own"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "推广类型必须是折扣、返利或租转售"})
 		return
 	}
 	db := database.GetDB().WithContext(c.Request.Context())

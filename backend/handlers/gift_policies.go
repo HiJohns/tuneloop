@@ -136,7 +136,7 @@ func UpdateGiftPolicy(c *gin.Context) {
 	}
 	// #1944 Sub-A：负数 level_id 非法（0=兜底行，正数=会员等级）
 	if req.LevelID < 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "level_id 不能为负数"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "会员等级不能为负数"})
 		return
 	}
 
@@ -155,16 +155,16 @@ func UpdateGiftPolicy(c *gin.Context) {
 	if req.PayRatio != nil && (*req.PayRatio < 0 || *req.PayRatio > payRatioMax) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40002,
-			"message": "pay_ratio 必须在 0~" + strconv.FormatFloat(payRatioMax, 'f', -1, 64) + " 之间（赠点最多抵扣应付金额的 " + strconv.FormatFloat(payRatioMax*100, 'f', -1, 64) + "%）",
+			"message": "乐币抵扣比例必须在 0~" + strconv.FormatFloat(payRatioMax, 'f', -1, 64) + " 之间（赠点最多抵扣应付金额的 " + strconv.FormatFloat(payRatioMax*100, 'f', -1, 64) + "%）",
 		})
 		return
 	}
 	if req.ReferralRatio != nil && (*req.ReferralRatio < 0 || *req.ReferralRatio > 1.0) {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "referral_ratio 必须在 0~1.0 之间"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "推荐奖励比例必须在 0~1 之间"})
 		return
 	}
 	if req.ReferralRegPoints != nil && (*req.ReferralRegPoints < 0 || *req.ReferralRegPoints > 100000) {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "referral_reg_points 必须在 0~100000 之间"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "推荐注册赠点必须在 0~100000 之间"})
 		return
 	}
 
@@ -224,15 +224,15 @@ func UpdatePointSettings(c *gin.Context) {
 		return
 	}
 	if req.PayRatioMax != nil && (*req.PayRatioMax < 0 || *req.PayRatioMax > 1) {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "pay_ratio_max 必须在 0~1 之间"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "最高抵扣比例必须在 0~1 之间"})
 		return
 	}
 	if req.PointBatchValidityMonths != nil && (*req.PointBatchValidityMonths < 1 || *req.PointBatchValidityMonths > 120) {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "point_batch_validity_months 必须在 1~120 之间"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "乐币有效期月数必须在 1~120 之间"})
 		return
 	}
 	if req.PointExpiryReminderDays != nil && (*req.PointExpiryReminderDays < 0 || *req.PointExpiryReminderDays > 365) {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "point_expiry_reminder_days 必须在 0~365 之间"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "到期提醒提前天数必须在 0~365 之间"})
 		return
 	}
 

@@ -31,6 +31,8 @@
 
 > **请求体绑定失败（#2603）**：`c.ShouldBindJSON` 校验/解析失败时，`message` **必须**由唯一出口 `backend/bindmsg` 的 `bindmsg.Message(err)` 生成——中文点名「哪一项不能为空 / 格式不对 / 类型不正确」，或整体不可解析时给出「请求体格式不正确，请检查后重试」。**禁止**把 `err.Error()` 的 Go/JSON 原文（`invalid character '\x17' in string`、`invalid parameters: …`、`cannot unmarshal …`、`Field validation for …`）拼进 `message`：前端 L2 只透传含 CJK 的可读文案，英文技术串会被判「无具体原因」并降级为 L3/L5 通用兜底，用户因此看不到**哪个字段**错了。绑定失败沿用原 `code`（`40002`，`instrument` 状态更新分支为 `40001`）与 HTTP 400，不得改为其它 code 或 HTTP 200；`40002` 属业务可纠正冲突白名单（见 `frontend-pc/src/utils/formConflict.js`），可落表单内常驻提示（#2569 口径）。字段称呼表与文案模板的唯一 owner 为 `backend/bindmsg/bindmsg.go`，新增请求体字段须同步登记称呼（称呼不得含 ASCII 字母）。
 
+> **400 族服务校验文案（#2639）**：非绑定失败的 `400xx` 服务校验分支（`40001` / `40002` / `40003`）`message` **必须**是中文业务原因——例如「优惠码已过期」「推荐奖励比例必须在 0~1 之间」「推广类型必须是折扣、返利或租转售」「会员等级编号不正确」。**禁止**两种写法：① 英文常量（`invalid id`、`status required`、`could not determine scope from path`）；② 点名 JSON 字段的文案（`level_id 不能为负数`、`referral_ratio 必须在 0~1.0 之间`）——字段名属 API 词汇，不是用户词汇。原因同 #2603：前端 L2 只透传含 CJK 的文案，纯 ASCII 会被判「无具体原因」并降级为 L3 `code_map`（`40002` → 「信息不完整，请补充必填项」），把「优惠码已过期」「折扣未生效」这类**可纠正**的业务原因整体吞掉。需点名某项时唯一出口仍是 `backend/bindmsg`（`FieldLabel` / `Message`）；不点名字段的业务原因直接写中文，**不得**在 handler 内复制 bindmsg 模板或自建称呼表。HTTP 状态与 `code` 维持修前基线（400 + 原 `40001`/`40002`/`40003`），不得借文案收敛改码或改分支顺序。
+
 **PC 客户端非 2xx 契约（#2563）**：本节定义**服务端**响应格式；客户端如何消费非 2xx 由 `frontend-pc/src/services/apiError.js`（唯一 owner，纯函数 `resolveHttpFailure`）决定，不得在页面内联解析：
 
 | HTTP 状态 | 客户端形态 | 说明 |

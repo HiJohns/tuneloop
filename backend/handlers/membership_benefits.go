@@ -20,7 +20,7 @@ type benefitItem struct {
 func ListLevelBenefits(c *gin.Context) {
 	levelID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid level id"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "会员等级编号不正确"})
 		return
 	}
 	ctx := c.Request.Context()
@@ -37,7 +37,7 @@ func ListLevelBenefits(c *gin.Context) {
 func UpdateLevelBenefits(c *gin.Context) {
 	levelID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid level id"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "会员等级编号不正确"})
 		return
 	}
 	var req struct {
@@ -85,12 +85,12 @@ func UpdateLevelBenefits(c *gin.Context) {
 func GetMembershipBenefits(c *gin.Context) {
 	levelIDStr := c.Query("level_id")
 	if levelIDStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "level_id is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "请选择会员等级"})
 		return
 	}
 	levelID, err := strconv.Atoi(levelIDStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid level_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "会员等级编号不正确"})
 		return
 	}
 	ctx := c.Request.Context()

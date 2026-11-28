@@ -44,7 +44,7 @@ func UpdateMembershipLevel(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid id"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "编号不正确"})
 		return
 	}
 	var req struct {
@@ -76,7 +76,7 @@ func DeleteMembershipLevel(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "invalid id"})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40002, "message": "编号不正确"})
 		return
 	}
 	ctx := c.Request.Context()
