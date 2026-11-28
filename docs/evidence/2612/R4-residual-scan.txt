@@ -1,6 +1,7 @@
-# build=1.0.fce5ce63a # commit=fce5ce63afb51774dc1e56475c699bb1d7c1b392 # dirty=false
-# tree=fce5ce63afb51774dc1e56475c699bb1d7c1b392
-SCAN_CMD=bash scripts/scan-catch-guard-2609.sh (full src)
+# build=1.0.55c05d41b # commit=55c05d41ba1b7234436f636ce5cc2f10195fcda5 # dirty=false
+# tree=55c05d41ba1b7234436f636ce5cc2f10195fcda5
+# pre_ref=2aa3fb31783a2dead393354ad55b7d5747397ae5
+SCAN_CMD=bash scripts/scan-catch-guard-2609.sh (full src) + --table/--state-table --base 2aa3fb31783a2dead393354ad55b7d5747397ae5
 CATCH_SITES=125
 CATCH_RAW=0
 CATCH_GUARDED=125
@@ -9,13 +10,24 @@ CATCH_RAW_FILES=0
 HELPER_GATE=1
 CATCH_MESSAGE=1
 CATCH_NETWORK_FALLBACK=1
-GIT_DIFF_FILES=37
-TABLE_FILES=37
+PRE_REF=2aa3fb31783a2dead393354ad55b7d5747397ae5
+FIX_REF=55c05d41ba1b7234436f636ce5cc2f10195fcda5
+CATCH_FILES=37
+STATE_FILES=7
+FAMILY_OVERLAP_FILES=5
+STATE_ONLY_FILES=2
+UNION_FILES=39
+CATCH_DIFF_FILES=37
+STATE_DIFF_FILES=7
+STATE_ONLY_DIFF_FILES=2
+GIT_DIFF_FILES=39
 FILES_MATCH_TABLE=1
 INSCOPE_EXCLUDE_2609=3
 DIFF_FILES:
+frontend-pc/src/App.jsx
 frontend-pc/src/components/IdPhotoDisplay.jsx
 frontend-pc/src/components/MerchantMemberManagement.jsx
+frontend-pc/src/pages/AssetAuditDashboard.jsx
 frontend-pc/src/pages/DepositFlow.jsx
 frontend-pc/src/pages/DirectMemberManagement.jsx
 frontend-pc/src/pages/FinanceConfig.jsx

@@ -1,0 +1,55 @@
+# build=1.0.55c05d41b # commit=55c05d41ba1b7234436f636ce5cc2f10195fcda5 # dirty=false
+# tree=55c05d41ba1b7234436f636ce5cc2f10195fcda5
+# pre_ref=2aa3fb31783a2dead393354ad55b7d5747397ae5
+SCAN_CMD=bash scripts/scan-catch-guard-2609.sh --state-table [--base 2aa3fb31783a2dead393354ad55b7d5747397ae5]
+PRE_REF=2aa3fb31783a2dead393354ad55b7d5747397ae5
+FIX_REF=55c05d41ba1b7234436f636ce5cc2f10195fcda5
+--- pre (state family, --base 2aa3fb31783a2dead393354ad55b7d5747397ae5) ---
+STATE_ROW	frontend-pc/src/App.jsx	958	S3	guarded=0	fallback=认证失败	ascii=0	nofb=0
+STATE_ROW	frontend-pc/src/pages/AssetAuditDashboard.jsx	39	S2	guarded=0	fallback=-	ascii=0	nofb=1
+STATE_ROW	frontend-pc/src/pages/DepositFlow.jsx	58	S2	guarded=0	fallback=-	ascii=0	nofb=1
+STATE_ROW	frontend-pc/src/pages/FinanceConfig.jsx	35	S2	guarded=0	fallback=-	ascii=0	nofb=1
+STATE_ROW	frontend-pc/src/pages/LeaseLedger.jsx	67	S2	guarded=0	fallback=-	ascii=0	nofb=1
+STATE_ROW	frontend-pc/src/pages/StaffEdit.jsx	58	S1	guarded=0	fallback=无法获取用户数据	ascii=0	nofb=0
+STATE_ROW	frontend-pc/src/pages/System/UserManagement.jsx	194	S1	guarded=0	fallback=网络异常	ascii=0	nofb=0
+PRE_STATE_SITES=7
+PRE_STATE_RAW=7
+PRE_STATE_GUARDED=0
+PRE_STATE_FILES=7
+PRE_STATE_TIER_S1=2
+PRE_STATE_TIER_S2=4
+PRE_STATE_TIER_S3=1
+PRE_STATE_FALLBACK_ASCII_LEAK=0
+PRE_STATE_FALLBACK_MISSING=4
+PRE_STATE_FILES_LIST=frontend-pc/src/App.jsx frontend-pc/src/pages/AssetAuditDashboard.jsx frontend-pc/src/pages/DepositFlow.jsx frontend-pc/src/pages/FinanceConfig.jsx frontend-pc/src/pages/LeaseLedger.jsx frontend-pc/src/pages/StaffEdit.jsx frontend-pc/src/pages/System/UserManagement.jsx
+PRE_RESIDUAL_STATE_MSG=7
+--- post (state family, working tree) ---
+STATE_ROW	frontend-pc/src/App.jsx	959	S3	guarded=1	fallback=认证失败	ascii=0	nofb=0
+STATE_ROW	frontend-pc/src/pages/AssetAuditDashboard.jsx	40	S2	guarded=1	fallback=加载仪表盘失败	ascii=0	nofb=0
+STATE_ROW	frontend-pc/src/pages/DepositFlow.jsx	59	S2	guarded=1	fallback=加载试算数据失败	ascii=0	nofb=0
+STATE_ROW	frontend-pc/src/pages/FinanceConfig.jsx	36	S2	guarded=1	fallback=加载财务配置失败	ascii=0	nofb=0
+STATE_ROW	frontend-pc/src/pages/LeaseLedger.jsx	68	S2	guarded=1	fallback=加载租借台账失败	ascii=0	nofb=0
+STATE_ROW	frontend-pc/src/pages/StaffEdit.jsx	59	S2	guarded=1	fallback=无法获取用户数据	ascii=0	nofb=0
+STATE_ROW	frontend-pc/src/pages/System/UserManagement.jsx	195	S2	guarded=1	fallback=网络异常	ascii=0	nofb=0
+STATE_SITES=7
+STATE_RAW=0
+STATE_GUARDED=7
+STATE_FILES=7
+STATE_TIER_S1=0
+STATE_TIER_S2=6
+STATE_TIER_S3=1
+STATE_FALLBACK_ASCII_LEAK=0
+STATE_FALLBACK_MISSING=0
+STATE_FILES_LIST=frontend-pc/src/App.jsx frontend-pc/src/pages/AssetAuditDashboard.jsx frontend-pc/src/pages/DepositFlow.jsx frontend-pc/src/pages/FinanceConfig.jsx frontend-pc/src/pages/LeaseLedger.jsx frontend-pc/src/pages/StaffEdit.jsx frontend-pc/src/pages/System/UserManagement.jsx
+RESIDUAL_STATE_MSG=0
+--- catch family (must stay unpolluted) ---
+CATCH_SITES=125
+CATCH_RAW=0
+CATCH_GUARDED=125
+CATCH_FALLBACK_OK=125
+CATCH_RAW_FILES=0
+HELPER_GATE=1
+CATCH_MESSAGE=1
+CATCH_NETWORK_FALLBACK=1
+STATE_TIER_SEMANTICS=STATE_TIER_* describe the post-fix expression form; tier split of the defect is PRE_STATE_TIER_*
+RESULT: PASS (r6)

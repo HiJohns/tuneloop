@@ -1,13 +1,14 @@
-# build=1.0.fce5ce63a # commit=fce5ce63afb51774dc1e56475c699bb1d7c1b392 # dirty=false
-# tree=fce5ce63afb51774dc1e56475c699bb1d7c1b392
+# build=1.0.55c05d41b # commit=55c05d41ba1b7234436f636ce5cc2f10195fcda5 # dirty=false
+# tree=55c05d41ba1b7234436f636ce5cc2f10195fcda5
+# pre_ref=2aa3fb31783a2dead393354ad55b7d5747397ae5
 BUILD_CMD=cd frontend-pc && npm run build (via heavy-run.sh)
 PC_BUILD=0
 (!) Some chunks are larger than 500 kB after minification. Consider:
 - Using dynamic import() to code-split the application
 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-✓ built in 33.07s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795815506676 hold_ms=35883
+✓ built in 36.52s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795842585902 hold_ms=37514
 LINT_CMD=cd frontend-pc && npx eslint <changed files>
 LINT_EXIT=0
   29:6   warning  React Hook useEffect has a missing dependency: 'loadConfig'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
@@ -20,7 +21,7 @@ LINT_EXIT=0
 /home/coder/worktrees/tuneloop/wt-2612/frontend-pc/src/pages/admin/warnings/SmtpSettings.jsx
   38:38  warning  React Hook useEffect has a missing dependency: 'fetchConfig'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
 
-✖ 98 problems (0 errors, 98 warnings)
+✖ 101 problems (0 errors, 101 warnings)
 
 BUILD_LINT_OK=1
 RESULT: PASS (r5)

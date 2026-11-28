@@ -1,12 +1,16 @@
 {
   "schema_version": 1,
   "issue": 2612,
-  "build": "1.0.fce5ce63a",
-  "commit": "fce5ce63afb51774dc1e56475c699bb1d7c1b392",
+  "build": "1.0.55c05d41b",
+  "commit": "55c05d41ba1b7234436f636ce5cc2f10195fcda5",
   "dirty": false,
-  "plan_sha256": "4b2c7cea1be5a75fe278a576142b5a37f748222cfa265d5f9d658fe53cccc8a0",
+  "plan_sha256": "322b589a86b68a4a5c39a00f6be6f34f37301c33def6b7cb63d6f20c719fef39",
+  "gate": {
+    "plan_sha256": "322b589a86b68a4a5c39a00f6be6f34f37301c33def6b7cb63d6f20c719fef39"
+  },
   "tooling_commit": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
-  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2612 (branch issue-2612, base origin/issue-2609); node/npm for PC vite build + eslint (host heavy-lock); no DB, no backend change; artifacts generated after the fix commit with clean tree",
+  "pre_ref": "2aa3fb31783a2dead393354ad55b7d5747397ae5",
+  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2612 (issue-2612, base origin/develop); frontend-pc static branch/state scans + npm run build + eslint; no browser/real backend",
   "rows": [
     {
       "id": "R1",
@@ -16,10 +20,10 @@
         "docs/evidence/2612/R1-triage-table.txt"
       ],
       "assert": "exit 0 且含 SCAN_EXIT=0 PRE_SITES=117 PRE_FILES=37 TIER_ROWS=117 UNCLASSIFIED_ROWS=0 FALLBACK_ASCII_LEAK=0 NO_FALLBACK_ROWS=0 TIER_T1_T6_SUM=117",
-      "actual": "PASS：PRE_SITES=117 PRE_FILES=37 TIER_ROWS=117 UNCLASSIFIED_ROWS=0 FALLBACK_ASCII_LEAK=0 NO_FALLBACK_ROWS=0 TIER_T1_T6_SUM=117 SCAN_EXIT=0；tier 分布 T1=46 T2=27 T3=40 T4=1 T5=2 T6=1 （判定表从修前快照 fce5ce63a^ 读取，工作树保持 clean）",
+      "actual": "SCAN_EXIT=0、PRE_SITES=117、PRE_FILES=37、TIER_ROWS=117、UNCLASSIFIED_ROWS=0、FALLBACK_ASCII_LEAK=0、NO_FALLBACK_ROWS=0、TIER_T1_T6_SUM=117（PRE_REF=2aa3fb317）",
       "expected": "PASS（8 项 token 全为期望值）",
-      "negative": "未分类行、兜底含 ASCII、缺兜底、行数≠117 → FAIL",
-      "negative_result": "红样实测（tmp/red-2612/probe.log）：同一 --table 口径指向修后 HEAD → PRE_SITES=0 PRE_FILES=0 TIER_ROWS=0；指向修前 fce5ce63a^ → PRE_SITES=117/PRE_FILES=37。注入样本 tmp/red-2612/raw.jsx 含 `message.error('删除失败: ' + (e.message || ''))` → PRE_SITES=1 且 T2/fallback=删除失败。故 117 是输入驱动、不是常量；口径放宽或站点漏改都会改变该计数。",
+      "negative": "未分类行、兜底含 ASCII、缺兜底、行数≠117、PRE_REF 取错 → FAIL",
+      "negative_result": "修复前（PRE_REF=2aa3fb317）全仓 117 处裸透传 / 37 文件；若 PRE_REF 取成 FIX^（B5 的父提交）则 PRE_SITES 塌成 0、PRE_FILES=0（本轮已把 PRE_REF 锁为最早 fix 的父提交，且断言 PRE_SITES=117 防「空基线假绿」）。",
       "pass": true
     },
     {
@@ -30,10 +34,10 @@
         "docs/evidence/2612/R2-batch-b1b2.txt"
       ],
       "assert": "exit 0 且含 B1_SITES=14 B2_SITES=38 B1B2_GUARDED=52 B1B2_RESIDUAL=0",
-      "actual": "PASS：B1_SITES=14 B2_SITES=38 CATCH_SITES=52 CATCH_RAW=0 CATCH_GUARDED=52 CATCH_FALLBACK_OK=52 CATCH_RAW_FILES=0 HELPER_GATE=1 CATCH_MESSAGE=1 CATCH_NETWORK_FALLBACK=1 B1B2_GUARDED=52 B1B2_RESIDUAL=0",
+      "actual": "B1_SITES=14、B2_SITES=38、B1B2_GUARDED=52、B1B2_RESIDUAL=0（B1+B2 共 52 行 / 10 文件全部走守卫）",
       "expected": "PASS（4 项 token 全为期望值）",
       "negative": "该批残留裸 .message、站点数被删减、兜底非 CJK → FAIL",
-      "negative_result": "红样实测（tmp/red-2612/probe.log）：同一扫描器扫注入样本（1 处裸透传 `e.message`）→ CATCH_RAW=1 CATCH_GUARDED=2 CATCH_SITES=3，B1B2_RESIDUAL 口径随之为非 0；若把已改行回退为 `err.message` 拼接，该批 CATCH_RAW>0 → FAIL。CATCH_FALLBACK_OK=0（ASCII 兜底 + 无兜底两行不计）证明兜底断言可证伪。",
+      "negative_result": "修复前 B1+B2 的 52 行全部是 `'前缀: ' + err.message` 形态（CATCH_RAW=52）；若任一站点仍裸透传，B1B2_RESIDUAL 会 >0 直接 FAIL。",
       "pass": true
     },
     {
@@ -44,10 +48,10 @@
         "docs/evidence/2612/R3-batch-b3b4.txt"
       ],
       "assert": "exit 0 且含 B3_SITES=24 B4_SITES=41 B3B4_GUARDED=65 B3B4_RESIDUAL=0",
-      "actual": "PASS：B3_SITES=24 B4_SITES=41 CATCH_SITES=65 CATCH_RAW=0 CATCH_GUARDED=65 CATCH_FALLBACK_OK=65 CATCH_RAW_FILES=0 HELPER_GATE=1 CATCH_MESSAGE=1 CATCH_NETWORK_FALLBACK=1 B3B4_GUARDED=65 B3B4_RESIDUAL=0",
+      "actual": "B3_SITES=24、B4_SITES=41、B3B4_GUARDED=65、B3B4_RESIDUAL=0（B3+B4 共 65 行 / 27 文件全部走守卫）",
       "expected": "PASS（4 项 token 全为期望值）",
       "negative": "同上 → FAIL",
-      "negative_result": "红样实测（tmp/red-2612/probe.log）：注入样本中 `userFacingErrorMessage(e, 'Load failed')`（ASCII 兜底）与 `userFacingErrorMessage(e)`（缺兜底）令 CATCH_FALLBACK_OK=0、CATCH_NETWORK_FALLBACK=0；即 B3+B4 任一站点兜底非中文或缺失 → CATCH_NETWORK_FALLBACK 归 0 → FAIL。",
+      "negative_result": "修复前 B3+B4 的 65 行同上（CATCH_RAW=65）；修复后 CATCH_GUARDED=65、CATCH_RAW=0。",
       "pass": true
     },
     {
@@ -57,11 +61,11 @@
       "artifacts": [
         "docs/evidence/2612/R4-residual-scan.txt"
       ],
-      "assert": "exit 0 且含 RESIDUAL_PC_RAW=0 OUT_OF_SCOPE_SITES=0 INSCOPE_EXCLUDE_2609=3 GIT_DIFF_FILES=37 FILES_MATCH_TABLE=1",
-      "actual": "PASS：全目录 CATCH_SITES=125（117 本单 + 8 #2609）= CATCH_RAW=0 + CATCH_GUARDED=125；CATCH_FALLBACK_OK=125 CATCH_RAW_FILES=0 RESIDUAL_PC_RAW=0 OUT_OF_SCOPE_SITES=0 GIT_DIFF_FILES=37 TABLE_FILES=37 FILES_MATCH_TABLE=1 INSCOPE_EXCLUDE_2609=3",
-      "expected": "PASS（5 项 token 全为期望值）",
-      "negative": "全仓仍有裸 .message、改动文件集≠判定表、#2609 三页被改 → FAIL",
-      "negative_result": "红样实测（tmp/red-2612/probe.log）：注入样本 1 处裸透传 → CATCH_RAW=1、CATCH_RAW_FILES=1，RESIDUAL_PC_RAW 口径不再为 0；`--table --base HEAD` 得 PRE_SITES=0 与修前 117 对照，说明残留计数非恒 0。改动文件集断言取真实 `git diff --name-only fce5ce63a^..HEAD -- frontend-pc/src`（37 个）与判定表 FILES= 集合逐字比对；越界改文件或漏改 → FILES_MATCH_TABLE=0。",
+      "assert": "exit 0 且含 RESIDUAL_PC_RAW=0 OUT_OF_SCOPE_SITES=0 INSCOPE_EXCLUDE_2609=3 CATCH_FILES=37 STATE_FILES=7 FAMILY_OVERLAP_FILES=5 UNION_FILES=39 CATCH_DIFF_FILES=37 STATE_DIFF_FILES=7 STATE_ONLY_FILES=2 GIT_DIFF_FILES=39 FILES_MATCH_TABLE=1",
+      "actual": "RESIDUAL_PC_RAW=0、OUT_OF_SCOPE_SITES=0、INSCOPE_EXCLUDE_2609=3、CATCH_FILES=37、STATE_FILES=7、FAMILY_OVERLAP_FILES=5、UNION_FILES=39、CATCH_DIFF_FILES=37、STATE_DIFF_FILES=7、STATE_ONLY_FILES=2、GIT_DIFF_FILES=39、FILES_MATCH_TABLE=1",
+      "expected": "PASS（12 项 token 全为期望值）",
+      "negative": "全仓仍有裸 .message、改动文件集≠两族并集、GIT_DIFF_FILES≠39、state 独有文件漏改、#2609 三页被改 → FAIL",
+      "negative_result": "修复前 diff 基座若用 FIX^，GIT_DIFF_FILES 只有 7（B5），两族并集永远对不上；现在并集 = 39，且 STATE_ONLY_FILES=2（App.jsx + AssetAuditDashboard.jsx）能定位「漏改 state 独有文件」。",
       "pass": true
     },
     {
@@ -71,11 +75,25 @@
       "artifacts": [
         "docs/evidence/2612/R5-build-lint.txt"
       ],
-      "assert": "exit 0 且含 PC_BUILD=0 LINT_EXIT=0 BUILD_LINT_OK",
-      "actual": "PASS：PC_BUILD=0（vite build ✓ built，dist 产物正常）LINT_EXIT=0（npx eslint 37 个改动文件：98 problems = 0 errors / 98 warnings，warning 全部为既有 react-hooks/no-use-before-define）BUILD_LINT_OK=1",
+      "assert": "exit 0 且含 PC_BUILD=0 LINT_EXIT=0 BUILD_LINT_OK=1",
+      "actual": "PC_BUILD=0（npm run build via heavy-run）、LINT_EXIT=0（39 个改动文件 eslint）、BUILD_LINT_OK=1",
       "expected": "PASS（3 项 token 全为期望值）",
       "negative": "构建失败 / ESLint 非 0 → FAIL",
-      "negative_result": "断言取真实退出码：`npm run build` 经 heavy-run.sh 持 host 锁执行 vite build，构建失败/import 路径错 → PC_BUILD≠0；`npx eslint` 对 37 个改动文件执行，出现 no-undef/解析错误 → LINT_EXIT≠0（本次 98 条全部为 0 error 的既有 warning）；两者非 0 → BUILD_LINT_OK=0 且 rc=1。",
+      "negative_result": "构建/lint 任一非 0 → BUILD_LINT_OK=0 → FAIL；本轮 npm run build 与 39 文件 eslint 均 exit 0。",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2612.sh r6 > docs/evidence/2612/R6-state-family.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2612/R6-state-family.txt"
+      ],
+      "assert": "exit 0 且含 PRE_STATE_SITES=7 PRE_STATE_FILES=7 PRE_STATE_TIER_S1=2 PRE_STATE_TIER_S2=4 PRE_STATE_TIER_S3=1 STATE_SITES=7 STATE_GUARDED=7 RESIDUAL_STATE_MSG=0 STATE_FALLBACK_ASCII_LEAK=0 STATE_FALLBACK_MISSING=0 CATCH_RAW=0 CATCH_GUARDED=125",
+      "actual": "PRE_STATE_SITES=7、PRE_STATE_FILES=7、PRE_STATE_TIER_S1=2、PRE_STATE_TIER_S2=4、PRE_STATE_TIER_S3=1；STATE_SITES=7、STATE_GUARDED=7、RESIDUAL_STATE_MSG=0、STATE_FALLBACK_ASCII_LEAK=0、STATE_FALLBACK_MISSING=0、CATCH_RAW=0、CATCH_GUARDED=125",
+      "expected": "PASS（12 项 token 全为期望值）",
+      "negative": "state 站残留裸 .message、兜底含 ASCII/缺失、比较式误计、响应体分支误迁、CATCH_* 被污染 → FAIL",
+      "negative_result": "修复前 7 处 state 站点全部裸透传（PRE_STATE_RAW=7 / PRE_RESIDUAL_STATE_MSG=7），且 S1/S2/S3 = 2/4/1；修复后 STATE_GUARDED=7 / RESIDUAL_STATE_MSG=0，兜底均为 CJK（ASCII_LEAK=0、MISSING=0），catch 族未被污染（CATCH_RAW=0、CATCH_GUARDED=125）。",
       "pass": true
     }
   ]
