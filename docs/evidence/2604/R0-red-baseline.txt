@@ -1,0 +1,26 @@
+# build=1.0.d9a6f2156 # commit=d9a6f215678d8959abda558c463331e228e26308 # dirty=false
+GENERATED_AT_HEAD=d9a6f215678d8959abda558c463331e228e26308
+# 修前基线（base = merge-base origin/develop HEAD）：25 处 / 17 文件直出解析层原文
+BASE_COMMIT=083a32c9ce239a6fe34601c9bce802d591d7d837
+RED_BASE_SITES=25
+RED_BASE_FILES=17
+RED_BASE_ASCII_MESSAGES=25
+RED_HEAD_SITES=0
+--- per-file base counts ---
+backend/handlers/auth.go=2
+backend/handlers/billing.go=1
+backend/handlers/confirmation_session.go=1
+backend/handlers/face_verify.go=2
+backend/handlers/guarantor.go=2
+backend/handlers/instrument.go=1
+backend/handlers/instrument_media.go=1
+backend/handlers/permission_manage.go=2
+backend/handlers/platform_staff.go=1
+backend/handlers/pricing.go=2
+backend/handlers/registration_session.go=2
+backend/handlers/role_manage.go=2
+backend/handlers/smtp_config.go=1
+backend/handlers/user_address.go=2
+backend/handlers/user_management.go=1
+backend/handlers/user_management_idcard.go=1
+backend/handlers/user_onboarding.go=1

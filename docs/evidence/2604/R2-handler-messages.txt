@@ -1,0 +1,12 @@
+# build=1.0.d9a6f2156 # commit=d9a6f215678d8959abda558c463331e228e26308 # dirty=false
+GENERATED_AT_HEAD=d9a6f215678d8959abda558c463331e228e26308
+# 25 个绑定点 × 2 用例（损坏体 / 缺必填或类型不符）= 50；handler 直调 + 一次性 PG
+bind_error_2604_test.go:249: BIND2604_CASES_TOTAL=50
+bind_error_2604_test.go:250: BIND2604_CASES_FAIL=0
+bind_error_2604_test.go:251: BIND2604_ASCII_LEAK=0
+bind_error_2604_test.go:252: BIND2604_RAW_PHRASE_LEAK=0
+bind_error_2604_test.go:253: BIND2604_ROLE_CODE_MSG=参数不合法：角色编码不能为空
+bind_error_2604_test.go:254: BIND2604_PERSON_NAME_MSG=参数不合法：姓名不能为空
+bind_error_2604_test.go:255: BIND2604_IDS_MSG=参数不合法：乐器列表不能为空
+bind_error_2604_test.go:256: BIND2604_SYNTAX_MSG=请求体格式不正确，请检查后重试
+GO_TEST_EXIT=0

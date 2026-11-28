@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "issue": 2604,
+  "build": "1.0.d9a6f2156",
+  "commit": "d9a6f215678d8959abda558c463331e228e26308",
+  "dirty": false,
+  "plan_sha256": "7f5817cdc10c16ab96fe94b4c4a5fa3e39b72105acbeb5664871f1f70df22466",
+  "environment": {
+    "os": "linux",
+    "go": "1.25",
+    "db": "postgres:127.0.0.1:15433"
+  },
+  "rows": [
+    {
+      "id": "R0",
+      "command": "bash scripts/verify-2604.sh r0 > docs/evidence/2604/R0-red-baseline.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2604/R0-red-baseline.txt"
+      ],
+      "assert": "exit 0 且含 RED_BASE_SITES=25 RED_BASE_FILES=17 RED_BASE_ASCII_MESSAGES=25 RED_HEAD_SITES=0",
+      "actual": "PASS：exit 0 / RESULT: PASS (r0)。RED_BASE_SITES=25、RED_BASE_FILES=17、RED_BASE_ASCII_MESSAGES=25、RED_HEAD_SITES=0；BASE_COMMIT=083a32c9c（merge-base origin/develop HEAD），逐文件计数合计 25（auth 2 / instrument 1 / permission_manage 2 / pricing 2 / role_manage 2 / user_address 2 等）。",
+      "expected": "PASS（4 项 token 全为期望值）",
+      "negative": "base 计数 ≠25/17、修后仍残留原文拼接 → FAIL",
+      "negative_result": "负例已实测：修前（base 083a32c9c）该 17 文件确有 25 处拼 `err.Error()`；回退 17 个 handler 文件后运行 R2 用例得到 `invalid request: invalid character '\\x17' in string` 与非 0 失败计数（见 summary.md 红样），RED_HEAD_SITES 修复后为 0。",
+      "pass": true
+    },
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2604.sh r1 > docs/evidence/2604/R1-bindmsg-unit.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2604/R1-bindmsg-unit.txt"
+      ],
+      "assert": "exit 0 且含 BINDMSG_UNIT_EXIT=0 LABEL_NEW_2604=56 LABEL_ASCII_LEAK=0 LABEL_COVERAGE_MISSING=0 SCOPE_PERSON_NAME=姓名 SCOPE_ROLE_CODE=角色编码 SCOPE_DEFAULT_CODE=优惠码 CAMEL_IDS=ids CAMEL_USER_IDS=user_ids DIVE_INDEX_LABEL=乐器列表",
+      "actual": "PASS：exit 0 / RESULT: PASS (r1)。BINDMSG_UNIT_EXIT=0、LABEL_NEW_2604=56、LABEL_ASCII_LEAK=0、LABEL_COVERAGE_TOTAL=71、LABEL_COVERAGE_MISSING=0、SCOPE_PERSON_NAME=姓名不能为空、SCOPE_PERSON_COMPANY=工作单位不能为空、SCOPE_ROLE_CODE=角色编码不能为空、SCOPE_DEFAULT_CODE=优惠码不能为空、SCOPE_DEFAULT_NAME=名称不能为空、CAMEL_IDS=ids、CAMEL_USER_IDS=user_ids、CAMEL_TRANSIT_SITE_ID=transit_site_id、DIVE_INDEX_LABEL=乐器列表。",
+      "expected": "PASS（10 项 token 全为期望值）",
+      "negative": "称呼含 ASCII、漏登记字段、默认作用域漂移、IDs 输出 i_ds → FAIL",
+      "negative_result": "负例已实测：TestBindMsgLabels2604 断言 56 条称呼逐条等值且 `[A-Za-z]` 计数 0（`LABEL_ASCII_LEAK=0`）；TestBindMsgCamelToSnake2604 覆盖修前缺陷 `IDs`→`i_ds`（现为 `ids`）；TestBindMsgScope2604 断言默认作用域不漂移（`code`→优惠码、`name`→名称）；TestBindMsgDiveIndex2604 断言 `IDs[0]`/`IDs[12]` 与 `IDs` 同称呼。",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2604.sh r2 > docs/evidence/2604/R2-handler-messages.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2604/R2-handler-messages.txt"
+      ],
+      "assert": "exit 0 且含 GO_TEST_EXIT=0 BIND2604_CASES_TOTAL=50 BIND2604_CASES_FAIL=0 BIND2604_ASCII_LEAK=0 BIND2604_RAW_PHRASE_LEAK=0 BIND2604_ROLE_CODE_MSG=参数不合法：角色编码不能为空 BIND2604_PERSON_NAME_MSG=参数不合法：姓名不能为空 BIND2604_IDS_MSG=参数不合法：乐器列表不能为空 BIND2604_SYNTAX_MSG=请求体格式不正确，请检查后重试",
+      "actual": "PASS：exit 0 / RESULT: PASS (r2)。GO_TEST_EXIT=0、BIND2604_CASES_TOTAL=50、BIND2604_CASES_FAIL=0、BIND2604_ASCII_LEAK=0、BIND2604_RAW_PHRASE_LEAK=0、BIND2604_ROLE_CODE_MSG=参数不合法：角色编码不能为空、BIND2604_PERSON_NAME_MSG=参数不合法：姓名不能为空、BIND2604_IDS_MSG=参数不合法：乐器列表不能为空、BIND2604_SYNTAX_MSG=请求体格式不正确，请检查后重试。",
+      "expected": "PASS（9 项 token 全为期望值）",
+      "negative": "任一端点含 Go/JSON 原文或 ASCII 字母、HTTP/code 漂移、用例数 <50 → FAIL",
+      "negative_result": "负例已实测：回退 17 个 handler 文件（保留 bindmsg + 用例）后同名用例 FAIL，典型输出 `auth.PostLogin/syntax: message = \"invalid request: invalid character '\\x17' in string\"`、`registration.Create/field: message = \"invalid request: json: cannot unmarshal string into Go struct field .id_photos of type map[string]string\"`；修复后 50 例全 PASS，且每例断言 HTTP 400 + code 保持 40000/40001/40002 原位。",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2604.sh r3 > docs/evidence/2604/R3-residual-scan.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2604/R3-residual-scan.txt"
+      ],
+      "assert": "exit 0 且含 RESIDUAL_INVALID_REQUEST_RAW=0 RESIDUAL_INVALID_PARAMETERS_RAW=0 SITES_REPLACED_2604=25 HANDLER_FILES_2604=17 BINDMSG_DELTA_2604=25 OUT_OF_SCOPE_UNCHANGED=1",
+      "actual": "PASS：exit 0 / RESULT: PASS (r3)。RESIDUAL_INVALID_REQUEST_RAW=0、RESIDUAL_INVALID_PARAMETERS_RAW=0、SITES_REPLACED_2604=25（= 本批新增调用点，instrument.go 在 #2603 已有 1 处故不计入）、HANDLER_FILES_2604=17、BINDMSG_DELTA_2604=25（26-1）、OUT_OF_SCOPE_BASE=28 / OUT_OF_SCOPE_HEAD=28 / OUT_OF_SCOPE_UNCHANGED=1。",
+      "expected": "PASS（6 项 token 全为期望值）",
+      "negative": "残留原文拼接、替换点/文件数不符、越界改动 #2605 范围 → FAIL",
+      "negative_result": "负例已实测：任一处回退即 `RESIDUAL_INVALID_REQUEST_RAW>0` 并触发断言失败；#2605 的 5 类字面量在 base 与 head 计数均为 28（未顺手扩面）。",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2604.sh r4 > docs/evidence/2604/R4-build-compile.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2604/R4-build-compile.txt"
+      ],
+      "assert": "exit 0 且含 GO_BUILD_EXIT=0 GOFMT_DIFF=0 TEST_COMPILE_EXIT=0",
+      "actual": "PASS：exit 0 / RESULT: PASS (r4)。GO_BUILD_EXIT=0、GOFMT_UNFORMATTED=(none) / GOFMT_DIFF=0、TEST_COMPILE_EXIT=0（`go test ./... -run '^$'` 全包编译冒烟）。",
+      "expected": "PASS（3 项 token 全为期望值）",
+      "negative": "构建失败 / gofmt 差异 / 测试包编译失败 → FAIL",
+      "negative_result": "负例已实测：`gofmt -l` 覆盖 20 个改动 Go 文件，输出为空才记 0；`go build ./...` 与全包编译冒烟经 heavy-run 取锁执行，任一非 0 即 FAIL。",
+      "pass": true
+    }
+  ]
+}

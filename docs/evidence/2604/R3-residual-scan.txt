@@ -1,0 +1,30 @@
+# build=1.0.d9a6f2156 # commit=d9a6f215678d8959abda558c463331e228e26308 # dirty=false
+GENERATED_AT_HEAD=d9a6f215678d8959abda558c463331e228e26308
+# 收口扫描：25 处全部收敛为 bindmsg；#2605 的 28 处同类字面量不得外溢
+RESIDUAL_INVALID_REQUEST_RAW=0
+RESIDUAL_INVALID_PARAMETERS_RAW=0
+SITES_REPLACED_2604=25
+HANDLER_FILES_2604=17
+BINDMSG_SITES_BASE=1
+BINDMSG_DELTA_2604=25
+OUT_OF_SCOPE_BASE=28
+OUT_OF_SCOPE_HEAD=28
+OUT_OF_SCOPE_UNCHANGED=1
+--- per-file bindmsg.Message counts (head) ---
+backend/handlers/auth.go=2
+backend/handlers/billing.go=1
+backend/handlers/confirmation_session.go=1
+backend/handlers/face_verify.go=2
+backend/handlers/guarantor.go=2
+backend/handlers/instrument.go=2
+backend/handlers/instrument_media.go=1
+backend/handlers/permission_manage.go=2
+backend/handlers/platform_staff.go=1
+backend/handlers/pricing.go=2
+backend/handlers/registration_session.go=2
+backend/handlers/role_manage.go=2
+backend/handlers/smtp_config.go=1
+backend/handlers/user_address.go=2
+backend/handlers/user_management.go=1
+backend/handlers/user_management_idcard.go=1
+backend/handlers/user_onboarding.go=1
