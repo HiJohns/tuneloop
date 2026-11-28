@@ -371,9 +371,18 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	// #2462 D1：users.role = 域角色（merchant_direct → merchant_staff 等），
-	// 与 merchant_members/site_members 保持一致；此前从不写入导致恒为空串。
-	user.Role = resolvedRole
+	// #2626 D2：users.role = 派生主角色、users.roles = 多值镜像（功能角色 ∪ 主角色）。
+	// 角色码本身仍是功能角色（site_admin / merchant_staff …），但写入必须先经
+	// DeriveRoles 统一派生，避免各处再各自拼装 role 词汇（#2626 三写侧口径问题）。
+	{
+		orgLevel := services.OrgLevelSite
+		if userType == "merchant_direct" {
+			orgLevel = services.OrgLevelMerchant
+		}
+		mirror := services.DeriveRoles(orgLevel, services.ToIAMRole(resolvedRole), []string{resolvedRole})
+		user.Role = mirror.Primary
+		user.Roles = mirror.All
+	}
 
 	if resolvedRole == "site_admin" {
 		callerRole := middleware.GetBusinessRole(c.Request.Context())

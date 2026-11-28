@@ -245,6 +245,7 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 				var existingLocal models.User
 				if err := db.Where("iam_sub = ?", userResult.UserID).First(&existingLocal).Error; err != nil {
 					existingUser := userResult.ExistingUsers[0]
+					mirror := services.DeriveRoles(services.OrgLevelMerchant, services.IAMRoleStaff, nil)
 					localUser := models.User{
 						ID:       userResult.UserID,
 						IAMSub:   userResult.UserID,
@@ -253,7 +254,8 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 						Name:     existingUser.Name,
 						Email:    existingUser.Email,
 						Phone:    createReq.Phone,
-						Role:     "site_member",
+						Role:     mirror.Primary,
+						Roles:    mirror.All,
 						Status:   "active",
 					}
 					if err := db.Create(&localUser).Error; err != nil {
@@ -297,6 +299,9 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 				})
 			}
 
+			// #2626 D2：商户直属成员的功能角色 = merchant_staff（STAFF 关系），
+			// 由派生函数产出 users.role（主角色）+ users.roles（多值镜像）。
+			mirror := services.DeriveRoles(services.OrgLevelMerchant, services.IAMRoleStaff, nil)
 			localUser := models.User{
 				ID:       userResult.UserID,
 				IAMSub:   userResult.UserID,
@@ -305,7 +310,8 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 				Name:     createReq.Name,
 				Email:    createReq.Email,
 				Phone:    createReq.Phone,
-				Role:     "site_member",
+				Role:     mirror.Primary,
+				Roles:    mirror.All,
 				Status:   "active",
 			}
 			if err := db.Create(&localUser).Error; err != nil {

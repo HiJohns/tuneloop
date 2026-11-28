@@ -488,6 +488,8 @@ var defaultMigrationArtifacts = []migrationArtifact{
 	{20261117001, "settlement_calculations", "supersedes", "结算冲正来源列（#2361）"},
 	// #2456：PC 后台 idle timeout 会话表（仅 PC 入口写入）。
 	{20261123001, "pc_sessions", "", "PC 会话 idle 超时表（#2456）"},
+	// #2626：users.roles = 派生自 IAM 的功能角色多值镜像（users.role 为派生主角色）。
+	{20261128001, "users", "roles", "用户功能角色镜像列（#2626，派生自 IAM）"},
 }
 
 // verifyArtifacts 纯逻辑（便于单测）：对 version ≥ a.Version 的工件断言存在。
