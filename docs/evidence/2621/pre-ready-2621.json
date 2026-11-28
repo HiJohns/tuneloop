@@ -1,7 +1,7 @@
 {
   "issue": 2621,
   "overall": "PASS",
-  "plan": "/tmp/opencode/tuneloop/wt-2621/tmp/pre-ready-2621.eJDeI0/plan.md",
+  "plan": "/tmp/opencode/tuneloop/wt-2621/tmp/pre-ready-2621.hFE6v4/plan.md",
   "plan_sha256": "07c3eb3caf70daab0c6561d7d558d40d41aff8325552d0c504dcf6c4edaa6e76",
   "config_sha": "c00d84454cc7589086f25ef3a871be1d00a12644",
   "provenance": {
@@ -10,7 +10,7 @@
     "dirty": false
   },
   "summary": "docs/evidence/2621/summary.md",
-  "timestamp": "20261128-050936",
+  "timestamp": "20261128-050958",
   "checks": [
     {
       "id": "P1",
