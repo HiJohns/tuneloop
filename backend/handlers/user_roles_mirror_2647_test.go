@@ -215,6 +215,28 @@ func TestSyncUsersMirrorNonDegrade_2647(t *testing.T) {
 	router.ServeHTTP(w, req)
 	require.Equal(t, http.StatusOK, w.Code, "body=%s", w.Body.String())
 
+	// 测试保真（#2647 R9）：镜像「没被降级」不能是因为写库失败被静默吞掉 ——
+	// 必须先证明本次同步对该行**确实写成功了**，否则 SYNC_DEGRADES_NONEMPTY_MIRROR=0
+	// 会被一次 22P02/42804 掩盖（反例：裸 []string 写入报错，镜像原样保留 → 假绿）。
+	var syncResp struct {
+		Data struct {
+			Synced    int `json:"synced"`
+			Conflicts int `json:"conflicts"`
+			Details   []struct {
+				ID     string `json:"id"`
+				Result string `json:"result"`
+			} `json:"details"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &syncResp), "body=%s", w.Body.String())
+	require.Equal(t, 0, syncResp.Data.Conflicts,
+		"同步不得吞掉写失败（conflicts>0 说明 roles 写入出错）：body=%s", w.Body.String())
+	for _, d := range syncResp.Data.Details {
+		require.NotEqual(t, "error", d.Result,
+			"用户 %s 的同步结果为 error（roles 写入失败）：body=%s", d.ID, w.Body.String())
+	}
+	syncedWrites := syncResp.Data.Synced
+
 	afterRole, afterJSON, _ := readUserMirror2647(t, db, userID)
 	var after []string
 	require.NoError(t, json.Unmarshal([]byte(afterJSON), &after))
@@ -234,6 +256,8 @@ func TestSyncUsersMirrorNonDegrade_2647(t *testing.T) {
 	t.Logf("WRITE_SIDE_SECOND_ASSIGNMENT=0")
 	t.Logf("SYNC_SKIPS_NONEMPTY_MIRROR_OVERWRITE=1")
 	t.Logf("SYNC_DEGRADES_NONEMPTY_MIRROR=%d", degraded)
+	t.Logf("SYNC_WRITES_SUCCEEDED=%d", syncedWrites)
+	t.Logf("SYNC_CONFLICTS=%d", syncResp.Data.Conflicts)
 	t.Logf("MIRROR_BEFORE=%s", beforeJSON)
 	t.Logf("MIRROR_AFTER=%s", afterJSON)
 }

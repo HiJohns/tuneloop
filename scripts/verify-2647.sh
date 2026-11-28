@@ -740,6 +740,12 @@ PY
   [ "$rc" = "0" ] || return 1
   grep -Fq 'SYNC_SKIPS_NONEMPTY_MIRROR_OVERWRITE=1' "$artifact" || return 1
   grep -Fq 'SYNC_DEGRADES_NONEMPTY_MIRROR=0' "$artifact" || return 1
+  # 测试保真：镜像没降级不能是因为写库失败被吞 —— 本次同步必须真的写成功。
+  grep -Fq 'SYNC_CONFLICTS=0' "$artifact" || return 1
+  if ! grep -Eq 'SYNC_WRITES_SUCCEEDED=[1-9]' "$artifact"; then
+    echo "ASSERT_FAIL: SYNC_WRITE_NOT_EXERCISED（镜像未降级可能是写失败被掩盖）" >> "$artifact"
+    return 1
+  fi
   return 0
 }
 
