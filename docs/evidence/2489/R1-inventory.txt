@@ -1,14 +1,14 @@
-# build=1.0.a5708fe35 # commit=a5708fe35dd788fdc6d8b40917b50bdfa8a3e28c # dirty=false
-# tree=a5708fe35dd788fdc6d8b40917b50bdfa8a3e28c
+# build=1.0.b85169cda # commit=b85169cda9b202a5ac4945d28c80398964fc8226 # dirty=false
+# tree=b85169cda9b202a5ac4945d28c80398964fc8226
 WINDOW_HEURISTIC_SOURCE=0
 SCAN_TARGETS=5
 READONLY=1
 DB_WRITES=0
 WINDOW_HEURISTIC=0
 KEEP_ROWS_SEMANTICS=code-reading POST/PUT submit branches judged keep (Rev.8 D8 companion)
-SCAN_ROWS=30
+SCAN_ROWS=31
 KEEP_ROWS=6
-BUSINESS_FALLBACK_ROWS=6
+BUSINESS_FALLBACK_ROWS=7
 RESIDUAL_ROWS=0
 UNCLASSIFIED=0
 PAGE_KEEP_ROWS=pages/admin/PermissionManage/index.jsx=3
@@ -43,7 +43,8 @@ pages/System/MembershipLevelsPage.jsx:46	fn=saveBenefits	branch=} else {	reads_c
 pages/System/MembershipLevelsPage.jsx:61	fn=handleSave	branch=} else { 	reads_code=1	submit=1	tier=keep:instant	reason=code-read submit branch; measured error set has no business-correctable code (R2/R3/R5 keep)
 pages/System/MembershipLevelsPage.jsx:71	fn=handleDelete	branch=else { 	reads_code=1	submit=0	tier=keep:instant	reason=code-read load/delete branch; no user-editable input to correct
 pages/MerchantManagement.jsx:80	fn=fetchMerchants	branch=} catch (error) {	reads_code=0	submit=0	tier=keep:instant	reason=catch-all fallback (network / unknown / permission)
-pages/MerchantManagement.jsx:115	fn=handleDelete	branch=} catch (error) {	reads_code=0	submit=0	tier=keep:instant	reason=catch-all fallback (network / unknown / permission)
-pages/MerchantManagement.jsx:148	fn=saveSettlement	branch=if (isBusinessCorrectableConflict(payload)) {	reads_code=1	submit=1	tier=keep:instant	reason=rubric-fallback: non-business fallback of a code-classified submit branch
-pages/MerchantManagement.jsx:166	fn=handleSubmit	branch=} else {	reads_code=1	submit=1	tier=keep:instant	reason=rubric-fallback: non-business fallback of a code-classified submit branch
-pages/MerchantManagement.jsx:181	fn=handleSubmit	branch=} else {	reads_code=1	submit=1	tier=keep:instant	reason=rubric-fallback: non-business fallback of a code-classified submit branch
+pages/MerchantManagement.jsx:116	fn=handleDelete	branch=} catch (error) {	reads_code=0	submit=0	tier=keep:instant	reason=catch-all fallback (network / unknown / permission)
+pages/MerchantManagement.jsx:145	fn=saveSettlement	branch=} else {	reads_code=1	submit=1	tier=keep:instant	reason=rubric-fallback: non-business fallback of a code-classified submit branch
+pages/MerchantManagement.jsx:160	fn=saveSettlement	branch=if (isBusinessCorrectableConflict(err)) {	reads_code=1	submit=1	tier=keep:instant	reason=rubric-fallback: non-business fallback of a code-classified submit branch
+pages/MerchantManagement.jsx:178	fn=handleSubmit	branch=} else {	reads_code=1	submit=1	tier=keep:instant	reason=rubric-fallback: non-business fallback of a code-classified submit branch
+pages/MerchantManagement.jsx:193	fn=handleSubmit	branch=} else {	reads_code=1	submit=1	tier=keep:instant	reason=rubric-fallback: non-business fallback of a code-classified submit branch

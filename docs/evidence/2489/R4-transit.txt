@@ -1,11 +1,14 @@
-# build=1.0.a5708fe35 # commit=a5708fe35dd788fdc6d8b40917b50bdfa8a3e28c # dirty=false
-# tree=a5708fe35dd788fdc6d8b40917b50bdfa8a3e28c
+# build=1.0.b85169cda # commit=b85169cda9b202a5ac4945d28c80398964fc8226 # dirty=false
+# tree=b85169cda9b202a5ac4945d28c80398964fc8226
 PAGE=pages/admin/transit/TransitCenter.jsx
-SHARED_USES=16
+SHARED_USES=18
 PERSIST_ALERT=1
 CONFLICT_TEXT_SITES=3
 UNGUARDED_SITES=0
 CODE_FIRST=1
+CLEAR_ON_EDIT_FORMS=2
+CLEAR_ON_EDIT=1
+ERR_RESPONSE_USES=0
 --- wiring ---
 WIRE 7:import FormConflictAlert from '../../../components/FormConflictAlert'
 WIRE 62:    setSiteConflict('') // #2489 D8：打开表单即清空陈旧冲突提示
@@ -22,5 +25,7 @@ WIRE 126:    } else if (isBusinessCorrectableConflict(r)) {
 WIRE 127:      setRouteConflict(conflictText(r, '创建失败，请调整后重试'))
 WIRE 194:        onCancel={() => { setSiteConflict(''); setSiteModalOpen(false) }}
 WIRE 197:        <FormConflictAlert text={siteConflict} testId="transit-site-conflict" />
-WIRE 238:        onCancel={() => { setRouteConflict(''); setRouteModalOpen(false) }}
-WIRE 241:        <FormConflictAlert text={routeConflict} testId="transit-route-conflict" />
+WIRE 199:        <Form form={siteForm} layout="vertical" onValuesChange={() => { if (siteConflict) setSiteConflict('') }}>
+WIRE 239:        onCancel={() => { setRouteConflict(''); setRouteModalOpen(false) }}
+WIRE 242:        <FormConflictAlert text={routeConflict} testId="transit-route-conflict" />
+WIRE 244:        <Form form={routeForm} layout="vertical" onValuesChange={() => { if (routeConflict) setRouteConflict('') }}>

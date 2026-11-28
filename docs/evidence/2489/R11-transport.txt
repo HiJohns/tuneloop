@@ -1,10 +1,11 @@
-# build=1.0.a5708fe35 # commit=a5708fe35dd788fdc6d8b40917b50bdfa8a3e28c # dirty=false
-# tree=a5708fe35dd788fdc6d8b40917b50bdfa8a3e28c
+# build=1.0.b85169cda # commit=b85169cda9b202a5ac4945d28c80398964fc8226 # dirty=false
+# tree=b85169cda9b202a5ac4945d28c80398964fc8226
 TRANSPORT_UNDER_TEST=frontend-pc/src/services/apiError.js::resolveHttpFailure (consumed by api.js)
 NODE_EXIT=0
 API_ERROR_CODE=1
 NO_SUCCESS_ON_409=1
 CONFLICT_TEXT_409=商户名称已存在
+NO_SUCCESS_ON_404=1
 TOAST_ON_500=1
 BROKEN_PAYLOAD_SAFE=1
 NETWORK_PATH=throw-without-response

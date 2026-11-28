@@ -1,15 +1,15 @@
 {
   "schema_version": 1,
   "issue": 2489,
-  "build": "1.0.a5708fe35",
-  "commit": "a5708fe35dd788fdc6d8b40917b50bdfa8a3e28c",
+  "build": "1.0.b85169cda",
+  "commit": "b85169cda9b202a5ac4945d28c80398964fc8226",
   "dirty": false,
   "plan_sha256": "4f0aa71b1a54e48b031e67037f35a124de76ef0e3aaf1cc8b20a170fb7be73e4",
   "gate": {
     "plan_sha256": "4f0aa71b1a54e48b031e67037f35a124de76ef0e3aaf1cc8b20a170fb7be73e4"
   },
-  "tooling_commit": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
-  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2489 (issue-2489, base origin/develop incl. #2480/#2563); frontend-pc static branch scan + npm run build + eslint + node transport assertions; no browser/real backend",
+  "tooling_commit": "c00d84454cc7589086f25ef3a871be1d00a12644",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2489 (issue-2489, base origin/develop incl. #2480/#2563); frontend-pc static branch scan + npm run build + eslint + node transport assertions; no browser/real backend",
   "rows": [
     {
       "id": "R1",
@@ -61,10 +61,10 @@
         "docs/evidence/2489/R4-transit.txt"
       ],
       "assert": "exit 0；grep PERSIST_ALERT=1、CODE_FIRST=1",
-      "actual": "PERSIST_ALERT=1（import + 渲染 FormConflictAlert，setSiteConflict/setRouteConflict）、CODE_FIRST=1（CONFLICT_TEXT_SITES=3、UNGUARDED_SITES=0）；中转网点 modal 与中转路由 modal 各自渲染提示",
+      "actual": "PERSIST_ALERT=1、CODE_FIRST=1（UNGUARDED_SITES=0）、CLEAR_ON_EDIT=1（CLEAR_ON_EDIT_FORMS=2：中转网点 + 中转路由表单 onValuesChange 清空）、ERR_RESPONSE_USES=0",
       "expected": "PASS",
       "negative": "仍 toast → FAIL",
-      "negative_result": "修复前中转网点创建/更新只 message.error(r.message)，40900 只闪 3 秒；修复后由共享判定分流到持久提示。",
+      "negative_result": "修复前两个冲突表单都没有 onValuesChange → CLEAR_ON_EDIT=0（改完输入仍显示旧冲突）；现在字段编辑即清空。",
       "pass": true
     },
     {
@@ -89,10 +89,10 @@
         "docs/evidence/2489/R6-merchant.txt"
       ],
       "assert": "exit 0；grep PERSIST_ALERT=1、THEME_2459=1",
-      "actual": "PERSIST_ALERT=1、CODE_FIRST=1（UNGUARDED_SITES=0）、THEME_2459=1（注释引用 #2459、LOCAL_CODE_WHITELIST=0）、NO_FALSE_SUCCESS=1（guard 行 161 < 成功行 170，handleSubmit 仅 1 个成功出口）、DEFER_2459=1（改名沿用后端 409 语义，本单不自写白名单）",
+      "actual": "PERSIST_ALERT=1、CODE_FIRST=1（UNGUARDED_SITES=0）、THEME_2459=1（注释引用 #2459、LOCAL_CODE_WHITELIST=0）、NO_FALSE_SUCCESS=1（handleSubmit guard 行 141 < 成功行 150，仅 1 个成功出口）、SETTLEMENT_NO_FALSE_SUCCESS=1（saveSettlement guard=141 < success=150，SETTLEMENT_SUCCESS_COUNT=1）、SETTLEMENT_ERR_DIRECT=1（catch 直接判 isBusinessCorrectableConflict(err)）、ERR_RESPONSE_USES=0、CLEAR_ON_EDIT=1（CLEAR_ON_EDIT_FORMS=2：主表单 + 分账表单）、DEFER_2459=1（改名沿用后端 409 语义，本单不自写白名单）",
       "expected": "PASS",
       "negative": "自写白名单 → FAIL",
-      "negative_result": "修复前 409（40900）被传输层返回对象后直接落到 message.success → 「商户创建成功」假成功；现在先判 resp.code !== 20000，再按共享 rubric 进持久提示。",
+      "negative_result": "红绿实证（Round 9 失败项 1/2）：旧版 `saveSettlement` 的守卫扫描为 guard=0 / success=139（成功提示在无守卫下可达），`err.response` 计数 3，`onValuesChange` 计数 0 → SETTLEMENT_NO_FALSE_SUCCESS=0、ERR_RESPONSE_USES≠0、CLEAR_ON_EDIT=0；修复版四项翻转为 1/0/1。",
       "pass": true
     },
     {
@@ -145,7 +145,7 @@
         "docs/evidence/2489/R11-transport.txt"
       ],
       "assert": "exit 0；含 API_ERROR_CODE=1、NO_SUCCESS_ON_409=1、TOAST_ON_500=1",
-      "actual": "API_ERROR_CODE=1（400+{code:40002} → ApiError.code=40002）、NO_SUCCESS_ON_409=1（409 返回对象 code=40900≠20000，不再假成功）、TOAST_ON_500=1（500 抛错且无 code → 页面 toast）、BROKEN_PAYLOAD_SAFE=1",
+      "actual": "API_ERROR_CODE=1（400+{code:40002} → ApiError.code=40002）、NO_SUCCESS_ON_409=1（409 返回对象 code=40900≠20000，不再假成功）、NO_SUCCESS_ON_404=1（404 返回对象 code=40400≠20000 → 分账 404 不再落到成功提示）、TOAST_ON_500=1（500 抛错且无 code → 页面 toast）、BROKEN_PAYLOAD_SAFE=1",
       "expected": "PASS",
       "negative": "400 无 code 或 409 进成功分支 → FAIL",
       "negative_result": "修复前 api.js 对 HTTP 400 抛无 code 的普通 Error（#2563 之前），40002 分支不可达；现在 apiError.js 抛 ApiError 带 code，node 断言 400/409/500 三态通过。",
