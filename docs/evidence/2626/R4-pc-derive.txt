@@ -1,10 +1,15 @@
-# build=1.0.a232c0c9c # commit=a232c0c9c68b8a9b72d30aa7a9b97c3d7fd8c45c # dirty=false
-# tree=127f4d2e2aeaab2fe9aa81961db439c8f31e1d72
-TEST_CMD=node --test frontend-pc/tests/staffForm.test.mjs
+# build=1.0.71efa1144 # commit=71efa1144e976de00c476b6101bef17ed2d20299 # dirty=false
+# tree=71efa1144e976de00c476b6101bef17ed2d20299
+TEST_CMD=node --test frontend-pc/tests/staffForm.test.mjs frontend-pc/src/utils/staffForm.test.js
 NODE_TEST_EXIT=0
-NODE: # tests 4
-NODE: # pass 4
+NODE: # tests 12
+NODE: # pass 12
 NODE: # fail 0
 PC_USES_ROLES_SET=1
 PC_READS_USERS_ROLE=0
+PC_WRITES_ROLES=0
+DERIVER_PRESENT=1
+READ_PATH_PRESENT=1
+MIGRATION_DECLARES_IAM_SOURCE=1
+ROLES_SOURCE=iam
 RESULT: PASS (r4)

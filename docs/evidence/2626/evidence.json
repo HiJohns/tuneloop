@@ -1,98 +1,95 @@
 {
   "schema_version": 1,
   "issue": 2626,
-  "build": "1.0.a232c0c9c",
-  "commit": "a232c0c9c68b8a9b72d30aa7a9b97c3d7fd8c45c",
+  "build": "1.0.71efa1144",
+  "commit": "71efa1144e976de00c476b6101bef17ed2d20299",
+  "tree": "71efa1144e976de00c476b6101bef17ed2d20299",
   "dirty": false,
-  "plan_sha256": "3b8575ad13ea3dfd4456983cf973137ea9092eb0d3ceb700406233618c9b5356",
-  "gate": {
-    "plan_sha256": "3b8575ad13ea3dfd4456983cf973137ea9092eb0d3ceb700406233618c9b5356"
-  },
-  "tooling_commit": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
-  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2626 (issue-2626, base origin/develop); go test ./services + ./database, static source/migration/doc scans, node --test for PC staffForm; real migration up/down execution deferred to waitForConfirm (D8)",
+  "plan_sha256": "0e7f701d480292735a1cbacd1f2a33eddf72e0a5117e2e7067882519a0ca4473",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2626 (branch issue-2626, base origin/develop); go build ./... + go test ./services targeted; node --test frontend-pc (v22.22.3); static scans over backend/handlers + docs. No production calls, no DB DDL (migration real up/down deferred to waitForConfirm per D8).",
   "rows": [
     {
       "id": "R1",
-      "command": "bash scripts/verify-2626.sh r1 > docs/evidence/2626/R1-derive.txt",
+      "command": "bash scripts/verify-2626.sh r1",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2626/R1-derive.txt"
       ],
-      "assert": "exit 0 且含 DERIVE_PRIMARY_SITE_ADMIN=site_admin DERIVE_PRIMARY_MULTI=merchant_staff DERIVE_ALL_LEN=2 DERIVE_NAMESPACE_ADMIN_KEPT=1",
-      "actual": "GO_TEST_EXIT=0；DERIVE_PRIMARY_SITE_ADMIN=site_admin、DERIVE_PRIMARY_MULTI=merchant_staff、DERIVE_ALL_LEN=2、DERIVE_NAMESPACE_ADMIN_KEPT=1（4 组表驱动 + 边界负例）",
-      "expected": "PASS（4 项 token）",
-      "negative": "优先级错、平台角色被改写 → FAIL",
-      "negative_result": "修复前无派生函数，三处写侧各自拼装角色词汇；负例：多值只取第一个 / 平台角色被改写成业务角色 / 空角色报错 → 用例 FAIL。",
+      "assert": "exit 0 且含 DERIVE_PRIMARY_SITE_ADMIN=site_admin、DERIVE_PRIMARY_MULTI=merchant_staff、DERIVE_ALL_LEN=2、DERIVE_NAMESPACE_ADMIN_KEPT=1",
+      "actual": "PASS：GO_TEST_EXIT=0；DERIVE_PRIMARY_SITE_ADMIN=site_admin / DERIVE_PRIMARY_MULTI=merchant_staff / DERIVE_ALL_LEN=2 / DERIVE_NAMESPACE_ADMIN_KEPT=1",
+      "expected": "PASS",
+      "negative": "多值只取第一个、平台角色被改写成 merchant_admin、空角色报错 → FAIL",
+      "negative_result": "TestDeriveRoles2626 表驱动 4 组（单值/多值/平台角色/空）；任一 primary 或 all 与 D4 优先级不符即 t.Fatalf → exit 1",
       "pass": true
     },
     {
       "id": "R2",
-      "command": "bash scripts/verify-2626.sh r2 > docs/evidence/2626/R2-write-sites.txt",
+      "command": "bash scripts/verify-2626.sh r2",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2626/R2-write-sites.txt"
       ],
-      "assert": "exit 0 且含 WRITE_SITES=3 WRITE_INLINE_LITERAL=0 MIRROR_WRITE_DELEGATED=1",
-      "actual": "WRITE_SITES=3（iam_callback / merchant_member / user_staff 均调 services.DeriveRoles）、WRITE_INLINE_LITERAL=0、MIRROR_WRITE_DELEGATED=1（3/3 文件同时写主角色与 roles[] 镜像）",
-      "expected": "PASS（3 项 token）",
-      "negative": "内联字面量 → FAIL",
-      "negative_result": "修复前 merchant_member 两处硬编码 Role: \"site_member\"、iam_callback 原样写 IAM role、user_staff 直写业务码；修复后三处均委托派生函数，内联字面量 0。",
+      "assert": "exit 0 且含 WRITE_SITES=5、WRITE_INLINE_LITERAL=0、MIRROR_WRITE_DELEGATED=1、ALLOWLIST_HITS=0",
+      "actual": "PASS：WRITE_SITES=5（iam_callback/merchant_member/user_staff/merchant/iam_proxy）/ WRITE_INLINE_LITERAL=0 / MIRROR_WRITE_DELEGATED=1 / WRITE_SITES_DIR_LITERALS=0（135 个非测试 handler 文件全目录扫描）/ ALLOWLIST_HITS=0 / R2_NEGATIVE_CONTROL=1",
+      "expected": "PASS",
+      "negative": "任一写侧仍内联 \"site_member\" 字面量；allowlist 外出现字面量 → FAIL",
+      "negative_result": "负例自检（证明断言器不盲）：tmp/verify-2626-r2-neg/synthetic.go 注入 {\"role\": \"site_member\"} 与 m[\"roles\"] = \"site_admin\"，检测器命中 2 处 → R2_NEGATIVE_CONTROL=1；未命中则 exit 1（本轮首次运行即由此发现正则缺陷并修复）",
       "pass": true
     },
     {
       "id": "R3",
-      "command": "bash scripts/verify-2626.sh r3 > docs/evidence/2626/R3-mirror-column.txt",
+      "command": "bash scripts/verify-2626.sh r3",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2626/R3-mirror-column.txt"
       ],
-      "assert": "exit 0 且含 COLUMN_ROLES_EXISTS=1 BACKFILL_NO_GUESS=1 DOWN_REMOVES_COLUMN=1 ARTIFACT_REGISTERED=1 MODEL_FIELD_EXISTS=1",
-      "actual": "COLUMN_ROLES_EXISTS=1、BACKFILL_NO_GUESS=1（迁移无 UPDATE/INSERT 回填）、DOWN_REMOVES_COLUMN=1、ARTIFACT_REGISTERED=1（db.go 20261128001 users.roles）、MODEL_FIELD_EXISTS=1（models.User.Roles）",
-      "expected": "PASS（5 项 token）",
-      "negative": "迁移文本/工件登记/模型字段任一不符 → FAIL",
-      "negative_result": "修复前 users 无 roles 列、db.go 无 20261128001 工件；迁移若在 SQL 内写猜测回填 → BACKFILL_NO_GUESS=0 → FAIL（真实 up/down 执行按 D8 转 waitForConfirm）。",
+      "assert": "exit 0 且含 COLUMN_ROLES_EXISTS=1、BACKFILL_NO_GUESS=1、DOWN_REMOVES_COLUMN=1、ARTIFACT_REGISTERED=1、MODEL_FIELD_EXISTS=1",
+      "actual": "PASS：COLUMN_ROLES_EXISTS=1 / BACKFILL_NO_GUESS=1 / DOWN_REMOVES_COLUMN=1 / ARTIFACT_REGISTERED=1 / MODEL_FIELD_EXISTS=1",
+      "expected": "PASS",
+      "negative": "up 无 ADD COLUMN IF NOT EXISTS、down 无 DROP COLUMN IF EXISTS、db.go 未登记工件、模型缺 Roles、SQL 内写猜测值 → 任一即 FAIL",
+      "negative_result": "静态 5 条各自独立计数；任一为 0 即 require 断言失败 → exit 1。真实 up/down 执行不由本行承担（D8：waitForConfirm 回执）",
       "pass": true
     },
     {
       "id": "R4",
-      "command": "bash scripts/verify-2626.sh r4 > docs/evidence/2626/R4-pc-derive.txt",
+      "command": "bash scripts/verify-2626.sh r4",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2626/R4-pc-derive.txt"
       ],
-      "assert": "exit 0 且含 PC_USES_ROLES_SET=1 PC_READS_USERS_ROLE=0",
-      "actual": "NODE_TEST_EXIT=0（roleSet / primaryRole 优先级 / form mode / initial role 共 4 组）；PC_USES_ROLES_SET=1、PC_READS_USERS_ROLE=0",
-      "expected": "PASS（2 项 token）",
-      "negative": "仍读单值 → FAIL",
-      "negative_result": "修复前 staffForm 以 user.role 单值判定；修复后只读 roles[] 集合（roleSet/primaryRole）。",
+      "assert": "exit 0 且含 PC_USES_ROLES_SET=1、PC_READS_USERS_ROLE=0、ROLES_SOURCE=iam",
+      "actual": "PASS：node --test 12 pass / 0 fail（frontend-pc/tests/staffForm.test.mjs + frontend-pc/src/utils/staffForm.test.js）/ PC_USES_ROLES_SET=1 / PC_READS_USERS_ROLE=0 / PC_WRITES_ROLES=0 / ROLES_SOURCE=iam（deriver 存在 + GetStaffUser.mirrorRolesForRead 读路径 + 迁移声明 IAM 来源）",
+      "expected": "PASS",
+      "negative": "仍读 user.role 单值、或页面自造 roles、或数据源非 IAM → FAIL",
+      "negative_result": "单元负例：roleSet({role:'site_admin', site_role:'site_admin'}) 必须为 []、primaryRole({role:'site_admin'}) 必须为 ''、resolveInitialRole({role:'site_member'}) 必须为 ''（单值不参与判定）；任一不成立 → node --test 非 0 → exit 1",
       "pass": true
     },
     {
       "id": "R5",
-      "command": "bash scripts/verify-2626.sh r5 > docs/evidence/2626/R5-terms.txt",
+      "command": "bash scripts/verify-2626.sh r5",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2626/R5-terms.txt"
       ],
-      "assert": "exit 0 且含 DOC_TERM_DOMAIN_ROLE=0 DOC_TERM_SET_OK=1 DOC_ROLES_FIELD=1",
-      "actual": "DOC_TERM_DOMAIN_ROLE=0、DOC_TERM_SET_OK=1（组织角色/功能角色/组织级别）、DOC_ROLES_FIELD=1（api.md 人员响应含 roles[]）",
-      "expected": "PASS（3 项 token）",
-      "negative": "仍有「域角色」→ FAIL",
-      "negative_result": "修复前 permissions.md 含「域角色」表述、api.md 无 roles[]；修复后「域角色」=0 且三词定义齐备。",
+      "assert": "exit 0 且含 DOC_TERM_DOMAIN_ROLE=0、DOC_TERM_SET_OK=1、DOC_ROLES_FIELD=1",
+      "actual": "PASS：DOC_TERM_DOMAIN_ROLE=0 / DOC_TERM_SET_OK=1（组织角色/功能角色/组织级别 三词齐备）/ DOC_ROLES_FIELD=1",
+      "expected": "PASS",
+      "negative": "仍出现「域角色」、权限文档未写 roles[] → FAIL",
+      "negative_result": "三项计数任一不符即 require 失败 → exit 1",
       "pass": true
     },
     {
       "id": "R6",
-      "command": "bash scripts/verify-2626.sh r6 > docs/evidence/2626/R6-recon.txt",
+      "command": "bash scripts/verify-2626.sh r6",
       "exit": 0,
       "artifacts": [
         "docs/evidence/2626/R6-recon.txt"
       ],
-      "assert": "exit 0 且含 RECON_SINGLE_ONLY=0 SINGLE_VALUE_JUDGE_RESIDUAL=0",
-      "actual": "RECON_SINGLE_ONLY=0、SINGLE_VALUE_JUDGE_RESIDUAL=0；PREEXISTING_SINGLE_VALUE_JUDGES=1（merchant_member.go:627 过户判定，与镜像写入无关，按 D7 第二步批次迁移）",
-      "expected": "PASS（2 项 token）",
-      "negative": "仍以单值为判据 → FAIL",
-      "negative_result": "若本单 diff 新增以单值为判据的读路径 → SINGLE_VALUE_JUDGE_RESIDUAL>0 → FAIL；历史无关判据已在 artifact 列明不扩面理由。",
+      "assert": "exit 0 且含 RECON_SINGLE_ONLY=0、SINGLE_VALUE_JUDGE_RESIDUAL=0",
+      "actual": "PASS：RECON_SINGLE_ONLY=0 / SINGLE_VALUE_JUDGE_RESIDUAL=0（本单 diff 新增行 0 条单值判据）/ PREEXISTING_SINGLE_VALUE_JUDGES=1（merchant_member.go:632 存量判据，D7 三步走第二步按批次迁移，Out of Scope）",
+      "expected": "PASS",
+      "negative": "新增/保留以 users.role 单值为判据的读路径 → FAIL",
+      "negative_result": "对 PRE_REF..HEAD 的 + 行做单值判据正则扫描；新增行命中即 SINGLE_VALUE_JUDGE_RESIDUAL>0 → RECON_SINGLE_ONLY=1 → exit 1",
       "pass": true
     }
   ]
