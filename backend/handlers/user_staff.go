@@ -1344,7 +1344,18 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 	roleChanged := newRole != "" && newRole != existingUser.Role
 
 	if roleChanged {
-		updates["role"] = newRole
+		// #2647 R8/D3：改角色必须同时刷新多值镜像。IAM 侧是 ADD-only 结果集
+		// （UpdateUserRoleInOrgWithToken + AssignRoleTemplateToUserWithToken(newRole)），
+		// 不会移除旧功能角色 → 镜像 = 既有镜像 ∪ 新角色；主角色按 D4 优先级派生，
+		// 避免 users.role 与 users.roles 分叉（Round 2 失败项 1）。
+		union := appendUniqueRoles(existingUser.Roles, newRole)
+		mirror := services.DeriveRoles("", services.ToIAMRole(newRole), union)
+		updates["role"] = mirror.Primary
+		// #2647 R7：map Update 绕过 serializer → users.roles 显式 ?::jsonb。
+		if err := setUserRolesMirror(updates, mirror.All); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to encode user roles: " + err.Error()})
+			return
+		}
 		// IAM 同步：失败进 role_errors（不阻断本地更新，D3/#2375）。
 		if existingUser.IAMSub != "" {
 			orgID := existingUser.OrgID

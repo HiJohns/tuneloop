@@ -464,13 +464,24 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 	// 必须经 DeriveRoles 统一派生后同时写主角色与多值镜像，禁止在此内联赋值。
 	if adminIAMSub != "" && iamOrgID != "" {
 		mirror := services.DeriveRoles(services.OrgLevelMerchant, services.IAMRoleOwner, []string{services.RoleMerchantAdmin})
-		db.Model(&models.User{}).Where("iam_sub = ?", adminIAMSub).Updates(map[string]interface{}{
+		adminUpdates := map[string]interface{}{
 			"org_id":    iamOrgID,
 			"tenant_id": iamOrgID,
 			"role":      mirror.Primary,
-			"roles":     mirror.All,
 			"status":    "active",
-		})
+		}
+		// #2647 R7：map Update 绕过 serializer → users.roles 必须显式 ?::jsonb；
+		// 并且不得静默吞错（Round 2 失败项 3）：编码或写入失败都要让调用方看到。
+		if err := setUserRolesMirror(adminUpdates, mirror.All); err != nil {
+			log.Printf("[CreateMerchant] encode admin roles failed iam_sub=%s: %v", adminIAMSub, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to encode merchant admin roles: " + err.Error()})
+			return
+		}
+		if err := db.Model(&models.User{}).Where("iam_sub = ?", adminIAMSub).Updates(adminUpdates).Error; err != nil {
+			log.Printf("[CreateMerchant] update merchant admin mirror failed iam_sub=%s: %v", adminIAMSub, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to persist merchant admin roles: " + err.Error()})
+			return
+		}
 	}
 
 	var directlyAdded []string

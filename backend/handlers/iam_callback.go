@@ -296,10 +296,19 @@ func handleUserOrgBound(payload map[string]interface{}, c *gin.Context) {
 		// 同样走 DeriveRoles）。若 IAM 侧补齐 payload 字段，本分支立即生效。
 		derived := services.DeriveRoles(orgLevelFromPayload(payload), role, stringSlicePayload(payload, "functional_roles"))
 		updates["role"] = derived.Primary
-		updates["roles"] = derived.All
+		// #2647 R7：map Update 绕过 serializer → users.roles 显式 ?::jsonb；不得静默吞错。
+		if err := setUserRolesMirror(updates, derived.All); err != nil {
+			log.Printf("[IAMCallback] encode roles mirror failed iam_sub=%s: %v", userID, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to encode roles mirror: " + err.Error()})
+			return
+		}
 	}
 	if len(updates) > 0 {
-		db.Model(&existing).Updates(updates)
+		if err := db.Model(&existing).Updates(updates).Error; err != nil {
+			log.Printf("[IAMCallback] update user mirror failed iam_sub=%s: %v", userID, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"code": 50000, "message": "failed to update user mirror: " + err.Error()})
+			return
+		}
 	}
 
 	log.Printf("[IAMCallback] updated org for iam_sub=%s org_id=%s", userID, orgID)

@@ -960,6 +960,13 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 		// 经 DeriveRoles 统一派生。此前这里直接写 matchedRole（IAM 组织角色
 		// ADMIN/STAFF），会把派生主角色覆写成 IAM 词汇，正是本单要消除的三套口径。
 		mirror := services.DeriveRoles(orgLevels[matchedOrgID], matchedRole, nil)
+		// #2647 R9/D4：IAM 用户列表接口当前**不返回** functional_roles（跨仓补齐另立），
+		// 因此这里的 mirror.All 只由关系角色派生。用它覆盖已有多值镜像会把
+		// repair_technician / 多角色身份降级成单一 site_member —— 所以「未知不改」：
+		// 既有镜像非空时保留，并由它派生主角色；只有镜像为空才按关系角色回填。
+		if err == nil && len(existingUser.Roles) > 0 {
+			mirror = services.DeriveRoles(orgLevels[matchedOrgID], matchedRole, existingUser.Roles)
+		}
 
 		if err == gorm.ErrRecordNotFound {
 			// Create new shadow user
@@ -1007,8 +1014,18 @@ func (h *IAMProxyHandler) SyncUsers(c *gin.Context) {
 				needsUpdate = true
 			}
 			if !reflect.DeepEqual(existingUser.Roles, mirror.All) {
-				updates["roles"] = mirror.All
-				needsUpdate = true
+				// #2647 R9：取不到 functional_roles 时不得用关系角色覆盖非空镜像。
+				// 既有镜像为空 → 按关系角色回填（首次同步）；非空 → 保持（未知不改）。
+				if len(existingUser.Roles) == 0 {
+					// #2647 R7：map Update 绕过 serializer → users.roles 显式 ?::jsonb。
+					if err := setUserRolesMirror(updates, mirror.All); err != nil {
+						log.Printf("[IAMProxy] SyncUsers: failed to encode roles for user %s: %v", user.Name, err)
+						conflicts++
+						details = append(details, gin.H{"id": user.ID, "name": user.Name, "email": user.Email, "org_id": matchedOrgID, "result": "error"})
+						continue
+					}
+					needsUpdate = true
+				}
 			}
 			if existingUser.Status != user.Status {
 				updates["status"] = user.Status
