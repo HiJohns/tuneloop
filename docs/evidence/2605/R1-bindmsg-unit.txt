@@ -1,0 +1,24 @@
+# build=1.0.7dca66346 # commit=7dca66346d827a4d422071190d74f34523c5679a # dirty=false
+GENERATED_AT_HEAD=7dca66346d827a4d422071190d74f34523c5679a
+GO_TEST_CMD=cd backend && go test ./bindmsg -run '^(TestBindMsgLabels2605|TestBindMsgScope2605|TestBindMsgCoverage2605)$' -count=1 -v
+BINDMSG_UNIT_EXIT=0
+GOTEST:     bindmsg_2605_test.go:117: LABEL_NEW_2605=27
+GOTEST:     bindmsg_2605_test.go:118: LABEL_ASCII_LEAK=0
+GOTEST: --- PASS: TestBindMsgLabels2605 (0.00s)
+GOTEST:     bindmsg_2605_test.go:151: LABEL_COVERAGE_TOTAL=53
+GOTEST:     bindmsg_2605_test.go:152: LABEL_COVERAGE_MISSING=0
+GOTEST: --- PASS: TestBindMsgCoverage2605 (0.00s)
+GOTEST:     bindmsg_2605_test.go:195: SCOPE_WX_CODE=微信授权码
+GOTEST:     bindmsg_2605_test.go:196: SCOPE_CATEGORY_ITEMS=分类列表
+GOTEST:     bindmsg_2605_test.go:197: SCOPE_DEFAULT_CODE=优惠码
+GOTEST:     bindmsg_2605_test.go:198: SCOPE_DEFAULT_ITEMS=乐器列表
+GOTEST: --- PASS: TestBindMsgScope2605 (0.00s)
+GOTEST: ok  	tuneloop-backend/bindmsg	0.014s
+LABEL_NEW_2605=27
+LABEL_ASCII_LEAK=0
+LABEL_COVERAGE_MISSING=0
+SCOPE_WX_CODE=微信授权码
+SCOPE_CATEGORY_ITEMS=分类列表
+SCOPE_DEFAULT_CODE=优惠码
+SCOPE_DEFAULT_ITEMS=乐器列表
+RESULT: PASS (r1)

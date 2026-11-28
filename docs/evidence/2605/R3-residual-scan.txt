@@ -1,0 +1,26 @@
+# build=1.0.7dca66346 # commit=7dca66346d827a4d422071190d74f34523c5679a # dirty=false
+GENERATED_AT_HEAD=7dca66346d827a4d422071190d74f34523c5679a
+RESIDUAL_RB_RAW=0
+RESIDUAL_IRD_RAW=0
+RESIDUAL_IR_RAW=0
+RESIDUAL_II_RAW=0
+SITES_REPLACED_2605=22
+HANDLER_FILES_2605=9
+BINDMSG_BASE_2605=53
+BINDMSG_HEAD_2605=75
+BINDMSG_DELTA_2605=22
+BRANCH_BASE_REF=f7e69ccc84c86bb325238d951613553ebb4cddb7
+INSTRUMENT_MARSHAL_BASE=6
+INSTRUMENT_MARSHAL_HEAD=6
+OUT_OF_SCOPE_NOT_INCREASED=1
+--- per-file replaced sites ---
+REPLACED_FILE=backend/handlers/iam_orphan.go count=1
+REPLACED_FILE=backend/handlers/user_staff.go count=5
+REPLACED_FILE=backend/handlers/api.go count=3
+REPLACED_FILE=backend/handlers/lease.go count=4
+REPLACED_FILE=backend/handlers/merchant.go count=2
+REPLACED_FILE=backend/handlers/merchant_member.go count=3
+REPLACED_FILE=backend/handlers/setup.go count=1
+REPLACED_FILE=backend/handlers/site_member.go count=2
+REPLACED_FILE=backend/handlers/transit_site_admin.go count=1
+RESULT: PASS (r3)

@@ -1,0 +1,25 @@
+# build=1.0.7dca66346 # commit=7dca66346d827a4d422071190d74f34523c5679a # dirty=false
+GENERATED_AT_HEAD=7dca66346d827a4d422071190d74f34523c5679a
+GO_TEST_CMD=cd backend && go test ./handlers -run '^TestBindErrorMessages2605$' -count=1 -v (PG 15433/tuneloop_test_2605)
+GO_TEST_EXIT=0
+GOTEST:     bind_error_2605_test.go:317: BIND2605_CASES_TOTAL=44
+GOTEST:     bind_error_2605_test.go:318: BIND2605_CASES_FAIL=0
+GOTEST:     bind_error_2605_test.go:319: BIND2605_ASCII_LEAK=0
+GOTEST:     bind_error_2605_test.go:320: BIND2605_RAW_PHRASE_LEAK=0
+GOTEST:     bind_error_2605_test.go:321: BIND2605_ERROR_KEY_LEAK=0
+GOTEST:     bind_error_2605_test.go:322: BIND2605_WX_CODE_MSG=参数不合法：微信授权码不能为空
+GOTEST:     bind_error_2605_test.go:323: BIND2605_CATEGORY_ITEMS_MSG=参数不合法：分类列表不能为空
+GOTEST:     bind_error_2605_test.go:324: BIND2605_LEASE_MSG=参数不合法：乐器不能为空
+GOTEST:     bind_error_2605_test.go:325: BIND2605_SYNTAX_MSG=请求体格式不正确，请检查后重试
+GOTEST: --- PASS: TestBindErrorMessages2605 (1.26s)
+GOTEST: ok  	tuneloop-backend/handlers	2.166s
+BIND2605_CASES_TOTAL=44
+BIND2605_CASES_FAIL=0
+BIND2605_ASCII_LEAK=0
+BIND2605_RAW_PHRASE_LEAK=0
+BIND2605_ERROR_KEY_LEAK=0
+BIND2605_WX_CODE_MSG=参数不合法：微信授权码不能为空
+BIND2605_CATEGORY_ITEMS_MSG=参数不合法：分类列表不能为空
+BIND2605_LEASE_MSG=参数不合法：乐器不能为空
+BIND2605_SYNTAX_MSG=请求体格式不正确，请检查后重试
+RESULT: PASS (r2)

@@ -1,0 +1,19 @@
+# build=1.0.7dca66346 # commit=7dca66346d827a4d422071190d74f34523c5679a # dirty=false
+GENERATED_AT_HEAD=7dca66346d827a4d422071190d74f34523c5679a
+BASE_REF=083a32c9ce239a6fe34601c9bce802d591d7d837
+BASE_SCOPE=merge-base(origin/develop,HEAD)
+RED_BASE_SITES=22
+RED_BASE_FILES=9
+RED_BASE_ASCII_MESSAGES=22
+RED_HEAD_SITES=0
+--- per-file base counts ---
+BASE_SITE_FILE=backend/handlers/iam_orphan.go count=1
+BASE_SITE_FILE=backend/handlers/user_staff.go count=5
+BASE_SITE_FILE=backend/handlers/api.go count=3
+BASE_SITE_FILE=backend/handlers/lease.go count=4
+BASE_SITE_FILE=backend/handlers/merchant.go count=2
+BASE_SITE_FILE=backend/handlers/merchant_member.go count=3
+BASE_SITE_FILE=backend/handlers/setup.go count=1
+BASE_SITE_FILE=backend/handlers/site_member.go count=2
+BASE_SITE_FILE=backend/handlers/transit_site_admin.go count=1
+RESULT: PASS (r0)

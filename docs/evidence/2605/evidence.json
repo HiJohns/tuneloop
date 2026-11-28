@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "issue": 2605,
+  "build": "1.0.7dca66346",
+  "commit": "7dca66346d827a4d422071190d74f34523c5679a",
+  "dirty": false,
+  "plan_sha256": "f2efcd68f4b68f39d593201d60d94de18e9ad705bb894f7da49a6c3188b3f7b5",
+  "gate": {
+    "plan_sha256": "f2efcd68f4b68f39d593201d60d94de18e9ad705bb894f7da49a6c3188b3f7b5"
+  },
+  "tooling_commit": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
+  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2605 (branch issue-2605 stacked on dependency origin/issue-2604@f7e69ccc8, raw-literal base merge-base origin/develop=083a32c9c); static scans + bindmsg unit tests + 44-case handler contract test on one-off PG 127.0.0.1:15433 (tuneloop_test_2605) + go build/gofmt",
+  "rows": [
+    {
+      "id": "R0",
+      "command": "bash scripts/verify-2605.sh r0 > docs/evidence/2605/R0-red-baseline.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2605/R0-red-baseline.txt"
+      ],
+      "assert": "exit 0 且含 RED_BASE_SITES=22 RED_BASE_FILES=9 RED_BASE_ASCII_MESSAGES=22 RED_HEAD_SITES=0",
+      "actual": "RED_BASE_SITES=22、RED_BASE_FILES=9、RED_BASE_ASCII_MESSAGES=22（base 083a32c9c 的 9 个文件逐点计数）、RED_HEAD_SITES=0（修后 4 条字面量全 0）",
+      "expected": "PASS（4 项 token 全为期望值）",
+      "negative": "base 计数 ≠22/9、修后仍残留原文拼接 → FAIL",
+      "negative_result": "红样已实测：回退 9 个 handler 文件到分支起点后 TestBindErrorMessages2605 = 44/44 FAIL（ASCII_LEAK=44、RAW_PHRASE_LEAK=44、ERROR_KEY_LEAK=2），message 为 `invalid request body: invalid character '\\x17' …` / `Key: 'CreateLeaseRequest.InstrumentID' …`；修复后 4 条字面量归零。",
+      "pass": true
+    },
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2605.sh r1 > docs/evidence/2605/R1-bindmsg-unit.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2605/R1-bindmsg-unit.txt"
+      ],
+      "assert": "exit 0 且含 BINDMSG_UNIT_EXIT=0 LABEL_NEW_2605=27 LABEL_ASCII_LEAK=0 LABEL_COVERAGE_MISSING=0 SCOPE_WX_CODE=微信授权码 SCOPE_CATEGORY_ITEMS=分类列表 SCOPE_DEFAULT_CODE=优惠码 SCOPE_DEFAULT_ITEMS=乐器列表",
+      "actual": "BINDMSG_UNIT_EXIT=0；LABEL_NEW_2605=27、LABEL_ASCII_LEAK=0、LABEL_COVERAGE_MISSING=0（53 字段 = 27 新增 + 26 既有）；SCOPE_WX_CODE=微信授权码、SCOPE_CATEGORY_ITEMS=分类列表、SCOPE_DEFAULT_CODE=优惠码、SCOPE_DEFAULT_ITEMS=乐器列表",
+      "expected": "PASS（8 项 token 全为期望值）",
+      "negative": "称呼含 ASCII、漏登记字段、默认作用域漂移 → FAIL",
+      "negative_result": "实测：`user_ids` 在原全局表缺失（计划记为「已登记」），补登记为「用户列表」后 53 字段全覆盖；默认作用域未被 ScopeWx/ScopeCategory 改写（code=优惠码、items=乐器列表）。",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2605.sh r2 > docs/evidence/2605/R2-handler-messages.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2605/R2-handler-messages.txt"
+      ],
+      "assert": "exit 0 且含 GO_TEST_EXIT=0 BIND2605_CASES_TOTAL=44 BIND2605_CASES_FAIL=0 BIND2605_ASCII_LEAK=0 BIND2605_RAW_PHRASE_LEAK=0 BIND2605_ERROR_KEY_LEAK=0 BIND2605_WX_CODE_MSG=参数不合法：微信授权码不能为空 BIND2605_CATEGORY_ITEMS_MSG=参数不合法：分类列表不能为空 BIND2605_LEASE_MSG=参数不合法：乐器不能为空 BIND2605_SYNTAX_MSG=请求体格式不正确，请检查后重试",
+      "actual": "GO_TEST_EXIT=0；BIND2605_CASES_TOTAL=44、CASES_FAIL=0、ASCII_LEAK=0、RAW_PHRASE_LEAK=0、ERROR_KEY_LEAK=0；微信/分类/租约/语法四类逐字中文（一次性 PG 15433/tuneloop_test_2605）",
+      "expected": "PASS（10 项 token 全为期望值）",
+      "negative": "任一端点含 Go/JSON 原文或 ASCII 字母、HTTP/code 漂移、响应体仍带 error 键、用例数 <44 → FAIL",
+      "negative_result": "红样（回退 9 文件到 f7e69ccc8）：44/44 FAIL，message 为 `Invalid input: Key: 'Name' …` / `Invalid request data: Key: 'Items' …` / `invalid character '\\x17' in string literal`，且 CreateCategory 两例仍带 error 键（ERROR_KEY_LEAK=2）；修复后全部为中文、code 保持 40000×8 / 40001×36。",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2605.sh r3 > docs/evidence/2605/R3-residual-scan.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2605/R3-residual-scan.txt"
+      ],
+      "assert": "exit 0 且含 RESIDUAL_RB_RAW=0 RESIDUAL_IRD_RAW=0 RESIDUAL_IR_RAW=0 RESIDUAL_II_RAW=0 SITES_REPLACED_2605=22 HANDLER_FILES_2605=9 BINDMSG_DELTA_2605=22 OUT_OF_SCOPE_NOT_INCREASED=1",
+      "actual": "RESIDUAL_RB/IRD/IR/II_RAW=0/0/0/0；SITES_REPLACED_2605=22（iam_orphan 1 / user_staff 5 / api 3 / lease 4 / merchant 2 / merchant_member 3 / setup 1 / site_member 2 / transit 1）；HANDLER_FILES_2605=9；BINDMSG_BASE_2605=53 → HEAD 75（增量 22）；instrument.go 不可达 Marshal 分支 6→6（未增加）",
+      "expected": "PASS（8 项 token 全为期望值）",
+      "negative": "残留目标字面量、替换点/文件数不符、越界改动其它族 → FAIL",
+      "negative_result": "实测：4 条目标字面量在各文件均归零（任一残留即 RESIDUAL_*≠0）；替换点 22 / 文件 9 与计划 22 处落点表逐条一致；instrument.go（#2606 范围）计数未变。",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2605.sh r4 > docs/evidence/2605/R4-build-compile.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2605/R4-build-compile.txt"
+      ],
+      "assert": "exit 0 且含 GO_BUILD_EXIT=0 GOFMT_DIFF=0 TEST_COMPILE_EXIT=0",
+      "actual": "GO_BUILD_EXIT=0、GOFMT_DIFF=0（12 个改动文件）、TEST_COMPILE_EXIT=0（handlers 包 -run '^$' 编译冒烟）",
+      "expected": "PASS（3 项 token 全为期望值）",
+      "negative": "构建失败 / gofmt 差异 / 测试包编译失败 → FAIL",
+      "negative_result": "构建失败、gofmt 有差异、handlers 包编译失败时对应 token 非 0 → FAIL。",
+      "pass": true
+    }
+  ]
+}

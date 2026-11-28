@@ -1,0 +1,13 @@
+# build=1.0.7dca66346 # commit=7dca66346d827a4d422071190d74f34523c5679a # dirty=false
+GENERATED_AT_HEAD=7dca66346d827a4d422071190d74f34523c5679a
+GO_BUILD_CMD=cd backend && go build ./...
+GO_BUILD_EXIT=0
+BUILD_TAIL: [heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 at_ms=1795846923327 wait_ms=172
+BUILD_TAIL: [heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 wait_ms=172
+BUILD_TAIL: [heavy-lock] released scope=host slot=0 rc=0 at_ms=1795846933418 hold_ms=10091
+GOFMT_DIFF=0
+TEST_COMPILE_EXIT=0
+COMPILE_TAIL: [heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 wait_ms=170
+COMPILE_TAIL: ok  	tuneloop-backend/handlers	0.463s [no tests to run]
+COMPILE_TAIL: [heavy-lock] released scope=host slot=0 rc=0 at_ms=1795846938351 hold_ms=4602
+RESULT: PASS (r4)
