@@ -1,5 +1,5 @@
 # build=1.0.38e6be443 # commit=38e6be4435e17c6f612b703798d0a02365dd1f16 # dirty=false
-GENERATED_AT_HEAD=38e6be4435e17c6f612b703798d0a02365dd1f16
+GENERATED_AT_HEAD=28ee8b7713b3ca69797098ba23ab87a78f9fc36b
 # 9 个直连点 + 共享解析器 + 跨租户负例 = 11 子用例（handler 直调 + 一次性 PG）
 BACKEND_CMD=cd backend && go test ./handlers -run '^TestSelfQueryTenantScope2621$' -count=1 -v
 self_query_tenant_scope_2621_test.go:160: POINTS_BALANCE_HTTP=200

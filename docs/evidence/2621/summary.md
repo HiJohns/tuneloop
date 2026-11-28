@@ -102,6 +102,7 @@
 ### Pre-ready gate
 
 - 命令：`~/.config/opencode/scripts/pre-ready-check.sh 2621 --summary-file docs/evidence/2621/summary.md --changed-files docs/evidence/2621/changed-files.txt --evidence-file docs/evidence/2621/evidence.json --affected-cmd "bash scripts/verify-2621.sh r2" --report docs/evidence/2621/pre-ready-2621.json`
+- 结果：RESULT: PASS（overall=PASS）。P1/P2/P3/P4/P6/P11/P12/P13/P14/P17/P18 PASS；P5 N/A（仓库根无 go.mod/package.json，构建与编译冒烟见 R3）；P7/P8/P9/P10/P15/P16 N/A。
 - 报告：docs/evidence/2621/pre-ready-2621.json
 
 *Model: deepseek/deepseek-flash*
