@@ -288,6 +288,12 @@ func handleUserOrgBound(payload map[string]interface{}, c *gin.Context) {
 		// #2626 D1/D2：本地 users.role / users.roles 只是 IAM 的派生镜像 ——
 		// 组织角色（payload.role）+ 功能角色（payload.functional_roles[]）由
 		// DeriveRoles 统一派生，禁止把 IAM 原文直接写进业务角色列。
+		//
+		// 说明（Round 1 audit #4）：beaconiam 目前唯一的 `user.org_bound` 派发
+		// （internal/auth/handler.go）只发 {user_id,email,status}，不带 role /
+		// functional_roles，因此本分支是**防御性/未来事件**路径，不是生产刷新点。
+		// 生产可用的刷新路径 = `POST /api/iam/users/sync`（iam_proxy.go SyncUsers，
+		// 同样走 DeriveRoles）。若 IAM 侧补齐 payload 字段，本分支立即生效。
 		derived := services.DeriveRoles(orgLevelFromPayload(payload), role, stringSlicePayload(payload, "functional_roles"))
 		updates["role"] = derived.Primary
 		updates["roles"] = derived.All

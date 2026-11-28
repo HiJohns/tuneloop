@@ -1,4 +1,10 @@
-## Accepted Plan — #2626 用户角色权威与术语收敛（Owner 2026-11-28 裁定：IAM 权威 + 一人多角色 + 存储层用 IAM 术语）｜Rev.2（采纳 Packet A：R3 降级为静态+ops 回执；R6 收敛；db.go 登记）
+## Accepted Plan — #2626 用户角色权威与术语收敛（Owner 2026-11-28 裁定：IAM 权威 + 一人多角色 + 存储层用 IAM 术语）｜Rev.2（采纳 Packet A：R3 降级为静态+ops 回执；R6 收敛；db.go 登记）｜Rev.3（Files +3、R2 扩至 5 写侧+allowlist、R4 数据源行、既有断言、D1 过渡兜底）
+> **Rev.3 说明（按 Round 1 audit 逐条回填）**：
+> ① `### Files` 追加 `backend/handlers/merchant.go`、`backend/handlers/iam_proxy.go`、`frontend-pc/tests/staffForm.test.js`；
+> ② **R2 扫描面 3 → 5 个写侧**（`iam_callback.go` / `merchant_member.go` / `user_staff.go` / `merchant.go` / `iam_proxy.go`），`WRITE_SITES=5`，并新增 **allowlist**（`role_derive.go` 内的优先级表与测试字面量豁免）与负例「allowlist 外仍出现内联 `site_member` 字面量 → FAIL」；
+> ③ **R4 增数据源行**：明确 `roles[]` 来源 = IAM `functional_roles` 镜像（不是页面自造），断言 `ROLES_SOURCE=iam`；
+> ④ 新增 **`### 既有断言影响`** 段（列出被翻转的断言）；
+> ⑤ **D1 追加过渡兜底**：镜像列尚未回填完时，读侧回退链 = `users.roles` → IAM 关系（实时）→ `users.role`，且**只允许该回退存在于读侧**，写侧不得据此回写。
 > **Rev.2 说明（采纳 Investigation Packet option A）**：
 > ① `### Files` 追加 `backend/database/db.go`（`defaultMigrationArtifacts` 登记）、`backend/database/db_artifacts_2626_test.go`；
 > ② **R3 改为静态可判定**：断言 up.sql 含 `ADD COLUMN IF NOT EXISTS roles jsonb NOT NULL DEFAULT '[]'` 与列注释、down.sql 含 `DROP COLUMN IF EXISTS roles`、`defaultMigrationArtifacts` 登记 `{20261128001,"users","roles"}`、`models.User.Roles` 存在；**真实 up/down 执行**转 `waitForConfirm`（Owner 指定库与清理方式）；
@@ -43,9 +49,9 @@
 | 变更点 | 文件/组件 | 入口 | 触发状态 | 平台 | 期望 | 证据 |
 |---|---|---|---|---|---|---|
 | 派生函数（单值/多值/平台角色） | `backend/services/role_derive.go` | `go test ./services` | `ADMIN+[site_admin]`、`ADMIN+[merchant_staff,site_member]`、`OWNER+[namespace_admin]`、`STAFF+[]` | backend | `DERIVE_PRIMARY_SITE_ADMIN=site_admin`、`DERIVE_PRIMARY_MULTI=merchant_staff`、`DERIVE_ALL_LEN=2`、`DERIVE_NAMESPACE_ADMIN_KEPT=1` | R1 |
-| 三处写路径收口（静态） | `iam_callback.go`、`merchant_member.go`、`user_staff.go` | `bash scripts/verify-2626.sh r2` | 修后树 | backend（静态） | `WRITE_SITES=3`、`WRITE_INLINE_LITERAL=0`、`MIRROR_WRITE_DELEGATED=1` | R2 |
+| 五处写路径收口（静态 + allowlist） | `iam_callback.go`、`merchant_member.go`、`user_staff.go`、`merchant.go`、`iam_proxy.go` | `bash scripts/verify-2626.sh r2` | 修后树 | backend（静态） | `WRITE_SITES=5`、`WRITE_INLINE_LITERAL=0`、`MIRROR_WRITE_DELEGATED=1`、`ALLOWLIST_HITS=0` | R2 |
 | 多值镜像列（静态可判定）+ 真实执行 | 两个 2626 迁移文件、`models.User`、`backend/database/db.go` | `bash scripts/verify-2626.sh r3`（静态）；执行走 waitForConfirm | 修后树 | backend（静态） | `COLUMN_ROLES_EXISTS=1`、`BACKFILL_NO_GUESS=1`、`DOWN_REMOVES_COLUMN=1`、`ARTIFACT_REGISTERED=1`、`MODEL_FIELD_EXISTS=1` | R3 |
-| 读侧派生（PC） | `frontend-pc/src/utils/staffForm.js`、相关页面 | `node --test` | `roles:["site_member","repair_technician"]` 等 | PC | `PC_USES_ROLES_SET=1`、`PC_READS_USERS_ROLE=0` | R4 |
+| 读侧派生（PC）+ 数据源 | `frontend-pc/src/utils/staffForm.js`、相关页面 | `node --test` | `roles:["site_member","repair_technician"]` 等 | PC | `PC_USES_ROLES_SET=1`、`PC_READS_USERS_ROLE=0`、`ROLES_SOURCE=iam`（镜像来自 IAM `functional_roles`，页面不得自造） | R4 |
 | 术语清理（文档/注释） | `docs/spec/permissions.md`、`docs/spec/api/api.md`、相关代码注释 | `bash scripts/verify-2626.sh r5` | 修后树 | docs | `DOC_TERM_DOMAIN_ROLE=0`、`DOC_TERM_SET_OK=1`、`DOC_ROLES_FIELD=1` | R5 |
 | 不引入单值判据（收敛） | `scripts/verify-2626.sh` | `bash scripts/verify-2626.sh r6` | 修后树 | static | `RECON_SINGLE_ONLY=0`、`SINGLE_VALUE_JUDGE_RESIDUAL=0` | R6 |
 
@@ -60,7 +66,7 @@
 
 | ID | 项 | 裁定 |
 |---|---|---|
-| D1 | 权威来源 | **IAM `user_org_relations`**（`role` + `functional_roles[]`）；本地为镜像 |
+| D1 | 权威来源 | **IAM `user_org_relations`**（`role` + `functional_roles[]`）；本地为镜像。**过渡兜底（只读侧）**：`users.roles` → IAM 关系实时查询 → `users.role`；写侧**禁止**据此回写 |
 | D2 | 多角色 | 一人可多角色；镜像存**多值**（`users.roles jsonb`），`users.role` = 派生主角色 |
 | D3 | 存储术语 | 只写 `org_id` / `role` / `functional_roles[]`；**禁止**复合列（`*_admin`/`*_staff`） |
 | D4 | 派生优先级 | `merchant_admin > site_admin > repair_technician > merchant_staff > site_member`；`namespace_admin`/`sys_admin` 直接保留 |
@@ -68,6 +74,16 @@
 | D6 | 术语 | 废弃「域角色」；统一「组织角色 / 功能角色 / 组织级别」三词 |
 | D7 | 删列时机 | 本单**不删** `users.role`；三步走后另立 Issue |
 | **D8** | 迁移证据口径 | 迁移**只在代码侧可判定**（文本 + 工件登记 + 模型字段）；真实 up/down 执行由 `waitForConfirm` 回执（Owner 指定库与清理方式）；迁移**不写猜测值**（`BACKFILL_NO_GUESS=1`） |
+
+### 既有断言影响（翻转清单）
+
+| 断言 | 位置 | 旧期望 | 新期望 |
+|---|---|---|---|
+| `resolveInitialRole` 读单值 | `frontend-pc/src/utils/staffForm.js` | 返回 `user.role` | 返回 `roles[0]`（集合优先），`user.role` 仅在集合为空时兜底 |
+| `TestCreateOrg_ExistingAdminGetsOwnerRole` 一类「handler 不校验调用者」 | `backend/handlers/*_test.go` | 依赖宽松调用 | 由 #515 起已按角色断言（本单不重复翻转，仅登记） |
+| 写侧硬编码 `"site_member"` | `merchant_member.go:256/308` | 直接写常量 | 调 `DeriveRoles` 得镜像 |
+
+> 口径：本单**只翻转**与「单值判据」直接相关的断言；其余保持。
 
 ### Out of Scope
 
@@ -81,7 +97,7 @@
 | R | fixture | 执行 | 产物 | 断言 | 负例 |
 |---|---|---|---|---|---|
 | R1 | 表驱动 4 组（单值/多值/平台角色/空） | `go test ./services -run TestDeriveRoles2626 -v` | `docs/evidence/2626/R1-derive.txt` | `DERIVE_PRIMARY_SITE_ADMIN=site_admin`、`DERIVE_PRIMARY_MULTI=merchant_staff`、`DERIVE_ALL_LEN=2`、`DERIVE_NAMESPACE_ADMIN_KEPT=1` | 多值只取第一个、平台角色被改写成 merchant_admin、空角色报错 → FAIL |
-| R2 | 修后树静态扫描 3 文件 | `bash scripts/verify-2626.sh r2` | `docs/evidence/2626/R2-write-sites.txt` | `WRITE_SITES=3`、`WRITE_INLINE_LITERAL=0`、`MIRROR_WRITE_DELEGATED=1` | 任一写侧仍内联 `"site_member"` 字面量 → FAIL |
+| R2 | 修后树静态扫描 5 文件（含 allowlist） | `bash scripts/verify-2626.sh r2` | `docs/evidence/2626/R2-write-sites.txt` | `WRITE_SITES=5`、`WRITE_INLINE_LITERAL=0`、`MIRROR_WRITE_DELEGATED=1`、`ALLOWLIST_HITS=0` | 任一写侧仍内联 `"site_member"` 字面量；allowlist 外出现字面量 → FAIL |
 | R3 | 修后树静态（up/down 文本、db.go 登记、模型字段） | `bash scripts/verify-2626.sh r3` | `docs/evidence/2626/R3-mirror-column.txt` | `COLUMN_ROLES_EXISTS=1`、`BACKFILL_NO_GUESS=1`、`DOWN_REMOVES_COLUMN=1`、`ARTIFACT_REGISTERED=1`、`MODEL_FIELD_EXISTS=1` | up 无 `ADD COLUMN IF NOT EXISTS`、down 无 `DROP COLUMN IF EXISTS`、db.go 未登记工件、模型缺 `Roles`、SQL 内写猜测值 → 任一即 FAIL；**真实执行结果不由本行承担**（见 `waitForConfirm` 回执） |
 | R4 | `staffForm` 集合用例 | `node --test frontend-pc/tests/staffForm*.test.mjs` | `docs/evidence/2626/R4-pc-derive.txt` | `PC_USES_ROLES_SET=1`、`PC_READS_USERS_ROLE=0` | 仍读 `user.role` 单值 → FAIL |
 | R5 | 文档/注释静态扫描 | `bash scripts/verify-2626.sh r5` | `docs/evidence/2626/R5-terms.txt` | `DOC_TERM_DOMAIN_ROLE=0`、`DOC_TERM_SET_OK=1`、`DOC_ROLES_FIELD=1` | 仍出现「域角色」、权限文档未写 `roles[]` → FAIL |
@@ -92,9 +108,9 @@
 | 行 ID | 命令 | 产物 | 断言 | 期望 | 负例 | 责任人 |
 |---|---|---|---|---|---|---|
 | R1 | `bash scripts/verify-2626.sh r1 > docs/evidence/2626/R1-derive.txt` | `docs/evidence/2626/R1-derive.txt` | exit 0 且含 `DERIVE_PRIMARY_SITE_ADMIN=site_admin` `DERIVE_PRIMARY_MULTI=merchant_staff` `DERIVE_ALL_LEN=2` `DERIVE_NAMESPACE_ADMIN_KEPT=1` | PASS（4 项 token） | 优先级错、平台角色被改写 → FAIL | dev |
-| R2 | `bash scripts/verify-2626.sh r2 > docs/evidence/2626/R2-write-sites.txt` | `docs/evidence/2626/R2-write-sites.txt` | exit 0 且含 `WRITE_SITES=3` `WRITE_INLINE_LITERAL=0` `MIRROR_WRITE_DELEGATED=1` | PASS（3 项 token） | 内联字面量 → FAIL | dev |
+| R2 | `bash scripts/verify-2626.sh r2 > docs/evidence/2626/R2-write-sites.txt` | `docs/evidence/2626/R2-write-sites.txt` | exit 0 且含 `WRITE_SITES=5` `WRITE_INLINE_LITERAL=0` `MIRROR_WRITE_DELEGATED=1` `ALLOWLIST_HITS=0` | PASS（4 项 token） | 内联字面量 / allowlist 外命中 → FAIL | dev |
 | R3 | `bash scripts/verify-2626.sh r3 > docs/evidence/2626/R3-mirror-column.txt` | `docs/evidence/2626/R3-mirror-column.txt` | exit 0 且含 `COLUMN_ROLES_EXISTS=1` `BACKFILL_NO_GUESS=1` `DOWN_REMOVES_COLUMN=1` `ARTIFACT_REGISTERED=1` `MODEL_FIELD_EXISTS=1` | PASS（5 项 token） | 迁移文本/工件登记/模型字段任一不符 → FAIL | dev |
-| R4 | `bash scripts/verify-2626.sh r4 > docs/evidence/2626/R4-pc-derive.txt` | `docs/evidence/2626/R4-pc-derive.txt` | exit 0 且含 `PC_USES_ROLES_SET=1` `PC_READS_USERS_ROLE=0` | PASS（2 项 token） | 仍读单值 → FAIL | dev |
+| R4 | `bash scripts/verify-2626.sh r4 > docs/evidence/2626/R4-pc-derive.txt` | `docs/evidence/2626/R4-pc-derive.txt` | exit 0 且含 `PC_USES_ROLES_SET=1` `PC_READS_USERS_ROLE=0` `ROLES_SOURCE=iam` | PASS（3 项 token） | 仍读单值 / 数据源自造 → FAIL | dev |
 | R5 | `bash scripts/verify-2626.sh r5 > docs/evidence/2626/R5-terms.txt` | `docs/evidence/2626/R5-terms.txt` | exit 0 且含 `DOC_TERM_DOMAIN_ROLE=0` `DOC_TERM_SET_OK=1` `DOC_ROLES_FIELD=1` | PASS（3 项 token） | 仍有「域角色」→ FAIL | dev |
 | R6 | `bash scripts/verify-2626.sh r6 > docs/evidence/2626/R6-recon.txt` | `docs/evidence/2626/R6-recon.txt` | exit 0 且含 `RECON_SINGLE_ONLY=0` `SINGLE_VALUE_JUDGE_RESIDUAL=0` | PASS（2 项 token） | 仍以单值为判据 → FAIL | dev |
 
@@ -145,8 +161,11 @@
 - `backend/handlers/iam_callback.go`
 - `backend/handlers/merchant_member.go`
 - `backend/handlers/user_staff.go`
+- `backend/handlers/merchant.go`（写侧 #4：商户管理员角色派生）
+- `backend/handlers/iam_proxy.go`（写侧 #5：IAM 代理层的角色映射）
 - `frontend-pc/src/utils/staffForm.js`
 - `frontend-pc/tests/staffForm.test.mjs`
+- `frontend-pc/tests/staffForm.test.js`（集合用例：`roles[]` 优先 + 回退链）
 - `docs/spec/permissions.md`
 - `docs/spec/api/api.md`
 - `scripts/verify-2626.sh`

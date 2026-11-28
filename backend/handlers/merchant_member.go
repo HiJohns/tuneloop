@@ -279,9 +279,13 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 					}
 				}
 
+				// #2626 观察项：这里的 role 是**功能角色模板码**，仅用于 IAM 关系绑定
+				// 与模板分配（BindUserToOrganization / AssignRoleTemplate），
+				// **不写入 `users.role` / `users.roles`** —— 本地镜像另由上方
+				// DeriveRoles 产出（D1/D2）。
 				role := nu.Role
 				if role == "" {
-					role = "site_member"
+					role = services.RoleSiteMember
 				}
 				usersToProcess = append(usersToProcess, map[string]interface{}{
 					"user_id": userResult.UserID,
@@ -317,9 +321,10 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 			if err := db.Create(&localUser).Error; err != nil {
 				log.Printf("[MerchantAddMember] Failed to create local user %s: %v", userResult.UserID, err)
 			}
+			// #2626 观察项：同上，功能角色模板码仅用于 IAM 绑定，不写本地镜像列。
 			role := nu.Role
 			if role == "" {
-				role = "site_member"
+				role = services.RoleSiteMember
 			}
 			usersToProcess = append(usersToProcess, map[string]interface{}{
 				"user_id": userResult.UserID,

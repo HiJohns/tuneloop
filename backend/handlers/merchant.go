@@ -458,12 +458,17 @@ func (h *MerchantHandler) CreateMerchant(c *gin.Context) {
 		}
 	}
 
-	// Update local user record with org_id, tenant_id and role
+	// Update local user record with org_id, tenant_id and role.
+	// #2626 D1/D2：users.role / users.roles 只是 IAM 的派生镜像 —— 新建商户的
+	// 管理员在 IAM 侧是「merchant 级组织的 OWNER + merchant_admin 功能角色」，
+	// 必须经 DeriveRoles 统一派生后同时写主角色与多值镜像，禁止在此内联赋值。
 	if adminIAMSub != "" && iamOrgID != "" {
+		mirror := services.DeriveRoles(services.OrgLevelMerchant, services.IAMRoleOwner, []string{services.RoleMerchantAdmin})
 		db.Model(&models.User{}).Where("iam_sub = ?", adminIAMSub).Updates(map[string]interface{}{
 			"org_id":    iamOrgID,
 			"tenant_id": iamOrgID,
-			"role":      "merchant_admin",
+			"role":      mirror.Primary,
+			"roles":     mirror.All,
 			"status":    "active",
 		})
 	}

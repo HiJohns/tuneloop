@@ -45,9 +45,20 @@ DIRTY=false
 PROV="# build=1.0.$FIX_SHORT # commit=$FIX_SHA # dirty=$DIRTY"
 TREE_LINE="# tree=$HEAD_SHA"
 
-HANDLERS=("backend/handlers/iam_callback.go" "backend/handlers/merchant_member.go" "backend/handlers/user_staff.go")
+HANDLERS=("backend/handlers/iam_callback.go" "backend/handlers/merchant_member.go" "backend/handlers/user_staff.go" "backend/handlers/merchant.go" "backend/handlers/iam_proxy.go")
 MIG_UP="backend/database/migrations/20261128001_users_roles_mirror_2626.up.sql"
 MIG_DOWN="backend/database/migrations/20261128001_users_roles_mirror_2626.down.sql"
+PC_STAFF_FORM="frontend-pc/src/utils/staffForm.js"
+
+# 功能角色码（与 services/role_derive.go 的常量集合一致）。
+ROLE_CODES='site_member|site_admin|merchant_staff|merchant_admin|repair_technician|namespace_admin|sys_admin'
+# 声明写侧内的内联字面量：结构体字段 / map key / 下游 map 赋值三种 users 镜像写法
+# （下游 map 形态不限变量名：`updates["role"] = "…"`、`m["roles"] = "…"` 都算）。
+ROLE_LITERAL_WRITE_RE="(\\bRole:[[:space:]]*\"|\"(role|roles)\"[[:space:]]*:[[:space:]]*\"|[A-Za-z_][A-Za-z0-9_]*\\[\"(role|roles)\"\\][[:space:]]*=[[:space:]]*\")(site_member|site_admin|merchant_staff|merchant_admin|repair_technician|namespace_admin|sys_admin)\""
+# 全目录扫描只用 map key 形态（`"role": "…"` / `m["role"] = "…"`）——这两条是
+# users 镜像的直接写入惯用法；结构体字段 `Role:` 还被 site_members / merchant_members /
+# staff_invites 等非 users 表合法使用（见 R2 artifact 的 STRUCT_ROLE_LEGACY 清单）。
+MIRROR_MAP_LITERAL_RE="(\"(role|roles)\"[[:space:]]*:[[:space:]]*\"|[A-Za-z_][A-Za-z0-9_]*\\[\"(role|roles)\"\\][[:space:]]*=[[:space:]]*\")(site_member|site_admin|merchant_staff|merchant_admin|repair_technician|namespace_admin|sys_admin)\""
 HEAVY_RUN="${OPENCODE_HEAVY_RUN:-$HOME/.config/opencode/scripts/heavy-run.sh}"
 
 LOG="$REPO/tmp/verify-2626-${MODE}.log"
@@ -90,6 +101,8 @@ case "$MODE" in
   r2)
     NAME="R2-write-sites.txt"
     provenance
+    # 写侧收口（Rev.3）：5 个声明写侧都必须「调 DeriveRoles + 同时写主角色与多值镜像」，
+    # 且不得出现内联角色字面量。
     sites=0
     inline=0
     delegated=0
@@ -98,7 +111,7 @@ case "$MODE" in
       derive_calls="$(grep -c 'services\.DeriveRoles(' "$f" || true)"
       mirror_writes="$(grep -cE '(mirror\.Primary|derived\.Primary)' "$f" || true)"
       mirror_all="$(grep -cE '(mirror\.All|derived\.All)' "$f" || true)"
-      literals="$(grep -cE '(Role:|\bRole\s*=\s*)["'"'"'](site_member|site_admin|merchant_staff|merchant_admin|repair_technician)["'"'"']' "$f" || true)"
+      literals="$(grep -cE "$ROLE_LITERAL_WRITE_RE" "$f" || true)"
       emit "FILE=$f derive_calls=$derive_calls mirror_primary=$mirror_writes mirror_all=$mirror_all inline_literals=$literals"
       [ "${derive_calls:-0}" -gt 0 ] && sites=$((sites + 1))
       if [ "${derive_calls:-0}" -gt 0 ] && [ "${mirror_writes:-0}" -gt 0 ] && [ "${mirror_all:-0}" -gt 0 ]; then
@@ -108,10 +121,54 @@ case "$MODE" in
     done
     emit "WRITE_SITES=$sites"
     emit "WRITE_INLINE_LITERAL=$inline"
-    if [ "$delegated" = "3" ]; then emit "MIRROR_WRITE_DELEGATED=1"; else emit "MIRROR_WRITE_DELEGATED=0"; fi
-    require 'WRITE_SITES=3'
+    if [ "$delegated" = "${#HANDLERS[@]}" ]; then emit "MIRROR_WRITE_DELEGATED=1"; else emit "MIRROR_WRITE_DELEGATED=0"; fi
+
+    # 全目录扫描（Round 1 audit 失败项 1）：只扫声明的 5 个文件是自证式断言
+    # （WRITE_SITES 恒等于声明清单）。这里再扫 backend/handlers 下**全部非测试**
+    # Go 文件，任何把功能角色字面量直接写进 `"role":` / `updates["role"]` 的地方
+    # 都必须暴露，避免 users 镜像继续漂移。
+    HANDLER_PROD_FILES="$(ls backend/handlers/*.go 2>/dev/null | grep -v '_test\.go$' | grep -v '/role_derive\.go$')"
+    DIR_LITERALS=0
+    DIR_HITS=""
+    for f in $HANDLER_PROD_FILES; do
+      hits="$(grep -nE "$MIRROR_MAP_LITERAL_RE" "$f" || true)"
+      if [ -n "$hits" ]; then
+        DIR_LITERALS=$((DIR_LITERALS + $(printf '%s\n' "$hits" | wc -l)))
+        DIR_HITS="$DIR_HITS
+$(printf '%s\n' "$hits" | sed "s|^|DIR_LITERAL: $f:|")"
+      fi
+    done
+    emit "HANDLERS_DIR_SCANNED=$(printf '%s\n' $HANDLER_PROD_FILES | wc -l)"
+    emit "WRITE_SITES_DIR_LITERALS=$DIR_LITERALS"
+    [ -z "$DIR_HITS" ] || printf '%s\n' "$DIR_HITS" >> "$LOG"
+    # 透明登记：非 users 表的结构体字段 Role 字面量（不在本单收敛面内，D7/OOS）。
+    grep -lE "\bRole:[[:space:]]*\"($ROLE_CODES)\"" $HANDLER_PROD_FILES 2>/dev/null \
+      | sed 's/^/STRUCT_ROLE_LEGACY: /' >> "$LOG" || true
+
+    # allowlist：`role_derive.go`（唯一字面量来源，按设计豁免）与 `*_test.go`
+    # （fixture）由上面的文件集排除；handler 里若确需例外，必须显式标注
+    # `#2626 allowlist:` 并在此计数 —— 本单要求 0（不允许例外）。
+    ALLOWLIST_HITS="$(grep -rh '#2626 allowlist:' $HANDLER_PROD_FILES 2>/dev/null | wc -l || true)"
+    emit "ALLOWLIST_HITS=${ALLOWLIST_HITS:-0}"
+
+    # 负例自检（证明断言器不是盲的）：注入两条内联字面量写法，检测器必须命中。
+    NEG_DIR="$REPO/tmp/verify-2626-r2-neg"; rm -rf "$NEG_DIR"; mkdir -p "$NEG_DIR"
+    printf 'package handlers\n\nfunc synthetic() map[string]interface{} {\n\tm := map[string]interface{}{"role": "site_member"}\n\tm["roles"] = "site_admin"\n\treturn m\n}\n' > "$NEG_DIR/synthetic.go"
+    NEG_HITS="$(grep -cE "$MIRROR_MAP_LITERAL_RE" "$NEG_DIR/synthetic.go" || true)"
+    NEG_PER_FILE="$(grep -cE "$ROLE_LITERAL_WRITE_RE" "$NEG_DIR/synthetic.go" || true)"
+    if [ "${NEG_HITS:-0}" -ge 2 ] && [ "${NEG_PER_FILE:-0}" -ge 2 ]; then
+      emit "R2_NEGATIVE_CONTROL=1"
+    else
+      emit "R2_NEGATIVE_CONTROL=0"
+    fi
+    emit "NEGATIVE_SAMPLE=$NEG_DIR/synthetic.go dir_hits=${NEG_HITS:-0} per_file_hits=${NEG_PER_FILE:-0}"
+
+    require "WRITE_SITES=${#HANDLERS[@]}"
     require 'WRITE_INLINE_LITERAL=0'
     require 'MIRROR_WRITE_DELEGATED=1'
+    require 'WRITE_SITES_DIR_LITERALS=0'
+    require 'ALLOWLIST_HITS=0'
+    require 'R2_NEGATIVE_CONTROL=1'
     ;;
 
   r3)
@@ -145,20 +202,45 @@ case "$MODE" in
   r4)
     NAME="R4-pc-derive.txt"
     provenance
+    export PATH="$HOME/.nvm/versions/node/v22.22.3/bin:$PATH"
     TEST_LOG="$REPO/tmp/verify-2626-r4-node.log"
-    ( cd "$REPO" && node --test frontend-pc/tests/staffForm.test.mjs ) > "$TEST_LOG" 2>&1
+    # 集合用例（Rev.3：`roles[]` 优先 + 回退链）与 #2483 既有单测一并执行 ——
+    # 后者是被翻转的断言（单值输入 → 集合输入），必须仍在同一套语义下通过。
+    ( cd "$REPO" && node --test frontend-pc/tests/staffForm.test.mjs frontend-pc/src/utils/staffForm.test.js ) > "$TEST_LOG" 2>&1
     NODE_RC=$?
-    emit "TEST_CMD=node --test frontend-pc/tests/staffForm.test.mjs"
+    emit "TEST_CMD=node --test frontend-pc/tests/staffForm.test.mjs frontend-pc/src/utils/staffForm.test.js"
     emit "NODE_TEST_EXIT=$NODE_RC"
     grep -E '^# (tests|pass|fail)' "$TEST_LOG" | sed 's/^/NODE: /' >> "$LOG"
     USES_SET=0
-    if grep -qE 'Array\.isArray\(user\?\.roles\)' frontend-pc/src/utils/staffForm.js && grep -q 'roleSet(' frontend-pc/src/utils/staffForm.js; then USES_SET=1; fi
-    READS_SINGLE="$(grep -cE '\buser\??\.role\b' frontend-pc/src/utils/staffForm.js || true)"
+    if grep -qE 'Array\.isArray\(user\?\.roles\)' "$PC_STAFF_FORM" && grep -q 'roleSet(' "$PC_STAFF_FORM"; then USES_SET=1; fi
+    READS_SINGLE="$(grep -cE '\buser\??\.role\b' "$PC_STAFF_FORM" || true)"
+    # ROLES_SOURCE=iam（Rev.3）：镜像来源必须是 IAM functional_roles 的后端派生，
+    # 页面既不自造 roles，也不把单值字段当来源：
+    #   a) staffForm.js 不写 roles（无 `.roles =` / `roles:` 赋值）；
+    #   b) 后端派生实现存在（DeriveRoles）；读侧下发点是 GetStaffUser 的镜像字段；
+    #   c) 迁移列注释声明「派生自 IAM」。
+    ROLES_SOURCE=0
+    PAGE_WRITES_ROLES="$(grep -cE '\.roles[[:space:]]*=[^=]' "$PC_STAFF_FORM" || true)"
+    DERIVER_OK=0
+    grep -q 'func DeriveRoles(' backend/services/role_derive.go && DERIVER_OK=1
+    READ_PATH_OK=0
+    grep -q 'mirrorRolesForRead' backend/handlers/user_staff.go && READ_PATH_OK=1
+    MIG_SOURCE_OK=0
+    grep -qi 'IAM' "$MIG_UP" && grep -qi 'functional_roles' "$MIG_UP" && MIG_SOURCE_OK=1
+    if [ "${PAGE_WRITES_ROLES:-0}" = "0" ] && [ "$DERIVER_OK" = "1" ] && [ "$READ_PATH_OK" = "1" ] && [ "$MIG_SOURCE_OK" = "1" ]; then
+      ROLES_SOURCE=1
+    fi
     emit "PC_USES_ROLES_SET=$USES_SET"
     emit "PC_READS_USERS_ROLE=${READS_SINGLE:-0}"
+    emit "PC_WRITES_ROLES=${PAGE_WRITES_ROLES:-0}"
+    emit "DERIVER_PRESENT=$DERIVER_OK"
+    emit "READ_PATH_PRESENT=$READ_PATH_OK"
+    emit "MIGRATION_DECLARES_IAM_SOURCE=$MIG_SOURCE_OK"
+    if [ "$ROLES_SOURCE" = "1" ]; then emit "ROLES_SOURCE=iam"; else emit "ROLES_SOURCE=unknown"; fi
     [ "$NODE_RC" = "0" ] || { echo "ASSERT_FAIL: node --test failed" >&2; RC=1; }
     require 'PC_USES_ROLES_SET=1'
     require 'PC_READS_USERS_ROLE=0'
+    require 'ROLES_SOURCE=iam'
     ;;
 
   r5)

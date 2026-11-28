@@ -30,3 +30,20 @@ test('INITIAL_ROLE: 无站点归属时网点级角色修正为 merchant_staff', 
   assert.equal(resolveInitialRole({ roles: ['site_admin', 'repair_technician'], site_id: 's1' }), 'site_admin')
   assert.equal(resolveInitialRole({}), '')
 })
+
+// #2626 D1（Rev.3）：数据源 = IAM functional_roles 的本地镜像（后端读路径下发），
+// 页面不得自造 roles，也不得回落单值。这三条同时是 ROLES_SOURCE=iam 的行为断言。
+test('ROLES_SOURCE=iam: 只消费后端下发的 roles[] 镜像，页面不自造、不回退单值', () => {
+  // 1) 镜像形态（后端 GetStaffUser 下发）→ 正常判定
+  assert.deepEqual(roleSet({ roles: ['merchant_staff', 'repair_technician'] }), ['merchant_staff', 'repair_technician'])
+  // 2) 单值来源（role / site_role / merchant_role）不参与集合构建 —— 兜底在后端而非页面
+  assert.deepEqual(roleSet({ role: 'site_admin', site_role: 'site_admin', merchant_role: 'merchant_admin' }), [])
+  assert.equal(primaryRole({ role: 'site_admin' }), '')
+  // 3) 页面不写入 roles（roles 是只读镜像）
+  const user = { roles: ['site_member'] }
+  const snapshot = JSON.stringify(user)
+  primaryRole(user)
+  roleSet(user)
+  resolveInitialRole(user)
+  assert.equal(JSON.stringify(user), snapshot)
+})

@@ -4636,7 +4636,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 
 **说明**: 全命名空间人员查找（顾客 + 各商户员工/管理员），用于查找账户并直接关停（mark-deleted）。`staff` 判定 = 存在任一成员身份：`site_members` ∪ `merchant_members` ∪ `technician_profiles`；`customer` = 取反。前端页名「账户管理」，提供 全部/顾客/员工+管理员 三档筛选。
 
-**响应字段（#2626）**：每个人员条目含 `roles[]`（功能角色多值镜像，权威源 = IAM `functional_roles[]`）与 `role`（派生主角色，兼容旧读路径）。前端判据（人员列表/编辑页角色初值）一律基于 `roles[]` 集合 + 组织级别，禁止用 `role` 单值判定。
+**响应字段（#2626）**：本端点**当前不返回** `roles[]` —— 多值角色镜像的落地端点是员工详情 `GET /api/admin/staff/:id`（§10.18.6）。人员列表的 `roles[]` 与判据迁移属三步走第二步的批次范围（#2626 Out of Scope），届时新增响应字段并同步本节。字段口径：`roles[]` = 功能角色多值镜像（权威源 = IAM `functional_roles[]`）、`role` = 派生主角色（兼容旧读路径）。
 
 ### 8.11.4b 用户详情（Get，#2108）
 
@@ -4647,7 +4647,7 @@ Content-Disposition: attachment; filename="ownership_certificate_001.pdf"
 **说明**: `userDetail` 全量字段。**#2108 新增**：
 - `intro_letter_url`：介绍信访问 URL（`resolveStorageKey` 同证件照口径；空值=未上传）
 - `personnel_type`：`staff` | `customer` —— 复用 §8.11.4 的 `staff` 判定（`site_members` ∪ `merchant_members` ∪ `technician_profiles` 任一成员身份）。前端据此**对员工隐藏顾客专属资料区块**（身份证照片/其他证件照片/介绍信/实名核身）。
-- `roles[]`（**#2626**）：功能角色多值集合（镜像 IAM `user_org_relations.functional_roles[]` ∪ 派生主角色，派生实现 `backend/services/role_derive.go::DeriveRoles`）。**判据必须读该集合**，`role`（单值）只是派生主角色，仅为兼容旧读路径保留。
+- 说明（#2626）：本端点**当前不返回** `roles[]`（多值镜像的落地端点 = 员工详情 `GET /api/admin/staff/:id`，见 §10.18.6）。`roles[]` 口径 = 功能角色多值集合（镜像 IAM `user_org_relations.functional_roles[]` ∪ 派生主角色，派生实现 `backend/services/role_derive.go::DeriveRoles`）；`role`（单值）只是派生主角色，仅为兼容旧读路径保留。判据迁移按三步走第二步的批次推进（#2626 Out of Scope），本端点改读 `roles[]` 时须同步本节。
 
 ### 8.11.4a 标记删除用户（#2028 Step 4 / #2025 D4）
 
@@ -6572,6 +6572,8 @@ zhangsan,张三,zhangsan@example.com,13800000000,朝阳网点,site_member
 **保存（PUT）**: 读路径与写路径同源——写库为显式作用域（`id + deleted_at IS NULL`，不按 `users.tenant_id` 过滤）并校验 `RowsAffected`；`0` 行 → `50000`（禁止「保存成功但没写」）。
 
 **激活（POST）**: 可见性同源；`iam_sub` 已存在仍返回 `40001 user already activated`。
+
+**`roles[]`（#2626，员工详情响应）**: `GET /api/admin/staff/:id` 返回 `roles[]` = 功能角色多值集合，来源是**后端派生镜像**（`users.roles` = IAM `user_org_relations.role` + `functional_roles[]` 经 `backend/services/role_derive.go::DeriveRoles` 派生），页面不得自造、不得回落单值。存量 `roles` 为空数组时读侧按 `users.roles → users.role → site_role → merchant_role` 回退（`GetStaffUser.mirrorRolesForRead`，**只读**，写侧禁止据此回写）；`role`（单值）仅是派生主角色，供旧读路径兼容。
 
 **`attribution_missing`（§10.18.0 响应行字段）**: `users.tenant_id` 或 `users.org_id` 为空/nil UUID 时为 `true`（三视图同源）。该标记仅表示本地归属未回填，不影响可见性与编辑；存量回填需 Owner 授权（#2527）。
 
