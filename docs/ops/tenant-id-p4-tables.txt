@@ -1,0 +1,63 @@
+# tenant_id P4 authoritative table list (single source) — #2642 / P4-S1
+#
+# Format: <table>|<source>
+#   source=model      : table is resolved from a backend/models struct that
+#                       declares TenantID (GORM default plural or TableName())
+#   source=backup-only: S8 backup table (^bak_) with no model struct
+#
+# Scope: P2 pre-snapshot universe (52 tables, docs/ops/tenant-id-backfill-p2.md §3).
+# Rows are sorted with LC_ALL=C so the file is byte-stable.
+# Post-snapshot tables are NOT listed here; scripts/tenant-id-refscan.sh derives
+# them from executable migrations and reports them with env=post-snapshot.
+appeals|model
+audit_logs|model
+bak_2211_order_payment_records|backup-only
+bak_2211_points_transactions|backup-only
+bak_2211_users|backup-only
+banners|model
+brand_configs|model
+categories|model
+clients|model
+damage_reports|model
+deposits|model
+electronic_contracts|model
+forwarding_sessions|model
+instrument_loss_records|model
+instrument_media|model
+instrument_photo_specs|model
+instrument_promo_overrides|model
+instrument_properties|model
+instruments|model
+inventory_transfers|model
+invoice_applications|model
+leases|model
+maintenance_session_records|model
+maintenance_sessions|model
+maintenance_tickets|model
+maintenance_workers|model
+merchant_members|model
+merchant_pricing_configs|model
+merchant_settlement_configs|model
+merchants|model
+notifications|model
+order_payment_records|model
+order_refund_records|model
+order_status_history|model
+orders|model
+ownership_certificates|model
+payment_sessions|model
+pending_orders|model
+points_transactions|model
+properties|model
+property_options|model
+repair_requests|model
+roles|model
+settlement_calculations|model
+site_images|model
+site_members|model
+sites|model
+staff_invites|model
+system_settings|model
+technician_profiles|model
+technicians|model
+users|model
