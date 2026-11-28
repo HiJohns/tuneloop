@@ -1,94 +1,94 @@
 {
- "schema_version": 1,
- "issue": 2429,
- "build": "1.0.5d10dc2ef",
- "commit": "5d10dc2effb88e8eb23344bdebfa3b802b7e1f38",
- "dirty": false,
- "environment": "backend handlers tests (isolated PG) + frontend-pc build/node test; fix commit 5d10dc2ef; R4 owner receipt pending",
- "rows": [
-  {
-   "id": "R1",
-   "command": "bash scripts/verify-2429.sh r1-go",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2429/R1-go.txt"
-   ],
-   "assert": "exit 0；同 org 用例 PASS",
-   "actual": "PASS：同 site / 多网点同 org / 详情基础字段用例全绿",
-   "expected": "PASS",
-   "negative": "IAM 调用 → FAIL",
-   "negative_result": "IAM 调用/500 即失败",
-   "pass": true
-  },
-  {
-   "id": "R2",
-   "command": "bash scripts/verify-2429.sh r2-pc-build",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2429/R2-pc-build.txt"
-   ],
-   "assert": "exit 0；built in",
-   "actual": "PASS：PC build ✓ 1m17s",
-   "expected": "PASS",
-   "negative": "失败 → FAIL",
-   "negative_result": "构建失败即 exit 1",
-   "pass": true
-  },
-  {
-   "id": "R3",
-   "command": "bash scripts/verify-2429.sh r3-probe",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2429/R3-probe.txt"
-   ],
-   "assert": "exit 0；PROBE-OK",
-   "actual": "PASS：org 比较/多网点详情/按 id 加载/AutoComplete/staffForm/无旧弹窗",
-   "expected": "PASS",
-   "negative": "缺项 → FAIL",
-   "negative_result": "任一探针缺失即 PROBE-FAIL",
-   "pass": true
-  },
-  {
-   "id": "R4",
-   "command": "bash scripts/verify-2429.sh r4-manual",
-   "exit": 1,
-   "artifacts": [
-    "docs/evidence/2429/R4-manual.md"
-   ],
-   "assert": "exit 0；RESULT: PASS",
-   "actual": "PENDING：Owner PC 人工回执未签（7 项）",
-   "expected": "PASS",
-   "negative": "PENDING → holdon",
-   "negative_result": "PENDING 即 exit 1 / holdon",
-   "pass": false
-  },
-  {
-   "id": "R5",
-   "command": "bash scripts/verify-2429.sh r5-multisite",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2429/R5-multisite.txt"
-   ],
-   "assert": "exit 0；memberships=2 且零 IAM",
-   "actual": "PASS：多网点 memberships=2；同 org 编辑零 IAM；双身份详情两 flag true",
-   "expected": "PASS",
-   "negative": "误绑 → FAIL",
-   "negative_result": "误判变更/IAM 调用即失败",
-   "pass": true
-  },
-  {
-   "id": "R6",
-   "command": "bash scripts/verify-2429.sh r6-dual",
-   "exit": 0,
-   "artifacts": [
-    "docs/evidence/2429/R6-dual.txt"
-   ],
-   "assert": "exit 0；mode=direct + flags true",
-   "actual": "PASS：node test 4/4；双身份 direct 优先",
-   "expected": "PASS",
-   "negative": "判为 site → FAIL",
-   "negative_result": "dual 判为 site 即失败",
-   "pass": true
-  }
- ]
+  "schema_version": 1,
+  "issue": 2429,
+  "build": "1.0.963e31f9b",
+  "commit": "963e31f9b34b00b34cbf7810e1b8b1d2573a07c1",
+  "dirty": false,
+  "environment": "backend handlers tests (isolated PG tuneloop_test_verify2429) + frontend-pc vite build + node --test; evidence regenerated at 963e31f9b (tree contains fix f9839430b / 5d10dc2ef and #2483 flip c58d75df6); R4 owner receipt PASS via #2438",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2429.sh r1-go",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2429/R1-go.txt"
+      ],
+      "assert": "exit 0；同 org 用例 PASS",
+      "actual": "PASS：TestUpdateUser_SameSiteSkipsIAM_2429 / TestGetStaffUser_ReturnsSiteAndDirectFlag_2429 / TestUpdateUser_MultiSiteSameOrgSkipsIAM_2429 全绿",
+      "expected": "PASS",
+      "negative": "IAM 调用 → FAIL",
+      "negative_result": "IAM 调用/500 即失败",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2429.sh r2-pc-build",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2429/R2-pc-build.txt"
+      ],
+      "assert": "exit 0；built in",
+      "actual": "PASS：vite build ✓ built in 25.23s",
+      "expected": "PASS",
+      "negative": "失败 → FAIL",
+      "negative_result": "构建失败即 exit 1",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2429.sh r3-probe",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2429/R3-probe.txt"
+      ],
+      "assert": "exit 0；PROBE-OK",
+      "actual": "PASS：PROBE-OK（10 项；org 级比较锚点随 #2466 改为 orgChanged := targetOrg != oldOrg）",
+      "expected": "PASS",
+      "negative": "缺项 → FAIL",
+      "negative_result": "任一探针缺失即 PROBE-FAIL",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2429.sh r4-manual",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2429/R4-manual.md"
+      ],
+      "assert": "exit 0；RESULT: PASS",
+      "actual": "PASS：Owner 回执 7 项（1/2/3/4/7 实测通过；5→#2465、6→#2468 移交），preweb 1.0.96",
+      "expected": "PASS",
+      "negative": "PENDING → holdon",
+      "negative_result": "PENDING 即 exit 1 / holdon",
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2429.sh r5-multisite",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2429/R5-multisite.txt"
+      ],
+      "assert": "exit 0；memberships=2 且零 IAM",
+      "actual": "PASS：多网点 memberships=2；同 org 编辑零 IAM；双身份详情两 flag true",
+      "expected": "PASS",
+      "negative": "误绑 → FAIL",
+      "negative_result": "误判变更/IAM 调用即失败",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2429.sh r6-dual",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2429/R6-dual.txt"
+      ],
+      "assert": "exit 0；mode=site + 两 flag true（#2483 翻转）",
+      "actual": "PASS：node --test 7/7；双身份 site 优先、technician 优先、isDualIdentity=true",
+      "expected": "PASS",
+      "negative": "判为 direct → FAIL",
+      "negative_result": "dual 判为 direct 即失败",
+      "pass": true
+    }
+  ]
 }

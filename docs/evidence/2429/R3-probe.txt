@@ -1,7 +1,7 @@
-# build=1.0.5d10dc2ef commit=5d10dc2effb88e8eb23344bdebfa3b802b7e1f38 dirty=false
+# build=1.0.963e31f9b commit=963e31f9b34b00b34cbf7810e1b8b1d2573a07c1 dirty=false
 OK: siteIDChanged removed
 OK: single-site Scan removed
-OK: org-level compare
+OK: org-level compare (performSiteTransfer, #2466)
 OK: memberships returned
 OK: GetStaffUser present
 OK: route registered

@@ -1,16 +1,17 @@
-# build=1.0.5d10dc2ef commit=5d10dc2effb88e8eb23344bdebfa3b802b7e1f38 dirty=false
+# build=1.0.963e31f9b commit=963e31f9b34b00b34cbf7810e1b8b1d2573a07c1 dirty=false
 [DEBUG] Loaded .env from: ../.env
-2026/11/20 00:58:13 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2429 sslmode=disable
-2026/11/20 00:58:16 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2429
-2026/11/20 00:58:16 [DB] Connected to database 'tuneloop_test_verify2429'
+2026/11/28 06:46:57 [DB] Configuration loaded: host=localhost port=5432 user=tuneloop_user dbname=tuneloop_test_verify2429 sslmode=disable
+2026/11/28 06:46:58 [DB] Connecting: host=localhost port=5432 user=tuneloop_user dbname=tuneloop_test_verify2429
+2026/11/28 06:46:58 [DB] Connected to database 'tuneloop_test_verify2429'
 === RUN   TestUpdateUser_SameSiteSkipsIAM_2429
-2026/11/20 00:58:16 [DB] Configuration loaded: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2429 sslmode=disable
-2026/11/20 00:58:16 [DB] Connecting: host=127.0.0.1 port=25432 user=tuneloop_user dbname=tuneloop_test_verify2429
-2026/11/20 00:58:16 [DB] Connected to database 'tuneloop_test_verify2429'
---- PASS: TestUpdateUser_SameSiteSkipsIAM_2429 (0.10s)
+2026/11/28 06:46:58 [DB] Configuration loaded: host=localhost port=5432 user=tuneloop_user dbname=tuneloop_test_verify2429 sslmode=disable
+2026/11/28 06:46:58 [DB] Connecting: host=localhost port=5432 user=tuneloop_user dbname=tuneloop_test_verify2429
+2026/11/28 06:46:58 [DB] Connected to database 'tuneloop_test_verify2429'
+--- PASS: TestUpdateUser_SameSiteSkipsIAM_2429 (0.05s)
 === RUN   TestGetStaffUser_ReturnsSiteAndDirectFlag_2429
---- PASS: TestGetStaffUser_ReturnsSiteAndDirectFlag_2429 (0.06s)
+--- PASS: TestGetStaffUser_ReturnsSiteAndDirectFlag_2429 (0.03s)
 === RUN   TestUpdateUser_MultiSiteSameOrgSkipsIAM_2429
---- PASS: TestUpdateUser_MultiSiteSameOrgSkipsIAM_2429 (0.05s)
+2026/11/28 06:46:58 [IAMClient] NewIAMClient: baseURL=http://localhost:5561, clientID=test-ns, namespace=test-ns
+--- PASS: TestUpdateUser_MultiSiteSameOrgSkipsIAM_2429 (0.03s)
 PASS
-ok  	tuneloop-backend/handlers	4.311s
+ok  	tuneloop-backend/handlers	1.239s
