@@ -1,7 +1,7 @@
 {
   "issue": 2612,
-  "overall": "FAIL",
-  "plan": "/home/coder/worktrees/tuneloop/wt-2612/tmp/pre-ready-2612.oYxEjP/plan.md",
+  "overall": "PASS",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2612/tmp/pre-ready-2612.vFCE85/plan.md",
   "plan_sha256": "322b589a86b68a4a5c39a00f6be6f34f37301c33def6b7cb63d6f20c719fef39",
   "config_sha": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
   "provenance": {
@@ -10,7 +10,7 @@
     "dirty": false
   },
   "summary": "tmp/pre-ready-2612-summary.md",
-  "timestamp": "20261128-051044",
+  "timestamp": "20261128-051927",
   "checks": [
     {
       "id": "P1",
@@ -24,13 +24,13 @@
     },
     {
       "id": "P3",
-      "status": "FAIL",
-      "detail": "evidence paths do not exist: .message DepositFlow.jsx FinanceConfig.jsx LeaseLedger.jsx List.jsx:143 R2-batch-b1b2.txt R3-batch-b3b4.txt R4-residual-scan.txt R5-build-lint.txt R6-state-family.txt System/UserManagement.jsx res./resp. res.message resp?.message userFacingErrorMessage.test.mjs"
+      "status": "PASS",
+      "detail": "all referenced evidence paths exist and are durable"
     },
     {
       "id": "P4",
-      "status": "FAIL",
-      "detail": "affected command(s) failed:; [1] bash scripts/verify-2612.sh gate (tail: ASSERT_FAIL: missing tokens: [GIT_DIFF_FILES=37] RESULT: FAIL (gate) [heavy-lock] released scope=host slot=0 rc=1 at_ms=1795842697303 hold_ms=50506 )"
+      "status": "PASS",
+      "detail": "all 1 affected command(s) passed"
     },
     {
       "id": "P12",
