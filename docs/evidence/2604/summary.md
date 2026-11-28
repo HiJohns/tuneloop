@@ -14,7 +14,7 @@
 | 2 Medium R1 未执行 `go test ./bindmsg`（`-run 'TestBindMsg.*2604'` 把 #2603 全过滤，共享函数回归无执行证据） | `scripts/verify-2604.sh` r1 改为全包 `go test ./bindmsg -count=1 -v`（= 计划 G0 R1 entry），新增回归 token | `BINDMSG_PKG_PASS=8`、`BINDMSG_REGRESSION_2603_PASS=3`（`TestBindErrorMessage2603` / `TestBindFieldLabelsCoverage2603` / `TestMessageGinBinding2603` 全部 `--- PASS`），`BINDMSG_UNIT_EXIT=0` |
 | 3 Low R1 token 与计划期望不等值（`=姓名不能为空` vs `=姓名`） | scope 行改为输出称呼本身（`FieldLabel`），完整文案仍由 R2 的 `BIND2604_*_MSG` 锁定 | `SCOPE_PERSON_NAME=姓名不能为空 → 姓名`、`SCOPE_ROLE_CODE=角色编码不能为空 → 角色编码`、`SCOPE_DEFAULT_CODE=优惠码不能为空 → 优惠码`（与计划 G0 R1 期望值逐字相等） |
 
-- 审计**观察项 1**（`### Files` 漏登记 `docs/evidence/2604/summary.md` / `changed-files.txt`）属计划登记项，需 Architect 在下次计划修订补两行；本轮**未自行改计划/验收**。P6 使用与上一轮 PASS gate 相同的 `--changed-files`（源文件 + 已登记证据）口径，证据完整性由 P12/P13 承担。
+- 审计**观察项 1**（`### Files` 漏登记两份证据文档：本文件与 `docs/evidence/2604/changed-files.txt`）属计划登记项，需 Architect 在下次计划修订补两行；本轮**未自行改计划/验收**。P6 使用与上一轮 PASS gate 相同的 `--changed-files`（源文件 + 已登记证据）口径，证据完整性由 P12/P13 承担。
 
 ### 实施前差异核对（计划 Input Truth）
 
@@ -27,7 +27,7 @@
 | grep -n 'dive' backend/handlers/instrument.go | 1（`IDs`） | **1** |
 | #2605 范围 28 处（5 类字面量） | base = head | **28 = 28**（`OUT_OF_SCOPE_UNCHANGED=1`） |
 
-> Round 2 复核：以上两条 grep 命令在 head（修后树，**不排除 `_test.go`**）实测为 **0 / 53**，与计划「修后」数字逐字一致（审计失败项 1 已消除）。
+> Round 2 复核：以上两条 grep 命令在 head（修后树，**包含测试文件、不做任何排除**）实测为 **0 / 53**，与计划「修后」数字逐字一致（审计失败项 1 已消除）。
 
 ### 变更内容
 
