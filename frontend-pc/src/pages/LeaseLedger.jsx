@@ -65,7 +65,7 @@ export default function LeaseLedger() {
         }))
       }
     } catch (err) {
-      setError(err.message)
+      setError(userFacingErrorMessage(err, '加载租借台账失败'))
       message.error(userFacingErrorMessage(err, '加载失败'))
     } finally {
       setLoading(false)

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, Row, Col, Statistic, Table, Tag, Alert, Button } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import { api } from '../services/api';
+import { userFacingErrorMessage } from '../services/apiError';
 
 export default function AssetAuditDashboard() {
   const [stats, setStats] = useState({
@@ -36,7 +37,7 @@ export default function AssetAuditDashboard() {
         throw new Error(result.message || '获取仪表盘数据失败');
       }
     } catch (err) {
-      setError(err.message);
+      setError(userFacingErrorMessage(err, '加载仪表盘失败'));
     } finally {
       setLoading(false);
     }

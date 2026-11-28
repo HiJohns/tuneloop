@@ -192,7 +192,7 @@ export default function UserManagement() {
         message.error(resp?.message || '加载 IAM 孤儿账号失败')
       }
     } catch (err) {
-      setOrphanError(err?.message || '网络异常')
+      setOrphanError(userFacingErrorMessage(err, '网络异常'))
       message.error(userFacingErrorMessage(err, '加载孤儿账号失败'))
     }
     setOrphanLoading(false)

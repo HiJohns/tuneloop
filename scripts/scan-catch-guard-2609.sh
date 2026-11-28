@@ -49,12 +49,17 @@ SRC_DIR="frontend-pc/src"
 HELPER="frontend-pc/src/services/apiError.js"
 FILES=""
 TABLE=0
+STATE_TABLE=0
 BASE_REF=""
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --table)
       TABLE=1
+      shift
+      ;;
+    --state-table)
+      STATE_TABLE=1
       shift
       ;;
     --base)
@@ -150,6 +155,115 @@ fallback_fix() { # file:line -> 中文兜底（仅 T4 / 原兜底为 ASCII 的�
     *) printf '' ;;
   esac
 }
+
+# ---------------------------------------------------------------------------
+# --state-table（#2612 R6）：state→UI 第二族 —— 把异常 message 塞进 error/msg state 再渲染。
+# 站点口径（Rev.3）：setter 名必须含 Error|Err|Message|Msg；且
+#   (i) 裸透传 = 异常接收者 .message；或 (ii) 守卫透传 = userFacingErrorMessage(
+# 排除：响应体接收者（res./resp./result./data.）、.message 比较式、setter 名不含关键字的行。
+# tier：setErrorMsg → S3；有 `||` → S1；无 `||` → S2。
+# ---------------------------------------------------------------------------
+if [ "$STATE_TABLE" = "1" ]; then
+  STATE_SETTER_RE='set[A-Za-z0-9_]*(Error|Err|Message|Msg)[A-Za-z0-9_]*\('
+  TMP_STATE="$(mktemp -d "${TMPDIR:-tmp}/scan-state.XXXXXX")" || exit 2
+  trap 'rm -rf "$TMP_STATE"' EXIT
+  : > "$TMP_STATE/sites.tsv"
+  if [ -n "$BASE_REF" ]; then
+    git rev-parse --verify --quiet "${BASE_REF}^{commit}" >/dev/null || {
+      echo "FATAL: base ref not found: $BASE_REF" >&2
+      exit 2
+    }
+    STATE_PFX=PRE_
+    idx=0
+    while IFS= read -r f; do
+      [ -n "$f" ] || continue
+      idx=$((idx + 1))
+      git show "${BASE_REF}:${f}" > "$TMP_STATE/f$idx" 2>/dev/null || continue
+      grep -nE "$STATE_SETTER_RE" "$TMP_STATE/f$idx" 2>/dev/null | while IFS= read -r nl; do
+        ln="${nl%%:*}"
+        line="${nl#*:}"
+        printf '%s\t%s\t%s\n' "$f" "$ln" "$line" >> "$TMP_STATE/sites.tsv"
+      done
+    done < <(if [ -n "$FILES" ]; then
+               # shellcheck disable=SC2086
+               printf '%s\n' $FILES | sort
+             else
+               git ls-tree -r --name-only "$BASE_REF" -- "$SRC_DIR" | grep -E '\.(js|jsx)$' | sort
+             fi)
+  else
+    STATE_PFX=""
+    for cand in "${CANDIDATES[@]}"; do
+      resolved="$(resolve_file "$cand")"
+      grep -nE "$STATE_SETTER_RE" "$resolved" 2>/dev/null | while IFS= read -r nl; do
+        ln="${nl%%:*}"
+        line="${nl#*:}"
+        printf '%s\t%s\t%s\n' "$cand" "$ln" "$line" >> "$TMP_STATE/sites.tsv"
+      done
+    done
+  fi
+
+  awk -F'\t' -v pfx="$STATE_PFX" '
+  function trim(s) { gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); return s }
+  function quoted_after(re,   rest, q1, q2, q) {
+    if (!match($0, re)) return ""
+    rest = substr($0, RSTART + RLENGTH)
+    q1 = index(rest, "\047")
+    q2 = index(rest, "\"")
+    if (q1 == 0 && q2 == 0) return ""
+    if (q1 == 0) q = q2
+    else if (q2 == 0) q = q1
+    else q = (q1 < q2) ? q1 : q2
+    if (q <= 1) return ""
+    return substr(rest, 1, q - 1)
+  }
+  {
+    file = $1; ln = $2; line = $3
+    # 排除：setter 名不含 error/msg 语义（由 STATE_SETTER_RE 已保证，这里再兜一层）
+    if (line !~ /set[A-Za-z0-9_]*(Error|Err|Message|Msg)[A-Za-z0-9_]*\(/) next
+    probe = line
+    # 排除比较式：`.message === ...` / `.message !== ...`
+    gsub(/\.message[[:space:]]*(===|!==|==|!=)/, ".messageCMP", probe)
+    # 排除响应体接收者
+    gsub(/(res|resp|result|data)\?*\.message/, "RESPBODY", probe)
+    raw = (probe ~ /(^|[^[:alnum:]_.])(e|err|error|ex|exc)\?*\.message/)
+    guarded = (line ~ /userFacingErrorMessage\(/)
+    if (!raw && !guarded) next
+    if (line ~ /setErrorMsg\(/) tier = "S3"
+    else if (line ~ /\|\|/) tier = "S1"
+    else tier = "S2"
+    fb = ""
+    if (guarded) fb = quoted_after("userFacingErrorMessage\\([^,]*,[[:space:]]*[\047\"]")
+    else fb = quoted_after("\\|\\|[[:space:]]*[\047\"]")
+    fb = trim(fb)
+    ascii = (fb != "" && fb ~ /[A-Za-z]/) ? 1 : 0
+    nofb = (fb == "") ? 1 : 0
+    printf "STATE_ROW\t%s\t%s\t%s\tguarded=%d\tfallback=%s\tascii=%d\tnofb=%d\n", file, ln, tier, guarded, (fb == "" ? "-" : fb), ascii, nofb
+    total++
+    if (guarded) gcount++
+    else rawcount++
+    if (tier == "S1") s1++
+    else if (tier == "S2") s2++
+    else if (tier == "S3") s3++
+    if (ascii) asciileak++
+    if (nofb) nofbrows++
+    if (!(file in seenf)) { seenf[file] = 1; files++; flist = flist " " file }
+  }
+  END {
+    printf "%sSTATE_SITES=%d\n", pfx, total + 0
+    printf "%sSTATE_RAW=%d\n", pfx, rawcount + 0
+    printf "%sSTATE_GUARDED=%d\n", pfx, gcount + 0
+    printf "%sSTATE_FILES=%d\n", pfx, files + 0
+    printf "%sSTATE_TIER_S1=%d\n", pfx, s1 + 0
+    printf "%sSTATE_TIER_S2=%d\n", pfx, s2 + 0
+    printf "%sSTATE_TIER_S3=%d\n", pfx, s3 + 0
+    printf "%sSTATE_FALLBACK_ASCII_LEAK=%d\n", pfx, asciileak + 0
+    printf "%sSTATE_FALLBACK_MISSING=%d\n", pfx, nofbrows + 0
+    printf "%sSTATE_FILES_LIST=%s\n", pfx, trim(flist)
+    printf "%sRESIDUAL_STATE_MSG=%d\n", pfx, rawcount + 0
+  }
+  ' "$TMP_STATE/sites.tsv"
+  exit 0
+fi
 
 if [ "$TABLE" = "1" ]; then
   TMP_TABLE="$(mktemp -d "${TMPDIR:-tmp}/scan-table.XXXXXX")" || exit 2

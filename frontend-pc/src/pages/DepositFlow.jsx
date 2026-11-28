@@ -56,7 +56,7 @@ export default function DepositFlow() {
         }))
       }
     } catch (err) {
-      setError(err.message)
+      setError(userFacingErrorMessage(err, '加载试算数据失败'))
       message.error(userFacingErrorMessage(err, '加载失败'))
     } finally {
       setLoading(false)

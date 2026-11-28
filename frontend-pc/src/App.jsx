@@ -14,6 +14,7 @@ import {
 
 import { ProtectedRoute, AuthGuard, getToken, storeToken } from './components/ProtectedRoute'
 import { api, initPermissionMapping, reportPCActivity } from './services/api'
+import { userFacingErrorMessage } from './services/apiError'
 import { startActivityTracking } from './utils/pcSession'
 import { SysPermBits, checkPermission, isNamespaceAdmin, getNamespaceAdminMenuKeys } from './config/menuPermissions'
 import Dashboard from './pages/Dashboard'
@@ -955,7 +956,7 @@ function OAuthCallback() {
       } catch (error) {
         console.error('%c[CALLBACK DEBUG] exchange FAILED', 'color: red;', { message: error.message, stack: error.stack })
         setLoading(false)
-        setErrorMsg(error.message || '认证失败')
+        setErrorMsg(userFacingErrorMessage(error, '认证失败'))
         localStorage.removeItem('token')
         localStorage.removeItem('token_expiry')
         // Don't auto-redirect — let user see the error and manually retry

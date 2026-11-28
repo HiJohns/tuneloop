@@ -56,7 +56,7 @@ export default function StaffEdit() {
         }
       })
       .catch((err) => {
-        if (!cancelled) setLoadError(err?.message || '无法获取用户数据')
+        if (!cancelled) setLoadError(userFacingErrorMessage(err, '无法获取用户数据'))
       })
       .finally(() => { if (!cancelled) setFetching(false) })
 

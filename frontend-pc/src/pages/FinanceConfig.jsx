@@ -33,7 +33,7 @@ export default function FinanceConfig() {
         throw new Error('Invalid config data')
       }
     } catch (err) {
-      setError(err.message)
+      setError(userFacingErrorMessage(err, '加载财务配置失败'))
     } finally {
       setLoading(false)
     }
