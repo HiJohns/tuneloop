@@ -40,7 +40,7 @@ DIRTY=false
 if [ -n "$(git status --porcelain --untracked-files=no | grep -v 'docs/evidence/2429/' || true)" ]; then
   DIRTY=true
 fi
-PROVENANCE="# build=$BUILD commit=$COMMIT dirty=$DIRTY"
+PROVENANCE="# build=$BUILD # commit=$COMMIT # dirty=$DIRTY"
 
 case "$MODE" in
   r1-go)
