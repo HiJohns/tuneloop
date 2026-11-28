@@ -472,3 +472,4 @@
 - 2026-11-28: Batch processing completed, including tasks: Resolved Issues: #2639
 - 2026-11-28: Batch processing completed, including tasks: Resolved Issues: #2489, #2486
 - 2026-11-28: Batch processing completed, including tasks: Resolved Issues: #2626
+- 2026-11-28: Batch processing completed, including tasks: Resolved Issues: #2621 (identity self-queries bypass tenant scope; staff order list scoped to current org + fail-closed)

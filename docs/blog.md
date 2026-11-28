@@ -493,3 +493,4 @@
 - 2026-11-28: 批量处理完成，包含任务: Resolved Issues: #2639
 - 2026-11-28: 批量处理完成，包含任务: Resolved Issues: #2489, #2486
 - 2026-11-28: 批量处理完成，包含任务: Resolved Issues: #2626
+- 2026-11-28: 批量处理完成，包含任务: Resolved Issues: #2621 (identity self-queries bypass tenant scope; staff order list scoped to current org + fail-closed)
