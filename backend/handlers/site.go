@@ -238,6 +238,19 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 		return
 	}
 
+	// #2477：网点名归一化（trim + 连续空白折叠，含 U+3000 全角空白/制表/换行）。
+	// 重名判定权威 = IAM（Owner 2026-11-26 裁 B）：本处不做本地预检，只保证
+	// IAM 组织名与本地 sites.name 写入的是同一个归一化串（D3）。
+	// 归一化后为空 → 400/40002，且在调用 IAM 之前返回（D4）。
+	siteName := NormalizeSiteName(req.Name)
+	if siteName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    40002,
+			"message": "网点名称不能为空",
+		})
+		return
+	}
+
 	ctx := c.Request.Context()
 	db := database.GetDB().WithContext(ctx)
 	tenantID := middleware.GetTenantID(ctx)
@@ -328,7 +341,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	}
 
 	iamReq := &services.CreateOrganizationRequest{
-		Name:             req.Name,
+		Name:             siteName,
 		ParentID:         anchorOrgID,
 		NamespaceID:      middleware.GetNamespaceID(c.Request.Context()),
 		Address:          req.Address,
@@ -348,7 +361,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 			strings.Contains(err.Error(), "name conflict") || strings.Contains(err.Error(), "already exists") {
 			c.JSON(http.StatusConflict, gin.H{
 				"code":    40900,
-				"message": fmt.Sprintf("该商户下已存在同名网点「%s」，请换一个名称", strings.TrimSpace(req.Name)),
+				"message": fmt.Sprintf("该商户下已存在同名网点「%s」，请换一个名称", siteName),
 			})
 			return
 		}
@@ -387,7 +400,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	}
 
 	if !hasAdmin {
-		log.Printf("[CreateSite] skip role template assignment: no admin (site=%s org=%s)", req.Name, siteOrgID)
+		log.Printf("[CreateSite] skip role template assignment: no admin (site=%s org=%s)", siteName, siteOrgID)
 	} else {
 		nsID := middleware.GetNamespaceID(c.Request.Context())
 		if templates, err := iamClient.ListRoleTemplates(nsID); err == nil {
@@ -484,7 +497,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	}
 
 	site := models.Site{
-		Name:          req.Name,
+		Name:          siteName,
 		TenantID:      anchorOrgID,
 		OrgID:         siteOrgID,
 		Address:       req.Address,
@@ -599,9 +612,11 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 
 	// #2457 v4（Findings A）：名称规范化单一真值。
 	// 请求值与当前值有差异（含仅前后空格）→ 先过全部守卫（防止「加空格绕过锚点/绑定/重名」）；
-	// 再以 trim 后的 newName 作为 IAM body 与本地写库的唯一值；trim 后与现值相同则
+	// 再以归一化后的 newName 作为 IAM body 与本地写库的唯一值；归一化后与现值相同则
 	// 视为未改名（不写 name 列、不调 IAM），避免制造 sites.name ≠ organizations.name 漂移。
-	newName := strings.TrimSpace(req.Name)
+	// #2477：归一化逻辑收敛到 NormalizeSiteName（把 #2457 的 TrimSpace 升级为
+	// trim + 连续空白折叠），rawChanged/nameChanged 的判定语义不翻转（D6）。
+	newName := NormalizeSiteName(req.Name)
 	rawChanged := req.Name != site.Name
 	nameChanged := newName != site.Name
 	if rawChanged {
