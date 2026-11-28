@@ -1,5 +1,5 @@
 # build=1.0.71efa1144 # commit=71efa1144e976de00c476b6101bef17ed2d20299 # dirty=false
-# tree=71efa1144e976de00c476b6101bef17ed2d20299
+# tree=e691325bbd2e1a59297e6dab1e2cbf1403db4bbb
 PREEXISTING: backend/handlers/merchant_member.go:632:	if target.Role == "merchant_admin" {
 PRE_REF=4e368f692489a94336c081e5ccb11353dcb3a2a6
 SINGLE_VALUE_FRONTEND=0

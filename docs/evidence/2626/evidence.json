@@ -3,10 +3,10 @@
   "issue": 2626,
   "build": "1.0.71efa1144",
   "commit": "71efa1144e976de00c476b6101bef17ed2d20299",
-  "tree": "83b3c3ebc8af37c985defd192df85c5f73f7a869",
+  "tree": "e691325bbd2e1a59297e6dab1e2cbf1403db4bbb",
   "dirty": false,
-  "plan_sha256": "0e7f701d480292735a1cbacd1f2a33eddf72e0a5117e2e7067882519a0ca4473",
-  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2626 (branch issue-2626, base origin/develop); gofmt + go build ./... + go test ./services (role/derive 定向); node --test frontend-pc (v22.22.3); static scans over backend/handlers + docs. No production calls; migration real up/down deferred to waitForConfirm (D8).",
+  "plan_sha256": "72a07e04844fb43324d71d3f94bc8fe47b455736696ea27b5540b2a3dc1e9a8c",
+  "environment": "isolated worktree /tmp/opencode/tuneloop/wt-2626 (branch issue-2626, base origin/develop); gofmt + go build ./... + go test ./services ./database (role_derive / migration-artifact 定向); node --test frontend-pc (v22.22.3); static scans over backend/handlers + docs. No production calls; migration real up/down deferred to waitForConfirm (D8). Plan snapshot = Rev.4.",
   "rows": [
     {
       "id": "R1",
