@@ -195,7 +195,8 @@ export default function TransitCenter() {
         destroyOnClose
       >
         <FormConflictAlert text={siteConflict} testId="transit-site-conflict" />
-        <Form form={siteForm} layout="vertical">
+        {/* #2489 D8（Round 9）：字段编辑即清空陈旧冲突提示。 */}
+        <Form form={siteForm} layout="vertical" onValuesChange={() => { if (siteConflict) setSiteConflict('') }}>
           <Form.Item name="name" label="名称" rules={[{ required: true, message: '请输入名称' }]}>
             <Input placeholder="如 北京中转站" />
           </Form.Item>
@@ -239,7 +240,8 @@ export default function TransitCenter() {
         destroyOnClose
       >
         <FormConflictAlert text={routeConflict} testId="transit-route-conflict" />
-        <Form form={routeForm} layout="vertical">
+        {/* #2489 D8（Round 9）：字段编辑即清空陈旧冲突提示。 */}
+        <Form form={routeForm} layout="vertical" onValuesChange={() => { if (routeConflict) setRouteConflict('') }}>
           <Form.Item name="controlled_site_id" label="受控网点" rules={[{ required: true, message: '请选择受控网点' }]}>
             <Select placeholder="选择受控网点" options={controlledSites.map(s => ({ value: s.id, label: s.name }))} />
           </Form.Item>

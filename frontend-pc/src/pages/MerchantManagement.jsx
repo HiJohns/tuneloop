@@ -112,7 +112,8 @@ const MerchantManagement = () => {
         navigate('/merchants');
       }
     } catch (error) {
-      message.error(error.response?.data?.message || '删除商户失败');
+      // #2489 Round 9：ApiError 的中文 message 直接可用（传输层已 resolveErrorMessage）。
+      message.error(error?.message || '删除商户失败');
     }
   };
 
@@ -134,18 +135,29 @@ const MerchantManagement = () => {
     try {
       setSettlementConflict('') // #2489 D8：提交开始即清空
       const values = await settlementForm.validateFields()
-      await api.put(`/admin/merchant/${settlementMerchant.id}/settlement`, values)
+      const resp = await api.put(`/admin/merchant/${settlementMerchant.id}/settlement`, values)
+      // #2489 Round 9：传输层（#2563）对 404/409 **返回对象**（不抛错），不判 code 会
+      // 直接落到下方 message.success —— 即「假成功」（404 merchant not found 可达）。
+      if (resp && resp.code !== 20000) {
+        if (isBusinessCorrectableConflict(resp)) {
+          setSettlementConflict(conflictText(resp, '保存失败，请调整后重试'))
+        } else {
+          message.error(resp.message || '保存失败')
+        }
+        return
+      }
       setSettlementConflict('')
       message.success('分账配置保存成功')
     } catch (err) {
       if (err.errorFields) return // validation error
-      const payload = err.response?.data
-      if (isBusinessCorrectableConflict(payload)) {
+      // #2489 Round 9：400/403/5xx 由传输层抛 ApiError，code/message/data 直接挂在
+      // 错误对象上（**不带** response 属性）；取 response.data 会让本分支恒为死代码。
+      if (isBusinessCorrectableConflict(err)) {
         // #2489：分账比例/账号等业务冲突改为表单内持久提示。
-        setSettlementConflict(conflictText(payload, '保存失败，请调整后重试'))
+        setSettlementConflict(conflictText(err, '保存失败，请调整后重试'))
         return
       }
-      message.error('保存失败: ' + (payload?.message || err.message))
+      message.error('保存失败: ' + (err?.message || '请重试'))
     }
   };
 
@@ -173,12 +185,12 @@ const MerchantManagement = () => {
       fetchMerchants();
       navigate('/merchants');
     } catch (error) {
-      const payload = error.response?.data
-      if (isBusinessCorrectableConflict(payload)) {
+      // #2489 Round 9：400/403/5xx 为抛出的 ApiError（code/message/data 挂在 error 上，无 response）。
+      if (isBusinessCorrectableConflict(error)) {
         // #2489：商户重名等 409 业务冲突改为表单内持久提示（语义以 #2459 为准）。
-        setFormConflict(conflictText(payload, '操作失败，请调整后重试'))
+        setFormConflict(conflictText(error, '操作失败，请调整后重试'))
       } else {
-        message.error(payload?.message || '操作失败')
+        message.error(error?.message || '操作失败')
       }
     } finally {
       setSaving(false);
@@ -295,6 +307,8 @@ const MerchantManagement = () => {
                 form={settlementForm}
                 layout="vertical"
                 onFinish={saveSettlement}
+                // #2489 D8（Round 9）：字段编辑即清空陈旧冲突提示（与提交开始/取消/成功共四处）。
+                onValuesChange={() => { if (settlementConflict) setSettlementConflict(''); }}
               >
                 <FormConflictAlert text={settlementConflict} testId="merchant-settlement-conflict" />
                 <Form.Item name="receiver_type" label="接收方类型" rules={[{ required: true, message: '请选择类型' }]}>
@@ -345,7 +359,14 @@ const MerchantManagement = () => {
         </Space>
       }
     >
-      <Form form={form} onFinish={handleSubmit} layout="vertical" style={{ maxWidth: 600 }}>
+      <Form
+        form={form}
+        onFinish={handleSubmit}
+        layout="vertical"
+        style={{ maxWidth: 600 }}
+        // #2489 D8（Round 9）：任一字段编辑即清空陈旧冲突提示（不再只靠 name 的 onChange）。
+        onValuesChange={() => { if (formConflict) setFormConflict(''); }}
+      >
         <FormConflictAlert text={formConflict} testId="merchant-form-conflict" />
         <Form.Item
           name="name"

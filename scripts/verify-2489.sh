@@ -122,6 +122,29 @@ code_first_check() { # file
   ' "$1"
 }
 
+# Round 9（审计失败项 1）：函数级「无假成功」扫描 —— 成功提示必须出现在
+# `resp.code !== 20000` 守卫之后，且该函数只有一个成功出口。
+fn_guard_scan() { # file fn-name
+  awk -v fn="const $2 = async" '
+    index($0, fn) > 0 { infn = 1 }
+    infn && /resp\.code !== 20000/ { if (!guard) guard = NR }
+    infn && /message\.success\(/ { if (!succ) succ = NR; succn++ }
+    infn && /^  };$/ { infn = 0 }
+    END { printf "guard=%d success=%d count=%d\n", guard + 0, succ + 0, succn + 0 }
+  ' "$1"
+}
+
+# Round 9（审计失败项 2，D8）：表单级「字段编辑即清空」接线计数。
+clear_on_edit_count() { # file
+  grep -cE "onValuesChange=.*Conflict\(''\)" "$1" 2>/dev/null || true
+}
+
+# Round 9（审计失败项 1，同类路径对称扫描）：不得再从 `response.data` 取业务载荷
+#（#2563 传输层对 400/403/5xx 抛 ApiError，404/409 返回对象，均无 response 中间层）。
+err_response_uses() { # file
+  grep -cE "(err|error)\.response" "$1" 2>/dev/null || true
+}
+
 case "$MODE" in
   r1)
     if ! bash "$SCAN_BIN" > "$REPO/tmp/scan-2489.cache" 2>"$REPO/tmp/scan-2489.err"; then
@@ -198,10 +221,17 @@ case "$MODE" in
     emit "CONFLICT_TEXT_SITES=$ok"
     emit "UNGUARDED_SITES=${bad:-0}"
     emit "CODE_FIRST=$([ "${bad:-0}" = "0" ] && [ "${ok:-0}" -gt 0 ] && echo 1 || echo 0)"
+    # Round 9 审计失败项 2（D8）：两个冲突表单（中转网点 / 中转路由）必须「字段编辑即清空」。
+    coe="$(clear_on_edit_count "$PAGE_TRANSIT")"
+    emit "CLEAR_ON_EDIT_FORMS=${coe:-0}"
+    emit "CLEAR_ON_EDIT=$([ "${coe:-0}" -ge 2 ] && echo 1 || echo 0)"
+    emit "ERR_RESPONSE_USES=$(err_response_uses "$PAGE_TRANSIT")"
     emit "--- wiring ---"
-    grep -nE "FormConflictAlert|isBusinessCorrectableConflict\(|conflictText\(|set(Site|Route)Conflict\(" "$PAGE_TRANSIT" | sed 's/^/WIRE /' | while IFS= read -r l; do emit "$l"; done
+    grep -nE "FormConflictAlert|isBusinessCorrectableConflict\(|conflictText\(|set(Site|Route)Conflict\(|onValuesChange=" "$PAGE_TRANSIT" | sed 's/^/WIRE /' | while IFS= read -r l; do emit "$l"; done
     require 'PERSIST_ALERT=1'
     require 'CODE_FIRST=1'
+    require 'CLEAR_ON_EDIT=1'
+    require 'ERR_RESPONSE_USES=0'
     finish R4-transit.txt || RC=1
     ;;
 
@@ -259,15 +289,35 @@ case "$MODE" in
     emit "HANDLE_SUBMIT_SUCCESS_LINE=${succ_line:-0}"
     emit "HANDLE_SUBMIT_SUCCESS_COUNT=${succ_count:-0}"
     emit "NO_FALSE_SUCCESS=$([ "${guard_line:-0}" -gt 0 ] && [ "${succ_line:-0}" -gt "${guard_line:-0}" ] && [ "${succ_count:-0}" = "1" ] && echo 1 || echo 0)"
+    # Round 9 审计失败项 1：分账配置保存（saveSettlement）同样「先判 code 再成功」，
+    # 并对抛出的 ApiError 直接分类（不得再从 response.data 取载荷 → 分支死代码）。
+    settle="$(fn_guard_scan "$PAGE_MERCHANT" saveSettlement)"
+    s_guard="$(printf '%s' "$settle" | sed -n 's/.*guard=\([0-9]*\).*/\1/p')"
+    s_succ="$(printf '%s' "$settle" | sed -n 's/.*success=\([0-9]*\).*/\1/p')"
+    s_count="$(printf '%s' "$settle" | sed -n 's/.*count=\([0-9]*\).*/\1/p')"
+    emit "SETTLEMENT_GUARD_LINE=${s_guard:-0}"
+    emit "SETTLEMENT_SUCCESS_LINE=${s_succ:-0}"
+    emit "SETTLEMENT_SUCCESS_COUNT=${s_count:-0}"
+    emit "SETTLEMENT_NO_FALSE_SUCCESS=$([ "${s_guard:-0}" -gt 0 ] && [ "${s_succ:-0}" -gt "${s_guard:-0}" ] && [ "${s_count:-0}" = "1" ] && echo 1 || echo 0)"
+    emit "SETTLEMENT_ERR_DIRECT=$([ "$(grep -c 'isBusinessCorrectableConflict(err)' "$PAGE_MERCHANT" || true)" -gt 0 ] && echo 1 || echo 0)"
+    emit "ERR_RESPONSE_USES=$(err_response_uses "$PAGE_MERCHANT")"
+    # Round 9 审计失败项 2（D8）：主表单 + 分账表单都必须「字段编辑即清空」。
+    coe="$(clear_on_edit_count "$PAGE_MERCHANT")"
+    emit "CLEAR_ON_EDIT_FORMS=${coe:-0}"
+    emit "CLEAR_ON_EDIT=$([ "${coe:-0}" -ge 2 ] && echo 1 || echo 0)"
     # 改名 409 语义由后端 #2459 决定（本单不自写白名单）→ 显式标注延后项。
     emit "DEFER_2459=$([ "${theme_ref:-0}" -gt 0 ] && [ "${local_whitelist:-0}" = "0" ] && echo 1 || echo 0)"
     emit "--- wiring ---"
-    grep -nE "FormConflictAlert|isBusinessCorrectableConflict\(|conflictText\(|resp\.code !== 20000|#2459" "$PAGE_MERCHANT" | sed 's/^/WIRE /' | while IFS= read -r l; do emit "$l"; done
+    grep -nE "FormConflictAlert|isBusinessCorrectableConflict\(|conflictText\(|resp\.code !== 20000|onValuesChange=|#2459" "$PAGE_MERCHANT" | sed 's/^/WIRE /' | while IFS= read -r l; do emit "$l"; done
     require 'PERSIST_ALERT=1'
     require 'THEME_2459=1'
     require 'CODE_FIRST=1'
     require 'NO_FALSE_SUCCESS=1'
     require 'DEFER_2459=1'
+    require 'SETTLEMENT_NO_FALSE_SUCCESS=1'
+    require 'SETTLEMENT_ERR_DIRECT=1'
+    require 'ERR_RESPONSE_USES=0'
+    require 'CLEAR_ON_EDIT=1'
     finish R6-merchant.txt || RC=1
     ;;
 
@@ -412,6 +462,11 @@ const r409 = resolveHttpFailure(409, { code: 40900, message: '商户名称已存
 out.push(`NO_SUCCESS_ON_409=${r409.kind === 'result' && r409.value.code !== 20000 && r409.value.code === 40900 ? 1 : 0}`)
 out.push(`CONFLICT_TEXT_409=${r409.value.message}`)
 
+// 404：同样返回对象且 code=40400 ≠ 20000 → 页面必须判 code，不得显示「保存成功」
+//（Round 9 审计失败项 1：分账配置 404 merchant not found 曾直接落到成功提示）
+const r404 = resolveHttpFailure(404, { message: 'merchant not found' })
+out.push(`NO_SUCCESS_ON_404=${r404.kind === 'result' && r404.value.code === 40400 && r404.value.code !== 20000 ? 1 : 0}`)
+
 // 500：抛错且不带 code → 页面只能走 toast（瞬时提示）
 const r500 = resolveHttpFailure(500, { message: 'internal error' })
 out.push(`TOAST_ON_500=${r500.kind === 'throw' && r500.value.code === undefined ? 1 : 0}`)
@@ -432,6 +487,7 @@ EOF
     [ "$NODE_EXIT" = "0" ] || { echo "ASSERT_FAIL: node transport test failed" >&2; RC=1; }
     require 'API_ERROR_CODE=1'
     require 'NO_SUCCESS_ON_409=1'
+    require 'NO_SUCCESS_ON_404=1'
     require 'TOAST_ON_500=1'
     finish R11-transport.txt || RC=1
     ;;
