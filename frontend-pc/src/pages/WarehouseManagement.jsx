@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { Table, Tag, Button, Card, Typography, Space, Modal, Descriptions, Steps, message, Select, Upload, Input, Tooltip, DatePicker } from 'antd';
+import { Table, Tag, Button, Card, Typography, Space, Modal, Descriptions, Steps, message, Select, Upload, Input, Tooltip, DatePicker, Alert } from 'antd';
 import { TruckOutlined, CheckCircleOutlined, EyeOutlined, CameraOutlined, QrcodeOutlined, DownloadOutlined } from '@ant-design/icons';
 import { api, fetchBlob } from '../services/api';
 import { formatBeijingDateTimeShort } from '../utils/date';
-// import QrScanner from 'qr-scanner';  // Temporarily disabled - install dependency to enable
+import { resolveScanCandidates } from '../utils/scanResolve';
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -68,34 +68,73 @@ export default function WarehouseManagement() {
   };
   const [scanModalVisible, setScanModalVisible] = useState(false);
   const [photoModalVisible, setPhotoModalVisible] = useState(false);
-  const [scannedData, setScannedData] = useState("");
+  // #2634：扫码验收 = 手动录入 + 相机辅助（零新依赖；自动识别另立评估）。
+  const [scanCode, setScanCode] = useState('');
+  const [scanCameraError, setScanCameraError] = useState('');
+  const [scanKind, setScanKind] = useState('none');
+  const [scanCandidates, setScanCandidates] = useState([]);
+  const [scanSelectedId, setScanSelectedId] = useState('');
+  const [scanQuerying, setScanQuerying] = useState(false);
+
+  const stopScanStream = () => {
+    const stream = streamRef.current;
+    if (stream) {
+      // 关闭弹窗/离开页面必须停轨，否则相机指示灯常亮。
+      stream.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) videoRef.current.srcObject = null;
+  };
+
   const handleOpenScanner = async () => {
     setScanModalVisible(true);
+    setScanCameraError('');
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setScanCameraError('当前浏览器不支持相机预览，请手动输入');
+      return;
+    }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: "environment" } 
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
       });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        scannerRef.current = new QrScanner(
-          videoRef.current,
-          result => {
-            setScannedData(result.data);
-            handleScanResult(result.data);
-          },
-          { highlightScanRegion: true }
-        );
-        scannerRef.current.start();
-      }
-    } catch (error) {
-      message.error("相机访问失败: " + error.message);
+      streamRef.current = stream;
+      if (videoRef.current) videoRef.current.srcObject = stream;
+    } catch {
+      // 相机失败不得阻断录入与验收（D6）。
+      setScanCameraError('相机不可用（无权限或被占用），请手动输入');
     }
   };
 
-  const handleScanResult = (data) => {
-    message.success("扫描成功: " + data);
-    scannerRef.current?.stop();
+  const handleCloseScan = () => {
+    stopScanStream();
     setScanModalVisible(false);
+  };
+
+  useEffect(() => () => { stopScanStream(); }, []);
+
+  const handleScanQuery = async () => {
+    const code = (scanCode || '').trim();
+    if (!code) {
+      message.error('请输入订单号或乐器序列号');
+      return;
+    }
+    setScanQuerying(true);
+    try {
+      const resp = await api.get('/warehouse/orders', { params: { keyword: code, page: 1, pageSize: 20 } });
+      if (resp && resp.code !== undefined && resp.code !== 20000) {
+        message.error(resp.message || '查询订单失败');
+        return;
+      }
+      const resolved = resolveScanCandidates(resp?.data?.list || [], code);
+      setScanKind(resolved.kind);
+      setScanCandidates(resolved.list);
+      setScanSelectedId(resolved.list.length === 1 ? String(resolved.list[0].id) : '');
+    } catch (error) {
+      // #2634：查询失败只给中文兜底——不把异常对象/ASCII 技术串弹给用户（api.md §1.3）。
+      message.error('查询订单失败');
+    } finally {
+      setScanQuerying(false);
+    }
   };
 
   const handleTakePhoto = async () => {
@@ -133,7 +172,7 @@ export default function WarehouseManagement() {
   const [damageModalVisible, setDamageModalVisible] = useState(false);
   const [damageAssessment, setDamageAssessment] = useState({ damage_amount: 0, damage_description: '', notes: "" });
   const videoRef = useRef(null);
-  const scannerRef = useRef(null);
+  const streamRef = useRef(null);
 
   const handleUpdateShipping = async (orderId, values) => {
     try {
@@ -161,12 +200,13 @@ export default function WarehouseManagement() {
     }
   };
 
-  const handleInspectReturn = async (orderId, passed) => {
-    const instrumentSn = prompt('请输入乐器序列号:');
-    if (!instrumentSn) return;
+  const handleInspectReturn = async (orderId, passed, instrumentSn) => {
+    // #2634：扫码验收弹窗已定位 SN 时直接传入，不再二次 prompt（列表行调用点不传第三参）。
+    const sn = (instrumentSn || '').trim() || prompt('请输入乐器序列号:');
+    if (!sn) return;
     try {
       await api.put(`/warehouse/orders/${orderId}/return-inspect`, {
-        instrument_sn: instrumentSn,
+        instrument_sn: sn,
         scan_time: new Date().toISOString(),
         condition: passed ? 'good' : 'damaged',
       });
@@ -360,6 +400,7 @@ export default function WarehouseManagement() {
               ]}
             />
         <Input.Search placeholder="订单号 / SN / 客户姓名 / 电话" style={{ width: 260, marginLeft: 8 }} allowClear onSearch={(v) => { setKeyword(v); setPage(1); }} />
+            <Button icon={<QrcodeOutlined />} onClick={handleOpenScanner}>扫码验收</Button>
             <Button onClick={fetchOrders}>刷新</Button>
             <RangePicker value={exportRange} onChange={(dates) => setExportRange(dates || [])} style={{ marginLeft: 8 }} />
             <Button icon={<DownloadOutlined />} onClick={handleExportAll}>导出全部订单</Button>
@@ -436,41 +477,151 @@ export default function WarehouseManagement() {
         )}
       </Modal>
 
-      {/* QR Scanner Modal */}
+      {/* 扫码验收 Modal（#2634：手动录入定位 + 复用列表验收动作；相机仅作辅助） */}
       <Modal
         title="扫码验收"
         open={scanModalVisible}
-        onCancel={() => {
-          setScanModalVisible(false);
-          scannerRef.current?.stop();
-        }}
+        onCancel={handleCloseScan}
         footer={[
-          <Button key="close" onClick={() => {
-            setScanModalVisible(false);
-            scannerRef.current?.stop();
-          }}>
+          <Button key="close" onClick={handleCloseScan}>
             关闭
           </Button>
         ]}
-        width={600}
+        width={640}
       >
-        <div className="text-center">
-          <video 
-            ref={videoRef} 
-            style={{ width: '100%', maxWidth: '400px', border: '2px dashed #ddd', borderRadius: '8px' }}
+        <Space direction="vertical" style={{ width: '100%' }} size="middle">
+          <Alert
+            type="info"
+            showIcon
+            message="暂不支持自动识别，请手动输入订单号或乐器序列号"
+          />
+          {scanCameraError && <Alert type="warning" showIcon message={scanCameraError} />}
+          <video
+            ref={videoRef}
+            style={{
+              width: '100%',
+              maxWidth: '400px',
+              border: '2px dashed #ddd',
+              borderRadius: '8px',
+              display: scanCameraError ? 'none' : 'block',
+            }}
             autoPlay
             muted
             playsInline
           />
-          <div className="mt-4">
-            {scannedData && (
-              <div className="bg-green-50 p-4 rounded">
-                <div className="font-semibold">扫描结果:</div>
-                <div className="text-green-600 font-mono">{scannedData}</div>
+          <Space.Compact style={{ width: '100%' }}>
+            <Input
+              placeholder="输入订单号或乐器序列号"
+              value={scanCode}
+              onChange={(e) => setScanCode(e.target.value)}
+              onPressEnter={handleScanQuery}
+              allowClear
+            />
+            <Button type="primary" loading={scanQuerying} onClick={handleScanQuery}>
+              查询并定位
+            </Button>
+          </Space.Compact>
+          {scanKind === 'fuzzy' && (
+            <Alert type="warning" showIcon message="未精确匹配，以下为相近订单，请确认" />
+          )}
+          {scanKind === 'none' && scanCandidates.length === 0 && (scanCode || '').trim() !== '' && !scanQuerying && (
+            <Alert type="error" showIcon message="未找到匹配订单，请确认订单号或乐器序列号" />
+          )}
+          {scanCandidates.length > 1 && (
+            <Select
+              style={{ width: '100%' }}
+              placeholder="选择匹配到的订单"
+              value={scanSelectedId || undefined}
+              onChange={(v) => setScanSelectedId(String(v))}
+              options={scanCandidates.map((o) => ({
+                value: String(o.id),
+                label: `${o.order_no || '-'} · ${o.instrument_sn || '-'} · ${getStatusConfig(o.status).text}`,
+              }))}
+            />
+          )}
+          {scanCandidates.length > 5 && (
+            <div className="text-xs text-gray-500">匹配到多条，仅列出前 5 条</div>
+          )}
+          {(() => {
+            const scanOrder = scanCandidates.find((o) => String(o.id) === String(scanSelectedId))
+              || (scanCandidates.length === 1 ? scanCandidates[0] : null);
+            if (!scanOrder) return null;
+            const scanSn = (scanOrder.instrument_sn || '').trim();
+            const hasSn = scanSn !== '';
+            const statusCfg = getStatusConfig(scanOrder.status);
+            return (
+              <div className="bg-gray-50 p-3 rounded">
+                <Descriptions column={1} size="small" bordered>
+                  <Descriptions.Item label="订单号">{scanOrder.order_no || '-'}</Descriptions.Item>
+                  <Descriptions.Item label="状态">
+                    <Tag color={statusCfg.color}>{statusCfg.text}</Tag>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="乐器 / 序列号">
+                    {scanOrder.instrument_name || '-'} / {scanSn || '-'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="客户">{scanOrder.user_name || '-'}</Descriptions.Item>
+                </Descriptions>
+                <Space className="mt-3">
+                  {scanOrder.status === 'shipped' && (
+                    <Tooltip title={hasSn ? '' : '缺少乐器序列号，请在列表行手动确认'}>
+                      <Button
+                        type="primary"
+                        disabled={!hasSn}
+                        onClick={() => {
+                          handleConfirmDelivery(scanOrder.id, scanSn);
+                          handleCloseScan();
+                        }}
+                      >
+                        确认收货
+                      </Button>
+                    </Tooltip>
+                  )}
+                  {scanOrder.status === 'returning' && (
+                    <>
+                      <Tooltip title={hasSn ? '' : '缺少乐器序列号，请在列表行手动确认'}>
+                        <Button
+                          type="primary"
+                          disabled={!hasSn}
+                          onClick={() => {
+                            handleInspectReturn(scanOrder.id, true, scanSn);
+                            handleCloseScan();
+                          }}
+                        >
+                          通过
+                        </Button>
+                      </Tooltip>
+                      <Tooltip title={hasSn ? '' : '缺少乐器序列号，请在列表行手动确认'}>
+                        <Button
+                          danger
+                          disabled={!hasSn}
+                          onClick={() => {
+                            handleInspectReturn(scanOrder.id, false, scanSn);
+                            handleCloseScan();
+                          }}
+                        >
+                          拒绝
+                        </Button>
+                      </Tooltip>
+                    </>
+                  )}
+                  {['shipped', 'returning'].indexOf(scanOrder.status) === -1 && (
+                    <>
+                      <Alert type="info" showIcon message={`当前状态「${statusCfg.text}」无需验收`} />
+                      <Button
+                        onClick={() => {
+                          handleCloseScan();
+                          handleViewDetails(scanOrder);
+                        }}
+                      >
+                        查看详情
+                      </Button>
+                    </>
+                  )}
+                </Space>
               </div>
-            )}
-          </div>
-        </div>
+            );
+          })()}
+        </Space>
       </Modal>
 
       {/* Photo Upload Modal */}
