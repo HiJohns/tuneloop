@@ -1,0 +1,120 @@
+# build=1.0.b56bea461 # commit=b56bea461b4781e6c1e77b12cbc4d0b884a88789 # dirty=false
+GENERATED_AT_HEAD=e84348d3292310288f13a1f768af3733a32232c8
+GATE_MODE=directed (backend integration + render suite + wiring static)
+BACKEND_CMD=cd backend && go test ./handlers/ -run '^TestInstrumentLoss2615' -count=1 -v
+[WARNING] No .env file found in common paths
+2026/11/28 04:42:22 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f sslmode=disable
+2026/11/28 04:42:25 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f
+2026/11/28 04:42:25 [DB] Connected to database 'tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f'
+=== RUN   TestInstrumentLoss2615_ListAndGet
+2026/11/28 04:42:25 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f sslmode=disable
+2026/11/28 04:42:25 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f
+2026/11/28 04:42:25 [DB] Connected to database 'tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f'
+
+2026/11/28 04:42:26 [32m/tmp/opencode/tuneloop/wt-2615/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[680.357ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_levels", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/28 04:42:26 [TenantScope][observe] auto-scope injected for table=instrument_loss_records (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/28 04:42:26 [TenantScope][observe] auto-scope injected for table=instruments (add explicit scope, then set ExplicitTenantScopeOnly)
+    instrument_loss_list_2615_test.go:123: LOSS_LIST_TOTAL=3
+    instrument_loss_list_2615_test.go:124: LOSS_LIST_PAGE_LEN=2
+    instrument_loss_list_2615_test.go:135: LOSS_LIST_STATUS_OPEN=2
+    instrument_loss_list_2615_test.go:138: LOSS_LIST_STATUS_RESTORED=1
+    instrument_loss_list_2615_test.go:171: LOSS_LIST_BRIEF_SN=1
+    instrument_loss_list_2615_test.go:172: LOSS_LIST_PHOTOS_ARRAY=1
+    instrument_loss_list_2615_test.go:200: LOSS_RESPONSE_KEEPS_REVERSED_FIELDS=1
+    instrument_loss_list_2615_test.go:209: LOSS_GET_CODE=20000
+    instrument_loss_list_2615_test.go:215: LOSS_GET_BRIEF_SN=1
+
+2026/11/28 04:42:26 [31;1m/tmp/opencode/tuneloop/wt-2615/backend/handlers/instrument_loss.go:491 [35;1mrecord not found
+[0m[33m[0.595ms] [34;1m[rows:0][0m SELECT * FROM "instrument_loss_records" WHERE (id = 'dcf3d831-32b8-46fd-9537-61bab4407307' AND tenant_id = 'f85a2e2d-039a-4927-8f19-354f5e1310c4') AND "instrument_loss_records"."tenant_id" = 'f85a2e2d-039a-4927-8f19-354f5e1310c4' ORDER BY "instrument_loss_records"."id" LIMIT 1
+    instrument_loss_list_2615_test.go:233: LOSS_GET_MISSING_CODE=40400
+
+2026/11/28 04:42:26 [31;1m/tmp/opencode/tuneloop/wt-2615/backend/handlers/instrument_loss.go:491 [35;1mERROR: invalid input syntax for type uuid: "not-a-uuid" (SQLSTATE 22P02)
+[0m[33m[1.191ms] [34;1m[rows:0][0m SELECT * FROM "instrument_loss_records" WHERE (id = 'not-a-uuid' AND tenant_id = 'f85a2e2d-039a-4927-8f19-354f5e1310c4') AND "instrument_loss_records"."tenant_id" = 'f85a2e2d-039a-4927-8f19-354f5e1310c4' ORDER BY "instrument_loss_records"."id" LIMIT 1
+
+2026/11/28 04:42:26 [31;1m/tmp/opencode/tuneloop/wt-2615/backend/handlers/instrument_loss.go:491 [35;1mrecord not found
+[0m[33m[0.418ms] [34;1m[rows:0][0m SELECT * FROM "instrument_loss_records" WHERE (id = '745a8f24-4177-4362-ac82-de6dcbd10e16' AND tenant_id = 'd475ac67-8325-4cdc-92aa-e45ba6aa1d2a') AND "instrument_loss_records"."tenant_id" = 'd475ac67-8325-4cdc-92aa-e45ba6aa1d2a' ORDER BY "instrument_loss_records"."id" LIMIT 1
+    instrument_loss_list_2615_test.go:258: LOSS_GET_CROSS_TENANT_CODE=40400
+2026/11/28 04:42:26 [wechatpay] failed to create HTTP client: load key: read private key: open : no such file or directory, falling back to mock
+--- PASS: TestInstrumentLoss2615_ListAndGet (1.01s)
+=== RUN   TestInstrumentLoss2615_LegacyNoParams
+
+2026/11/28 04:42:27 [32m/tmp/opencode/tuneloop/wt-2615/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[536.669ms] [33m[rows:0][35m TRUNCATE TABLE "instruments", "membership_levels", "pricing_templates", "sites", "tenants", "users", "instrument_loss_records" RESTART IDENTITY CASCADE[0m
+    instrument_loss_list_2615_test.go:302: LOSS_LEGACY_NO_PARAMS_ROWS=200
+    instrument_loss_list_2615_test.go:303: LOSS_LEGACY_NO_PARAMS_TOTAL=200
+    instrument_loss_list_2615_test.go:313: LOSS_LEGACY_PAGE_ONLY_SIZE=20
+2026/11/28 04:42:27 [wechatpay] failed to create HTTP client: load key: read private key: open : no such file or directory, falling back to mock
+--- PASS: TestInstrumentLoss2615_LegacyNoParams (0.80s)
+PASS
+ok  	tuneloop-backend/handlers	5.348s
+RENDER_CMD=cd frontend-mobile && npx vitest run --config vitest.config.js scripts/page-smoke/instrument-loss-2615.test.jsx
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v2.1.9 /tmp/opencode/tuneloop/wt-2615/frontend-mobile
+
+stdout | scripts/page-smoke/instrument-loss-2615.test.jsx
+[Dev Mode] Injecting mock wx object for browser debugging
+
+stderr | scripts/page-smoke/instrument-loss-2615.test.jsx > instrument loss list (#2615 R2) > renders record rows, single register entry and navigates to detail
+Warning: React does not recognize the `scrollY` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `scrolly` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+    at div
+    at div
+    at InstrumentLossManage (/tmp/opencode/tuneloop/wt-2615/frontend-mobile/src/pages/InstrumentLossManage.jsx:47:42)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+Warning: Unknown event handler property `onScrollToLower`. It will be ignored.
+    at div
+    at div
+    at InstrumentLossManage (/tmp/opencode/tuneloop/wt-2615/frontend-mobile/src/pages/InstrumentLossManage.jsx:47:42)
+    at RenderedRoute (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:539:7)
+    at Routes (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1273:7)
+    at Router (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1207:17)
+    at MemoryRouter (/home/coder/tuneloop/frontend-mobile/node_modules/react-router/dist/umd/react-router.development.js:1101:7)
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+LOSS_LIST_ROWS=3
+LOSS_LIST_SN_SHOWN=1
+LOSS_LIST_TIME_SHOWN=1
+LOSS_LIST_COVER_SRC_ABSOLUTE=1
+LOSS_LIST_COVER_RAW_INPUT=0
+LOSS_LIST_STATUS_BADGE=2
+LOSS_LIST_DANGER_BUTTON_IN_ROW=0
+LOSS_LIST_REGISTER_ENTRY=1
+LOSS_LIST_ROW_NAV=1
+LOSS_LIST_RENDER_FAIL=0
+LOSS_REG_PARTY_RATIO_DEFAULT=1
+LOSS_REG_VALIDATE_NO_INSTRUMENT=1
+LOSS_REG_SELECTOR_QUERY=1
+LOSS_REG_VALIDATE_DESC_REQUIRED=1
+LOSS_REG_SUBMIT_PAYLOAD=1
+LOSS_REG_SUBMIT_BACK=1
+LOSS_REG_RENDER_FAIL=0
+LOSS_DETAIL_FIELDS=1
+LOSS_DETAIL_PHOTOS=1
+LOSS_DETAIL_PHOTO_SRC_ABSOLUTE=1
+LOSS_DETAIL_PHOTO_RAW_KEY=0
+LOSS_DETAIL_PHOTO_PREVIEW_URLS_ABSOLUTE=1
+LOSS_DETAIL_OPEN_HAS_RESTORE=1
+LOSS_DETAIL_RESTORE_PAYLOAD=1
+LOSS_DETAIL_RENDER_FAIL=0
+LOSS_DETAIL_RESTORED_HIDES_RESTORE=1
+LOSS_DETAIL_RESTORE_PHOTO_SRC_ABSOLUTE=1
+LOSS_DETAIL_RESTORE_PHOTO_RAW_KEY=0
+LOSS_DETAIL_RESTORE_PHOTO_PREVIEW_URLS_ABSOLUTE=1
+ ✓ scripts/page-smoke/instrument-loss-2615.test.jsx (4 tests) 602ms
+   ✓ instrument loss register (#2615 R3) > searches instrument by SN, validates and submits the loss payload 348ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  04:42:29
+   Duration  3.82s (transform 359ms, setup 37ms, collect 909ms, tests 602ms, environment 1.11s, prepare 115ms)
+
+WIRING:
+WEAPP_PAGES_REGISTERED=2
+H5_PAGES_REGISTERED=2
+NAV_MAP_ENTRIES=2
+RESULT: PASS (gate)

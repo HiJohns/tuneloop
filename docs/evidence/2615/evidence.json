@@ -20,10 +20,10 @@
       "artifacts": [
         "docs/evidence/2615/R1-api.txt"
       ],
-      "assert": "exit 0 且含 LOSS_LIST_TOTAL=3、LOSS_LIST_PAGE_LEN=2、LOSS_LIST_STATUS_OPEN=2、LOSS_LIST_STATUS_RESTORED=1、LOSS_LIST_BRIEF_SN=1、LOSS_LIST_PHOTOS_ARRAY=1、LOSS_GET_CODE=20000、LOSS_GET_BRIEF_SN=1、LOSS_GET_MISSING_CODE=40400、LOSS_GET_CROSS_TENANT_CODE=40400、LOSS_LEGACY_NO_PARAMS_ROWS=200、LOSS_LEGACY_NO_PARAMS_TOTAL=200、LOSS_LEGACY_PAGE_ONLY_SIZE=20",
-      "actual": "PASS：exit 0 / RESULT: PASS (r1)。十三项合同 token 全为期望值（LOSS_LIST_TOTAL=3、LOSS_LIST_PAGE_LEN=2、LOSS_LIST_STATUS_OPEN=2、LOSS_LIST_STATUS_RESTORED=1、LOSS_LIST_BRIEF_SN=1、LOSS_LIST_PHOTOS_ARRAY=1、LOSS_GET_CODE=20000、LOSS_GET_BRIEF_SN=1、LOSS_GET_MISSING_CODE=40400、LOSS_GET_CROSS_TENANT_CODE=40400、LOSS_LEGACY_NO_PARAMS_ROWS=200、LOSS_LEGACY_NO_PARAMS_TOTAL=200、LOSS_LEGACY_PAGE_ONLY_SIZE=20）；另含 LOSS_RESPONSE_KEEPS_REVERSED_FIELDS=1（列表每行 + 详情保留 reversed_at / reversed_amount_cents / deducted_damage_cents / deducted_idle_cents / reverse_note 五个历史列）。Rev.3 D8：TestInstrumentLoss2615_LegacyNoParams 在 200 条记录夹具下无参调用返回 200 行/200 total，仅传 page 时为 20，显式 pageSize=1000 时 clamp 到 100。",
-      "expected": "十三项 token 全为期望值",
-      "negative": "分页失效、total 非真实计数、photos 仍字符串、brief 缺失、跨租户 200、无参调用被截断到 20 行（PC 台账静默少显示）→ FAIL",
+      "assert": "exit 0 且含 LOSS_LIST_TOTAL=3、LOSS_LIST_PAGE_LEN=2、LOSS_LIST_STATUS_OPEN=2、LOSS_LIST_STATUS_RESTORED=1、LOSS_LIST_BRIEF_SN=1、LOSS_LIST_PHOTOS_ARRAY=1、LOSS_GET_CODE=20000、LOSS_GET_BRIEF_SN=1、LOSS_GET_MISSING_CODE=40400、LOSS_GET_CROSS_TENANT_CODE=40400",
+      "actual": "PASS：exit 0 / RESULT: PASS (r1)。合同十项 token 全为期望值（LOSS_LIST_TOTAL=3、LOSS_LIST_PAGE_LEN=2、LOSS_LIST_STATUS_OPEN=2、LOSS_LIST_STATUS_RESTORED=1、LOSS_LIST_BRIEF_SN=1、LOSS_LIST_PHOTOS_ARRAY=1、LOSS_GET_CODE=20000、LOSS_GET_BRIEF_SN=1、LOSS_GET_MISSING_CODE=40400、LOSS_GET_CROSS_TENANT_CODE=40400）；矩阵 R1 行另要求的 Rev.3 D8 三项亦全部出现：LOSS_LEGACY_NO_PARAMS_ROWS=200、LOSS_LEGACY_NO_PARAMS_TOTAL=200、LOSS_LEGACY_PAGE_ONLY_SIZE=20（TestInstrumentLoss2615_LegacyNoParams：200 条记录夹具下无参调用返回 200 行/200 total，仅传 page 时为 20，显式 pageSize=1000 时 clamp 到 100）；另含 LOSS_RESPONSE_KEEPS_REVERSED_FIELDS=1（列表每行 + 详情保留 reversed_at / reversed_amount_cents / deducted_damage_cents / deducted_idle_cents / reverse_note 五个历史列）。",
+      "expected": "十项 token 全为期望值",
+      "negative": "分页失效、total 非真实计数、photos 仍字符串、brief 缺失、跨租户 200 → FAIL",
       "negative_result": "负例已实测：status=bogus → 400/40002；不存在/非法 id/跨租户 → 404/40400（无 200 泄漏）；把 lossRecordJSON 回退到缺陷版后 LOSS_RESPONSE_KEEPS_REVERSED_FIELDS=0 且测试 FAIL；Rev.3 D8 红样：stash 掉 instrument_loss.go 的 legacy 判定（保留新用例）→ LOSS_LEGACY_NO_PARAMS_ROWS=20 且测试 FAIL（legacy no-params broke PC ledger: rows=20 total=200 page_size=20 want 200），恢复后 200 → PASS。",
       "pass": true
     },

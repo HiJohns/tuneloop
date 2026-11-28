@@ -1,16 +1,16 @@
 {
   "issue": 2615,
-  "overall": "PASS",
-  "plan": "/tmp/opencode/tuneloop/wt-2615/tmp/pre-ready-2615.UHM4bJ/plan.md",
-  "plan_sha256": "8b498d33a2cf1be3630d55233fdf7d4686fdfd7adaf2abd36f20a4e8b2f1d0a5",
+  "overall": "FAIL",
+  "plan": "/tmp/opencode/tuneloop/wt-2615/tmp/pre-ready-2615.anKBFJ/plan.md",
+  "plan_sha256": "93957ba4172e03ca0526988ee3374d2bcdf3954fdd9bc719538683696d5b511e",
   "config_sha": "a29b2b35530c77f2bae31c509207199e6572ad9c",
   "provenance": {
-    "build": "1.0.5e3d9c53b",
-    "commit": "5e3d9c53b5fa3dc07ce88ba7fe0815eaf3b2bea3",
+    "build": "1.0.b56bea461",
+    "commit": "b56bea461b4781e6c1e77b12cbc4d0b884a88789",
     "dirty": false
   },
   "summary": "docs/evidence/2615/summary.md",
-  "timestamp": "20261127-214521",
+  "timestamp": "20261128-044206",
   "checks": [
     {
       "id": "P1",
@@ -24,8 +24,8 @@
     },
     {
       "id": "P3",
-      "status": "PASS",
-      "detail": "all referenced evidence paths exist and are durable"
+      "status": "FAIL",
+      "detail": "evidence paths do not exist: c.GetQuery frontend-pc/src/pages/InstrumentStock.jsx:384 lossApi.list()"
     },
     {
       "id": "P4",
@@ -34,8 +34,8 @@
     },
     {
       "id": "P12",
-      "status": "PASS",
-      "detail": "Evidence Contract complete: 6 row(s) match the plan and have durable artifacts"
+      "status": "FAIL",
+      "detail": "R1: assert does not match the plan contract; R1: expected does not match the plan contract; R1: negative does not match the plan contract"
     },
     {
       "id": "P14",
@@ -44,8 +44,8 @@
     },
     {
       "id": "P18",
-      "status": "WARN",
-      "detail": "tooling_commit mismatch: evidence=be61a790605b0b65759d0fd2be9b258bc6c41b49 config_sha=a29b2b35530c77f2bae31c509207199e6572ad9c"
+      "status": "PASS",
+      "detail": "tooling_commit matches the running scripts (a29b2b35530c77f2bae31c509207199e6572ad9c)"
     },
     {
       "id": "P15",
@@ -65,7 +65,7 @@
     {
       "id": "P5",
       "status": "N/A",
-      "detail": "no go.mod/package.json and no --full-gate-cmd: full gate not applicable"
+      "detail": "skipped: P12/P14/P15/P16 static checks failed (static checks run first)"
     },
     {
       "id": "P6",

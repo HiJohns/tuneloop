@@ -5,12 +5,12 @@
 
 Rev.3 采纳 Investigation Packet 选项 1（后端兼容旧调用方）。Round 2 审计阻断项 B1 的根因是
 `GET /api/instrument-loss` 默认页大小从旧的 `Limit(200)` 收到 20，而 PC 台账
-（`frontend-pc/src/pages/InstrumentStock.jsx:384` `lossApi.list()`）仍是无参调用且表格无服务端分页
+（frontend-pc InstrumentStock.jsx:384 的 lossApi.list() 无参调用）仍是无参调用且表格无服务端分页
 → >20 条的租户静默少显示最多 180 条。
 
 | 变更点 | 实现 |
 |---|---|
-| D8 legacy 判定 | `backend/handlers/instrument_loss.go`：`page` 与 `pageSize` **均未显式传**（`c.GetQuery` 存在性判定）→ `legacyLossPageSize=200`；**只缺其一**仍走新默认（`page=1` / `pageSize=20`）；显式 `pageSize` 仍 `clamp` 到 100 |
+| D8 legacy 判定 | `backend/handlers/instrument_loss.go`：`page` 与 `pageSize` **均未显式传**（用 c.GetQuery 判定参数是否存在，而非取值）→ `legacyLossPageSize=200`；**只缺其一**仍走新默认（`page=1` / `pageSize=20`）；显式 `pageSize` 仍 `clamp` 到 100 |
 | 单测 | `backend/handlers/instrument_loss_list_2615_test.go` 新增 `TestInstrumentLoss2615_LegacyNoParams`（200 条记录夹具）：无参 → 200 行/200 total/page_size=200；仅 `page=1` → 20（负例）；`pageSize=1000` → clamp 100 |
 | 契约文档 | `docs/spec/api/api.md` §5.12.1 登记 legacy 例外（实现与文档逐字一致） |
 | 证据断言 | `scripts/verify-2615.sh` r1/gate 增 `LOSS_LEGACY_NO_PARAMS_ROWS=200`、`LOSS_LEGACY_NO_PARAMS_TOTAL=200`、`LOSS_LEGACY_PAGE_ONLY_SIZE=20` |
@@ -167,7 +167,7 @@ $ cd backend && go test ./... -count=1 -timeout 20m -p 2
 | 维度 | Plan / `docs/spec/api/api.md` §5.12 | Handler 实现 | 前端调用 |
 |---|---|---|---|
 | 路径 | `GET /api/instrument-loss`、`GET /api/instrument-loss/:id`、`POST /api/instruments/:id/lost`、`POST /api/instruments/:id/restore` | `backend/main.go` 注册 4 条 | 列表 → `GET /instrument-loss?page&pageSize&status`；详情 → `GET /instrument-loss/<id>` + `POST /instruments/<id>/restore`；登记 → `GET /instruments?sn&exclude_status` + `POST /instruments/<id>/lost` |
-| 参数名 | `page`/`pageSize`/`status`/`instrument_id`/`open`（兼容）；`page`+`pageSize` 皆缺 → legacy `page=1&pageSize=200`（Rev.3 D8，api.md §5.12.1 已登记） | `c.GetQuery` 存在性判定 + `legacyLossPageSize=200`；只缺其一走新默认、显式值仍 clamp 100 | 移动端三页显式传 `page&pageSize=20`（不受 legacy 影响）；PC `lossApi.list()` 无参 → 200 行上限（不回退） |
+| 参数名 | `page`/`pageSize`/`status`/`instrument_id`/`open`（兼容）；page+pageSize 皆缺 → legacy page=1&pageSize=200（Rev.3 D8，api.md §5.12.1 已登记） | 用 c.GetQuery 判定参数存在性 + `legacyLossPageSize=200`；只缺其一走新默认、显式值仍 clamp 100 | 移动端三页显式传 `page&pageSize=20`（不受 legacy 影响）；PC 台账 lossApi.list() 无参 → 200 行上限（不回退） |
 | 响应/错误 | `{code,data:{list,total,page,page_size}}`；行内 `photos`/`restore_photos` 数组 + `instrument_brief`；详情 404/40400、无 tid 403/40300；非法 status 400/40002 | `lossRecordJSON` 现输出全部模型字段（含 5 个历史冲正列）、`instrument_brief` 未命中为 `null` | 列表读 data.list / data.total；详情读 data；均判 `code === 20000` 并对错误提示（不静默） |
 
 媒体契约（本次修复的核心）：`/upload` 返回的 `file_key` 是裸文件名、instruments.cover_image 是 `/uploads/media/` 下的相对路径 相对路径 —— 两者都必须经 `frontend-mobile/src/utils/media.js` 的 photoSrc 补 origin 后交给 `<Image>`（weapp `<Image>` 不吃相对路径）。
