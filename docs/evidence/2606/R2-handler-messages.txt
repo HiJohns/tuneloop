@@ -1,0 +1,21 @@
+# build=1.0.c1ed1f263 # commit=c1ed1f263ce55102c0af10e5184f3ba12e6ec2dd # dirty=false
+GENERATED_AT_HEAD=c1ed1f263ce55102c0af10e5184f3ba12e6ec2dd
+GO_TEST_CMD=cd backend && go test ./handlers -run '^TestBindErrorMessages2606$' -count=1 -v (PG 15433/tuneloop_test_2606)
+GO_TEST_EXIT=0
+GOTEST:     instrument_400_messages_2606_test.go:184: BIND2606_CASES_TOTAL=4
+GOTEST:     instrument_400_messages_2606_test.go:185: BIND2606_CASES_FAIL=0
+GOTEST:     instrument_400_messages_2606_test.go:186: BIND2606_ASCII_LEAK=0
+GOTEST:     instrument_400_messages_2606_test.go:187: BIND2606_RAW_PHRASE_LEAK=0
+GOTEST:     instrument_400_messages_2606_test.go:188: BIND2606_SYNTAX_MSG=请求体格式不正确，请检查后重试
+GOTEST:     instrument_400_messages_2606_test.go:189: BIND2606_CATEGORY_MSG=参数不合法：分类不能为空
+GOTEST:     instrument_400_messages_2606_test.go:190: BIND2606_STATUS_TYPE_MSG=参数不合法：状态类型不正确
+GOTEST: --- PASS: TestBindErrorMessages2606 (3.07s)
+GOTEST: ok  	tuneloop-backend/handlers	15.439s
+BIND2606_CASES_TOTAL=4
+BIND2606_CASES_FAIL=0
+BIND2606_ASCII_LEAK=0
+BIND2606_RAW_PHRASE_LEAK=0
+BIND2606_SYNTAX_MSG=请求体格式不正确，请检查后重试
+BIND2606_CATEGORY_MSG=参数不合法：分类不能为空
+BIND2606_STATUS_TYPE_MSG=参数不合法：状态类型不正确
+RESULT: PASS (r2)

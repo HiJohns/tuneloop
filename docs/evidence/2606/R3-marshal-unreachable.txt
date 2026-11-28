@@ -1,0 +1,13 @@
+# build=1.0.c1ed1f263 # commit=c1ed1f263ce55102c0af10e5184f3ba12e6ec2dd # dirty=false
+GENERATED_AT_HEAD=c1ed1f263ce55102c0af10e5184f3ba12e6ec2dd
+GO_TEST_CMD=cd backend && go test ./handlers -run '^TestInstrumentMarshalUnreachable2606$' -count=1 -v
+GO_TEST_EXIT=0
+GOTEST:     instrument_400_messages_2606_test.go:226: MARSHAL_CORPUS_CASES=10
+GOTEST:     instrument_400_messages_2606_test.go:227: MARSHAL_ROUNDTRIP_FAIL=0
+GOTEST:     instrument_400_messages_2606_test.go:228: MARSHAL_NONJSON_FAILS=2
+GOTEST: --- PASS: TestInstrumentMarshalUnreachable2606 (0.00s)
+GOTEST: ok  	tuneloop-backend/handlers	1.770s
+MARSHAL_ROUNDTRIP_FAIL=0
+MARSHAL_CORPUS_CASES=10
+MARSHAL_NONJSON_FAILS=2
+RESULT: PASS (r3)

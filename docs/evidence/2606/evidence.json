@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "issue": 2606,
+  "build": "1.0.c1ed1f263",
+  "commit": "c1ed1f263ce55102c0af10e5184f3ba12e6ec2dd",
+  "dirty": false,
+  "plan_sha256": "a61e9e88e6033fd1bc34cb5fee118952c298c87538ea1d15b18fcdaf00f5771a",
+  "gate": {
+    "plan_sha256": "a61e9e88e6033fd1bc34cb5fee118952c298c87538ea1d15b18fcdaf00f5771a"
+  },
+  "tooling_commit": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
+  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2606 (branch issue-2606, base origin/develop@4e368f692); static scan with base comparison + handler contract tests and marshal witness on one-off PG 127.0.0.1:15433 (tuneloop_test_2606) + go build/gofmt",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2606.sh r1 > docs/evidence/2606/R1-static-scan.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2606/R1-static-scan.txt"
+      ],
+      "assert": "exit 0 且含 BARE_BIND_LEAK_BASE=2 BARE_BIND_LEAK_SITES=0 MARSHAL_LEAK_BASE=6 MARSHAL_LEAK_SITES=0 IMAGES_INVALID_MSG_COUNT=2 SPECS_INVALID_MSG_COUNT=2 PRICING_INVALID_MSG_COUNT=2 CODE_40003_COUNT=3 CODE_40004_COUNT=2 CODE_40005_COUNT=2 MSG_ASCII_LEAK=0",
+      "actual": "BARE_BIND_LEAK_BASE=2→SITES=0；MARSHAL_LEAK_BASE=6→SITES=0；IMAGES/SPECS/PRICING_INVALID_MSG_COUNT=2/2/2；CODE_40003/40004/40005=3/2/2（未漂移）；MSG_ASCII_LEAK=0；BINDMSG_MESSAGE_SITES=3（2 处本单 + 既有 1 处）",
+      "expected": "PASS（11 项 token 全为期望值）",
+      "negative": "目标字面量残留、code 漂移、常量含 ASCII → FAIL",
+      "negative_result": "修复前 instrument.go:291/553 裸 err.Error()、6 处 invalid images/specifications/pricing format 拼接原文；修复后两族计数均为 0，code 计数不变（40003×3/40004×2/40005×2）。",
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2606.sh r2 > docs/evidence/2606/R2-handler-messages.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2606/R2-handler-messages.txt"
+      ],
+      "assert": "exit 0 且含 GO_TEST_EXIT=0 BIND2606_CASES_TOTAL=4 BIND2606_CASES_FAIL=0 BIND2606_ASCII_LEAK=0 BIND2606_RAW_PHRASE_LEAK=0 BIND2606_CATEGORY_MSG=参数不合法：分类不能为空 BIND2606_STATUS_TYPE_MSG=参数不合法：状态类型不正确 BIND2606_SYNTAX_MSG=请求体格式不正确，请检查后重试",
+      "actual": "GO_TEST_EXIT=0；BIND2606_CASES_TOTAL=4、CASES_FAIL=0、ASCII_LEAK=0、RAW_PHRASE_LEAK=0；CATEGORY_MSG=参数不合法：分类不能为空；STATUS_TYPE_MSG=参数不合法：状态类型不正确；SYNTAX_MSG=请求体格式不正确，请检查后重试（一次性 PG 15433/tuneloop_test_2606）",
+      "expected": "PASS（8 项 token 全为期望值）",
+      "negative": "响应含 Go/JSON 原文或 ASCII、HTTP/code 漂移、用例数 <4 → FAIL",
+      "negative_result": "修复前 4 例返回 Go/validator 原文（`Key: 'CreateInstrumentRequest.CategoryID' …` / `invalid character …`），前端 L2 无语义→降级通用文案；修复后逐字中文、0 ASCII、0 原文短语。",
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2606.sh r3 > docs/evidence/2606/R3-marshal-unreachable.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2606/R3-marshal-unreachable.txt"
+      ],
+      "assert": "exit 0 且含 GO_TEST_EXIT=0 MARSHAL_ROUNDTRIP_FAIL=0 MARSHAL_CORPUS_CASES=10 MARSHAL_NONJSON_FAILS=2",
+      "actual": "GO_TEST_EXIT=0；MARSHAL_CORPUS_CASES=10、MARSHAL_ROUNDTRIP_FAIL=0、MARSHAL_NONJSON_FAILS=2（JSON 解码产物往返 Marshal 不失败 → B 类分支不可达）",
+      "expected": "PASS（4 项 token 全为期望值）",
+      "negative": "JSON 语料往返失败（B 类可达）或负例未失败 → FAIL",
+      "negative_result": "若 B 类可达（JSON 语料 Marshal 失败）→ MARSHAL_ROUNDTRIP_FAIL>0 → FAIL；非 JSON 负例未失败 → 见证无效 → FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2606.sh r4 > docs/evidence/2606/R4-build-compile.txt",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2606/R4-build-compile.txt"
+      ],
+      "assert": "exit 0 且含 GO_BUILD_EXIT=0 GOFMT_DIFF=0 TEST_COMPILE_EXIT=0 BINDMSG_UNIT_EXIT=0 INSTRUMENT_TESTS_EXIT=0",
+      "actual": "GO_BUILD_EXIT=0、GOFMT_DIFF=0、TEST_COMPILE_EXIT=0、BINDMSG_UNIT_EXIT=0、INSTRUMENT_TESTS_EXIT=0（TestCreateInstrument*/TestInstrumentCRUD 定向复跑）",
+      "expected": "PASS（5 项 token 全为期望值）",
+      "negative": "构建失败 / gofmt 差异 / 编译失败 / 乐器测试回归 → FAIL",
+      "negative_result": "构建失败 / gofmt 差异 / handlers 编译失败 / bindmsg 单测失败 / 既有乐器测试回归 → 对应 token 非 0 → FAIL。",
+      "pass": true
+    }
+  ]
+}

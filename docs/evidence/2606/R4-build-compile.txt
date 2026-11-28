@@ -1,0 +1,22 @@
+# build=1.0.c1ed1f263 # commit=c1ed1f263ce55102c0af10e5184f3ba12e6ec2dd # dirty=false
+GENERATED_AT_HEAD=c1ed1f263ce55102c0af10e5184f3ba12e6ec2dd
+GO_BUILD_CMD=cd backend && go build ./...
+GO_BUILD_EXIT=0
+BUILD_TAIL: [heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 at_ms=1795845558877 wait_ms=1223
+BUILD_TAIL: [heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 wait_ms=1223
+BUILD_TAIL: [heavy-lock] released scope=host slot=0 rc=0 at_ms=1795845576542 hold_ms=17665
+GOFMT_DIFF=0
+TEST_COMPILE_EXIT=0
+COMPILE_TAIL: [heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 wait_ms=174
+COMPILE_TAIL: ok  	tuneloop-backend/handlers	1.391s [no tests to run]
+COMPILE_TAIL: [heavy-lock] released scope=host slot=0 rc=0 at_ms=1795845586743 hold_ms=9851
+BINDMSG_UNIT_EXIT=0
+BINDMSG_TAIL: [heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 wait_ms=480
+BINDMSG_TAIL: ok  	tuneloop-backend/bindmsg	0.072s
+BINDMSG_TAIL: [heavy-lock] released scope=host slot=0 rc=0 at_ms=1795845590611 hold_ms=2890
+INSTRUMENT_TESTS_EXIT=0
+INSTR_TAIL: [heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 at_ms=1795845591542 wait_ms=558
+INSTR_TAIL: [heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 wait_ms=558
+INSTR_TAIL: ok  	tuneloop-backend/handlers	6.297s
+INSTR_TAIL: [heavy-lock] released scope=host slot=0 rc=0 at_ms=1795845604126 hold_ms=12584
+RESULT: PASS (r4)
