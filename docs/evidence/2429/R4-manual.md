@@ -1,3 +1,4 @@
+# build=1.0.c3fa9cbb5 # commit=c3fa9cbb570e63a9a5d08b263102b49ad52e679a # dirty=false
 # R4-manual 人工回执 — #2429（编辑员工字段规则 + 站点幂等）
 
 > executor: user

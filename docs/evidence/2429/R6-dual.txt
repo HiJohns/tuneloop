@@ -1,45 +1,45 @@
-# build=1.0.963e31f9b commit=963e31f9b34b00b34cbf7810e1b8b1d2573a07c1 dirty=false
+# build=1.0.c3fa9cbb5 # commit=c3fa9cbb570e63a9a5d08b263102b49ad52e679a # dirty=false
 TAP version 13
 # Subtest: technician hides position
 ok 1 - technician hides position
   ---
-  duration_ms: 2.474821
+  duration_ms: 1.215076
   type: 'test'
   ...
 # Subtest: direct employee has no site requirement
 ok 2 - direct employee has no site requirement
   ---
-  duration_ms: 0.768466
+  duration_ms: 1.042292
   type: 'test'
   ...
 # Subtest: site employee keeps site required
 ok 3 - site employee keeps site required
   ---
-  duration_ms: 0.192415
+  duration_ms: 0.199735
   type: 'test'
   ...
 # Subtest: dual identity resolves to site (site wins, \#2483)
 ok 4 - dual identity resolves to site (site wins, \#2483)
   ---
-  duration_ms: 1.099303
+  duration_ms: 1.582474
   type: 'test'
   ...
 # Subtest: technician keeps priority over site (\#2429)
 ok 5 - technician keeps priority over site (\#2429)
   ---
-  duration_ms: 0.250995
+  duration_ms: 0.315377
   type: 'test'
   ...
 # Subtest: isDualIdentity detects both domains only
 ok 6 - isDualIdentity detects both domains only
   ---
-  duration_ms: 0.182574
+  duration_ms: 0.227105
   type: 'test'
   ...
 # Subtest: resolveInitialRole falls back when users.role is empty (\#2483 D4)
 ok 7 - resolveInitialRole falls back when users.role is empty (\#2483 D4)
   ---
-  duration_ms: 0.315306
+  duration_ms: 0.412229
   type: 'test'
   ...
 1..7
@@ -50,4 +50,4 @@ ok 7 - resolveInitialRole falls back when users.role is empty (\#2483 D4)
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 123.121963
+# duration_ms 113.863169

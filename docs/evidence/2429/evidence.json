@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "issue": 2429,
-  "build": "1.0.963e31f9b",
-  "commit": "963e31f9b34b00b34cbf7810e1b8b1d2573a07c1",
+  "build": "1.0.c3fa9cbb5",
+  "commit": "c3fa9cbb570e63a9a5d08b263102b49ad52e679a",
   "dirty": false,
-  "environment": "backend handlers tests (isolated PG tuneloop_test_verify2429) + frontend-pc vite build + node --test; evidence regenerated at 963e31f9b (tree contains fix f9839430b / 5d10dc2ef and #2483 flip c58d75df6); R4 owner receipt PASS via #2438",
+  "environment": "backend handlers tests (isolated PG tuneloop_test_verify2429) + frontend-pc vite build + node --test; evidence regenerated at 210eea894 (tree contains fix f9839430b / 5d10dc2ef and #2483 flip c58d75df6); R4 owner receipt PASS via #2438",
   "rows": [
     {
       "id": "R1",
@@ -28,7 +28,7 @@
         "docs/evidence/2429/R2-pc-build.txt"
       ],
       "assert": "exit 0；built in",
-      "actual": "PASS：vite build ✓ built in 25.23s",
+      "actual": "PASS：vite build ✓ built in 28.45s",
       "expected": "PASS",
       "negative": "失败 → FAIL",
       "negative_result": "构建失败即 exit 1",
@@ -83,12 +83,13 @@
       "artifacts": [
         "docs/evidence/2429/R6-dual.txt"
       ],
-      "assert": "exit 0；mode=site + 两 flag true（#2483 翻转）",
+      "assert": "exit 0；mode=site + flags true",
       "actual": "PASS：node --test 7/7；双身份 site 优先、technician 优先、isDualIdentity=true",
       "expected": "PASS",
       "negative": "判为 direct → FAIL",
       "negative_result": "dual 判为 direct 即失败",
       "pass": true
     }
-  ]
+  ],
+  "tooling_commit": "3793d0b51b558ad656b2726f686048bb5c0d9f3c"
 }

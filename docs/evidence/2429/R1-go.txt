@@ -1,17 +1,16 @@
-# build=1.0.963e31f9b commit=963e31f9b34b00b34cbf7810e1b8b1d2573a07c1 dirty=false
+# build=1.0.c3fa9cbb5 # commit=c3fa9cbb570e63a9a5d08b263102b49ad52e679a # dirty=false
 [DEBUG] Loaded .env from: ../.env
-2026/11/28 06:46:57 [DB] Configuration loaded: host=localhost port=5432 user=tuneloop_user dbname=tuneloop_test_verify2429 sslmode=disable
-2026/11/28 06:46:58 [DB] Connecting: host=localhost port=5432 user=tuneloop_user dbname=tuneloop_test_verify2429
-2026/11/28 06:46:58 [DB] Connected to database 'tuneloop_test_verify2429'
+2026/11/28 06:50:32 [DB] Configuration loaded: host=localhost port=5432 user=tuneloop_user dbname=tuneloop_test_verify2429 sslmode=disable
+2026/11/28 06:50:33 [DB] Connecting: host=localhost port=5432 user=tuneloop_user dbname=tuneloop_test_verify2429
+2026/11/28 06:50:33 [DB] Connected to database 'tuneloop_test_verify2429'
 === RUN   TestUpdateUser_SameSiteSkipsIAM_2429
-2026/11/28 06:46:58 [DB] Configuration loaded: host=localhost port=5432 user=tuneloop_user dbname=tuneloop_test_verify2429 sslmode=disable
-2026/11/28 06:46:58 [DB] Connecting: host=localhost port=5432 user=tuneloop_user dbname=tuneloop_test_verify2429
-2026/11/28 06:46:58 [DB] Connected to database 'tuneloop_test_verify2429'
---- PASS: TestUpdateUser_SameSiteSkipsIAM_2429 (0.05s)
+2026/11/28 06:50:33 [DB] Configuration loaded: host=localhost port=5432 user=tuneloop_user dbname=tuneloop_test_verify2429 sslmode=disable
+2026/11/28 06:50:33 [DB] Connecting: host=localhost port=5432 user=tuneloop_user dbname=tuneloop_test_verify2429
+2026/11/28 06:50:33 [DB] Connected to database 'tuneloop_test_verify2429'
+--- PASS: TestUpdateUser_SameSiteSkipsIAM_2429 (0.03s)
 === RUN   TestGetStaffUser_ReturnsSiteAndDirectFlag_2429
---- PASS: TestGetStaffUser_ReturnsSiteAndDirectFlag_2429 (0.03s)
+--- PASS: TestGetStaffUser_ReturnsSiteAndDirectFlag_2429 (0.02s)
 === RUN   TestUpdateUser_MultiSiteSameOrgSkipsIAM_2429
-2026/11/28 06:46:58 [IAMClient] NewIAMClient: baseURL=http://localhost:5561, clientID=test-ns, namespace=test-ns
---- PASS: TestUpdateUser_MultiSiteSameOrgSkipsIAM_2429 (0.03s)
+--- PASS: TestUpdateUser_MultiSiteSameOrgSkipsIAM_2429 (0.01s)
 PASS
-ok  	tuneloop-backend/handlers	1.239s
+ok  	tuneloop-backend/handlers	1.480s

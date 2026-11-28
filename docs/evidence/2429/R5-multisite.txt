@@ -1,15 +1,15 @@
-# build=1.0.963e31f9b commit=963e31f9b34b00b34cbf7810e1b8b1d2573a07c1 dirty=false
+# build=1.0.c3fa9cbb5 # commit=c3fa9cbb570e63a9a5d08b263102b49ad52e679a # dirty=false
 [DEBUG] Loaded .env from: ../.env
-2026/11/28 06:47:05 [DB] Configuration loaded: host=localhost port=5432 user=tuneloop_user dbname=tuneloop_test_verify2429 sslmode=disable
-2026/11/28 06:47:05 [DB] Connecting: host=localhost port=5432 user=tuneloop_user dbname=tuneloop_test_verify2429
-2026/11/28 06:47:05 [DB] Connected to database 'tuneloop_test_verify2429'
+2026/11/28 06:50:38 [DB] Configuration loaded: host=localhost port=5432 user=tuneloop_user dbname=tuneloop_test_verify2429 sslmode=disable
+2026/11/28 06:50:38 [DB] Connecting: host=localhost port=5432 user=tuneloop_user dbname=tuneloop_test_verify2429
+2026/11/28 06:50:38 [DB] Connected to database 'tuneloop_test_verify2429'
 === RUN   TestUpdateUser_MultiSiteSameOrgSkipsIAM_2429
-2026/11/28 06:47:05 [DB] Configuration loaded: host=localhost port=5432 user=tuneloop_user dbname=tuneloop_test_verify2429 sslmode=disable
-2026/11/28 06:47:05 [DB] Connecting: host=localhost port=5432 user=tuneloop_user dbname=tuneloop_test_verify2429
-2026/11/28 06:47:05 [DB] Connected to database 'tuneloop_test_verify2429'
-2026/11/28 06:47:05 [IAMClient] NewIAMClient: baseURL=http://localhost:5561, clientID=test-ns, namespace=test-ns
---- PASS: TestUpdateUser_MultiSiteSameOrgSkipsIAM_2429 (0.07s)
+2026/11/28 06:50:39 [DB] Configuration loaded: host=localhost port=5432 user=tuneloop_user dbname=tuneloop_test_verify2429 sslmode=disable
+2026/11/28 06:50:39 [DB] Connecting: host=localhost port=5432 user=tuneloop_user dbname=tuneloop_test_verify2429
+2026/11/28 06:50:39 [DB] Connected to database 'tuneloop_test_verify2429'
+2026/11/28 06:50:39 [IAMClient] NewIAMClient: baseURL=http://localhost:5561, clientID=test-ns, namespace=test-ns
+--- PASS: TestUpdateUser_MultiSiteSameOrgSkipsIAM_2429 (0.05s)
 === RUN   TestGetStaffUser_MultiSiteDual_2429
 --- PASS: TestGetStaffUser_MultiSiteDual_2429 (0.03s)
 PASS
-ok  	tuneloop-backend/handlers	1.015s
+ok  	tuneloop-backend/handlers	1.036s
