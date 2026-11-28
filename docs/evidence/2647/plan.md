@@ -1,4 +1,8 @@
-## Accepted Plan — #2647（#2626 Round 2 增量验收：R7 `users.roles` jsonb 写形状 + R8 改角色同步镜像 + R9 镜像来源可判定 + R2 写侧 6 点）
+## Accepted Plan — #2647（#2626 Round 2 增量验收：R7 `users.roles` jsonb 写形状 + R8 改角色同步镜像 + R9 镜像来源可判定 + R2 写侧 6 点）｜Rev.2（WRITE_SITES 改登记集合等值 8 点；补 R10/R11）
+> **Rev.2 说明（采纳 Packet Option A）**：`WRITE_SITES=6` 与修后树实测 **8 个语句级写点**不符（4 种形态：字段赋值 / map 赋值 / struct 字面量 / map 字面量键），固定数字无法等值断言。本版：
+> ① 改为「**登记集合等值**」：D8 登记 **8 点**（`file:line` + 形态 + 是否同源镜像写），断言 `WRITE_SITES_ENUM=8` + **`WRITE_SITES_UNREGISTERED=0`**（出现第 9 点即红）；
+> ② `ROLE_ASSIGN_WITHOUT_MIRROR` 语义改为「每个 role 写点必须与 roles 写**同源**（同一 `mirror` 变量/同一 derivation）」，`iam_proxy.go:1013` 的 delta-only 写点按登记豁免（`DELTA_ONLY_EXEMPT=1`）；
+> ③ 补 **R10**（R2 红绿实证产物 `docs/evidence/2647/R10-r2-redgreen.txt`）与 **R11**（token 来源可追溯 `docs/evidence/2647/R11-token-provenance.txt`）。
 
 > **来源**：#2626 Round 2 审计（REJECTED，5 项失败）中的**新增验收面**在 Owner 2026-11-28「计划冻结」后另立本单。#2626 按其已接受合同（Rev.4，R1–R6）验收，本单不改其 Accepted Plan / `docs/evidence/2626/*` / `scripts/verify-2626.sh`（历史生成器）。
 > **本单四件事**（Issue 正文 + 审计「下一轮需要补的矩阵行」逐条对齐）：
@@ -12,17 +16,19 @@
 
 | 位置 | 旧断言 | 新预期 | 理由 |
 |---|---|---|---|
-| #2626 R2（`WRITE_SITES=5` / `MIRROR_WRITE_DELEGATED=1` / `ALLOWLIST_HITS=0`） | 文件级 `derive_calls>0` 即算「写侧已收口」；`user_staff.go` 改角色点不写 `roles` 仍 PASS | #2647 R2：按**写点**计数 `WRITE_SITES=6`，且每个 `updates["role"] =` 必须伴随 `updates["roles"] =`（`ROLE_ASSIGN_WITHOUT_MIRROR=0`）；变量形态负例必须命中（`R2_NEGATIVE_CONTROL_VAR=1`）；审计新发现的 3 个建号初始化点显式 allowlist（`ALLOWLIST_ENTRIES=3`、`ALLOWLIST_UNLINKED=0`） | 文件级自证式断言不覆盖变量写（Round 2 审计失败项 1/5） |
+| #2626 R2（`WRITE_SITES=5` / `MIRROR_WRITE_DELEGATED=1` / `ALLOWLIST_HITS=0`） | 文件级 `derive_calls>0` 即算「写侧已收口」；`user_staff.go` 改角色点不写 `roles` 仍 PASS | #2647 R2：按**写点登记集合**等值（`WRITE_SITES_ENUM=8`、`UNREGISTERED=0`），且每个 `updates["role"] =` 必须伴随 `updates["roles"] =`（`ROLE_ASSIGN_WITHOUT_MIRROR=0`）；变量形态负例必须命中（`R2_NEGATIVE_CONTROL_VAR=1`）；审计新发现的 3 个建号初始化点显式 allowlist（`ALLOWLIST_ENTRIES=3`、`ALLOWLIST_UNLINKED=0`） | 文件级自证式断言不覆盖变量写（Round 2 审计失败项 1/5） |
 | #2626 R4（`PC_USES_ROLES_SET=1` / `ROLES_SOURCE=iam`） | 只证明「纯函数集合优先」与「来源不是页面自造」 | 由 #2647 R8 补「写 → 读一致」（改角色后读回 `roles[]` 含新角色且主角色正确），R4 本身不重定义 | 镜像过期时读侧集合优先会显示旧角色（Round 2 审计语义挑战 2） |
 
 ## Verification Matrix
 
 | 变更点 | 文件/组件 | 入口/路由 | 触发状态 | 目标平台 | 期望结果 | 证据（命令/日志/截图） |
 |---|---|---|---|---|---|---|
-| R2 写侧 6 点收口（含改角色点）+ 变量形态负例 | `scripts/verify-2647.sh`（`r2`）、`backend/handlers/user_staff.go`、`backend/handlers/iam_callback.go`、`backend/handlers/merchant_member.go`、`backend/handlers/merchant.go`、`backend/handlers/iam_proxy.go` | `bash scripts/verify-2647.sh r2` | 修后树（静态扫描） | 后端（静态 + 合成负例） | `WRITE_SITES=6`、`WRITE_INLINE_LITERAL=0`、`ROLE_ASSIGN_WITHOUT_MIRROR=0`、`R2_NEGATIVE_CONTROL_VAR=1`、`ALLOWLIST_ENTRIES=3`、`ALLOWLIST_UNLINKED=0` | R2 |
+| R2 写侧 6 点收口（含改角色点）+ 变量形态负例 | `scripts/verify-2647.sh`（`r2`）、`backend/handlers/user_staff.go`、`backend/handlers/iam_callback.go`、`backend/handlers/merchant_member.go`、`backend/handlers/merchant.go`、`backend/handlers/iam_proxy.go` | `bash scripts/verify-2647.sh r2` | 修后树（静态扫描） | 后端（静态 + 合成负例） | `WRITE_SITES_ENUM=8`、`WRITE_SITES_UNREGISTERED=0`、`WRITE_INLINE_LITERAL=0`、`ROLE_ASSIGN_WITHOUT_MIRROR=0`、`R2_NEGATIVE_CONTROL_VAR=1`、`ALLOWLIST_ENTRIES=3`、`ALLOWLIST_UNLINKED=0` | R2 |
 | R7 `users.roles` jsonb 写入形态 | `backend/handlers/user_roles_jsonb.go`（新 helper）、`backend/handlers/user_roles_mirror_2647_test.go` | `bash scripts/verify-2647.sh r7` | 改角色/建商户/同步三条写路径经 helper 落库 | 后端（一次性 PG） | `USERS_MIRROR_JSONB_EXPR=1`（4 个写点均走 `?::jsonb`）、`USERS_MIRROR_RAW_SLICE=0`、`JSONB_TYPE_IS_ARRAY=1`（`jsonb_typeof(roles)='array'` 且非 NULL）、`RAW_SLICE_WRITE_ERROR=1`（负例：裸 `[]string` 在 simple protocol 下报错，证明断言器不是盲的） | R7 |
 | R8 改角色同步镜像（写 → 读一致） | `backend/handlers/user_staff.go`（`UpdateUser`）、`backend/handlers/user_roles_mirror_2647_test.go` | `PUT /api/users/:id`（`StaffHandler.UpdateUser`） | 目标用户 `role=site_member`、`roles=["site_member"]`；请求 `{"role":"site_admin"}`；fake IAM 成功 | 后端（一次性 PG + fake IAM） | HTTP 200；`users.role=site_admin`；`users.roles` 含 `site_admin` 与旧 `site_member`（IAM ADD-only 结果集）；读回（`GetStaffUser`）`roles[]` 含 `site_admin`（镜像优先）；`ROLE_ASSIGN_WITHOUT_MIRROR=0` | R8 |
 | R9 镜像来源可判定 + 同步不降级 | `backend/handlers/iam_proxy.go`（`SyncUsers`）、`scripts/verify-2647.sh`（`r9`）、`backend/handlers/user_roles_mirror_2647_test.go` | `POST /api/iam/users/sync`（`IAMProxyHandler.SyncUsers`） | IAM 列表返回关系角色 `STAFF` 且**无** `functional_roles`；本地用户镜像非空（`["repair_technician","site_member"]`） | 后端（一次性 PG + fake IAM） | 同步后镜像**不降级**（仍含 `repair_technician`），`SYNC_SKIPS_NONEMPTY_MIRROR_OVERWRITE=1`、`SYNC_DEGRADES_NONEMPTY_MIRROR=0`；静态：`MIRROR_SOURCE_DERIVE_ONLY=1`（`services.DeriveRoles` 是唯一镜像来源）、`WRITE_SIDE_SECOND_ASSIGNMENT=0` | R9 |
+| R10 R2 红绿实证 | `scripts/verify-2647.sh`（`r10`） | `bash scripts/verify-2647.sh r10` | 修前/修后对照（去掉 `updates["roles"]` → 红） | 后端（静态 + 合成） | `RED_ROLE_WITHOUT_MIRROR>0`、`GREEN_ROLE_WITHOUT_MIRROR=0`、`REDGREEN_OK=1` | R10 |
+| R11 token 来源可追溯 | `scripts/verify-2647.sh`（`r11`） | `bash scripts/verify-2647.sh r11` | 修后树 | 后端（静态） | `TOKEN_SOURCE_ENUM=8`、`TOKEN_SOURCE_UNREGISTERED=0`、`PROVENANCE_FILE=1` | R11 |
 
 ## Input Truth & Tool Preflight
 
@@ -81,10 +87,12 @@
 | R7 | 一次性 PG + 目标用户（`roles=["site_member"]`）→ 改角色 `site_admin`；另一用例注入裸 `[]string` 写入作负例 | `PUT /api/users/:id`（`StaffHandler.UpdateUser`）+ helper 直调 | `docs/evidence/2647/R7-users-roles-jsonb.txt` |
 | R8 | 同上（`role=site_member`、`roles=["site_member"]` → 请求 `{"role":"site_admin"}`；fake IAM 成功） | `PUT /api/users/:id` + 读回 `GetStaffUser` | `docs/evidence/2647/R8-role-change-mirror.txt` |
 | R9 | fake IAM 列表：关系角色 `STAFF`、无 `functional_roles`；本地镜像 `["repair_technician","site_member"]` | `POST /api/iam/users/sync`（`SyncUsers`）+ 静态来源扫描 | `docs/evidence/2647/R9-mirror-source.txt` |
+| R10 | 删掉改角色点的 `updates["roles"]` 作为红样 | `bash scripts/verify-2647.sh r10` | `docs/evidence/2647/R10-r2-redgreen.txt` | `RED_ROLE_WITHOUT_MIRROR>0`、`GREEN_ROLE_WITHOUT_MIRROR=0`、`REDGREEN_OK=1` | 红样不红/绿样不绿 → FAIL |
+| R11 | 修后树 + 登记清单 | `bash scripts/verify-2647.sh r11` | `docs/evidence/2647/R11-token-provenance.txt` | `TOKEN_SOURCE_ENUM=8`、`TOKEN_SOURCE_UNREGISTERED=0`、`PROVENANCE_FILE=1` | token 无来源 / 出现第 9 点 → FAIL |
 
 ### Assertions
 
-- R2：`WRITE_SITES=6`、`WRITE_INLINE_LITERAL=0`、`ROLE_ASSIGN_WITHOUT_MIRROR=0`、`R2_NEGATIVE_CONTROL_VAR=1`、`ALLOWLIST_ENTRIES=3`、`ALLOWLIST_UNLINKED=0`。
+- R2：`WRITE_SITES_ENUM=8`、`WRITE_SITES_UNREGISTERED=0`、`WRITE_INLINE_LITERAL=0`、`ROLE_ASSIGN_WITHOUT_MIRROR=0`、`R2_NEGATIVE_CONTROL_VAR=1`、`ALLOWLIST_ENTRIES=3`、`ALLOWLIST_UNLINKED=0`。
   - 负例：把 `updates["roles"]` 从改角色分支删掉 → `ROLE_ASSIGN_WITHOUT_MIRROR>0` 必须 FAIL；变量形态负例检测不到（`R2_NEGATIVE_CONTROL_VAR=0`）→ FAIL。
 - R7：`USERS_MIRROR_JSONB_EXPR=1`、`USERS_MIRROR_RAW_SLICE=0`、`JSONB_TYPE_IS_ARRAY=1`、`JSONB_IS_NULL=0`、`RAW_SLICE_WRITE_ERROR=1`。
   - 负例：任一写点回到 `updates["roles"] = derived.All`（裸切片）→ `USERS_MIRROR_RAW_SLICE>0` 且 `RAW_SLICE_WRITE_ERROR=0` → FAIL；`jsonb_typeof` 非 `array`（字符串/对象/NULL）→ FAIL。
@@ -105,6 +113,8 @@
 | `docs/evidence/2647/R9-mirror-source.txt` | `# build=1.0.<fix> # commit=<fix> # dirty=false` |
 
 evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
+- `docs/evidence/2647/R10-r2-redgreen.txt`
+- `docs/evidence/2647/R11-token-provenance.txt`
 
 ## Bug Reflection Matrix
 
@@ -123,10 +133,12 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 
 | 行 ID | 命令 | 产物（仓库可见路径） | 断言（机器可判定） | 期望值 | 负例 | 责任人 |
 |---|---|---|---|---|---|---|
-| R2 | `bash scripts/verify-2647.sh r2` | `docs/evidence/2647/R2-write-sites.txt` | exit 0；grep `WRITE_SITES=6`、`WRITE_INLINE_LITERAL=0`、`ROLE_ASSIGN_WITHOUT_MIRROR=0`、`R2_NEGATIVE_CONTROL_VAR=1`、`ALLOWLIST_ENTRIES=3`、`ALLOWLIST_UNLINKED=0` | PASS | 删掉改角色的 `updates["roles"]` 后 `ROLE_ASSIGN_WITHOUT_MIRROR>0`，或变量形态负例未命中 → FAIL | dev |
+| R2 | `bash scripts/verify-2647.sh r2` | `docs/evidence/2647/R2-write-sites.txt` | exit 0；grep `WRITE_SITES_ENUM=8`、`WRITE_SITES_UNREGISTERED=0`、`WRITE_INLINE_LITERAL=0`、`ROLE_ASSIGN_WITHOUT_MIRROR=0`、`R2_NEGATIVE_CONTROL_VAR=1`、`ALLOWLIST_ENTRIES=3`、`ALLOWLIST_UNLINKED=0` | PASS | 删掉改角色的 `updates["roles"]` 后 `ROLE_ASSIGN_WITHOUT_MIRROR>0`，或变量形态负例未命中 → FAIL | dev |
 | R7 | `bash scripts/verify-2647.sh r7` | `docs/evidence/2647/R7-users-roles-jsonb.txt` | exit 0；grep `USERS_MIRROR_JSONB_EXPR=1`、`USERS_MIRROR_RAW_SLICE=0`、`JSONB_TYPE_IS_ARRAY=1`、`JSONB_IS_NULL=0`、`RAW_SLICE_WRITE_ERROR=1` | PASS | 任一写点回到裸切片（`USERS_MIRROR_RAW_SLICE>0`）或 `jsonb_typeof` 非 array → FAIL | dev |
 | R8 | `bash scripts/verify-2647.sh r8` | `docs/evidence/2647/R8-role-change-mirror.txt` | exit 0；grep `HTTP=200`、`ROLE_ASSIGN_WITHOUT_MIRROR=0`、`MIRROR_PRIMARY=site_admin`、`MIRROR_ALL_CONTAINS_SITE_ADMIN=1`、`MIRROR_ALL_CONTAINS_OLD=1`、`READBACK_PREFERS_MIRROR=1` | PASS | 只写 role（`MIRROR_ALL_CONTAINS_SITE_ADMIN=0`）或读回旧角色（`READBACK_PREFERS_MIRROR=0`）→ FAIL | dev |
 | R9 | `bash scripts/verify-2647.sh r9` | `docs/evidence/2647/R9-mirror-source.txt` | exit 0；grep `MIRROR_SOURCE_DERIVE_ONLY=1`、`WRITE_SIDE_SECOND_ASSIGNMENT=0`、`SYNC_SKIPS_NONEMPTY_MIRROR_OVERWRITE=1`、`SYNC_DEGRADES_NONEMPTY_MIRROR=0` | PASS | 同步覆盖非空镜像（`SYNC_DEGRADES_NONEMPTY_MIRROR=1`）或出现第二处镜像赋值 → FAIL | dev |
+| R10 | `bash scripts/verify-2647.sh r10 > docs/evidence/2647/R10-r2-redgreen.txt` | `docs/evidence/2647/R10-r2-redgreen.txt` | exit 0 且含 `RED_ROLE_WITHOUT_MIRROR>0` `GREEN_ROLE_WITHOUT_MIRROR=0` `REDGREEN_OK=1` | PASS（3 项） | 红样不红 → FAIL | dev |
+| R11 | `bash scripts/verify-2647.sh r11 > docs/evidence/2647/R11-token-provenance.txt` | `docs/evidence/2647/R11-token-provenance.txt` | exit 0 且含 `TOKEN_SOURCE_ENUM=8` `TOKEN_SOURCE_UNREGISTERED=0` `PROVENANCE_FILE=1` | PASS（3 项） | token 无来源/第 9 点 → FAIL | dev |
 
 ### Workload
 
@@ -148,6 +160,8 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 - `docs/evidence/2647/R7-users-roles-jsonb.txt`
 - `docs/evidence/2647/R8-role-change-mirror.txt`
 - `docs/evidence/2647/R9-mirror-source.txt`
+- `docs/evidence/2647/R10-r2-redgreen.txt`
+- `docs/evidence/2647/R11-token-provenance.txt`
 - `docs/evidence/2647/evidence.json`
 - `docs/evidence/2647/plan.md`
 - `docs/evidence/2647/pre-ready-2647.json`
@@ -165,4 +179,5 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 - **部署侧**：无 DDL、无迁移、无 API 契约变更（`roles[]` 已在 #2626 的 `docs/spec/api/api.md` 登记）；真机复验归 `[Ops-Followup of #2647]`。
 
 *Model: DeepSeek V4.1 Flash 1017*
+
 

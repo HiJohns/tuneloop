@@ -1,0 +1,13 @@
+# build=1.0.10314c0 # commit=10314c0f58039710628983ae0e251709712969a2 # dirty=false
+# tree=10314c0f58039710628983ae0e251709712969a2
+RED_SITE backend/handlers/iam_callback.go:298 map=updates mirror=yes expr=derived.Primary
+RED_SITE backend/handlers/iam_proxy.go:1013 map=updates mirror=yes expr=mirror.Primary
+RED_SITE backend/handlers/merchant.go:470 map=adminUpdates mirror=yes expr=mirror.Primary
+RED_SITE backend/handlers/user_staff.go:1351 map=updates mirror=NO expr=newRole
+GREEN_SITE backend/handlers/iam_callback.go:298 map=updates mirror=yes expr=derived.Primary
+GREEN_SITE backend/handlers/iam_proxy.go:1013 map=updates mirror=yes expr=mirror.Primary
+GREEN_SITE backend/handlers/merchant.go:470 map=adminUpdates mirror=yes expr=mirror.Primary
+GREEN_SITE backend/handlers/user_staff.go:1353 map=updates mirror=yes expr=mirror.Primary
+RED_ROLE_WITHOUT_MIRROR=1
+GREEN_ROLE_WITHOUT_MIRROR=0
+REDGREEN_OK=1

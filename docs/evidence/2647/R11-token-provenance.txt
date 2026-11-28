@@ -1,0 +1,14 @@
+# build=1.0.10314c0 # commit=10314c0f58039710628983ae0e251709712969a2 # dirty=false
+# tree=10314c0f58039710628983ae0e251709712969a2
+## PROVENANCE（每行 = 一个写点的 token 来源）
+TOKEN path=backend/handlers/iam_callback.go line=300 form=map-assign expr=derived.All source=derived source_kind=DeriveRoles
+TOKEN path=backend/handlers/iam_proxy.go line=982 form=struct-literal expr=mirror.All source=mirror source_kind=DeriveRoles
+TOKEN path=backend/handlers/iam_proxy.go line=1021 form=map-assign expr=mirror.All source=mirror source_kind=DeriveRoles
+TOKEN path=backend/handlers/merchant.go line=475 form=map-assign expr=mirror.All source=mirror source_kind=DeriveRoles
+TOKEN path=backend/handlers/merchant_member.go line=258 form=struct-literal expr=mirror.All source=mirror source_kind=DeriveRoles
+TOKEN path=backend/handlers/merchant_member.go line=318 form=struct-literal expr=mirror.All source=mirror source_kind=DeriveRoles
+TOKEN path=backend/handlers/user_staff.go line=384 form=field-assign expr=mirror.All source=mirror source_kind=DeriveRoles
+TOKEN path=backend/handlers/user_staff.go line=1355 form=map-assign expr=mirror.All source=mirror source_kind=DeriveRoles
+TOKEN_SOURCE_ENUM=8
+TOKEN_SOURCE_UNREGISTERED=0
+PROVENANCE_FILE=1

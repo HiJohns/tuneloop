@@ -1,22 +1,23 @@
-# build=1.0.67e24bf # commit=67e24bf9537fc3c1d355d98d747554a4026f5d38 # dirty=false
-[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 at_ms=1795887140372 wait_ms=94
-[heavy-lock] acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 wait_ms=94
+# build=1.0.10314c0 # commit=10314c0f58039710628983ae0e251709712969a2 # dirty=false
+# tree=10314c0f58039710628983ae0e251709712969a2
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 at_ms=1795889532885 wait_ms=96
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 wait_ms=96
 [WARNING] No .env file found in common paths
-2026/11/28 17:32:28 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f sslmode=disable
-2026/11/28 17:32:28 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f
-2026/11/28 17:32:28 [DB] Connected to database 'tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f'
+2026/11/28 18:12:20 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f sslmode=disable
+2026/11/28 18:12:21 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f
+2026/11/28 18:12:21 [DB] Connected to database 'tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f'
 === RUN   TestUpdateUserRoleMirror_2647
-2026/11/28 17:32:29 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f sslmode=disable
-2026/11/28 17:32:29 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f
-2026/11/28 17:32:29 [DB] Connected to database 'tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f'
+2026/11/28 18:12:21 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f sslmode=disable
+2026/11/28 18:12:21 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f
+2026/11/28 18:12:21 [DB] Connected to database 'tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f'
 
-2026/11/28 17:32:29 [32m/tmp/opencode/tuneloop/wt-2647/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[633.044ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_levels", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
-2026/11/28 17:32:29 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:37323, clientID=test-ns, namespace=test-ns
-2026/11/28 17:32:29 [IAMClient] Updated user role with user token: user=9e8e69e0-e72d-4b39-938f-2c9cae2e68c5 role=ADMIN org=33333333-3333-4333-8333-333333333333
-2026/11/28 17:32:29 [IAMClient] Obtained client credentials token, expires in 3600s
-2026/11/28 17:32:29 [IAMClient] Incremented perm_version
-2026/11/28 17:32:29 [IAMClient] Assigned role template site_admin to user 9e8e69e0-e72d-4b39-938f-2c9cae2e68c5 (via user token)
+2026/11/28 18:12:22 [32m/tmp/opencode/tuneloop/wt-2647/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[726.567ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_levels", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/28 18:12:22 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:40373, clientID=test-ns, namespace=test-ns
+2026/11/28 18:12:22 [IAMClient] Updated user role with user token: user=b6f509bb-9b90-4bb3-9ad8-677d81e33365 role=ADMIN org=33333333-3333-4333-8333-333333333333
+2026/11/28 18:12:22 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/28 18:12:22 [IAMClient] Incremented perm_version
+2026/11/28 18:12:22 [IAMClient] Assigned role template site_admin to user b6f509bb-9b90-4bb3-9ad8-677d81e33365 (via user token)
     user_roles_mirror_2647_test.go:144: HTTP=200
     user_roles_mirror_2647_test.go:145: ROLE_ASSIGN_WITHOUT_MIRROR=0
     user_roles_mirror_2647_test.go:146: MIRROR_PRIMARY=site_admin
@@ -24,10 +25,10 @@
     user_roles_mirror_2647_test.go:148: MIRROR_ALL_CONTAINS_OLD=1
     user_roles_mirror_2647_test.go:149: READBACK_PREFERS_MIRROR=1
     user_roles_mirror_2647_test.go:150: IAM_ASSIGN_CALLS=1
---- PASS: TestUpdateUserRoleMirror_2647 (0.91s)
+--- PASS: TestUpdateUserRoleMirror_2647 (1.09s)
 PASS
-ok  	tuneloop-backend/handlers	1.813s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795887150180 hold_ms=9808
+ok  	tuneloop-backend/handlers	2.261s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795889542794 hold_ms=9909
 HTTP=200
 ROLE_ASSIGN_WITHOUT_MIRROR=0
 MIRROR_PRIMARY=site_admin

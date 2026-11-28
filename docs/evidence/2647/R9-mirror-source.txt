@@ -1,36 +1,42 @@
-# build=1.0.67e24bf # commit=67e24bf9537fc3c1d355d98d747554a4026f5d38 # dirty=false
-[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 at_ms=1795887150543 wait_ms=72
-[heavy-lock] acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 wait_ms=72
+# build=1.0.10314c0 # commit=10314c0f58039710628983ae0e251709712969a2 # dirty=false
+# tree=10314c0f58039710628983ae0e251709712969a2
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 at_ms=1795889543020 wait_ms=97
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 wait_ms=97
 [WARNING] No .env file found in common paths
-2026/11/28 17:32:35 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f sslmode=disable
-2026/11/28 17:32:35 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f
-2026/11/28 17:32:35 [DB] Connected to database 'tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f'
+2026/11/28 18:12:30 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f sslmode=disable
+2026/11/28 18:12:30 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f
+2026/11/28 18:12:30 [DB] Connected to database 'tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f'
 === RUN   TestSyncUsersMirrorNonDegrade_2647
-2026/11/28 17:32:36 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f sslmode=disable
-2026/11/28 17:32:36 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f
-2026/11/28 17:32:36 [DB] Connected to database 'tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f'
-2026/11/28 17:32:36 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:36983, clientID=test-ns, namespace=test-ns
-2026/11/28 17:32:36 [IAMProxy] SyncUsers: tenantID=33333333-3333-4333-8333-333333333333
-2026/11/28 17:32:36 [IAMProxy] SyncUsers: got 1 users from IAM
-2026/11/28 17:32:36 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/28 18:12:30 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f sslmode=disable
+2026/11/28 18:12:30 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f
+2026/11/28 18:12:30 [DB] Connected to database 'tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f'
+2026/11/28 18:12:30 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:39091, clientID=test-ns, namespace=test-ns
+2026/11/28 18:12:30 [IAMProxy] SyncUsers: tenantID=33333333-3333-4333-8333-333333333333
+2026/11/28 18:12:30 [IAMProxy] SyncUsers: got 1 users from IAM
+2026/11/28 18:12:30 [IAMClient] Obtained client credentials token, expires in 3600s
 
-2026/11/28 17:32:36 [31;1m/tmp/opencode/tuneloop/wt-2647/backend/handlers/iam_proxy.go:1101 [35;1mrecord not found
-[0m[33m[2.338ms] [34;1m[rows:0][0m SELECT * FROM "sites" WHERE org_id = '33333333-3333-4333-8333-333333333333' AND status = 'active' ORDER BY "sites"."id" LIMIT 1
-    user_roles_mirror_2647_test.go:233: MIRROR_SOURCE_DERIVE_ONLY=1
-    user_roles_mirror_2647_test.go:234: WRITE_SIDE_SECOND_ASSIGNMENT=0
-    user_roles_mirror_2647_test.go:235: SYNC_SKIPS_NONEMPTY_MIRROR_OVERWRITE=1
-    user_roles_mirror_2647_test.go:236: SYNC_DEGRADES_NONEMPTY_MIRROR=0
-    user_roles_mirror_2647_test.go:237: MIRROR_BEFORE=["repair_technician", "site_member"]
-    user_roles_mirror_2647_test.go:238: MIRROR_AFTER=["repair_technician", "site_member"]
---- PASS: TestSyncUsersMirrorNonDegrade_2647 (0.02s)
+2026/11/28 18:12:30 [31;1m/tmp/opencode/tuneloop/wt-2647/backend/handlers/iam_proxy.go:1101 [35;1mrecord not found
+[0m[33m[2.691ms] [34;1m[rows:0][0m SELECT * FROM "sites" WHERE org_id = '33333333-3333-4333-8333-333333333333' AND status = 'active' ORDER BY "sites"."id" LIMIT 1
+    user_roles_mirror_2647_test.go:255: MIRROR_SOURCE_DERIVE_ONLY=1
+    user_roles_mirror_2647_test.go:256: WRITE_SIDE_SECOND_ASSIGNMENT=0
+    user_roles_mirror_2647_test.go:257: SYNC_SKIPS_NONEMPTY_MIRROR_OVERWRITE=1
+    user_roles_mirror_2647_test.go:258: SYNC_DEGRADES_NONEMPTY_MIRROR=0
+    user_roles_mirror_2647_test.go:259: SYNC_WRITES_SUCCEEDED=1
+    user_roles_mirror_2647_test.go:260: SYNC_CONFLICTS=0
+    user_roles_mirror_2647_test.go:261: MIRROR_BEFORE=["repair_technician", "site_member"]
+    user_roles_mirror_2647_test.go:262: MIRROR_AFTER=["repair_technician", "site_member"]
+--- PASS: TestSyncUsersMirrorNonDegrade_2647 (0.03s)
 PASS
-ok  	tuneloop-backend/handlers	0.741s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795887156244 hold_ms=5701
+ok  	tuneloop-backend/handlers	0.943s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795889551127 hold_ms=8107
 MIRROR_SOURCE_DERIVE_ONLY=1
 WRITE_SIDE_SECOND_ASSIGNMENT=0
 SYNC_SKIPS_NONEMPTY_MIRROR_OVERWRITE=1
 SYNC_DEGRADES_NONEMPTY_MIRROR=0
+SYNC_WRITES_SUCCEEDED=1
+SYNC_CONFLICTS=0
 MIRROR_BEFORE=["repair_technician", "site_member"]
 MIRROR_AFTER=["repair_technician", "site_member"]
-DERIVE_CALLS_TOTAL=9
+MIRROR_SOURCE_SITES=8
+MIRROR_SOURCE_DERIVE_ONLY=1
 WRITE_SIDE_SECOND_ASSIGNMENT=0

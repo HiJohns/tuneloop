@@ -1,31 +1,33 @@
-# build=1.0.67e24bf # commit=67e24bf9537fc3c1d355d98d747554a4026f5d38 # dirty=false
-[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 at_ms=1795887132346 wait_ms=78
-[heavy-lock] acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 wait_ms=78
+# build=1.0.10314c0 # commit=10314c0f58039710628983ae0e251709712969a2 # dirty=false
+# tree=10314c0f58039710628983ae0e251709712969a2
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 at_ms=1795889525747 wait_ms=112
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 wait_ms=112
 [WARNING] No .env file found in common paths
-2026/11/28 17:32:18 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f sslmode=disable
-2026/11/28 17:32:18 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f
-2026/11/28 17:32:18 [DB] Connected to database 'tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f'
+2026/11/28 18:12:10 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f sslmode=disable
+2026/11/28 18:12:10 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f
+2026/11/28 18:12:10 [DB] Connected to database 'tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f'
 === RUN   TestUserRolesMirrorJSONB_2647
-2026/11/28 17:32:19 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f sslmode=disable
-2026/11/28 17:32:19 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f
-2026/11/28 17:32:19 [DB] Connected to database 'tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f'
+2026/11/28 18:12:11 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f sslmode=disable
+2026/11/28 18:12:11 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f
+2026/11/28 18:12:11 [DB] Connected to database 'tuneloop_test_node_opencode_s114_p114_60ffd6_76ee1e7f'
 
-2026/11/28 17:32:19 [32m/tmp/opencode/tuneloop/wt-2647/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[583.935ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_levels", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/28 18:12:12 [32m/tmp/opencode/tuneloop/wt-2647/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[703.267ms] [33m[rows:0][35m TRUNCATE TABLE "instrument_levels", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
 
-2026/11/28 17:32:19 [31;1m/tmp/opencode/tuneloop/wt-2647/backend/handlers/user_roles_mirror_2647_test.go:79 [35;1mERROR: invalid input syntax for type json (SQLSTATE 22P02)
-[0m[33m[2.229ms] [34;1m[rows:0][0m UPDATE "users" SET "roles"=('site_member'),"updated_at"='2026-11-28 17:32:19.954' WHERE id = '00c42515-d49a-4ad0-bedb-d3cabc11703b'
+2026/11/28 18:12:12 [31;1m/tmp/opencode/tuneloop/wt-2647/backend/handlers/user_roles_mirror_2647_test.go:79 [35;1mERROR: invalid input syntax for type json (SQLSTATE 22P02)
+[0m[33m[1.757ms] [34;1m[rows:0][0m UPDATE "users" SET "roles"=('site_member'),"updated_at"='2026-11-28 18:12:12.14' WHERE id = 'c6e6e68d-2d6a-4b4a-86a8-703e6748c10e'
     user_roles_mirror_2647_test.go:93: USERS_MIRROR_JSONB_EXPR=1
     user_roles_mirror_2647_test.go:94: JSONB_TYPE_IS_ARRAY=1
     user_roles_mirror_2647_test.go:95: JSONB_IS_NULL=0
     user_roles_mirror_2647_test.go:96: RAW_SLICE_WRITE_ERROR=1
---- PASS: TestUserRolesMirrorJSONB_2647 (0.83s)
+--- PASS: TestUserRolesMirrorJSONB_2647 (1.05s)
 PASS
-ok  	tuneloop-backend/handlers	1.628s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795887140170 hold_ms=7824
+ok  	tuneloop-backend/handlers	2.103s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795889532379 hold_ms=6632
 USERS_MIRROR_JSONB_EXPR=1
 JSONB_TYPE_IS_ARRAY=1
 JSONB_IS_NULL=0
 RAW_SLICE_WRITE_ERROR=1
+USERS_MIRROR_MAP_SITES=4
 USERS_MIRROR_JSONB_EXPR=1
 USERS_MIRROR_RAW_SLICE=0

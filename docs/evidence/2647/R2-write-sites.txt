@@ -1,16 +1,53 @@
-# build=1.0.67e24bf # commit=67e24bf9537fc3c1d355d98d747554a4026f5d38 # dirty=false
-FILE=backend/handlers/iam_callback.go derive_calls=1 struct_roles=0 mirror_expr_calls=1
-FILE=backend/handlers/merchant_member.go derive_calls=2 struct_roles=2 mirror_expr_calls=0
-FILE=backend/handlers/user_staff.go derive_calls=2 struct_roles=2 mirror_expr_calls=1
-FILE=backend/handlers/merchant.go derive_calls=1 struct_roles=0 mirror_expr_calls=1
-FILE=backend/handlers/iam_proxy.go derive_calls=2 struct_roles=2 mirror_expr_calls=1
-ROLE_ASSIGN_SITES=1
-MIRROR_WRITES_IN_USER_STAFF=1
-ALLOWLIST=backend/handlers/site.go hits=2 reason=建号初始化（D1）ref=#2626 D1/D7
-ALLOWLIST=backend/handlers/site_member_common.go hits=1 reason=建号初始化（D1）ref=#2626 D1/D7
-WRITE_SITES=6
+# build=1.0.10314c0 # commit=10314c0f58039710628983ae0e251709712969a2 # dirty=false
+# tree=10314c0f58039710628983ae0e251709712969a2
+SCANNED tree=backend/handlers sites=8 excluded=10 allowlist=12 role_assigns=4
+## REGISTRY（D8：8 个语句级写点，等值断言）
+SITE backend/handlers/iam_callback.go:300 form=map-assign idx=1 expr=derived.All source=derived(DeriveRoles) func=handleUserOrgBound registered=yes
+SITE backend/handlers/iam_proxy.go:1021 form=map-assign idx=1 expr=mirror.All source=mirror(DeriveRoles) func=SyncUsers registered=yes
+SITE backend/handlers/iam_proxy.go:982 form=struct-literal idx=1 expr=mirror.All source=mirror(DeriveRoles) func=SyncUsers registered=yes
+SITE backend/handlers/merchant.go:475 form=map-assign idx=1 expr=mirror.All source=mirror(DeriveRoles) func=CreateMerchant registered=yes
+SITE backend/handlers/merchant_member.go:258 form=struct-literal idx=1 expr=mirror.All source=mirror(DeriveRoles) func=AddMember registered=yes
+SITE backend/handlers/merchant_member.go:318 form=struct-literal idx=2 expr=mirror.All source=mirror(DeriveRoles) func=AddMember registered=yes
+SITE backend/handlers/user_staff.go:384 form=field-assign idx=1 expr=mirror.All source=mirror(DeriveRoles) func=CreateUser registered=yes
+SITE backend/handlers/user_staff.go:1355 form=map-assign idx=1 expr=mirror.All source=mirror(DeriveRoles) func=UpdateUser registered=yes
+## EXCLUDED（非 users.roles 写点，穷举留痕）
+EXCLUDED backend/handlers/account_merge.go:166 model=SiteMember reason=non-users field assignment
+EXCLUDED backend/handlers/confirmation_session.go:386 model=SiteMember reason=non-users struct literal
+EXCLUDED backend/handlers/iam_proxy.go:1115 model=SiteMember reason=non-users map assignment
+EXCLUDED backend/handlers/iam_proxy.go:1133 model=SiteMember reason=non-users struct literal
+EXCLUDED backend/handlers/site.go:516 model=SiteMember reason=non-users struct literal
+EXCLUDED backend/handlers/site_member_common.go:366 model=SiteMember reason=non-users struct literal
+EXCLUDED backend/handlers/staff_invite.go:358 model=SiteMember reason=non-users struct literal
+EXCLUDED backend/handlers/user_roles_jsonb.go:49 model=unknown reason=non-users map assignment
+EXCLUDED backend/handlers/user_staff.go:527 model=SiteMember reason=non-users struct literal
+EXCLUDED backend/handlers/user_staff.go:994 model=SiteMember reason=non-users struct literal
+## ALLOWLIST（D1：建号初始化业务角色写点，reason=建号初始化 ref=#2626 D1/D7）
+ALLOWLIST backend/handlers/site.go:437 role=site_admin
+ALLOWLIST backend/handlers/site.go:456 role=site_member
+ALLOWLIST backend/handlers/site_member_common.go:245 role=site_member
+## INIT_IAM_ROLE（IAM 级 role 原文初始化，D1 不计；#2626 术语口径）
+INIT_IAM_ROLE backend/handlers/account_merge.go:86 role=USER
+INIT_IAM_ROLE backend/handlers/auth.go:205 role=USER
+INIT_IAM_ROLE backend/handlers/auth.go:524 role=USER
+INIT_IAM_ROLE backend/handlers/auth.go:670 role=USER
+INIT_IAM_ROLE backend/handlers/auth.go:774 role=USER
+INIT_IAM_ROLE backend/handlers/iam_callback.go:245 role=USER
+INIT_IAM_ROLE backend/handlers/platform_staff.go:216 role=STAFF
+INIT_IAM_ROLE backend/handlers/registration_helpers.go:124 role=USER
+INIT_IAM_ROLE backend/handlers/registration_session.go:248 role=USER
+REGISTRY_CHECK ENUM=8 UNREGISTERED=0 STALE=0
+ROLE_ASSIGN backend/handlers/iam_callback.go:298 map=updates mirror=yes expr=derived.Primary
+ROLE_ASSIGN backend/handlers/iam_proxy.go:1013 map=updates mirror=yes expr=mirror.Primary
+ROLE_ASSIGN backend/handlers/merchant.go:470 map=adminUpdates mirror=yes expr=mirror.Primary
+ROLE_ASSIGN backend/handlers/user_staff.go:1353 map=updates mirror=yes expr=mirror.Primary
+ROLE_ASSIGN_COUNT=4
+DELTA_ONLY_SITE=backend/handlers/iam_proxy.go delta_guard=1 registered=1
+WRITE_SITES_ENUM=8
+WRITE_SITES_UNREGISTERED=0
+WRITE_SITES_STALE=0
 WRITE_INLINE_LITERAL=0
 ROLE_ASSIGN_WITHOUT_MIRROR=0
+DELTA_ONLY_EXEMPT=1
 R2_NEGATIVE_CONTROL_VAR=1
 ALLOWLIST_ENTRIES=3
 ALLOWLIST_UNLINKED=0
