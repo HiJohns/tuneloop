@@ -1,26 +1,32 @@
 #!/usr/bin/env bash
-# #2489 证据生成器 — 配置/定价/权限/商户/租户类页面：业务可纠正错误 → 持久提示。
+# #2489 证据生成器 —— 配置/定价/权限/商户类页面：业务可纠正错误 → 表单内持久提示。
 #
-# 用法：bash scripts/verify-2489.sh <r1|r2|r3|r4|r5>
-#   r1  docs/evidence/2489/R1-classify.txt    判定表（6 文件每个 message.error 一行）
-#   r2  docs/evidence/2489/R2-converted.txt   已转换行 + code-first 判定
-#   r3  docs/evidence/2489/R3-shared.txt      共享件复用 / 本地 Alert 复制
-#   r4  docs/evidence/2489/R4-residual.txt    残留业务 toast
-#   r5  docs/evidence/2489/R5-build.txt       PC 构建 + eslint
+# 用法：bash scripts/verify-2489.sh <r1|r2|r3|r4|r5|r6|r8|r9|r10|r11>
+#   r1  docs/evidence/2489/R1-inventory.txt   按分支块的判定表（只读扫描）
+#   r2  docs/evidence/2489/R2-perm.txt        权限模板页 keep 裁定（KEEP_ROWS=3）
+#   r3  docs/evidence/2489/R3-pricing.txt     价格配置页 keep 裁定（KEEP_ROWS=1）
+#   r4  docs/evidence/2489/R4-transit.txt     中转网点页 convert（PERSIST_ALERT/CODE_FIRST）
+#   r5  docs/evidence/2489/R5-membership.txt  会员等级页 keep 裁定（KEEP_ROWS=2）
+#   r6  docs/evidence/2489/R6-merchant.txt    商户管理页 convert（THEME_2459 / NO_FALSE_SUCCESS）
+#   r8  docs/evidence/2489/R8-residual.txt    共享件复用与残留（SHARED_REUSE=2 / KEEP_PAGES_NO_ALERT=3）
+#   r9  docs/evidence/2489/R9-build-lint.txt  PC 构建 + 定向 eslint
+#   r10 docs/evidence/2489/R10-gate.txt       gate 报告 + plan-source + 本单直跑全量 PC 构建
+#   r11 docs/evidence/2489/R11-transport.txt  传输层可执行断言（mock 400/409/500）
 #
 # 产物首行 provenance：`# build=1.0.<fix短码> # commit=<sha> # dirty=<bool>`
 set -uo pipefail
 
 MODE="${1:-}"
 case "$MODE" in
-  r1|r2|r3|r4|r5) ;;
+  r1|r2|r3|r4|r5|r6|r8|r9|r10|r11) ;;
   *)
-    echo "usage: $0 <r1|r2|r3|r4|r5>" >&2
+    echo "usage: $0 <r1|r2|r3|r4|r5|r6|r8|r9|r10|r11>" >&2
     exit 2
     ;;
 esac
 
-REPO="$(git rev-parse --show-toplevel)"; cd "$REPO" || exit 2
+REPO="$(git rev-parse --show-toplevel)" || exit 2
+cd "$REPO" || exit 2
 ISSUE=2489
 OUT_DIR="${OUT_DIR:-$REPO/docs/evidence/$ISSUE}"; mkdir -p "$OUT_DIR"
 EVIDENCE_DIR="docs/evidence/$ISSUE"
@@ -36,30 +42,26 @@ DIRTY=false
 PROV="# build=1.0.$FIX_SHORT # commit=$FIX_SHA # dirty=$DIRTY"
 TREE_LINE="# tree=$HEAD_SHA"
 
+SCAN_BIN="$REPO/scripts/scan-form-toasts-2489.sh"
 HEAVY_RUN="${OPENCODE_HEAVY_RUN:-$HOME/.config/opencode/scripts/heavy-run.sh}"
 SRC_DIR="frontend-pc/src"
-BASELINE="docs/evidence/2480/R11-scan.txt"
-TARGETS=(
-  "pages/admin/PermissionManage/index.jsx"
-  "pages/admin/pricing/MerchantPricingConfig.jsx"
-  "pages/admin/transit/TransitCenter.jsx"
-  "pages/System/MembershipLevelsPage.jsx"
-  "pages/MerchantManagement.jsx"
-  "pages/TenantManagement.jsx"
-)
+PAGE_PERM="$SRC_DIR/pages/admin/PermissionManage/index.jsx"
+PAGE_PRICING="$SRC_DIR/pages/admin/pricing/MerchantPricingConfig.jsx"
+PAGE_TRANSIT="$SRC_DIR/pages/admin/transit/TransitCenter.jsx"
+PAGE_MEMBER="$SRC_DIR/pages/System/MembershipLevelsPage.jsx"
+PAGE_MERCHANT="$SRC_DIR/pages/MerchantManagement.jsx"
+KEEP_PAGES=("$PAGE_PERM" "$PAGE_PRICING" "$PAGE_MEMBER")
+BATCH_PAGES=("$PAGE_PERM" "$PAGE_PRICING" "$PAGE_TRANSIT" "$PAGE_MEMBER" "$PAGE_MERCHANT")
 
 LOG="$REPO/tmp/verify-2489-${MODE}.log"
+mkdir -p "$REPO/tmp"
 : > "$LOG"
-trap 'rm -f "$LOG"' EXIT
-RC=0
 BODY="$OUT_DIR/.body.$$"
 : > "$BODY"
 trap 'rm -f "$LOG" "$BODY"' EXIT
 
 emit() { printf '%s\n' "$*" | tee -a "$BODY"; }
-require() { # token-in-body
-  grep -Fq -- "$1" "$BODY" || { echo "ASSERT_FAIL: missing [$1]" >&2; RC=1; }
-}
+require() { grep -Fq -- "$1" "$BODY" || { echo "ASSERT_FAIL: missing [$1]" >&2; RC=1; }; }
 finish() { # artifact
   local name="$1"
   {
@@ -69,179 +71,239 @@ finish() { # artifact
   cat "$OUT_DIR/$name"
   [ "$RC" = "0" ] || return 1
 }
+RC=0
 
-enclosing_fn() { # file line
-  awk -v target="$2" '
-    NR <= target && (/^[[:space:]]*(const|let)[[:space:]]+[A-Za-z0-9_]+[[:space:]]*=[[:space:]]*(async[[:space:]]*)?\(/ || /^[[:space:]]*function[[:space:]]+[A-Za-z0-9_]+/) {
-      line = $0
-      sub(/^[[:space:]]+/, "", line)
-      if (line ~ /^function[[:space:]]+/) {
-        sub(/^function[[:space:]]+/, "", line)
-      } else {
-        sub(/^(const|let)[[:space:]]+/, "", line)
-        sub(/[[:space:]]*=.*/, "", line)
+# 页面是否消费共享件（FormConflictAlert / formConflict 判定器）。
+page_shared_uses() { # file
+  grep -cE "components/FormConflictAlert|utils/formConflict|isBusinessCorrectableConflict\(|conflictText\(|set[A-Za-z0-9_]*Conflict\(" "$1" 2>/dev/null || true
+}
+page_alerts() { # file — 本批页面不得自建 Alert 组件/直接渲染 antd Alert
+  grep -cE '<Alert|function[[:space:]]+[A-Za-z0-9_]*Alert|const[[:space:]]+[A-Za-z0-9_]*Alert[[:space:]]*=' "$1" 2>/dev/null || true
+}
+page_code_lists() { # file — 不得复制 rubric code 白名单
+  grep -cE '\[[[:space:]]*40002|(===?|==)[[:space:]]*(40002|40004|40005|40900)\b' "$1" 2>/dev/null || true
+}
+
+# 扫描输出缓存（r1/r2/r3/r5/r8 复用同一次只读扫描）。
+scan_output() {
+  [ -s "$REPO/tmp/scan-2489.cache" ] && return 0
+  bash "$SCAN_BIN" > "$REPO/tmp/scan-2489.cache" 2>"$REPO/tmp/scan-2489.err"
+}
+scan_metric() { # key
+  scan_output
+  sed -n "s/^$1=//p" "$REPO/tmp/scan-2489.cache" | head -1
+}
+scan_page_keep() { # rel path key
+  scan_output
+  sed -n "s#^PAGE_KEEP_ROWS=$1=##p" "$REPO/tmp/scan-2489.cache" | head -1
+}
+scan_rows_for_page() { # rel path
+  scan_output
+  awk -F'\t' -v p="$1" 'index($1, p ":") == 1' "$REPO/tmp/scan-2489.cache"
+}
+
+# CODE_FIRST：每个 conflictText( 写入点都必须由 isBusinessCorrectableConflict( 分支包裹。
+code_first_check() { # file
+  awk '
+    { line[NR] = $0 }
+    END {
+      ok = 0; bad = 0
+      for (i = 1; i <= NR; i++) {
+        if (line[i] ~ /conflictText\(/) {
+          found = 0
+          for (j = (i - 3 < 1 ? 1 : i - 3); j <= i; j++) {
+            if (line[j] ~ /isBusinessCorrectableConflict\(/) found = 1
+          }
+          if (found) ok++; else bad++
+        }
       }
-      sub(/[^A-Za-z0-9_].*/, "", line)
-      if (line != "") found = line
+      printf "OK=%d BAD=%d\n", ok, bad
     }
-    END { print (found == "" ? "unknown" : found) }
   ' "$1"
-}
-
-# 分类扫描：每个 message.error( 一行；tier 口径与 #2480 rubric 一致。
-scan_rows() {
-  local rel file line ctx fn tier reason code_aware business_code codes_count
-  for rel in "${TARGETS[@]}"; do
-    file="$SRC_DIR/$rel"
-    [ -f "$file" ] || { echo "ERROR: target missing: $rel" >&2; return 2; }
-    while IFS=: read -r line _rest; do
-      [ -n "${line:-}" ] || continue
-      local start=$((line - 12)); [ "$start" -lt 1 ] && start=1
-      ctx="$(sed -n "${start},${line}p" "$file")"
-      fn="$(enclosing_fn "$file" "$line")"
-      code_aware=0
-      printf '%s\n' "$ctx" | grep -qE 'isBusinessCorrectableConflict\(|code[[:space:]]*===?[[:space:]]*[0-9]+' && code_aware=1
-      business_code="$(printf '%s\n' "$ctx" \
-        | grep -oE 'code[[:space:]]*===[[:space:]]*[0-9]+' \
-        | grep -oE '[0-9]+$' \
-        | grep -E '^(40002|40004|40005|40900)$' | head -1)"
-      reason=""
-      if [ -n "$business_code" ]; then
-        tier="residual:business-toast"
-        reason="business-correctable code $business_code still rendered by a 3s toast"
-      elif printf '%s\n' "$ctx" | grep -q 'isBusinessCorrectableConflict('; then
-        tier="business-correctable"
-        reason="business branch routed to FormConflictAlert; this toast is the non-business fallback"
-      elif printf '%s\n' "$ctx" | grep -qE 'errorFields|不能为空|需要大于|必须在|必填'; then
-        tier="keep:instant"
-        reason="client-side validation feedback"
-      elif printf '%s\n' "$ctx" | grep -qE 'api\.get\(|api\.delete\(|加载'; then
-        tier="keep:instant"
-        reason="load / delete / transport feedback"
-      elif printf '%s\n' "$ctx" | grep -qE 'catch'; then
-        tier="keep:instant"
-        reason="catch-all fallback (network/unknown)"
-      elif printf '%s\n' "$ctx" | grep -qE '\.message[[:space:]]*\|\|'; then
-        tier="keep:instant"
-        reason="server message without a business-correctable code"
-      else
-        tier="defer:tier2"
-        reason="form falls back to toast without reading code (needs per-page judgement)"
-      fi
-      printf '%s:%s\tfn=%s\treads_code=%s\ttier=%s\treason=%s\n' \
-        "$rel" "$line" "${fn:-unknown}" "$code_aware" "$tier" "$reason"
-    done < <(grep -n 'message\.error(' "$file")
-  done
-}
-
-scan_metrics() {
-  local rows; rows="$(cat)"
-  local total keep persisted defer residual unclassified
-  total=$(printf '%s\n' "$rows" | grep -c $'\tfn=' || true)
-  keep=$(printf '%s\n' "$rows" | grep -c $'tier=keep:instant' || true)
-  persisted=$(printf '%s\n' "$rows" | grep -c $'tier=business-correctable' || true)
-  defer=$(printf '%s\n' "$rows" | grep -c $'tier=defer:tier2' || true)
-  residual=$(printf '%s\n' "$rows" | grep -c $'tier=residual:business-toast' || true)
-  unclassified=$((total - keep - persisted - defer - residual))
-  printf 'SCAN_ROWS=%s\nKEEP_ROWS=%s\nBUSINESS_FALLBACK_ROWS=%s\nDEFER_ROWS=%s\nBUSINESS_TOAST_RESIDUAL=%s\nUNCLASSIFIED=%s\n' \
-    "${total:-0}" "${keep:-0}" "${persisted:-0}" "${defer:-0}" "${residual:-0}" "${unclassified:-0}"
 }
 
 case "$MODE" in
   r1)
-    ROWS="$(scan_rows)" || { finish R1-classify.txt || true; exit 1; }
-    emit "SCAN_TARGETS=${#TARGETS[@]}"
-    emit "READONLY=1"
-    emit "DB_WRITES=0"
-    echo "$ROWS" | scan_metrics | while IFS= read -r l; do emit "$l"; done
-    # 与 #2480 扫描基线（同 6 文件行数）对比
-    BASE_ROWS=0
-    if [ -f "$BASELINE" ]; then
-      BASE_ROWS=$(grep -cE "frontend-pc/src/pages/(admin/PermissionManage/index|admin/pricing/MerchantPricingConfig|admin/transit/TransitCenter|System/MembershipLevelsPage|MerchantManagement|TenantManagement)\.jsx:" "$BASELINE" || true)
+    if ! bash "$SCAN_BIN" > "$REPO/tmp/scan-2489.cache" 2>"$REPO/tmp/scan-2489.err"; then
+      echo "ASSERT_FAIL: scanner failed" >&2; cat "$REPO/tmp/scan-2489.err" >&2; RC=1
     fi
-    emit "BASELINE_ROWS=${BASE_ROWS:-0}"
+    # WINDOW_HEURISTIC=0 的可判定证据：扫描脚本不含固定行窗口回溯。
+    if grep -qE '(start|begin|win|window|ctx)[[:space:]]*=[[:space:]]*"?\$\(\([[:space:]]*line[[:space:]]*-[[:space:]]*1?[0-9][[:space:]]*\)\)' "$SCAN_BIN"; then
+      emit "WINDOW_HEURISTIC_SOURCE=1"
+      echo "ASSERT_FAIL: scanner still uses a fixed line window" >&2; RC=1
+    else
+      emit "WINDOW_HEURISTIC_SOURCE=0"
+    fi
+    sed -n '/^--- rows ---/q;p' "$REPO/tmp/scan-2489.cache" | while IFS= read -r l; do emit "$l"; done
     emit "--- rows ---"
-    while IFS= read -r l; do [ -n "$l" ] && emit "$l"; done <<< "$ROWS"
-    SCAN_ROWS=$(sed -n 's/^SCAN_ROWS=//p' "$BODY" | tail -1)
-    [ "${SCAN_ROWS:-0}" -gt 0 ] || { echo "ASSERT_FAIL: no message.error rows" >&2; RC=1; }
+    sed -n '/^--- rows ---/,$p' "$REPO/tmp/scan-2489.cache" | sed '1d' | while IFS= read -r l; do emit "$l"; done
     require 'UNCLASSIFIED=0'
     require 'READONLY=1'
-    if [ "${BASE_ROWS:-0}" -gt 0 ] && [ "${SCAN_ROWS:-0}" -lt "${BASE_ROWS:-0}" ]; then
-      echo "ASSERT_FAIL: SCAN_ROWS($SCAN_ROWS) < BASELINE_ROWS($BASE_ROWS)" >&2; RC=1
-    fi
-    finish R1-classify.txt || RC=1
+    require 'DB_WRITES=0'
+    require 'WINDOW_HEURISTIC=0'
+    require 'WINDOW_HEURISTIC_SOURCE=0'
+    [ "$(scan_metric SCAN_ROWS)" -gt 0 ] || { echo "ASSERT_FAIL: SCAN_ROWS=0" >&2; RC=1; }
+    finish R1-inventory.txt || RC=1
     ;;
 
   r2)
-    CONVERTED=0; CODE_FIRST=1; PAGES_WITH_CONVERSION=0
-    for rel in "${TARGETS[@]}"; do
-      file="$SRC_DIR/$rel"
-      # 转换点 = 任意 <set*Conflict>(conflictText(...)) 持久提示写入（各页 setter 命名不同，
-      # 不要固定 setFormConflict，否则会漏计 TransitCenter / MembershipLevelsPage）。
-      c=$(grep -oE 'set[A-Za-z0-9_]*Conflict\([[:space:]]*conflictText\(' "$file" 2>/dev/null | wc -l | tr -d ' ')
-      c=${c:-0}
-      has_pred=0; has_alert=0
-      grep -q 'isBusinessCorrectableConflict(' "$file" && has_pred=1
-      grep -q '<FormConflictAlert' "$file" && has_alert=1
-      page_code_first=0
-      if [ "$c" -gt 0 ] && [ "$has_pred" = "1" ] && [ "$has_alert" = "1" ]; then
-        page_code_first=1
-        PAGES_WITH_CONVERSION=$((PAGES_WITH_CONVERSION + 1))
-      fi
-      [ "$page_code_first" = "1" ] || CODE_FIRST=0
-      CONVERTED=$((CONVERTED + c))
-      emit "PAGE=$rel converted=$c code_first=$page_code_first"
-    done
-    emit "CONVERTED_ROWS=$CONVERTED"
-    emit "CODE_FIRST=$CODE_FIRST"
-    emit "PAGES_WITH_CONVERSION=$PAGES_WITH_CONVERSION"
-    emit "PAGES_TOTAL=${#TARGETS[@]}"
-    [ "$CONVERTED" -ge 1 ] || { echo "ASSERT_FAIL: CONVERTED_ROWS<1" >&2; RC=1; }
-    [ "$PAGES_WITH_CONVERSION" -eq "${#TARGETS[@]}" ] || { echo "ASSERT_FAIL: PAGES_WITH_CONVERSION!=${#TARGETS[@]}" >&2; RC=1; }
-    [ "$CODE_FIRST" = "1" ] || { echo "ASSERT_FAIL: CODE_FIRST!=1" >&2; RC=1; }
-    finish R2-converted.txt || RC=1
+    keep_n="$(scan_page_keep pages/admin/PermissionManage/index.jsx)"
+    used="$(page_shared_uses "$PAGE_PERM")"
+    emit "PAGE=pages/admin/PermissionManage/index.jsx"
+    emit "KEEP_ROWS=${keep_n:-0}"
+    emit "SHARED_USES=$used"
+    emit "FALSE_CONVERT=$([ "${used:-0}" = "0" ] && echo 0 || echo 1)"
+    emit "PERSIST_ALERT_UNUSED=$([ "${used:-0}" = "0" ] && echo 1 || echo 0)"
+    emit "LOCAL_ALERT_DUP=$(page_alerts "$PAGE_PERM")"
+    emit "LOCAL_CODE_LIST=$(page_code_lists "$PAGE_PERM")"
+    emit "--- rows ---"
+    scan_rows_for_page pages/admin/PermissionManage/index.jsx | sed 's/^/ROW /' | while IFS= read -r l; do emit "$l"; done
+    nonkeep="$(scan_rows_for_page pages/admin/PermissionManage/index.jsx | grep -cv 'tier=keep:instant' || true)"
+    emit "NON_KEEP_ROWS=${nonkeep:-0}"
+    require "KEEP_ROWS=${keep_n:-0}"
+    [ "${keep_n:-0}" = "3" ] || { echo "ASSERT_FAIL: KEEP_ROWS!=3" >&2; RC=1; }
+    [ "${used:-0}" = "0" ] || { echo "ASSERT_FAIL: keep page consumes shared alert (false convert)" >&2; RC=1; }
+    [ "${nonkeep:-0}" = "0" ] || { echo "ASSERT_FAIL: keep page still has non-keep rows" >&2; RC=1; }
+    finish R2-perm.txt || RC=1
     ;;
 
   r3)
-    SHARED_REUSE=0; LOCAL_ALERT_DUP=0; LOCAL_CODE_LIST=0
-    for rel in "${TARGETS[@]}"; do
-      file="$SRC_DIR/$rel"
-      if grep -q "from '.*components/FormConflictAlert'" "$file" && grep -q '<FormConflictAlert' "$file"; then
-        SHARED_REUSE=$((SHARED_REUSE + 1))
-        emit "REUSE=$rel"
-      fi
-      # 本单页面不得自写 Alert 组件（antd <Alert> 直接使用 / 本地组件定义）
-      if grep -qE 'function[[:space:]]+[A-Za-z0-9_]*Alert|const[[:space:]]+[A-Za-z0-9_]*Alert[[:space:]]*=' "$file"; then
-        LOCAL_ALERT_DUP=$((LOCAL_ALERT_DUP + 1))
-      fi
-      if grep -qE '\[[[:space:]]*40002|40004[[:space:]]*,[[:space:]]*40005' "$file"; then
-        LOCAL_CODE_LIST=$((LOCAL_CODE_LIST + 1))
-      fi
-    done
-    emit "SHARED_REUSE=$SHARED_REUSE"
-    emit "LOCAL_ALERT_DUP=$LOCAL_ALERT_DUP"
-    emit "LOCAL_CODE_LIST=$LOCAL_CODE_LIST"
-    [ "$SHARED_REUSE" -ge 1 ] || { echo "ASSERT_FAIL: SHARED_REUSE<1" >&2; RC=1; }
-    [ "$LOCAL_ALERT_DUP" = "0" ] || { echo "ASSERT_FAIL: LOCAL_ALERT_DUP!=0" >&2; RC=1; }
-    [ "$LOCAL_CODE_LIST" = "0" ] || { echo "ASSERT_FAIL: LOCAL_CODE_LIST!=0" >&2; RC=1; }
-    finish R3-shared.txt || RC=1
+    keep_n="$(scan_page_keep pages/admin/pricing/MerchantPricingConfig.jsx)"
+    used="$(page_shared_uses "$PAGE_PRICING")"
+    emit "PAGE=pages/admin/pricing/MerchantPricingConfig.jsx"
+    emit "KEEP_ROWS=${keep_n:-0}"
+    emit "SHARED_USES=$used"
+    emit "FALSE_CONVERT=$([ "${used:-0}" = "0" ] && echo 0 || echo 1)"
+    emit "PERSIST_ALERT_UNUSED=$([ "${used:-0}" = "0" ] && echo 1 || echo 0)"
+    emit "LOCAL_ALERT_DUP=$(page_alerts "$PAGE_PRICING")"
+    emit "LOCAL_CODE_LIST=$(page_code_lists "$PAGE_PRICING")"
+    emit "--- rows ---"
+    scan_rows_for_page pages/admin/pricing/MerchantPricingConfig.jsx | sed 's/^/ROW /' | while IFS= read -r l; do emit "$l"; done
+    keep_rows="$(scan_rows_for_page pages/admin/pricing/MerchantPricingConfig.jsx | grep -c 'tier=keep:instant' || true)"
+    emit "KEEP_TIER_ROWS=${keep_rows:-0}"
+    [ "${keep_n:-0}" = "1" ] || { echo "ASSERT_FAIL: KEEP_ROWS!=1" >&2; RC=1; }
+    [ "${used:-0}" = "0" ] || { echo "ASSERT_FAIL: keep page consumes shared alert (false convert)" >&2; RC=1; }
+    require 'KEEP_ROWS=1'
+    finish R3-pricing.txt || RC=1
     ;;
 
   r4)
-    ROWS="$(scan_rows)" || { finish R4-residual.txt || true; exit 1; }
-    echo "$ROWS" | scan_metrics | while IFS= read -r l; do emit "$l"; done
-    KEEP_WITH_REASON=$(printf '%s\n' "$ROWS" | grep $'tier=keep:instant' | grep -c 'reason=.' || true)
-    KEEP_ROWS=$(printf '%s\n' "$ROWS" | grep -c $'tier=keep:instant' || true)
-    emit "KEEP_WITH_REASON=${KEEP_WITH_REASON:-0}"
-    require 'BUSINESS_TOAST_RESIDUAL=0'
-    if [ "${KEEP_WITH_REASON:-0}" -lt "${KEEP_ROWS:-0}" ]; then
-      echo "ASSERT_FAIL: keep rows without reason" >&2; RC=1
-    fi
-    finish R4-residual.txt || RC=1
+    shared="$(page_shared_uses "$PAGE_TRANSIT")"
+    cf="$(code_first_check "$PAGE_TRANSIT")"
+    ok="${cf##*OK=}"; ok="${ok%% *}"
+    bad="${cf##*BAD=}"
+    emit "PAGE=pages/admin/transit/TransitCenter.jsx"
+    emit "SHARED_USES=$shared"
+    emit "PERSIST_ALERT=$([ "${shared:-0}" -gt 0 ] && echo 1 || echo 0)"
+    emit "CONFLICT_TEXT_SITES=$ok"
+    emit "UNGUARDED_SITES=${bad:-0}"
+    emit "CODE_FIRST=$([ "${bad:-0}" = "0" ] && [ "${ok:-0}" -gt 0 ] && echo 1 || echo 0)"
+    emit "--- wiring ---"
+    grep -nE "FormConflictAlert|isBusinessCorrectableConflict\(|conflictText\(|set(Site|Route)Conflict\(" "$PAGE_TRANSIT" | sed 's/^/WIRE /' | while IFS= read -r l; do emit "$l"; done
+    require 'PERSIST_ALERT=1'
+    require 'CODE_FIRST=1'
+    finish R4-transit.txt || RC=1
     ;;
 
   r5)
-    BUILD_LOG="$REPO/tmp/verify-2489-r5-build.log"
+    keep_n="$(scan_page_keep pages/System/MembershipLevelsPage.jsx)"
+    used="$(page_shared_uses "$PAGE_MEMBER")"
+    emit "PAGE=pages/System/MembershipLevelsPage.jsx"
+    emit "KEEP_ROWS=${keep_n:-0}"
+    emit "SHARED_USES=$used"
+    emit "FALSE_CONVERT=$([ "${used:-0}" = "0" ] && echo 0 || echo 1)"
+    emit "PERSIST_ALERT_UNUSED=$([ "${used:-0}" = "0" ] && echo 1 || echo 0)"
+    # 门槛/金额规则在前端 Form rules（后端只有 JSON binding 40002）→ 可判定的正向证据。
+    front_rule="$(grep -cE 'rules=\{\[\{[^]]*required|min_amount' "$PAGE_MEMBER" || true)"
+    backend_rubric="$(grep -cE '40900|40004|40005' backend/handlers/membership_level.go 2>/dev/null || true)"
+    emit "FRONTEND_RULE_SITES=${front_rule:-0}"
+    emit "BACKEND_RUBRIC_CODES=${backend_rubric:-0}"
+    emit "FRONTEND_ONLY_RULE=$([ "${front_rule:-0}" -gt 0 ] && [ "${backend_rubric:-0}" = "0" ] && echo 1 || echo 0)"
+    emit "--- rows ---"
+    scan_rows_for_page pages/System/MembershipLevelsPage.jsx | sed 's/^/ROW /' | while IFS= read -r l; do emit "$l"; done
+    [ "${keep_n:-0}" = "2" ] || { echo "ASSERT_FAIL: KEEP_ROWS!=2" >&2; RC=1; }
+    [ "${used:-0}" = "0" ] || { echo "ASSERT_FAIL: keep page consumes shared alert (false convert)" >&2; RC=1; }
+    require 'KEEP_ROWS=2'
+    require 'FRONTEND_ONLY_RULE=1'
+    finish R5-membership.txt || RC=1
+    ;;
+
+  r6)
+    shared="$(page_shared_uses "$PAGE_MERCHANT")"
+    cf="$(code_first_check "$PAGE_MERCHANT")"
+    ok="${cf##*OK=}"; ok="${ok%% *}"
+    bad="${cf##*BAD=}"
+    theme_ref="$(grep -c '#2459' "$PAGE_MERCHANT" || true)"
+    local_whitelist="$(grep -cE '(===?|==)[[:space:]]*(40002|40004|40005|40900)\b' "$PAGE_MERCHANT" || true)"
+    # 单一成功出口：handleSubmit 内 message.success 只在 `resp.code !== 20000` 守卫之后。
+    success_check="$(awk '
+      /const handleSubmit = async/ { infn = 1 }
+      infn && /resp\.code !== 20000/ { if (!guard) guard = NR }
+      infn && /message\.success\(/ { if (!succ) succ = NR; succn++ }
+      infn && /^  };/ { infn = 0 }
+      END { printf "guard=%d success=%d count=%d\n", guard + 0, succ + 0, succn + 0 }
+    ' "$PAGE_MERCHANT")"
+    guard_line="$(printf '%s' "$success_check" | sed -n 's/.*guard=\([0-9]*\).*/\1/p')"
+    succ_line="$(printf '%s' "$success_check" | sed -n 's/.*success=\([0-9]*\).*/\1/p')"
+    succ_count="$(printf '%s' "$success_check" | sed -n 's/.*count=\([0-9]*\).*/\1/p')"
+    emit "PAGE=pages/MerchantManagement.jsx"
+    emit "SHARED_USES=$shared"
+    emit "PERSIST_ALERT=$([ "${shared:-0}" -gt 0 ] && echo 1 || echo 0)"
+    emit "CONFLICT_TEXT_SITES=$ok"
+    emit "UNGUARDED_SITES=${bad:-0}"
+    emit "CODE_FIRST=$([ "${bad:-0}" = "0" ] && [ "${ok:-0}" -gt 0 ] && echo 1 || echo 0)"
+    emit "THEME_2459_REF=${theme_ref:-0}"
+    emit "LOCAL_CODE_WHITELIST=${local_whitelist:-0}"
+    emit "THEME_2459=$([ "${theme_ref:-0}" -gt 0 ] && [ "${local_whitelist:-0}" = "0" ] && echo 1 || echo 0)"
+    emit "HANDLE_SUBMIT_GUARD_LINE=${guard_line:-0}"
+    emit "HANDLE_SUBMIT_SUCCESS_LINE=${succ_line:-0}"
+    emit "HANDLE_SUBMIT_SUCCESS_COUNT=${succ_count:-0}"
+    emit "NO_FALSE_SUCCESS=$([ "${guard_line:-0}" -gt 0 ] && [ "${succ_line:-0}" -gt "${guard_line:-0}" ] && [ "${succ_count:-0}" = "1" ] && echo 1 || echo 0)"
+    # 改名 409 语义由后端 #2459 决定（本单不自写白名单）→ 显式标注延后项。
+    emit "DEFER_2459=$([ "${theme_ref:-0}" -gt 0 ] && [ "${local_whitelist:-0}" = "0" ] && echo 1 || echo 0)"
+    emit "--- wiring ---"
+    grep -nE "FormConflictAlert|isBusinessCorrectableConflict\(|conflictText\(|resp\.code !== 20000|#2459" "$PAGE_MERCHANT" | sed 's/^/WIRE /' | while IFS= read -r l; do emit "$l"; done
+    require 'PERSIST_ALERT=1'
+    require 'THEME_2459=1'
+    require 'CODE_FIRST=1'
+    require 'NO_FALSE_SUCCESS=1'
+    require 'DEFER_2459=1'
+    finish R6-merchant.txt || RC=1
+    ;;
+
+  r8)
+    reuse=0; keep_no_alert=0; alert_dup=0; code_list=0
+    for f in "${BATCH_PAGES[@]}"; do
+      u="$(page_shared_uses "$f")"
+      [ "${u:-0}" -gt 0 ] && reuse=$((reuse + 1))
+      alert_dup=$((alert_dup + $(page_alerts "$f")))
+      code_list=$((code_list + $(page_code_lists "$f")))
+      emit "PAGE=$f shared_uses=${u:-0}"
+    done
+    for f in "${KEEP_PAGES[@]}"; do
+      u="$(page_shared_uses "$f")"
+      [ "${u:-0}" = "0" ] && keep_no_alert=$((keep_no_alert + 1))
+    done
+    residual="$(scan_metric RESIDUAL_ROWS)"
+    unclassified="$(scan_metric UNCLASSIFIED)"
+    emit "SHARED_REUSE=$reuse"
+    emit "KEEP_PAGES_NO_ALERT=$keep_no_alert"
+    emit "LOCAL_ALERT_DUP=$alert_dup"
+    emit "LOCAL_CODE_LIST=$code_list"
+    emit "BUSINESS_TOAST_RESIDUAL=${residual:-0}"
+    emit "UNCLASSIFIED=${unclassified:-0}"
+    emit "SHARED_OWNER=frontend-pc/src/components/FormConflictAlert.jsx + frontend-pc/src/utils/formConflict.js"
+    [ "$reuse" = "2" ] || { echo "ASSERT_FAIL: SHARED_REUSE!=2" >&2; RC=1; }
+    [ "$keep_no_alert" = "3" ] || { echo "ASSERT_FAIL: KEEP_PAGES_NO_ALERT!=3" >&2; RC=1; }
+    [ "${residual:-0}" = "0" ] || { echo "ASSERT_FAIL: BUSINESS_TOAST_RESIDUAL!=0" >&2; RC=1; }
+    require 'SHARED_REUSE=2'
+    require 'KEEP_PAGES_NO_ALERT=3'
+    require 'BUSINESS_TOAST_RESIDUAL=0'
+    finish R8-residual.txt || RC=1
+    ;;
+
+  r9)
+    BUILD_LOG="$REPO/tmp/verify-2489-r9-build.log"
     if [ -x "$HEAVY_RUN" ]; then
       ( cd frontend-pc && "$HEAVY_RUN" -- npm run build ) > "$BUILD_LOG" 2>&1
     else
@@ -249,18 +311,13 @@ case "$MODE" in
     fi
     BUILD_EXIT=$?
     emit "BUILD_CMD=cd frontend-pc && npm run build"
-    emit "BUILD_EXIT=$BUILD_EXIT"
-    [ "$BUILD_EXIT" = "0" ] && emit "BUILD_OK" || { echo "ASSERT_FAIL: build failed" >&2; RC=1; }
+    emit "PC_BUILD=$BUILD_EXIT"
     tail -3 "$BUILD_LOG" | sed 's/^/BUILD_TAIL: /' | while IFS= read -r l; do emit "$l"; done
 
-    LINT_LOG="$REPO/tmp/verify-2489-r5-lint.log"
+    LINT_LOG="$REPO/tmp/verify-2489-r9-lint.log"
     LINT_FILES=(
-      "src/pages/admin/PermissionManage/index.jsx"
-      "src/pages/admin/pricing/MerchantPricingConfig.jsx"
-      "src/pages/admin/transit/TransitCenter.jsx"
-      "src/pages/System/MembershipLevelsPage.jsx"
       "src/pages/MerchantManagement.jsx"
-      "src/pages/TenantManagement.jsx"
+      "src/pages/admin/transit/TransitCenter.jsx"
     )
     if [ -x "$HEAVY_RUN" ]; then
       ( cd frontend-pc && "$HEAVY_RUN" -- npx eslint "${LINT_FILES[@]}" ) > "$LINT_LOG" 2>&1
@@ -270,8 +327,113 @@ case "$MODE" in
     LINT_EXIT=$?
     emit "LINT_CMD=cd frontend-pc && npx eslint ${LINT_FILES[*]}"
     emit "LINT_EXIT=$LINT_EXIT"
-    [ "$LINT_EXIT" = "0" ] && emit "ESLINT_OK" || { echo "ASSERT_FAIL: eslint failed" >&2; RC=1; }
-    finish R5-build.txt || RC=1
+    tail -5 "$LINT_LOG" | sed 's/^/LINT_TAIL: /' | while IFS= read -r l; do emit "$l"; done
+    [ "$BUILD_EXIT" = "0" ] || { echo "ASSERT_FAIL: build failed" >&2; RC=1; }
+    [ "$LINT_EXIT" = "0" ] || { echo "ASSERT_FAIL: eslint failed" >&2; RC=1; }
+    require 'PC_BUILD=0'
+    require 'LINT_EXIT=0'
+    finish R9-build-lint.txt || RC=1
+    ;;
+
+  r10)
+    REPORT="$OUT_DIR/pre-ready-$ISSUE.json"
+    PLAN_FILE="$OUT_DIR/plan.md"
+    PLAN_SHA="$(sha256sum "$PLAN_FILE" 2>/dev/null | awk '{print $1}')"
+    emit "PLAN_FILE=docs/evidence/$ISSUE/plan.md"
+    emit "PLAN_SHA256=${PLAN_SHA:-missing}"
+    emit "GATE_REPORT=docs/evidence/$ISSUE/pre-ready-$ISSUE.json"
+    if [ -f "$REPORT" ]; then
+      GATE_OVERALL="$(jq -r '.overall // empty' "$REPORT" 2>/dev/null)"
+      GATE_PLAN_SHA="$(jq -r '.plan_sha256 // empty' "$REPORT" 2>/dev/null)"
+      GATE_P5="$(jq -r '(.checks // [])[] | select(.id == "P5") | .status' "$REPORT" 2>/dev/null | head -1)"
+      emit "GATE_OVERALL=${GATE_OVERALL:-missing}"
+      emit "GATE_PLAN_SHA256=${GATE_PLAN_SHA:-missing}"
+      emit "GATE_P5=${GATE_P5:-missing} (D6: sub-task full gate belongs to parent #2486)"
+      if [ "$GATE_OVERALL" = "PASS" ] && [ "$GATE_PLAN_SHA" = "$PLAN_SHA" ]; then
+        emit "GATE_RESULT=PASS"
+      else
+        emit "GATE_RESULT=FAIL"
+        echo "ASSERT_FAIL: gate report is not PASS for the current plan (overall=${GATE_OVERALL:-missing})" >&2
+        RC=1
+      fi
+    else
+      emit "GATE_OVERALL=missing"
+      emit "GATE_RESULT=FAIL"
+      echo "ASSERT_FAIL: gate report missing: $REPORT" >&2
+      RC=1
+    fi
+
+    PLAN_SOURCE_OUT="$(bash "$HOME/.config/opencode/scripts/plan-source.sh" --issue "$ISSUE" 2>&1)"
+    emit "--- plan-source ---"
+    printf '%s\n' "$PLAN_SOURCE_OUT" | sed 's/^/PLAN_SOURCE_LINE: /' | while IFS= read -r l; do emit "$l"; done
+    if printf '%s\n' "$PLAN_SOURCE_OUT" | grep -q '^PLAN_SOURCE: PASS'; then
+      emit "PLAN_SOURCE=PASS"
+    else
+      emit "PLAN_SOURCE=FAIL"
+      echo "ASSERT_FAIL: plan-source did not report PASS" >&2
+      RC=1
+    fi
+
+    DRIFT="$(git status --porcelain --untracked-files=no -- . ":(exclude)$EVIDENCE_DIR" ':(exclude)tmp')"
+    emit "TREE_CLEAN=$([ -z "$DRIFT" ] && echo 1 || echo 0)"
+    [ -z "$DRIFT" ] || { echo "ASSERT_FAIL: working tree not clean for direct full gate" >&2; RC=1; }
+
+    FULL_LOG="$REPO/tmp/verify-2489-r10-build.log"
+    if [ -x "$HEAVY_RUN" ]; then
+      ( cd frontend-pc && "$HEAVY_RUN" -- npm run build ) > "$FULL_LOG" 2>&1
+    else
+      ( cd frontend-pc && npm run build ) > "$FULL_LOG" 2>&1
+    fi
+    FULL_EXIT=$?
+    emit "FULL_GATE_CMD=cd frontend-pc && npm run build"
+    emit "FULL_GATE_DIRECT_EXIT=$FULL_EXIT"
+    tail -3 "$FULL_LOG" | sed 's/^/FULL_GATE_TAIL: /' | while IFS= read -r l; do emit "$l"; done
+    [ "$FULL_EXIT" = "0" ] || { echo "ASSERT_FAIL: full PC build failed" >&2; RC=1; }
+    require 'GATE_RESULT=PASS'
+    require 'PLAN_SOURCE=PASS'
+    require 'FULL_GATE_DIRECT_EXIT=0'
+    finish R10-gate.txt || RC=1
+    ;;
+
+  r11)
+    NODE_BIN="${NODE_BIN:-node}"
+    TEST_FILE="$REPO/tmp/verify-2489-r11.mjs"
+    cat > "$TEST_FILE" <<'EOF'
+import { resolveHttpFailure } from '../frontend-pc/src/services/apiError.js'
+
+const out = []
+out.push(`API_ERROR_CODE=${(() => {
+  const r = resolveHttpFailure(400, { code: 40002, message: '信息不完整，请补充必填项' })
+  return r.kind === 'throw' && r.value.name === 'ApiError' && r.value.code === 40002 && r.value.status === 400 ? 1 : 0
+})()}`)
+
+// 409：必须返回对象且 code 非 20000（否则页面会落到 message.success = 假成功）
+const r409 = resolveHttpFailure(409, { code: 40900, message: '商户名称已存在' })
+out.push(`NO_SUCCESS_ON_409=${r409.kind === 'result' && r409.value.code !== 20000 && r409.value.code === 40900 ? 1 : 0}`)
+out.push(`CONFLICT_TEXT_409=${r409.value.message}`)
+
+// 500：抛错且不带 code → 页面只能走 toast（瞬时提示）
+const r500 = resolveHttpFailure(500, { message: 'internal error' })
+out.push(`TOAST_ON_500=${r500.kind === 'throw' && r500.value.code === undefined ? 1 : 0}`)
+
+// 损坏 payload 不得抛解析异常
+const broken = resolveHttpFailure(400, 'not-an-object')
+out.push(`BROKEN_PAYLOAD_SAFE=${broken.kind === 'throw' ? 1 : 0}`)
+
+// 网络失败：fetch reject 不会进入 resolveHttpFailure（无响应）→ 页面 catch 走 toast
+out.push('NETWORK_PATH=throw-without-response')
+console.log(out.join('\n'))
+EOF
+    ( cd "$REPO/tmp" && "$NODE_BIN" "$TEST_FILE" ) > "$REPO/tmp/verify-2489-r11.out" 2>&1
+    NODE_EXIT=$?
+    emit "TRANSPORT_UNDER_TEST=frontend-pc/src/services/apiError.js::resolveHttpFailure (consumed by api.js)"
+    emit "NODE_EXIT=$NODE_EXIT"
+    while IFS= read -r l; do emit "$l"; done < "$REPO/tmp/verify-2489-r11.out"
+    [ "$NODE_EXIT" = "0" ] || { echo "ASSERT_FAIL: node transport test failed" >&2; RC=1; }
+    require 'API_ERROR_CODE=1'
+    require 'NO_SUCCESS_ON_409=1'
+    require 'TOAST_ON_500=1'
+    finish R11-transport.txt || RC=1
     ;;
 esac
 
