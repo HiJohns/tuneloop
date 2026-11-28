@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"time"
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -87,7 +88,7 @@ func (h *SiteMemberHandler) AddMember(c *gin.Context) {
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40001,
-			"message": "Invalid input: " + err.Error(),
+			"message": bindmsg.Message(err),
 		})
 		return
 	}
@@ -177,7 +178,7 @@ func (h *SiteMemberHandler) UpdateMemberRole(c *gin.Context) {
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40001,
-			"message": "Invalid input: " + err.Error(),
+			"message": bindmsg.Message(err),
 		})
 		return
 	}

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -141,7 +142,7 @@ func (h *MerchantMemberHandler) AddMember(c *gin.Context) {
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40001,
-			"message": "Invalid input: " + err.Error(),
+			"message": bindmsg.Message(err),
 		})
 		return
 	}
@@ -466,7 +467,7 @@ func (h *MerchantMemberHandler) UpdateMemberRole(c *gin.Context) {
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40001,
-			"message": "Invalid input: " + err.Error(),
+			"message": bindmsg.Message(err),
 		})
 		return
 	}
@@ -932,7 +933,7 @@ func (h *MerchantMemberHandler) TransferOwnership(c *gin.Context) {
 		UserID string `json:"user_id"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "Invalid input: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": bindmsg.Message(err)})
 		return
 	}
 	targetUserID := strings.TrimSpace(input.UserID)

@@ -20,6 +20,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -863,8 +864,7 @@ func CreateCategory(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40001,
-			"message": "Invalid request data: " + err.Error(),
-			"error":   err.Error(), // ADD: Detailed error
+			"message": bindmsg.Message(err),
 		})
 		return
 	}
@@ -931,7 +931,7 @@ func UpdateCategory(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40001,
-			"message": "Invalid request data: " + err.Error(),
+			"message": bindmsg.Message(err),
 		})
 		return
 	}
@@ -1063,7 +1063,7 @@ func UpdateCategorySort(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    40001,
-			"message": "Invalid request data: " + err.Error(),
+			"message": bindmsg.Message(err, bindmsg.ScopeCategory),
 		})
 		return
 	}

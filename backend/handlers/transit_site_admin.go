@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -301,7 +302,7 @@ func AddTransitSiteMember(c *gin.Context) {
 
 	var input addMemberInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "Invalid input: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": bindmsg.Message(err)})
 		return
 	}
 	// 角色收敛：中转仅两类

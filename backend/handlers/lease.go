@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
 
@@ -126,7 +127,7 @@ func (h *LeaseHandler) CreateLease(c *gin.Context) {
 
 	var req CreateLeaseRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40000, "message": "Invalid request: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40000, "message": bindmsg.Message(err)})
 		return
 	}
 
@@ -185,7 +186,7 @@ func (h *LeaseHandler) UpdateLease(c *gin.Context) {
 
 	var req UpdateLeaseRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40000, "message": "Invalid request: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40000, "message": bindmsg.Message(err)})
 		return
 	}
 
@@ -341,7 +342,7 @@ func (h *DepositHandler) CreateDeposit(c *gin.Context) {
 
 	var req CreateDepositRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40000, "message": "Invalid request: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40000, "message": bindmsg.Message(err)})
 		return
 	}
 
@@ -397,7 +398,7 @@ func (h *DepositHandler) UpdateDeposit(c *gin.Context) {
 
 	var req UpdateDepositRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40000, "message": "Invalid request: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40000, "message": bindmsg.Message(err)})
 		return
 	}
 

@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/database"
 	"tuneloop-backend/middleware"
 	"tuneloop-backend/models"
@@ -202,7 +203,7 @@ func (h *UserStaffHandler) CreateUser(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "invalid request body: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": bindmsg.Message(err, bindmsg.ScopePerson)})
 		return
 	}
 	// #2366 D3：username 为唯一必填登录标识；全空白视为缺失（前端已 trim，后端兜底）。
@@ -1185,7 +1186,7 @@ func (h *UserStaffHandler) UpdateUser(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "invalid request body: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": bindmsg.Message(err, bindmsg.ScopePerson)})
 		return
 	}
 
@@ -1648,7 +1649,7 @@ func (h *UserStaffHandler) UpdateCurrentUser(c *gin.Context) {
 		IdCardNo         *string `json:"id_card_no"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "invalid request body: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": bindmsg.Message(err)})
 		return
 	}
 
@@ -2235,7 +2236,7 @@ func (h *UserStaffHandler) WxBindCurrentUser(c *gin.Context) {
 		Code string `json:"code" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "invalid request body: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": bindmsg.Message(err, bindmsg.ScopeWx)})
 		return
 	}
 
@@ -2291,7 +2292,7 @@ func (h *UserStaffHandler) WxMergeCurrentUser(c *gin.Context) {
 		OpenID   string `json:"openid" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "invalid request body: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": bindmsg.Message(err)})
 		return
 	}
 	ctx := c.Request.Context()

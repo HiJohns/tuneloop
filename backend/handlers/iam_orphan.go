@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"time"
 
+	"tuneloop-backend/bindmsg"
 	"tuneloop-backend/database"
 	"tuneloop-backend/models"
 	"tuneloop-backend/services"
@@ -160,7 +161,7 @@ func (h *IAMOrphanHandler) Purge(c *gin.Context) {
 		UserIDs []string `json:"user_ids"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": "invalid request body: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"code": 40001, "message": bindmsg.Message(err)})
 		return
 	}
 	if len(req.UserIDs) == 0 {

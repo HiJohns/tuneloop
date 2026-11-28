@@ -46,6 +46,10 @@ const (
 	ScopePerson
 	// ScopeRole covers role management: name→角色名称, code→角色编码.
 	ScopeRole
+	// ScopeWx covers WeChat login codes: code→微信授权码 (#2605 D4).
+	ScopeWx
+	// ScopeCategory covers category ordering payloads: items→分类列表 (#2605 D4).
+	ScopeCategory
 )
 
 // scopeLabels holds the scoped overrides (5 entries, #2604 D3/D4). It is checked
@@ -59,6 +63,14 @@ var scopeLabels = map[Scope]map[string]string{
 	ScopeRole: {
 		"name": "角色名称",
 		"code": "角色编码",
+	},
+	// #2605: the wx.login `code` and the category ordering `items` must not read
+	// as 优惠码 / 乐器列表.
+	ScopeWx: {
+		"code": "微信授权码",
+	},
+	ScopeCategory: {
+		"items": "分类列表",
 	},
 }
 
@@ -355,6 +367,42 @@ var bindFieldLabels = map[string]string{
 
 	// ---- #2604 扩面：通用 ----
 	"user_id": "用户编号",
+
+	// ---- #2605 扩面：人员 / 微信 ----
+	"position":   "职位",
+	"site_id":    "网点",
+	"user_type":  "用户类型",
+	"bio":        "个人简介",
+	"new_users":  "新成员列表",
+	"roles":      "角色列表",
+	"user_ids":   "用户列表",
+	"openid":     "微信身份标识",
+	"to_user_id": "目标用户",
+
+	// ---- #2605 扩面：商户 ----
+	"merchant_type":        "商户类型",
+	"transit_address":      "中转地址",
+	"transit_phone":        "中转联系电话",
+	"transit_contact_name": "中转联系人",
+	"admin_uid":            "管理员标识",
+	"admin_name":           "管理员姓名",
+	"admin_username":       "管理员账号",
+	"admin_email":          "管理员邮箱",
+	"admin_phone":          "管理员手机号",
+
+	// ---- #2605 扩面：分类 ----
+	"icon":    "图标",
+	"visible": "是否可见",
+	"sort":    "排序值",
+
+	// ---- #2605 扩面：租约 / 押金 ----
+	"instrument_id":    "乐器",
+	"start_date":       "起租日期",
+	"end_date":         "到期日期",
+	"monthly_rent":     "月租金",
+	"deposit_amount":   "押金金额",
+	"lease_id":         "租约",
+	"transaction_date": "交易日期",
 }
 
 // camelToSnake converts a Go struct field name into its JSON snake_case name.
