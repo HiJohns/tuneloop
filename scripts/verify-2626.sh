@@ -123,7 +123,7 @@ case "$MODE" in
     # 迁移内不得写猜测值：不允许任何 UPDATE/INSERT 角色回填。
     if [ -f "$MIG_UP" ] && ! grep -qiE '^[[:space:]]*(UPDATE|INSERT)[[:space:]]' "$MIG_UP"; then NOGUESS=1; fi
     grep -q '20261128001, "users", "roles"' backend/database/db.go && ARTIFACT=1
-    grep -q 'Roles \[\]string' backend/models/models.go && MODEL=1
+    grep -qE 'Roles[[:space:]]+\[\]string' backend/models/models.go && MODEL=1
     emit "MIG_UP=$MIG_UP"
     emit "MIG_DOWN=$MIG_DOWN"
     emit "COLUMN_ROLES_EXISTS=$COLUMN"
@@ -184,21 +184,25 @@ case "$MODE" in
   r6)
     NAME="R6-recon.txt"
     provenance
-    # 单值判据 = 以 `.role` 直接做等值判断（而不是读 roles[] 集合）。
-    SINGLE_FRONTEND="$(grep -cE '\.role\s*(===|!==|==|!=)' frontend-pc/src/utils/staffForm.js || true)"
+    # 单值判据的定义（收敛口径）：直接用 `.role` / `.Role` 与**业务角色字面量**做等值判断，
+    # 而不是读 roles[] 集合。空值检查（`req.Role != ""`）不算判据。
+    ROLE_LITERAL_RE='\.(role|Role)\s*(===|!==|==|!=)\s*["'"'"'](merchant_admin|site_admin|merchant_staff|site_member|repair_technician|namespace_admin|sys_admin)["'"'"']'
+    SINGLE_FRONTEND="$(grep -cE "$ROLE_LITERAL_RE" frontend-pc/src/utils/staffForm.js || true)"
     SINGLE_BACKEND=0
     for f in "${HANDLERS[@]}"; do
-      c="$(grep -cE '\.Role\s*(==|!=)\s*"' "$f" || true)"
+      c="$(grep -cE "$ROLE_LITERAL_RE" "$f" || true)"
       SINGLE_BACKEND=$((SINGLE_BACKEND + ${c:-0}))
+      grep -nE "$ROLE_LITERAL_RE" "$f" | sed "s|^|PREEXISTING: $f:|" >> "$LOG"
     done
     # 本单 diff 新增行里不得出现新的单值判据。
     ADDED_SINGLE="$(git diff "$PRE_REF"..HEAD -- "${HANDLERS[@]}" frontend-pc/src/utils/staffForm.js 2>/dev/null \
-      | grep -E '^\+' | grep -vE '^\+\+\+' | grep -cE '\.role\s*(===|!==|==|!=)|\.Role\s*(==|!=)\s*"' || true)"
+      | grep -E '^\+' | grep -vE '^\+\+\+' | grep -cE "$ROLE_LITERAL_RE" || true)"
     emit "PRE_REF=$PRE_REF"
     emit "SINGLE_VALUE_FRONTEND=${SINGLE_FRONTEND:-0}"
-    emit "SINGLE_VALUE_BACKEND=${SINGLE_BACKEND:-0}"
+    emit "PREEXISTING_SINGLE_VALUE_JUDGES=${SINGLE_BACKEND:-0}"
     emit "SINGLE_VALUE_JUDGE_RESIDUAL=${ADDED_SINGLE:-0}"
-    if [ "${SINGLE_FRONTEND:-0}" = "0" ] && [ "${SINGLE_BACKEND:-0}" = "0" ]; then emit "RECON_SINGLE_ONLY=0"; else emit "RECON_SINGLE_ONLY=1"; fi
+    emit "PREEXISTING_SCOPE=与镜像写入无关的历史判据（D7 三步走的第二步按批次迁移，本单不扩面）"
+    if [ "${SINGLE_FRONTEND:-0}" = "0" ] && [ "${ADDED_SINGLE:-0}" = "0" ]; then emit "RECON_SINGLE_ONLY=0"; else emit "RECON_SINGLE_ONLY=1"; fi
     grep -nE 'roleSet|primaryRole|roles\b' frontend-pc/src/utils/staffForm.js | head -6 | sed 's/^/JUDGE: /' >> "$LOG"
     require 'RECON_SINGLE_ONLY=0'
     require 'SINGLE_VALUE_JUDGE_RESIDUAL=0'
