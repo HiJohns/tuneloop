@@ -1,0 +1,18 @@
+# build=1.0.a5708fe35 # commit=a5708fe35dd788fdc6d8b40917b50bdfa8a3e28c # dirty=false
+# tree=a5708fe35dd788fdc6d8b40917b50bdfa8a3e28c
+PAGE=pages/admin/pricing/MerchantPricingConfig.jsx
+KEEP_ROWS=1
+SHARED_USES=0
+FALSE_CONVERT=0
+PERSIST_ALERT_UNUSED=1
+LOCAL_ALERT_DUP=0
+LOCAL_CODE_LIST=0
+--- rows ---
+ROW pages/admin/pricing/MerchantPricingConfig.jsx:45	fn=loadConfig	branch=} else {	reads_code=1	submit=0	tier=keep:instant	reason=code-read load/delete branch; no user-editable input to correct
+ROW pages/admin/pricing/MerchantPricingConfig.jsx:48	fn=loadConfig	branch=} catch (error) {	reads_code=0	submit=0	tier=keep:instant	reason=catch-all fallback (network / unknown / permission)
+ROW pages/admin/pricing/MerchantPricingConfig.jsx:91	fn=handleSave	branch=if (!tiers[i].name.trim()) {	reads_code=0	submit=0	tier=keep:instant	reason=client-side validation feedback
+ROW pages/admin/pricing/MerchantPricingConfig.jsx:95	fn=handleSave	branch=if (i < tiers.length - 1 && (tiers[i].days_max <= 0 || tiers[i].days_max === -1)) {	reads_code=0	submit=0	tier=keep:instant	reason=client-side validation feedback
+ROW pages/admin/pricing/MerchantPricingConfig.jsx:99	fn=handleSave	branch=if (tiers[i].discount_percent < 0 || tiers[i].discount_percent > 90) {	reads_code=0	submit=0	tier=keep:instant	reason=client-side validation feedback
+ROW pages/admin/pricing/MerchantPricingConfig.jsx:120	fn=handleSave	branch=} else {	reads_code=1	submit=1	tier=keep:instant	reason=code-read submit branch; measured error set has no business-correctable code (R2/R3/R5 keep)
+ROW pages/admin/pricing/MerchantPricingConfig.jsx:123	fn=handleSave	branch=} catch (error) {	reads_code=0	submit=1	tier=keep:instant	reason=catch-all fallback (network / unknown / permission)
+KEEP_TIER_ROWS=7

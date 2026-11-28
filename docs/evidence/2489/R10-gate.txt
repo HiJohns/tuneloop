@@ -1,0 +1,5 @@
+# build=1.0.a5708fe35 # commit=a5708fe35dd788fdc6d8b40917b50bdfa8a3e28c # dirty=false
+GATE_RESULT=PENDING
+PLAN_SOURCE=PENDING
+FULL_GATE_DIRECT_EXIT=PENDING
+# interim placeholder: overwritten by scripts/verify-2489.sh r10 once the gate report exists

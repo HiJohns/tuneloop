@@ -1,0 +1,19 @@
+# build=1.0.a5708fe35 # commit=a5708fe35dd788fdc6d8b40917b50bdfa8a3e28c # dirty=false
+# tree=a5708fe35dd788fdc6d8b40917b50bdfa8a3e28c
+PAGE=pages/admin/PermissionManage/index.jsx
+KEEP_ROWS=3
+SHARED_USES=0
+FALSE_CONVERT=0
+PERSIST_ALERT_UNUSED=1
+LOCAL_ALERT_DUP=0
+LOCAL_CODE_LIST=0
+--- rows ---
+ROW pages/admin/PermissionManage/index.jsx:86	fn=fetchMembers	branch=} catch { 	reads_code=0	submit=0	tier=keep:instant	reason=catch-all fallback (network / unknown / permission)
+ROW pages/admin/PermissionManage/index.jsx:140	fn=fetchMembers	branch=if (roleResp.code !== 20000) { 	reads_code=1	submit=1	tier=keep:instant	reason=code-read submit branch; measured error set has no business-correctable code (R2/R3/R5 keep)
+ROW pages/admin/PermissionManage/index.jsx:143	fn=fetchMembers	branch=if (permResp.code !== 20000) { 	reads_code=1	submit=1	tier=keep:instant	reason=code-read submit branch; measured error set has no business-correctable code (R2/R3/R5 keep)
+ROW pages/admin/PermissionManage/index.jsx:147	fn=fetchMembers	branch=} catch { 	reads_code=0	submit=1	tier=keep:instant	reason=catch-all fallback (network / unknown / permission)
+ROW pages/admin/PermissionManage/index.jsx:235	fn=fetchRoles	branch=} catch { 	reads_code=0	submit=0	tier=keep:instant	reason=catch-all fallback (network / unknown / permission)
+ROW pages/admin/PermissionManage/index.jsx:248	fn=handleDelete	branch=} catch { 	reads_code=0	submit=0	tier=keep:instant	reason=catch-all fallback (network / unknown / permission)
+ROW pages/admin/PermissionManage/index.jsx:307	fn=handleDelete	branch=if (resp.code !== 20000) { 	reads_code=1	submit=1	tier=keep:instant	reason=code-read submit branch; measured error set has no business-correctable code (R2/R3/R5 keep)
+ROW pages/admin/PermissionManage/index.jsx:311	fn=handleDelete	branch=} catch { 	reads_code=0	submit=1	tier=keep:instant	reason=catch-all fallback (network / unknown / permission)
+NON_KEEP_ROWS=0

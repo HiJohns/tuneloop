@@ -1,0 +1,14 @@
+# build=1.0.a5708fe35 # commit=a5708fe35dd788fdc6d8b40917b50bdfa8a3e28c # dirty=false
+# tree=a5708fe35dd788fdc6d8b40917b50bdfa8a3e28c
+BUILD_CMD=cd frontend-pc && npm run build
+PC_BUILD=0
+BUILD_TAIL: npm notice To update run: npm install -g npm@12.2.3
+BUILD_TAIL: npm notice
+BUILD_TAIL: [heavy-lock] released scope=host slot=0 rc=0 at_ms=1795841836133 hold_ms=38881
+LINT_CMD=cd frontend-pc && npx eslint src/pages/MerchantManagement.jsx src/pages/admin/transit/TransitCenter.jsx
+LINT_EXIT=0
+LINT_TAIL:   41:6  warning  React Hook useEffect has a missing dependency: 'fetchMerchants'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+LINT_TAIL: 
+LINT_TAIL: ✖ 2 problems (0 errors, 2 warnings)
+LINT_TAIL: 
+LINT_TAIL: [heavy-lock] released scope=host slot=0 rc=0 at_ms=1795841840665 hold_ms=4128

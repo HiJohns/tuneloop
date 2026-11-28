@@ -1,0 +1,30 @@
+# build=1.0.a5708fe35 # commit=a5708fe35dd788fdc6d8b40917b50bdfa8a3e28c # dirty=false
+# tree=a5708fe35dd788fdc6d8b40917b50bdfa8a3e28c
+PAGE=pages/MerchantManagement.jsx
+SHARED_USES=14
+PERSIST_ALERT=1
+CONFLICT_TEXT_SITES=3
+UNGUARDED_SITES=0
+CODE_FIRST=1
+THEME_2459_REF=3
+LOCAL_CODE_WHITELIST=0
+THEME_2459=1
+HANDLE_SUBMIT_GUARD_LINE=161
+HANDLE_SUBMIT_SUCCESS_LINE=170
+HANDLE_SUBMIT_SUCCESS_COUNT=1
+NO_FALSE_SUCCESS=1
+DEFER_2459=1
+--- wiring ---
+WIRE 8:import FormConflictAlert from '../components/FormConflictAlert';
+WIRE 35:  // 409 语义由后端（#2459 IAM 优先 + namespace 唯一）决定，本页只消费共享判定，不自写 code 白名单。
+WIRE 143:      if (isBusinessCorrectableConflict(payload)) {
+WIRE 145:        setSettlementConflict(conflictText(payload, '保存失败，请调整后重试'))
+WIRE 161:      if (resp && resp.code !== 20000) {
+WIRE 162:        if (isBusinessCorrectableConflict(resp)) {
+WIRE 163:          // #2489：商户重名等 409 业务冲突改为表单内持久提示（语义以 #2459 为准）。
+WIRE 164:          setFormConflict(conflictText(resp, '操作失败，请调整后重试'))
+WIRE 177:      if (isBusinessCorrectableConflict(payload)) {
+WIRE 178:        // #2489：商户重名等 409 业务冲突改为表单内持久提示（语义以 #2459 为准）。
+WIRE 179:        setFormConflict(conflictText(payload, '操作失败，请调整后重试'))
+WIRE 299:                <FormConflictAlert text={settlementConflict} testId="merchant-settlement-conflict" />
+WIRE 349:        <FormConflictAlert text={formConflict} testId="merchant-form-conflict" />

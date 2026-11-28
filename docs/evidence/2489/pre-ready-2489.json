@@ -1,16 +1,16 @@
 {
   "issue": 2489,
-  "overall": "PASS",
-  "plan": "/home/coder/worktrees/tuneloop/wt-2489/tmp/pre-ready-2489.WRxBaF/plan.md",
-  "plan_sha256": "4d864c15553758530e88504ff26a0b72239eb46f0f3d8cf902553af9eec6a13f",
-  "config_sha": "f663626b8fe3895a49dffa4c43266664546741db",
+  "overall": "FAIL",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2489/tmp/pre-ready-2489.8LdW6c/plan.md",
+  "plan_sha256": "4f0aa71b1a54e48b031e67037f35a124de76ef0e3aaf1cc8b20a170fb7be73e4",
+  "config_sha": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
   "provenance": {
-    "build": "1.0.eaf436b60",
-    "commit": "eaf436b60456040cd49cea11d6d55a1a9be066eb",
+    "build": "1.0.a5708fe35",
+    "commit": "a5708fe35dd788fdc6d8b40917b50bdfa8a3e28c",
     "dirty": false
   },
   "summary": "tmp/work-summary-2489.md",
-  "timestamp": "20261125-133737",
+  "timestamp": "20261128-045859",
   "checks": [
     {
       "id": "P1",
@@ -20,7 +20,7 @@
     {
       "id": "P2",
       "status": "PASS",
-      "detail": "Work Summary covers all 5 matrix rows with PASS/N/A"
+      "detail": "Work Summary covers all 10 matrix rows with PASS/N/A"
     },
     {
       "id": "P3",
@@ -35,17 +35,17 @@
     {
       "id": "P12",
       "status": "PASS",
-      "detail": "Evidence Contract complete: 5 row(s) match the plan and have durable artifacts"
+      "detail": "Evidence Contract complete: 10 row(s) match the plan and have durable artifacts"
     },
     {
       "id": "P14",
       "status": "PASS",
-      "detail": "artifact provenance matches evidence (5 artifacts)"
+      "detail": "artifact provenance matches evidence (10 artifacts)"
     },
     {
       "id": "P18",
-      "status": "WARN",
-      "detail": "tooling_commit missing (legacy bundle); config_sha=f663626b8fe3895a49dffa4c43266664546741db"
+      "status": "PASS",
+      "detail": "tooling_commit matches the running scripts (be61a790605b0b65759d0fd2be9b258bc6c41b49)"
     },
     {
       "id": "P15",
@@ -99,8 +99,8 @@
     },
     {
       "id": "P13",
-      "status": "PASS",
-      "detail": "fix commit and evidence artifacts are on origin/issue-2489"
+      "status": "FAIL",
+      "detail": "artifacts not on origin/issue-2489: docs/evidence/2489/R1-inventory.txt docs/evidence/2489/R2-perm.txt docs/evidence/2489/R3-pricing.txt docs/evidence/2489/R4-transit.txt docs/evidence/2489/R5-membership.txt docs/evidence/2489/R6-merchant.txt docs/evidence/2489/R8-residual.txt docs/evidence/2489/R9-build-lint.txt docs/evidence/2489/R10-gate.txt docs/evidence/2489/R11-transport.txt"
     }
   ]
 }

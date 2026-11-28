@@ -1,24 +1,28 @@
 {
   "schema_version": 1,
   "issue": 2489,
-  "build": "1.0.eaf436b60",
-  "commit": "eaf436b60456040cd49cea11d6d55a1a9be066eb",
+  "build": "1.0.a5708fe35",
+  "commit": "a5708fe35dd788fdc6d8b40917b50bdfa8a3e28c",
   "dirty": false,
-  "plan_sha256": "4d864c15553758530e88504ff26a0b72239eb46f0f3d8cf902553af9eec6a13f",
-  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2489 (base origin/develop b6c6d3c41 incl. #2480; branch issue-2489); frontend-pc static text scan + vite build + eslint; no browser/real backend",
+  "plan_sha256": "4f0aa71b1a54e48b031e67037f35a124de76ef0e3aaf1cc8b20a170fb7be73e4",
+  "gate": {
+    "plan_sha256": "4f0aa71b1a54e48b031e67037f35a124de76ef0e3aaf1cc8b20a170fb7be73e4"
+  },
+  "tooling_commit": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
+  "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2489 (issue-2489, base origin/develop incl. #2480/#2563); frontend-pc static branch scan + npm run build + eslint + node transport assertions; no browser/real backend",
   "rows": [
     {
       "id": "R1",
       "command": "bash scripts/verify-2489.sh r1",
       "exit": 0,
       "artifacts": [
-        "docs/evidence/2489/R1-classify.txt"
+        "docs/evidence/2489/R1-inventory.txt"
       ],
-      "assert": "exit 0；含 UNCLASSIFIED=0",
-      "actual": "PASS：31 个 message.error 调用点逐行分类（BUSINESS_FALLBACK_ROWS=14 / KEEP_ROWS=17 / DEFER_ROWS=0 / BUSINESS_TOAST_RESIDUAL=0），UNCLASSIFIED=0、READONLY=1、DB_WRITES=0；行数与 #2480 基线（同 6 文件 31 行）一致",
+      "assert": "exit 0；grep UNCLASSIFIED=0、READONLY=1",
+      "actual": "SCAN_ROWS=30、UNCLASSIFIED=0、KEEP_ROWS=6、BUSINESS_FALLBACK_ROWS=6、RESIDUAL_ROWS=0；READONLY=1、DB_WRITES=0、WINDOW_HEURISTIC=0（按 if/else/catch 分支块归类，无固定行窗口）；PAGE_KEEP_ROWS: PermissionManage=3 / MerchantPricingConfig=1 / TransitCenter=0 / MembershipLevelsPage=2 / MerchantManagement=0",
       "expected": "PASS",
-      "negative": "出现无结论行 → FAIL",
-      "negative_result": "修复前同批 toast 行 reads_code=0 且无 tier 结论（旧扫描器将业务码仍走 toast 记为 residual）；修复后 residual=0",
+      "negative": "未分类 → FAIL",
+      "negative_result": "修复前扫描器用 12 行窗口近似，会把相邻分支/删除分支误并到本行；改为分支块回溯后 UNCLASSIFIED=0、WINDOW_HEURISTIC=0，且每行都带 branch + reason。",
       "pass": true
     },
     {
@@ -26,13 +30,13 @@
       "command": "bash scripts/verify-2489.sh r2",
       "exit": 0,
       "artifacts": [
-        "docs/evidence/2489/R2-converted.txt"
+        "docs/evidence/2489/R2-perm.txt"
       ],
-      "assert": "exit 0；含 CONVERTED_ROWS>=1 与 CODE_FIRST=1",
-      "actual": "PASS：6/6 页先取 code（isBusinessCorrectableConflict）再写持久提示（set*Conflict(conflictText(...))）；CONVERTED_ROWS=12（PermissionManage 3 / MerchantPricingConfig 1 / TransitCenter 3 / MembershipLevelsPage 2 / MerchantManagement 2 / TenantManagement 1）、CODE_FIRST=1、PAGES_WITH_CONVERSION=6/6",
+      "assert": "exit 0；grep KEEP_ROWS=3、FALSE_CONVERT=0、PERSIST_ALERT_UNUSED=1",
+      "actual": "KEEP_ROWS=3、SHARED_USES=0（FALSE_CONVERT=0、PERSIST_ALERT_UNUSED=1）、LOCAL_ALERT_DUP=0、LOCAL_CODE_LIST=0；该页 8 个 message.error 行全部 tier=keep:instant（NON_KEEP_ROWS=0）",
       "expected": "PASS",
-      "negative": "缺 code 判定 → FAIL",
-      "negative_result": "修复前页面为 message.error(resp.message)（丢弃 code，无法分类）；修复后每页 predicate + 持久提示成对出现；测量口径已修正为任意 set*Conflict(conflictText(（旧脚本只认 setFormConflict，把 TransitCenter / MembershipLevelsPage 误计为 0）→ 现在 6/6 页均计到转换点",
+      "negative": "误把 keep 类转成常驻提示 → FAIL",
+      "negative_result": "修复前该页 40000/40300/50000 一律 message.error 且多数不读 code，无法区分可纠正冲突；若按旧计划误接 FormConflictAlert 则 FALSE_CONVERT=1（本轮 R2 断言直接 FAIL），故裁定 keep。",
       "pass": true
     },
     {
@@ -40,13 +44,13 @@
       "command": "bash scripts/verify-2489.sh r3",
       "exit": 0,
       "artifacts": [
-        "docs/evidence/2489/R3-shared.txt"
+        "docs/evidence/2489/R3-pricing.txt"
       ],
-      "assert": "exit 0；含 SHARED_REUSE>=1 与 LOCAL_ALERT_DUP=0",
-      "actual": "PASS：6 页均 import 并渲染共享 FormConflictAlert；LOCAL_ALERT_DUP=0、LOCAL_CODE_LIST=0（无自建 Alert、无本地 code 白名单）",
+      "assert": "exit 0；grep KEEP_ROWS=1、FALSE_CONVERT=0",
+      "actual": "KEEP_ROWS=1、SHARED_USES=0（FALSE_CONVERT=0、PERSIST_ALERT_UNUSED=1）、LOCAL_ALERT_DUP=0、LOCAL_CODE_LIST=0；KEEP_TIER_ROWS=7（7 个 toast 行全为 keep:instant）",
       "expected": "PASS",
-      "negative": "自建 Alert → FAIL",
-      "negative_result": "修复前 6 页无 FormConflictAlert 引用（SHARED_REUSE=0）；修复后 =6，且无本地 Alert 定义",
+      "negative": "误转常驻提示 → FAIL",
+      "negative_result": "修复前 40002（pricing template not found）走 3 秒 toast；若误转常驻提示，R3 的 FALSE_CONVERT=0 / PERSIST_ALERT_UNUSED=1 断言 FAIL。",
       "pass": true
     },
     {
@@ -54,13 +58,13 @@
       "command": "bash scripts/verify-2489.sh r4",
       "exit": 0,
       "artifacts": [
-        "docs/evidence/2489/R4-residual.txt"
+        "docs/evidence/2489/R4-transit.txt"
       ],
-      "assert": "exit 0；含 BUSINESS_TOAST_RESIDUAL=0",
-      "actual": "PASS：BUSINESS_TOAST_RESIDUAL=0；17 条 keep:instant 行全部带 reason（KEEP_WITH_REASON=17）；BUSINESS_FALLBACK_ROWS=14（业务分支已转持久提示，toast 仅作非业务兜底）",
+      "assert": "exit 0；grep PERSIST_ALERT=1、CODE_FIRST=1",
+      "actual": "PERSIST_ALERT=1（import + 渲染 FormConflictAlert，setSiteConflict/setRouteConflict）、CODE_FIRST=1（CONFLICT_TEXT_SITES=3、UNGUARDED_SITES=0）；中转网点 modal 与中转路由 modal 各自渲染提示",
       "expected": "PASS",
-      "negative": "残留 >0 → FAIL",
-      "negative_result": "修复前业务码 toast 会被计入 residual（>0）；修复后 =0，且 keep 行均有 reason",
+      "negative": "仍 toast → FAIL",
+      "negative_result": "修复前中转网点创建/更新只 message.error(r.message)，40900 只闪 3 秒；修复后由共享判定分流到持久提示。",
       "pass": true
     },
     {
@@ -68,13 +72,83 @@
       "command": "bash scripts/verify-2489.sh r5",
       "exit": 0,
       "artifacts": [
-        "docs/evidence/2489/R5-build.txt"
+        "docs/evidence/2489/R5-membership.txt"
       ],
-      "assert": "exit 0；含 BUILD_OK 与 ESLINT_OK",
-      "actual": "PASS：frontend-pc npm run build BUILD_EXIT=0（33.44s，BUILD_OK）；6 个改动文件 npx eslint LINT_EXIT=0（ESLINT_OK）",
+      "assert": "exit 0；grep KEEP_ROWS=2、FRONTEND_ONLY_RULE=1",
+      "actual": "KEEP_ROWS=2、FRONTEND_ONLY_RULE=1（前端 Form rules/金额字段 6 处，backend membership_level.go 的 rubric 码 0 处）、FALSE_CONVERT=0 / PERSIST_ALERT_UNUSED=1",
       "expected": "PASS",
-      "negative": "构建失败 → FAIL",
-      "negative_result": "构建/lint 任一非 0 会使该行 FAIL；本轮两次均 exit 0",
+      "negative": "误转常驻提示 → FAIL",
+      "negative_result": "修复前会员等级保存/权益保存均 message.error(res.message)；门槛规则在前端校验、后端无 rubric 码，误转常驻提示会让 R5 的 FALSE_CONVERT=0 FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R6",
+      "command": "bash scripts/verify-2489.sh r6",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2489/R6-merchant.txt"
+      ],
+      "assert": "exit 0；grep PERSIST_ALERT=1、THEME_2459=1",
+      "actual": "PERSIST_ALERT=1、CODE_FIRST=1（UNGUARDED_SITES=0）、THEME_2459=1（注释引用 #2459、LOCAL_CODE_WHITELIST=0）、NO_FALSE_SUCCESS=1（guard 行 161 < 成功行 170，handleSubmit 仅 1 个成功出口）、DEFER_2459=1（改名沿用后端 409 语义，本单不自写白名单）",
+      "expected": "PASS",
+      "negative": "自写白名单 → FAIL",
+      "negative_result": "修复前 409（40900）被传输层返回对象后直接落到 message.success → 「商户创建成功」假成功；现在先判 resp.code !== 20000，再按共享 rubric 进持久提示。",
+      "pass": true
+    },
+    {
+      "id": "R8",
+      "command": "bash scripts/verify-2489.sh r8",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2489/R8-residual.txt"
+      ],
+      "assert": "exit 0；grep SHARED_REUSE=2、KEEP_PAGES_NO_ALERT=3、BUSINESS_TOAST_RESIDUAL=0",
+      "actual": "SHARED_REUSE=2（TransitCenter 16 处、MerchantManagement 14 处）、KEEP_PAGES_NO_ALERT=3、LOCAL_ALERT_DUP=0、LOCAL_CODE_LIST=0、BUSINESS_TOAST_RESIDUAL=0、UNCLASSIFIED=0",
+      "expected": "PASS",
+      "negative": "残留 ≥1 → FAIL",
+      "negative_result": "修复前 5 页各自 message.error、无共享件（SHARED_REUSE=0）；现在只有真实可纠正的 2 页消费共享件，3 个 keep 页不 import（避免死导入与误转）。",
+      "pass": true
+    },
+    {
+      "id": "R9",
+      "command": "bash scripts/verify-2489.sh r9",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2489/R9-build-lint.txt"
+      ],
+      "assert": "exit 0；grep PC_BUILD=0、LINT_EXIT=0",
+      "actual": "PC_BUILD=0（cd frontend-pc && npm run build 成功）、LINT_EXIT=0（2 个改动文件 0 error / 2 warning）",
+      "expected": "PASS",
+      "negative": "任一非 0 → FAIL",
+      "negative_result": "构建/lint 任一非 0 时该行 FAIL；本轮 npm run build 与 eslint 均 exit 0。",
+      "pass": true
+    },
+    {
+      "id": "R10",
+      "command": "bash scripts/verify-2489.sh r10",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2489/R10-gate.txt"
+      ],
+      "assert": "exit 0；grep GATE_RESULT=PASS、PLAN_SOURCE=PASS、FULL_GATE_DIRECT_EXIT=0",
+      "actual": "GATE_RESULT=PASS、PLAN_SOURCE=PASS（四源 plan_sha256 一致）、FULL_GATE_DIRECT_EXIT=0（本单直跑全量 PC 构建）；GATE_P5=N/A 由 D6 承接（子任务全量归父批次 #2486）",
+      "expected": "PASS",
+      "negative": "FULL_GATE_DIRECT_EXIT!=0 → FAIL",
+      "negative_result": "修复前 R10 依赖 P5=PASS，而子任务 harness 恒判 P5=N/A（计划/harness 冲突）；现改为本单直跑全量构建并记录退出码，FULL_GATE_DIRECT_EXIT!=0 直接 FAIL。",
+      "pass": true
+    },
+    {
+      "id": "R11",
+      "command": "bash scripts/verify-2489.sh r11",
+      "exit": 0,
+      "artifacts": [
+        "docs/evidence/2489/R11-transport.txt"
+      ],
+      "assert": "exit 0；含 API_ERROR_CODE=1、NO_SUCCESS_ON_409=1、TOAST_ON_500=1",
+      "actual": "API_ERROR_CODE=1（400+{code:40002} → ApiError.code=40002）、NO_SUCCESS_ON_409=1（409 返回对象 code=40900≠20000，不再假成功）、TOAST_ON_500=1（500 抛错且无 code → 页面 toast）、BROKEN_PAYLOAD_SAFE=1",
+      "expected": "PASS",
+      "negative": "400 无 code 或 409 进成功分支 → FAIL",
+      "negative_result": "修复前 api.js 对 HTTP 400 抛无 code 的普通 Error（#2563 之前），40002 分支不可达；现在 apiError.js 抛 ApiError 带 code，node 断言 400/409/500 三态通过。",
       "pass": true
     }
   ]
