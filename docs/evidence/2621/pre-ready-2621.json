@@ -1,16 +1,16 @@
 {
   "issue": 2621,
   "overall": "PASS",
-  "plan": "/tmp/opencode/tuneloop/wt-2621/tmp/pre-ready-2621.pGCDFv/plan.md",
+  "plan": "/home/coder/worktrees/tuneloop/wt-2621/tmp/pre-ready-2621.ZrIYxz/plan.md",
   "plan_sha256": "6c29a5b6a3d8db67bc7a0dfa0273976d0fa90bf6eee9b7f48a8b70fdc74e883e",
-  "config_sha": "5c2dfc1c59555a2c3e36c5b6c3b8cbe730238054",
+  "config_sha": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
   "provenance": {
     "build": "1.0.26fa3affd",
     "commit": "26fa3affd85381f59c5422f14b52cf0b446baaee",
     "dirty": false
   },
-  "summary": "tmp/pre-ready-2621-summary.md",
-  "timestamp": "20261128-160057",
+  "summary": "tmp/work-summary-2621.md",
+  "timestamp": "20261128-174103",
   "checks": [
     {
       "id": "P1",
@@ -44,8 +44,8 @@
     },
     {
       "id": "P18",
-      "status": "PASS",
-      "detail": "tooling_commit matches the running scripts (5c2dfc1c59555a2c3e36c5b6c3b8cbe730238054)"
+      "status": "WARN",
+      "detail": "tooling_commit mismatch: evidence=5c2dfc1c59555a2c3e36c5b6c3b8cbe730238054 config_sha=be61a790605b0b65759d0fd2be9b258bc6c41b49"
     },
     {
       "id": "P15",
@@ -95,7 +95,7 @@
     {
       "id": "P11",
       "status": "PASS",
-      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /tmp/opencode/tuneloop/wt-2621; worktree guard: PASS isolated worktree=/tmp/opencode/tuneloop/wt-2621"
+      "detail": "fix commit(s) are ancestors of HEAD; canonical worktree /home/coder/worktrees/tuneloop/wt-2621; worktree guard: PASS isolated worktree=/home/coder/worktrees/tuneloop/wt-2621"
     },
     {
       "id": "P13",
