@@ -238,8 +238,20 @@ row_r9() {
       -count=1 -timeout 15m ) >> "$log" 2>&1
   local test_exit=$?
 
-  ( cd frontend-pc && run_heavy npm run build ) >> "$log" 2>&1
-  local pc_exit=$?
+  # npm 常不在非登录 shell 的 PATH 上（nvm 管理）。先解析 node 22，否则明确失败——
+  # 绝不允许「npm 缺失 → 跳过 PC 构建 → 假绿」。
+  if ! command -v npm >/dev/null 2>&1 && [ -s "${NVM_DIR:-$HOME/.nvm}/nvm.sh" ]; then
+    # shellcheck disable=SC1090
+    . "${NVM_DIR:-$HOME/.nvm}/nvm.sh" >/dev/null 2>&1 || true
+    nvm use "${NODE_VERSION_2455:-22}" >/dev/null 2>&1 || true
+  fi
+  local pc_exit=127
+  if command -v npm >/dev/null 2>&1; then
+    ( cd frontend-pc && run_heavy npm run build ) >> "$log" 2>&1
+    pc_exit=$?
+  else
+    echo "--- npm not found: PC build not run (counted as failure)" >> "$log"
+  fi
 
   cat "$log" >> "$artifact"
 
