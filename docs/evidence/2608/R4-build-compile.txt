@@ -1,0 +1,22 @@
+# build=1.0.10b23676b # commit=10b23676b68c16e61b1b0789503ea28e2c4e48ea # dirty=false
+GENERATED_AT_HEAD=10b23676b68c16e61b1b0789503ea28e2c4e48ea
+BUILD_CMD=cd backend && go build ./...
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 at_ms=1795844904737 wait_ms=89
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 wait_ms=89
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795844923744 hold_ms=19007
+GO_BUILD_EXIT=0
+GOFMT_CMD=gofmt -l <13 changed go files>
+GOFMT_UNFORMATTED=(none)
+GOFMT_DIFF=0
+TEST_COMPILE_CMD=cd backend && go test ./... -run '^$' -count=1
+ok  	tuneloop-backend/models	0.008s [no tests to run]
+ok  	tuneloop-backend/service	0.009s [no tests to run]
+ok  	tuneloop-backend/services	0.019s [no tests to run]
+ok  	tuneloop-backend/services/tencentcloud	0.005s [no tests to run]
+ok  	tuneloop-backend/services/wechatpay	0.010s [no tests to run]
+?   	tuneloop-backend/testutil	[no test files]
+?   	tuneloop-backend/tools/backfill_transit_site_orgs	[no test files]
+?   	tuneloop-backend/tools/merge_duplicate_accounts	[no test files]
+?   	tuneloop-backend/tools/oss_smoke	[no test files]
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795844979957 hold_ms=55618
+TEST_COMPILE_EXIT=0

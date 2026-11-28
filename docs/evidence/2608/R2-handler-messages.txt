@@ -1,0 +1,14 @@
+# build=1.0.10b23676b # commit=10b23676b68c16e61b1b0789503ea28e2c4e48ea # dirty=false
+GENERATED_AT_HEAD=10b23676b68c16e61b1b0789503ea28e2c4e48ea
+# 14 个绑定分支 × 2 用例（损坏体 / 缺必填或类型不符）= 28；handler 直调（一次性 PG，14 分支均在 DB 访问前返回）
+bind_error_2608_test.go:217: BIND2608_CASES_TOTAL=28
+bind_error_2608_test.go:218: BIND2608_CASES_FAIL=0
+bind_error_2608_test.go:219: BIND2608_ASCII_LEAK=0
+bind_error_2608_test.go:220: BIND2608_RAW_PHRASE_LEAK=0
+bind_error_2608_test.go:221: BIND2608_DISCOUNT_MSG=参数不合法：名称不能为空
+bind_error_2608_test.go:222: BIND2608_DISCOUNTCODE_MSG=参数不合法：优惠码不能为空
+bind_error_2608_test.go:223: BIND2608_POINTS_MSG=参数不合法：有效天数类型不正确
+bind_error_2608_test.go:224: BIND2608_BENEFITS_MSG=参数不合法：权益项类型不正确
+bind_error_2608_test.go:225: BIND2608_REBATE_MSG=参数不合法：返点开关类型不正确
+bind_error_2608_test.go:226: BIND2608_SYNTAX_MSG=请求体格式不正确，请检查后重试
+GO_TEST_EXIT=0

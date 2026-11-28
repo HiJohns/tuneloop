@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "issue": 2608,
+  "build": "1.0.10b23676b",
+  "commit": "10b23676b68c16e61b1b0789503ea28e2c4e48ea",
+  "dirty": false,
+  "plan_sha256": "5f47206c8fbc95f977bb82b17cb8e37a22f60062cfc2aeff582ff460be9bdeef",
+  "rows": [
+    {
+      "id": "R1",
+      "command": "bash scripts/verify-2608.sh r1 > docs/evidence/2608/R1-bindmsg-unit.txt",
+      "assert": "exit 0 且含 BINDMSG_UNIT_EXIT=0 BMSG_REQUIRED=参数不合法：名称不能为空 BIND2608_SCOPED_MSG=参数不合法：权益项类型不正确 BIND2608_UNSCOPED_MSG=参数不合法：乐器列表类型不正确 BIND2608_SCOPED_UNKNOWN=参数不合法：乐器列表类型不正确 BIND2608_IDS_LABEL=编号列表 BIND2608_GUARANTOR_IDS_LABEL=担保人列表 BIND2608_OPT_IN_LABEL=返点开关 BIND2608_LEVEL_ID_LABEL=会员等级 LABEL_ASCII_LEAK=0 LABEL_COVERAGE_MISSING=0",
+      "expected": "PASS（11 项 token 全为期望值）",
+      "negative": "模板含 ASCII/invalid/Field validation、称呼表漏字段、登记称呼含 ASCII、作用域污染全局 items、GuarantorIDs 还原为 guarantor_i_ds → FAIL",
+      "actual": "BINDMSG_UNIT_EXIT=0; BMSG_REQUIRED=参数不合法：名称不能为空; BIND2608_SCOPED_MSG=参数不合法：权益项类型不正确; BIND2608_UNSCOPED_MSG=参数不合法：乐器列表类型不正确; BIND2608_SCOPED_UNKNOWN=参数不合法：乐器列表类型不正确; BIND2608_IDS_LABEL=编号列表; BIND2608_GUARANTOR_IDS_LABEL=担保人列表; BIND2608_OPT_IN_LABEL=返点开关; BIND2608_LEVEL_ID_LABEL=会员等级; LABEL_ASCII_LEAK=0; LABEL_COVERAGE_MISSING=0",
+      "negative_result": "模板/称呼表无 ASCII（LABEL_ASCII_LEAK=0）；无漏登记（LABEL_COVERAGE_MISSING=0）；作用域未污染全局（BIND2608_UNSCOPED_MSG=参数不合法：乐器列表类型不正确）；GuarantorIDs 还原为 guarantor_ids 而非 guarantor_i_ds（BIND2608_GUARANTOR_IDS_LABEL=担保人列表）",
+      "artifacts": [
+        "docs/evidence/2608/R1-bindmsg-unit.txt"
+      ],
+      "exit": 0,
+      "pass": true
+    },
+    {
+      "id": "R2",
+      "command": "bash scripts/verify-2608.sh r2 > docs/evidence/2608/R2-handler-messages.txt",
+      "assert": "exit 0 且含 GO_TEST_EXIT=0 BIND2608_CASES_TOTAL=28 BIND2608_CASES_FAIL=0 BIND2608_ASCII_LEAK=0 BIND2608_RAW_PHRASE_LEAK=0 BIND2608_DISCOUNT_MSG=参数不合法：名称不能为空 BIND2608_DISCOUNTCODE_MSG=参数不合法：优惠码不能为空 BIND2608_POINTS_MSG=参数不合法：有效天数类型不正确 BIND2608_BENEFITS_MSG=参数不合法：权益项类型不正确 BIND2608_REBATE_MSG=参数不合法：返点开关类型不正确 BIND2608_SYNTAX_MSG=请求体格式不正确，请检查后重试",
+      "expected": "PASS（11 项 token 全为期望值）",
+      "negative": "任一响应含 Go/JSON 原文或 ASCII 字母、HTTP/code 变化、用例数<28、权益端点显示「乐器列表」→ FAIL",
+      "actual": "GO_TEST_EXIT=0; BIND2608_CASES_TOTAL=28; BIND2608_CASES_FAIL=0; BIND2608_ASCII_LEAK=0; BIND2608_RAW_PHRASE_LEAK=0; BIND2608_DISCOUNT_MSG=参数不合法：名称不能为空; BIND2608_DISCOUNTCODE_MSG=参数不合法：优惠码不能为空; BIND2608_POINTS_MSG=参数不合法：有效天数类型不正确; BIND2608_BENEFITS_MSG=参数不合法：权益项类型不正确; BIND2608_REBATE_MSG=参数不合法：返点开关类型不正确; BIND2608_SYNTAX_MSG=请求体格式不正确，请检查后重试",
+      "negative_result": "28 例 0 失败（BIND2608_CASES_FAIL=0）；无 ASCII 外溢（BIND2608_ASCII_LEAK=0）；无 Go/JSON 原文（BIND2608_RAW_PHRASE_LEAK=0）；权益端点未显示「乐器列表」（BIND2608_BENEFITS_MSG=参数不合法：权益项类型不正确）；每例 HTTP 400 且 code=40002",
+      "artifacts": [
+        "docs/evidence/2608/R2-handler-messages.txt"
+      ],
+      "exit": 0,
+      "pass": true
+    },
+    {
+      "id": "R3",
+      "command": "bash scripts/verify-2608.sh r3 > docs/evidence/2608/R3-residual-scan.txt",
+      "assert": "exit 0 且含 BINDING_BRANCH_RAW=0 BARE_ERR_TOTAL=49 BARE_ERR_TOUCHED_FILES=31 BARE_40002_SERVICE_RAW=2 BINDMSG_CALL_SITES=41 SCOPED_CALL_SITES=1 BINDMSG_HANDLER_FILES=23 OUT_OF_SCOPE_INVALID_REQUEST=25 OUT_OF_SCOPE_INVALID_PARAMETERS=0",
+      "expected": "PASS（9 项 token 全为期望值）",
+      "negative": "残留绑定分支原文、非绑定分支计数漂移、调用点数≠41、越界改 invalid request: 25 处 → FAIL",
+      "actual": "BINDING_BRANCH_RAW=0; BARE_ERR_TOTAL=49; BARE_ERR_TOUCHED_FILES=31; BARE_40002_SERVICE_RAW=2; BINDMSG_CALL_SITES=41; SCOPED_CALL_SITES=1; BINDMSG_HANDLER_FILES=23; OUT_OF_SCOPE_INVALID_REQUEST=25; OUT_OF_SCOPE_INVALID_PARAMETERS=0",
+      "negative_result": "绑定分支残留 0（BINDING_BRANCH_RAW=0）；非绑定分支精确计数未漂移（BARE_ERR_TOTAL=49／BARE_ERR_TOUCHED_FILES=31／BARE_40002_SERVICE_RAW=2）；同类前缀族未越界（OUT_OF_SCOPE_INVALID_REQUEST=25／OUT_OF_SCOPE_INVALID_PARAMETERS=0）；调用点 41 Message + 1 MessageScoped",
+      "artifacts": [
+        "docs/evidence/2608/R3-residual-scan.txt"
+      ],
+      "exit": 0,
+      "pass": true
+    },
+    {
+      "id": "R4",
+      "command": "bash scripts/verify-2608.sh r4 > docs/evidence/2608/R4-build-compile.txt",
+      "assert": "exit 0 且含 GO_BUILD_EXIT=0 GOFMT_DIFF=0 TEST_COMPILE_EXIT=0",
+      "expected": "PASS（3 项 token 全为期望值）",
+      "negative": "构建失败 / gofmt 差异 / 测试包编译失败 → FAIL",
+      "actual": "GO_BUILD_EXIT=0; GOFMT_DIFF=0; TEST_COMPILE_EXIT=0",
+      "negative_result": "无未格式化文件（GOFMT_DIFF=0）；构建 0 退出（GO_BUILD_EXIT=0）；全包测试编译 0 退出（TEST_COMPILE_EXIT=0）",
+      "artifacts": [
+        "docs/evidence/2608/R4-build-compile.txt"
+      ],
+      "exit": 0,
+      "pass": true
+    },
+    {
+      "id": "R5",
+      "command": "bash scripts/verify-2608.sh r5 > docs/evidence/2608/R5-api-doc.txt",
+      "assert": "exit 0 且含 API_BIND_RULE=1 API_SCOPED_NOTE=1 API_BINDMSG_REF=1 API_FORBID_RAW=1",
+      "expected": "PASS（4 项 token 全为期望值）",
+      "negative": "文档未写作用域口径 / 未禁原文 / 未引用唯一出口 → FAIL",
+      "actual": "API_BIND_RULE=1; API_SCOPED_NOTE=1; API_BINDMSG_REF=1; API_FORBID_RAW=1",
+      "negative_result": "§1.3 仍禁 err.Error() 原文（API_FORBID_RAW=1）且仍引用唯一出口 backend/bindmsg（API_BINDMSG_REF=1）；#2603 口径保留（API_BIND_RULE=1）",
+      "artifacts": [
+        "docs/evidence/2608/R5-api-doc.txt"
+      ],
+      "exit": 0,
+      "pass": true
+    }
+  ]
+}

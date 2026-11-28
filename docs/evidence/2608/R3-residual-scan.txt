@@ -1,0 +1,36 @@
+# build=1.0.10b23676b # commit=10b23676b68c16e61b1b0789503ea28e2c4e48ea # dirty=false
+GENERATED_AT_HEAD=10b23676b68c16e61b1b0789503ea28e2c4e48ea
+# 收口扫描：14 处绑定分支全部收敛到 bindmsg；非绑定分支（50000 DB / 40002 服务校验）与同类前缀族不得外溢
+BINDING_BRANCH_RAW=0
+BARE_ERR_TOTAL=49
+BARE_ERR_TOUCHED_FILES=31
+BARE_ERR_TOUCHED_FILE_COUNT=9
+BARE_40002_SERVICE_RAW=2
+BARE_ERR_OCCURRENCE_FILES=21
+BINDMSG_CALL_SITES=41
+SCOPED_CALL_SITES=1
+BINDMSG_HANDLER_FILES=23
+OUT_OF_SCOPE_INVALID_REQUEST=25
+OUT_OF_SCOPE_INVALID_PARAMETERS=0
+--- per-file bare err.Error() in the 10 touched files (0 = fully converged) ---
+backend/handlers/discount.go=5
+backend/handlers/gift_policies.go=7
+backend/handlers/instrument_promo_override.go=3
+backend/handlers/membership_benefits.go=3
+backend/handlers/membership_level.go=4
+backend/handlers/merchant_rebate.go=1
+backend/handlers/points_policy.go=2
+backend/handlers/user_management.go=0
+backend/handlers/warning.go=2
+backend/handlers/webhook_config.go=4
+--- per-file bindmsg exit calls (Message / MessageScoped) ---
+backend/handlers/discount.go=2
+backend/handlers/gift_policies.go=2
+backend/handlers/instrument_promo_override.go=1
+backend/handlers/membership_benefits.go=1
+backend/handlers/membership_level.go=2
+backend/handlers/merchant_rebate.go=1
+backend/handlers/points_policy.go=2
+backend/handlers/user_management.go=1
+backend/handlers/warning.go=1
+backend/handlers/webhook_config.go=1

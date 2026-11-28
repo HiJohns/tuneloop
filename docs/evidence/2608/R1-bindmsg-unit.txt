@@ -1,0 +1,29 @@
+# build=1.0.10b23676b # commit=10b23676b68c16e61b1b0789503ea28e2c4e48ea # dirty=false
+GENERATED_AT_HEAD=10b23676b68c16e61b1b0789503ea28e2c4e48ea
+# backend/bindmsg：称呼表 116 条 + 作用域称呼 + 缩写复数还原 + #2603 的 9 条模板
+bindmsg_test.go:163: BMSG_REQUIRED=参数不合法：名称不能为空
+bindmsg_test.go:164: BMSG_EMAIL=参数不合法：邮箱格式不正确
+bindmsg_test.go:165: BMSG_UUID=参数不合法：编号不是合法的唯一标识
+bindmsg_test.go:166: BMSG_RANGE=参数不合法：数量取值不合法
+bindmsg_test.go:167: BMSG_ONEOF=参数不合法：状态取值不在允许范围内
+bindmsg_test.go:168: BMSG_OTHER=参数不合法：名称不合法
+bindmsg_test.go:169: BMSG_TYPE=参数不合法：纬度类型不正确
+bindmsg_test.go:170: BMSG_SYNTAX=请求体格式不正确，请检查后重试
+bindmsg_test.go:171: BMSG_FALLBACK=参数不合法，请检查后重试
+bindmsg_test.go:237: LABEL_TABLE_SIZE=116
+bindmsg_test.go:238: LABEL_COVERAGE_FIELDS=84
+bindmsg_test.go:239: LABEL_COVERAGE_MISSING=0
+bindmsg_test.go:240: LABEL_ASCII_LEAK=0
+bindmsg_test.go:311: BIND2608_SCOPED_MSG=参数不合法：权益项类型不正确
+bindmsg_test.go:312: BIND2608_UNSCOPED_MSG=参数不合法：乐器列表类型不正确
+bindmsg_test.go:313: BIND2608_SCOPED_UNKNOWN=参数不合法：乐器列表类型不正确
+bindmsg_test.go:362: BIND2608_IDS_LABEL=编号列表
+bindmsg_test.go:363: BIND2608_GUARANTOR_IDS_LABEL=担保人列表
+bindmsg_test.go:364: BIND2608_URLS_LABEL=urls
+bindmsg_test.go:365: BIND2608_OPT_IN_LABEL=返点开关
+bindmsg_test.go:366: BIND2608_LEVEL_ID_LABEL=会员等级
+bindmsg_test.go:418: BIND2608_LABEL_TABLE_SIZE=116
+bindmsg_test.go:419: BIND2608_COVERAGE_FIELDS=37
+bindmsg_test.go:420: LABEL_COVERAGE_MISSING=0
+bindmsg_test.go:421: LABEL_ASCII_LEAK=0
+BINDMSG_UNIT_EXIT=0
