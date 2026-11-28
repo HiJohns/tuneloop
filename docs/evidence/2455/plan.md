@@ -1,4 +1,6 @@
-## Accepted Plan — #2455（v3：Owner 授权落地 + 依赖口径按 O1=A/O4 修正 + gate 行）（Owner 2026-11-27 裁定 B：重名由 IAM 判定，不做本地预检）｜Rev.5
+## Accepted Plan — #2455（v3：Owner 授权落地 + 依赖口径按 O1=A/O4 修正 + gate 行）（Owner 2026-11-27 裁定 B：重名由 IAM 判定，不做本地预检）｜Rev.5｜Rev.6（IAM_CALLS 口径统一：Create=1 / Update=0）
+> **Rev.6 说明（采纳 Investigation Packet option 1）**：Rev.5 只改写了 R2 矩阵行，未同步 R4 的 Assertions/Contract（仍抄旧值 `=1`），也未清理 Bug Reflection Matrix 的「handler 预检 / R2 `IAM_CALLS=0`」残留，导致同一 `IAM_CALLS` 在计划里既有 0 又有 1。
+> 本版以**矩阵行 = 语义合同**为准统一：**CreateSite 不预检 → `IAM_CALLS=1`**；**UpdateSite 沿用 #2457 本地预检 → `IAM_CALLS=0`**。D2 追加限定「不做本地预检」仅约束 CreateSite。**代码不改**。
 
 > **v3 说明（修 Investigation Packet 的计划 Files 缺口）**：R1 把「同商户同名网点」定为非法后，既有用例 `TestSyncOrganizations_SiteTenantID` 的 fixture（在同 tenant 造两条同名 site 再断言 sync 纠正 tenant）前提失效 → `23505` 使全量套件出现新失败。按 **option 1**（最小、保留用例原意）：把 `backend/handlers/iam_proxy_test.go` 登记进 Files，并只修 fixture（改用独立 org 或先软删同 org 站点）；同时新增「被翻转的既有断言」小节。
 
@@ -51,7 +53,7 @@
 | ID | 决策项 | 责任人 | 锁定条件 | 未锁定时的处理 |
 |---|---|---|---|---|
 | D1 | 唯一约束口径：`(tenant_id, lower(name)) WHERE deleted_at IS NULL` 的**唯一部分索引**（非表约束），普通 `CREATE UNIQUE INDEX`（迁移在事务内；`sites` 体量小）。**Owner 已批准 DDL（O2）** | Owner / Architect | owner_approved | 若 ops 要求 CONCURRENTLY → 需拆独立运维迁移，回 Architect |
-| D2 | 冲突语义：同商户重名 = 业务冲突 `40900`（HTTP 409），绝不允许 500；**判定权威 = IAM**（`CreateOrganization` / 改名时的组织名唯一性），**不做本地预检**（Owner 2026-11-27 裁 B） | Architect | 本计划锁定 | 阻塞实现 |
+| D2 | 冲突语义：同商户重名 = 业务冲突 `40900`（HTTP 409），绝不允许 500。**创建（CreateSite）**：判定权威 = IAM `CreateOrganization` 组织名唯一性，**不做本地预检**（`IAM_CALLS=1`，Owner 2026-11-27 裁 B）。**编辑（UpdateSite）**：沿用 #2457 已落地的「先本地同名预检、后 IAM 改名」（`IAM_CALLS=0`），本单只回归不重实现；矩阵 R4 即该语义 | Architect | 本计划锁定 | 阻塞实现 |
 | D3 | 存量处理：迁移在发现同商户重复时 **fail-fast 并列出清单**（不得静默跳过）；`sites.name` ↔ IAM 组织名的存量对齐**方向 = IAM→本地，已获 Owner 批准（O2）**，执行由 ops 在预生产/生产按只读清单逐条核对（禁止静默改名） | Owner / ops | owner_approved（方向与授权） | 执行窗口与回执由 `[Ops-Followup of #2455]` 承载 |
 | D4 | 身份上下文标签：`merchants.name` 与 `sites.name` **各自**等于其 IAM 组织名（商户根组织 / 网点组织两个层级，Owner 澄清）；`label` = `商户名 · 网点名` **仅用于跨商户同名网点的区分**（商户名缺失时用 IAM `org_name`，都缺失回退 org_id）；`org_name` 单独返回供 UI 展示，不改 IAM | Architect | 本计划锁定 | 若要求只显示单一名字 → 回 Architect |
 | D5 | 权威源：`sites.name` 仍为 IAM 组织名镜像（#2457 D1）；本单不引入第二套命名来源 | Architect | 本计划锁定 | 阻塞实现 |
@@ -96,7 +98,7 @@
 - R1：`INDEX_FOUND=1`、`INDEX_DEFINITION=(tenant_id, lower(name))`、`UP_IDEMPOTENT=1`、`DOWN_DROPS=1`；负例：缺 `WHERE deleted_at IS NULL` → FAIL。
 - R2：`HTTP=409`、`CODE=40900`、`MSG_ZH=1`、`IAM_CALLS=1`（由 IAM 判定）、`LOCAL_ROWS_ADDED=0`、`TRIMMED_CASE_HTTP=409`；负例：`HTTP=500`、message 为英文、或本地残留半态行 → FAIL。
 - R3：`CROSS_TENANT_HTTP=200`、`SAME_TENANT_DUP_REJECTED=1`、`RACE_MAPPED=409`；负例：`SAME_TENANT_DUP_REJECTED=0` 或 `RACE_MAPPED=500` → FAIL。
-- R4：`HTTP=409`、`CODE=40900`、`MSG_ZH=1`、`IAM_CALLS=1`、`DB_NAME=北京中转站`（未变）；负例：`DB_NAME=卡丹萨乐器` → FAIL。
+- R4：`HTTP=409`、`CODE=40900`、`MSG_ZH=1`、`IAM_CALLS=0`（#2457 的本地同名预检先于 IAM）、`DB_NAME=北京中转站`（未变）；负例：`DB_NAME=卡丹萨乐器` → FAIL；**`IAM_CALLS=1`（预检被绕过、请求放行到 IAM）→ FAIL**。
 - R5：`DUP_GROUPS=0`（干净）、`FIXTURE_DUP_GROUPS=1`、`FIXTURE_IDS=2`、`READONLY=1`；负例：`UPDATE`/`ALTER` 语句出现 → FAIL。
 - R6：`LABEL_A=cadenza · 卡丹萨乐器`、`LABEL_B=卡丹萨 · 卡丹萨乐器`、`ORG_NAME_B=卡丹萨西铁营`、`DISTINCT=1`；负例：两项 label 相同 → FAIL。
 - R7：`MOBILE_USES_SERVER_LABEL=1`、`LEGACY_USES_SERVER_LABEL=1`；负例：出现 `site_name`-only 拼接 → FAIL。
@@ -128,8 +130,8 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 | symptom | trigger | root cause | test blind spot | same-class paths | fix layer | red-green | prevention |
 |---|---|---|---|---|---|---|---|
 | 两个员工上下文都显示「卡丹萨乐器」，无法区分 | 移动端切换身份 / PC 员工身份 | 显示只用 `sites.name`，未带商户/组织名 | 无跨商户同名 fixture | 组织选择、员工列表、用户详情「关联网点」 | 后端 label 组合 + 前端渲染 | R6 先写同名 fixture（旧实现 label 相同 → FAIL），再实现（PASS） | 身份上下文统一 `label` 口径（D4） |
-| 同商户可写入两个同名网点 | 网点创建/编辑 | `sites` 无唯一约束，且 handler 无预检 | 无重复名用例 | 批量导入网点、代建网点 | DB 索引 + handler 预检 | R1/R2/R3 红绿 | 索引 + 409 语义写进 api.md |
-| 重名时先建 IAM 组织再失败 → 孤儿组织 | 创建同名网点 | 无预检，IAM 先行 | 无 IAM 调用计数断言 | 商户创建、平台代建 | handler 预检顺序 | R2 `IAM_CALLS=0` 红绿 | 外部调用前必须本地预检 |
+| 同商户可写入两个同名网点 | 网点创建（**本地不预检**，IAM 判定） | `sites` 无唯一约束 | 无重复名用例 | 批量导入网点、代建网点 | DB 唯一索引（`23505` 兜底）+ IAM 组织名唯一性 | R1/R2/R3 红绿（R2 `IAM_CALLS=1`） | 索引 + 409 语义写进 api.md |
+| 重名时先建 IAM 组织再失败 → 孤儿组织 | 创建同名网点 | 无预检、IAM 先行（Owner 裁 B） | 无 IAM 调用计数断言 | 商户创建、平台代建 | IAM 组织名唯一性 + 本地 `LOCAL_ROWS_ADDED=0`（不落半态） | R2 `IAM_CALLS=1` + `LOCAL_ROWS_ADDED=0` 红绿 | 重名判定权威 = IAM；编辑改名沿用 #2457 的本地预检 |
 | 重名返回 500 | 未映射 `23505` | 缺错误映射 | 无并发/竞态用例 | 其他唯一索引（order_no 已复用） | handler | R3 `RACE_MAPPED=409` | 复用 `isUniqueViolation` |
 | 迁移在脏数据上静默跳过约束 | 预生产存在同商户重复 | 迁移未 fail-fast | 无脏数据迁移用例 | 其他唯一索引迁移 | migration | R1 负例断言 | 迁移遇重复 → 异常 + 清单 |
 | legacy 分支与 contexts 分支显示口径不一致 | 老 IAM 返回无 contexts | 两套拼接逻辑 | 无 legacy fixture | 账号选择/邀请页 | 后端 label + 前端优先 label | R6/R7 红绿 | 服务端口径唯一 |
@@ -142,7 +144,7 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 | R1 | `bash scripts/verify-2455.sh r1` | `docs/evidence/2455/R1-index.txt` | exit 0；grep `INDEX_FOUND=1`、`UP_IDEMPOTENT=1`、`DOWN_DROPS=1` | PASS | 索引定义缺 `deleted_at IS NULL` → FAIL | dev |
 | R2 | `bash scripts/verify-2455.sh r2` | `docs/evidence/2455/R2-create-conflict.txt` | exit 0；grep `CODE=40900`、`MSG_ZH=1`、`IAM_CALLS=1`、`LOCAL_ROWS_ADDED=0`、`TRIMMED_CASE_HTTP=409` | PASS | `HTTP=500` / 英文 message / 本地半态残留 → FAIL | dev |
 | R3 | `bash scripts/verify-2455.sh r3` | `docs/evidence/2455/R3-cross-tenant.txt` | exit 0；grep `CROSS_TENANT_HTTP=200`、`SAME_TENANT_DUP_REJECTED=1`、`RACE_MAPPED=409` | PASS | `SAME_TENANT_DUP_REJECTED=0` → FAIL | dev |
-| R4 | `bash scripts/verify-2455.sh r4` | `docs/evidence/2455/R4-update-conflict.txt` | exit 0；grep `CODE=40900`、`MSG_ZH=1`、`IAM_CALLS=1`、`DB_NAME=北京中转站` | PASS | `DB_NAME=卡丹萨乐器` → FAIL | dev |
+| R4 | `bash scripts/verify-2455.sh r4` | `docs/evidence/2455/R4-update-conflict.txt` | exit 0；grep `CODE=40900`、`MSG_ZH=1`、`IAM_CALLS=0`、`DB_NAME=北京中转站` | PASS | `DB_NAME=卡丹萨乐器` 或 `IAM_CALLS=1`（预检被绕过）→ FAIL | dev |
 | R5 | `bash scripts/verify-2455.sh r5` | `docs/evidence/2455/R5-duplicates.txt` | exit 0；grep `DUP_GROUPS=0`、`FIXTURE_DUP_GROUPS=1`、`READONLY=1` | PASS | `READONLY=0` → FAIL | dev |
 | R6 | `bash scripts/verify-2455.sh r6` | `docs/evidence/2455/R6-context-label.txt` | exit 0；grep `DISTINCT=1`、`LABEL_B=卡丹萨 · 卡丹萨乐器`、`ORG_NAME_B=卡丹萨西铁营` | PASS | `DISTINCT=0` → FAIL | dev |
 | R7 | `bash scripts/verify-2455.sh r7` | `docs/evidence/2455/R7-mobile-label.txt` | exit 0；grep `MOBILE_USES_SERVER_LABEL=1`、`LEGACY_USES_SERVER_LABEL=1` | PASS | 任一 `=0` → FAIL | dev |
@@ -199,6 +201,7 @@ evidence.json build schema: ^1\.0\.[0-9a-f]{7,40}$
 - **部署侧**：存量对齐执行与回执由 `[Ops-Followup of #2455]`（`waitForConfirm`）承载。
 
 *Model: DeepSeek V4.1 Flash 1017*
+
 
 
 

@@ -4,7 +4,7 @@
   "build": "1.0.704c59e",
   "commit": "704c59e2da83920818b7be986521af168bdb3517",
   "dirty": false,
-  "plan_sha256": "637ed77c38e8ddc7eca04490cdbb23597895a5989ea027a8b564085a3dc4bb00",
+  "plan_sha256": "9c1573553ff748eb8bf289cb6cd91d6e4f60f4166f0a51ef3f0ca8acf5567550",
   "tooling_commit": "be61a790605b0b65759d0fd2be9b258bc6c41b49",
   "environment": "isolated worktree /home/coder/worktrees/tuneloop/wt-2455 (branch issue-2455, merged origin/develop eeb532971); Go 1.x + PostgreSQL test DB 127.0.0.1:15433 (tuneloop_test_local, migrations replayed into template); PC vite build; artifacts generated after fix commit with a clean tree",
   "rows": [
@@ -57,11 +57,11 @@
       "artifacts": [
         "docs/evidence/2455/R4-update-conflict.txt"
       ],
-      "assert": "exit 0；grep CODE=40900、MSG_ZH=1、IAM_CALLS=1、DB_NAME=北京中转站",
-      "actual": "PASS：HTTP=409 CODE=40900 MSG_ZH=1 IAM_CALLS=0（#2457 UpdateSite 本地预检先于 IAM 改名，即矩阵行「调用次数=0」） DB_NAME=北京中转站（未变）",
+      "assert": "exit 0；grep CODE=40900、MSG_ZH=1、IAM_CALLS=0、DB_NAME=北京中转站",
+      "actual": "PASS：HTTP=409 CODE=40900 MSG_ZH=1 IAM_CALLS=0（#2457 UpdateSite 本地预检先于 IAM 改名；Rev.6 口径） DB_NAME=北京中转站（未变）",
       "expected": "PASS",
-      "negative": "DB_NAME=卡丹萨乐器 → FAIL",
-      "negative_result": "红样实测：去掉 #2457 的本地预检 → 请求走到 IAM，IAM rename 被拒时仍返回 409/40900 但 IAM_CALLS=1（与矩阵行 0 不同）；预检只按大小写敏感比较 → 改成不同大小写可绕过（HTTP=200）；把「IAM 失败仍写本地」放开 → DB_NAME 变为新名。",
+      "negative": "DB_NAME=卡丹萨乐器 或 IAM_CALLS=1（预检被绕过）→ FAIL",
+      "negative_result": "红样实测：去掉 #2457 的本地预检 → 请求走到 IAM，IAM rename 被拒时仍返回 409/40900 但 IAM_CALLS=1（Rev.6 判定 FAIL）；预检只按大小写敏感比较 → 改成不同大小写可绕过（HTTP=200）；把「IAM 失败仍写本地」放开 → DB_NAME 变为新名。",
       "pass": true
     },
     {
@@ -148,5 +148,8 @@
       "negative_result": "读校验断言：P5 为 N/A（例如漏传 --full-gate-cmd，根目录无 go.mod/package.json）→ 该行 FAIL；plan.md 与最新 Accepted Plan 评论 sha 不一致 → GATE_PLAN_SHA_MATCH=0；gate 里出现新失败 → FULL_SUITE_EXIT≠0 / FAIL_COUNT>0 / PANIC_COUNT>0；`plan-source.sh --issue 2455` 非 0 → PLAN_SOURCE=FAIL。",
       "pass": true
     }
-  ]
+  ],
+  "gate": {
+    "plan_sha256": "9c1573553ff748eb8bf289cb6cd91d6e4f60f4166f0a51ef3f0ca8acf5567550"
+  }
 }
