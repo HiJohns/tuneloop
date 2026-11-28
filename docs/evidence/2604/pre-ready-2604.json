@@ -1,7 +1,7 @@
 {
   "issue": 2604,
   "overall": "PASS",
-  "plan": "/tmp/opencode/tuneloop/wt-2604/tmp/pre-ready-2604.LqnR8G/plan.md",
+  "plan": "/tmp/opencode/tuneloop/wt-2604/tmp/pre-ready-2604.Iu1DE6/plan.md",
   "plan_sha256": "7f5817cdc10c16ab96fe94b4c4a5fa3e39b72105acbeb5664871f1f70df22466",
   "config_sha": "c00d84454cc7589086f25ef3a871be1d00a12644",
   "provenance": {
@@ -10,7 +10,7 @@
     "dirty": false
   },
   "summary": "docs/evidence/2604/summary.md",
-  "timestamp": "20261128-045813",
+  "timestamp": "20261128-045824",
   "checks": [
     {
       "id": "P1",
@@ -29,8 +29,8 @@
     },
     {
       "id": "P4",
-      "status": "WARN",
-      "detail": "no --affected-cmd supplied; affected-package tests were not run"
+      "status": "PASS",
+      "detail": "all 1 affected command(s) passed"
     },
     {
       "id": "P12",
