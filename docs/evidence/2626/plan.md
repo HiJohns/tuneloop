@@ -1,4 +1,5 @@
-## Accepted Plan — #2626 用户角色权威与术语收敛（Owner 2026-11-28 裁定：IAM 权威 + 一人多角色 + 存储层用 IAM 术语）｜Rev.2（采纳 Packet A：R3 降级为静态+ops 回执；R6 收敛；db.go 登记）｜Rev.3（Files +3、R2 扩至 5 写侧+allowlist、R4 数据源行、既有断言、D1 过渡兜底）
+## Accepted Plan — #2626 用户角色权威与术语收敛（Owner 2026-11-28 裁定：IAM 权威 + 一人多角色 + 存储层用 IAM 术语）｜Rev.2（采纳 Packet A：R3 降级为静态+ops 回执；R6 收敛；db.go 登记）｜Rev.3（Files +3、R2 扩至 5 写侧+allowlist、R4 数据源行、既有断言、D1 过渡兜底）｜Rev.4（Files 路径修正：staffForm.test.js → src/utils/）
+> **Rev.4 说明**：Rev.3 把测试文件错登记为 `frontend-pc/tests/staffForm.test.js`（不存在）；实际必须翻转既有断言的文件是 **`frontend-pc/src/utils/staffForm.test.js`**（#2483 交付，含 `resolveStaffFormMode({role:'repair_technician'}) === 'technician'` 这类**只读单值**断言，与 R4 的 `PC_READS_USERS_ROLE=0` 互斥，只能翻转）。本版只改路径，其余不变。
 > **Rev.3 说明（按 Round 1 audit 逐条回填）**：
 > ① `### Files` 追加 `backend/handlers/merchant.go`、`backend/handlers/iam_proxy.go`、`frontend-pc/tests/staffForm.test.js`；
 > ② **R2 扫描面 3 → 5 个写侧**（`iam_callback.go` / `merchant_member.go` / `user_staff.go` / `merchant.go` / `iam_proxy.go`），`WRITE_SITES=5`，并新增 **allowlist**（`role_derive.go` 内的优先级表与测试字面量豁免）与负例「allowlist 外仍出现内联 `site_member` 字面量 → FAIL」；
@@ -165,7 +166,7 @@
 - `backend/handlers/iam_proxy.go`（写侧 #5：IAM 代理层的角色映射）
 - `frontend-pc/src/utils/staffForm.js`
 - `frontend-pc/tests/staffForm.test.mjs`
-- `frontend-pc/tests/staffForm.test.js`（集合用例：`roles[]` 优先 + 回退链）
+- `frontend-pc/src/utils/staffForm.test.js`（#2483 交付；本单需翻转「只读单值」断言 → 集合优先，并在 `### 既有断言影响` 登记）
 - `docs/spec/permissions.md`
 - `docs/spec/api/api.md`
 - `scripts/verify-2626.sh`
