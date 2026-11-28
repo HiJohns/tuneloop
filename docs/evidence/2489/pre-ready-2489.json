@@ -1,7 +1,7 @@
 {
   "issue": 2489,
-  "overall": "FAIL",
-  "plan": "/tmp/opencode/tuneloop/wt-2489/tmp/pre-ready-2489.29bC5R/plan.md",
+  "overall": "PASS",
+  "plan": "/tmp/opencode/tuneloop/wt-2489/tmp/pre-ready-2489.f2E7io/plan.md",
   "plan_sha256": "4f0aa71b1a54e48b031e67037f35a124de76ef0e3aaf1cc8b20a170fb7be73e4",
   "config_sha": "c00d84454cc7589086f25ef3a871be1d00a12644",
   "provenance": {
@@ -10,7 +10,7 @@
     "dirty": false
   },
   "summary": "tmp/pre-ready-2489-summary.md",
-  "timestamp": "20261128-063716",
+  "timestamp": "20261128-063728",
   "checks": [
     {
       "id": "P1",
@@ -99,8 +99,8 @@
     },
     {
       "id": "P13",
-      "status": "FAIL",
-      "detail": "fix commit b85169cda9b202a5ac4945d28c80398964fc8226 is not on origin/issue-2489; push origin HEAD:issue-2489 first"
+      "status": "PASS",
+      "detail": "fix commit and evidence artifacts are on origin/issue-2489"
     }
   ]
 }
