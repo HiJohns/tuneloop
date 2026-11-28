@@ -1,36 +1,53 @@
-# build=1.0.704c59e # commit=704c59e2da83920818b7be986521af168bdb3517 # dirty=false
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 at_ms=1795818305760 wait_ms=183
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 wait_ms=183
+# build=1.0.f0cbd1c # commit=f0cbd1ca8d27ba4d04352d85bd911a799f88a3ab # dirty=false
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 at_ms=1795885558392 wait_ms=73
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 wait_ms=73
 [WARNING] No .env file found in common paths
-2026/11/27 22:25:11 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/27 22:25:11 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
-2026/11/27 22:25:11 [DB] Connected to database 'tuneloop_test_local'
+2026/11/28 17:06:07 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/28 17:06:07 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/28 17:06:07 [DB] Connected to database 'tuneloop_test_local'
 === RUN   TestWxAccounts_ContextLabelDisambiguatesSameNamedSites_2455
-2026/11/27 22:25:11 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/27 22:25:11 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
-2026/11/27 22:25:11 [DB] Connected to database 'tuneloop_test_local'
+2026/11/28 17:06:07 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/28 17:06:07 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/28 17:06:07 [DB] Connected to database 'tuneloop_test_local'
 
-2026/11/27 22:25:12 [32m/home/coder/worktrees/tuneloop/wt-2455/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[616.538ms] [33m[rows:0][35m TRUNCATE TABLE "schema_migrations", "membership_levels", "coupons", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/28 17:06:08 [32m/tmp/opencode/tuneloop/wt-2455/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[533.199ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "schema_migrations", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
 [GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
  - using env:	export GIN_MODE=release
  - using code:	gin.SetMode(gin.ReleaseMode)
 
 [GIN-debug] GET    /api/auth/wx-accounts     --> tuneloop-backend/handlers.(*AuthHandler).WxAccounts-fm (1 handlers)
-2026/11/27 22:25:12 [WxAccounts] openid=openid-accounts-001 accounts=3
+2026/11/28 17:06:08 [WxAccounts] openid=openid-accounts-001 accounts=3
     wx_accounts_context_label_2455_test.go:135: LABEL_A=cadenza · 卡丹萨乐器
     wx_accounts_context_label_2455_test.go:136: LABEL_B=卡丹萨 · 卡丹萨乐器
     wx_accounts_context_label_2455_test.go:137: ORG_NAME_B=卡丹萨西铁营
     wx_accounts_context_label_2455_test.go:138: DISTINCT=1
     wx_accounts_context_label_2455_test.go:139: LEGACY_LABEL=卡丹萨 · 卡丹萨乐器
     wx_accounts_context_label_2455_test.go:140: CUSTOMER_LABEL=顾客
---- PASS: TestWxAccounts_ContextLabelDisambiguatesSameNamedSites_2455 (0.81s)
+--- PASS: TestWxAccounts_ContextLabelDisambiguatesSameNamedSites_2455 (0.78s)
+=== RUN   TestWxAccounts_ContextLabelNoCrossMerchantBorrow_2455
+
+2026/11/28 17:06:09 [32m/tmp/opencode/tuneloop/wt-2455/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[489.254ms] [33m[rows:0][35m TRUNCATE TABLE "membership_levels", "merchants", "pricing_templates", "sites" RESTART IDENTITY CASCADE[0m
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /api/auth/wx-accounts     --> tuneloop-backend/handlers.(*AuthHandler).WxAccounts-fm (1 handlers)
+2026/11/28 17:06:09 [WxAccounts] openid=openid-accounts-001 accounts=1
+    wx_accounts_context_label_2455_test.go:218: MERCHANT_BORROWED=0
+    wx_accounts_context_label_2455_test.go:219: FALLBACK_LABEL_OK=1
+    wx_accounts_context_label_2455_test.go:220: SYNCED_LABEL=cadenza · 卡丹萨乐器
+--- PASS: TestWxAccounts_ContextLabelNoCrossMerchantBorrow_2455 (0.65s)
 PASS
-ok  	tuneloop-backend/handlers	1.580s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795818312948 hold_ms=7188
+ok  	tuneloop-backend/handlers	2.146s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795885569331 hold_ms=10939
 LABEL_A=cadenza · 卡丹萨乐器
 LABEL_B=卡丹萨 · 卡丹萨乐器
 ORG_NAME_B=卡丹萨西铁营
 DISTINCT=1
 LEGACY_LABEL=卡丹萨 · 卡丹萨乐器
 CUSTOMER_LABEL=顾客
+MERCHANT_BORROWED=0
+FALLBACK_LABEL_OK=1
+SYNCED_LABEL=cadenza · 卡丹萨乐器

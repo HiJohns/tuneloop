@@ -1,27 +1,27 @@
-# build=1.0.704c59e # commit=704c59e2da83920818b7be986521af168bdb3517 # dirty=false
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 at_ms=1795818283975 wait_ms=177
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 wait_ms=177
+# build=1.0.f0cbd1c # commit=f0cbd1ca8d27ba4d04352d85bd911a799f88a3ab # dirty=false
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 at_ms=1795885534227 wait_ms=76
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 wait_ms=76
 [WARNING] No .env file found in common paths
-2026/11/27 22:24:48 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/27 22:24:48 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
-2026/11/27 22:24:48 [DB] Connected to database 'tuneloop_test_local'
+2026/11/28 17:05:39 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/28 17:05:39 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/28 17:05:39 [DB] Connected to database 'tuneloop_test_local'
 === RUN   TestCreateSite_DuplicateNameRejectedByIAM_2455
-2026/11/27 22:24:48 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/27 22:24:48 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
-2026/11/27 22:24:48 [DB] Connected to database 'tuneloop_test_local'
+2026/11/28 17:05:39 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/28 17:05:39 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/28 17:05:39 [DB] Connected to database 'tuneloop_test_local'
 
-2026/11/27 22:24:49 [32m/home/coder/worktrees/tuneloop/wt-2455/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[616.245ms] [33m[rows:0][35m TRUNCATE TABLE "schema_migrations", "membership_levels", "coupons", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
-2026/11/27 22:24:49 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:46829, clientID=test-ns, namespace=test-ns
-2026/11/27 22:24:49 [IAMClient] Obtained client credentials token, expires in 3600s
-2026/11/27 22:24:49 [CreateSite] IAM CreateOrganization failed: iam organization name conflict: {"code":40901,"message":"organization name already exists"}
-2026/11/27 22:24:49 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:46829, clientID=test-ns, namespace=test-ns
-2026/11/27 22:24:49 [IAMClient] Obtained client credentials token, expires in 3600s
-2026/11/27 22:24:49 [CreateSite] IAM CreateOrganization failed: iam organization name conflict: {"code":40901,"message":"organization name already exists"}
-2026/11/27 22:24:49 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:46829, clientID=test-ns, namespace=test-ns
-2026/11/27 22:24:49 [IAMClient] Obtained client credentials token, expires in 3600s
-2026/11/27 22:24:49 [IAMClient] Created organization with user token: org_id=7e52ae5d-8a6f-4411-a398-b91b32147880, admin_id=
-2026/11/27 22:24:49 [CreateSite] skip role template assignment: no admin (site=北京中转站 org=7e52ae5d-8a6f-4411-a398-b91b32147880)
+2026/11/28 17:05:40 [32m/tmp/opencode/tuneloop/wt-2455/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[623.638ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "schema_migrations", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/28 17:05:40 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:35289, clientID=test-ns, namespace=test-ns
+2026/11/28 17:05:40 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/28 17:05:40 [CreateSite] IAM CreateOrganization failed: iam organization name conflict: {"code":40901,"message":"organization name already exists"}
+2026/11/28 17:05:40 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:35289, clientID=test-ns, namespace=test-ns
+2026/11/28 17:05:40 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/28 17:05:40 [CreateSite] IAM CreateOrganization failed: iam organization name conflict: {"code":40901,"message":"organization name already exists"}
+2026/11/28 17:05:40 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:35289, clientID=test-ns, namespace=test-ns
+2026/11/28 17:05:40 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/28 17:05:40 [IAMClient] Created organization with user token: org_id=7f0a1943-a760-440c-a5e1-eb82f2c5b5ec, admin_id=
+2026/11/28 17:05:40 [CreateSite] skip role template assignment: no admin (site=北京中转站 org=7f0a1943-a760-440c-a5e1-eb82f2c5b5ec)
     site_name_unique_2455_test.go:347: HTTP=409
     site_name_unique_2455_test.go:348: CODE=40900
     site_name_unique_2455_test.go:349: MSG_ZH=1
@@ -29,10 +29,10 @@
     site_name_unique_2455_test.go:351: LOCAL_ROWS_ADDED=0
     site_name_unique_2455_test.go:352: TRIMMED_CASE_HTTP=409
     site_name_unique_2455_test.go:353: DISTINCT_NAME_HTTP=201
---- PASS: TestCreateSite_DuplicateNameRejectedByIAM_2455 (0.82s)
+--- PASS: TestCreateSite_DuplicateNameRejectedByIAM_2455 (0.89s)
 PASS
-ok  	tuneloop-backend/handlers	1.361s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795818290139 hold_ms=6164
+ok  	tuneloop-backend/handlers	1.636s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795885540664 hold_ms=6437
 HTTP=409
 CODE=40900
 MSG_ZH=1

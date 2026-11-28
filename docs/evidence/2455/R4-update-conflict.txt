@@ -1,29 +1,27 @@
-# build=1.0.704c59e # commit=704c59e2da83920818b7be986521af168bdb3517 # dirty=false
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 at_ms=1795847314243 wait_ms=413
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 wait_ms=413
+# build=1.0.f0cbd1c # commit=f0cbd1ca8d27ba4d04352d85bd911a799f88a3ab # dirty=false
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 at_ms=1795885548922 wait_ms=71
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 wait_ms=71
 [WARNING] No .env file found in common paths
-2026/11/28 06:28:42 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-[test-template] migrations replayed: files=407 up=221 statements=1795 create_table=14 create_index=0 index_guard=283 dml_guard=54 alter_table=1013 add_column=6 version=20261123002
-Built test template tuneloop_test_template
-2026/11/28 06:28:51 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
-2026/11/28 06:28:51 [DB] Connected to database 'tuneloop_test_local'
+2026/11/28 17:05:56 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/28 17:05:56 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/28 17:05:56 [DB] Connected to database 'tuneloop_test_local'
 === RUN   TestUpdateSite_DuplicateNameRejectedBeforeIAM_2455
-2026/11/28 06:28:51 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/28 06:28:51 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
-2026/11/28 06:28:51 [DB] Connected to database 'tuneloop_test_local'
+2026/11/28 17:05:57 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/28 17:05:57 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/28 17:05:57 [DB] Connected to database 'tuneloop_test_local'
 
-2026/11/28 06:28:52 [32m/home/coder/worktrees/tuneloop/wt-2455/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[706.372ms] [33m[rows:0][35m TRUNCATE TABLE "membership_level_benefits", "instrument_levels", "_test_template_meta", "coupons", "membership_levels", "schema_migrations", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants" RESTART IDENTITY CASCADE[0m
-2026/11/28 06:28:52 [TenantScope][observe] auto-scope injected for table=sites (add explicit scope, then set ExplicitTenantScopeOnly)
+2026/11/28 17:05:57 [32m/tmp/opencode/tuneloop/wt-2455/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[546.259ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "schema_migrations", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/28 17:05:57 [TenantScope][observe] auto-scope injected for table=sites (add explicit scope, then set ExplicitTenantScopeOnly)
     site_name_unique_2455_test.go:453: HTTP=409
     site_name_unique_2455_test.go:454: CODE=40900
     site_name_unique_2455_test.go:455: MSG_ZH=1
     site_name_unique_2455_test.go:456: IAM_CALLS=0
     site_name_unique_2455_test.go:457: DB_NAME=北京中转站
---- PASS: TestUpdateSite_DuplicateNameRejectedBeforeIAM_2455 (0.90s)
+--- PASS: TestUpdateSite_DuplicateNameRejectedBeforeIAM_2455 (0.80s)
 PASS
-ok  	tuneloop-backend/handlers	11.217s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795847333225 hold_ms=18982
+ok  	tuneloop-backend/handlers	1.408s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795885558015 hold_ms=9093
 HTTP=409
 CODE=40900
 MSG_ZH=1

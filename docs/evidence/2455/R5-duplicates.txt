@@ -1,4 +1,4 @@
-# build=1.0.704c59e # commit=704c59e2da83920818b7be986521af168bdb3517 # dirty=false
+# build=1.0.f0cbd1c # commit=f0cbd1ca8d27ba4d04352d85bd911a799f88a3ab # dirty=false
 DUP_GROUPS=0
 READONLY=1
 DB_WRITES=0
@@ -23,4 +23,8 @@ DUP_GROUPS=1
 CLEAN_DUP_GROUPS=0
 FIXTURE_DUP_GROUPS=1
 FIXTURE_IDS=2
-psql not found; use --fixture or install psql
+DUP_GROUPS=0
+READONLY=1
+DB_WRITES=0
+THRESHOLD=2
+RESULT: OK

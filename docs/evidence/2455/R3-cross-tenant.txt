@@ -1,44 +1,44 @@
-# build=1.0.704c59e # commit=704c59e2da83920818b7be986521af168bdb3517 # dirty=false
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 at_ms=1795818290397 wait_ms=178
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 wait_ms=178
+# build=1.0.f0cbd1c # commit=f0cbd1ca8d27ba4d04352d85bd911a799f88a3ab # dirty=false
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 at_ms=1795885540817 wait_ms=73
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 wait_ms=73
 [WARNING] No .env file found in common paths
-2026/11/27 22:24:56 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/27 22:24:56 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
-2026/11/27 22:24:56 [DB] Connected to database 'tuneloop_test_local'
+2026/11/28 17:05:47 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/28 17:05:47 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/28 17:05:47 [DB] Connected to database 'tuneloop_test_local'
 === RUN   TestCreateSite_CrossTenantSameNameAllowed_2455
-2026/11/27 22:24:56 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
-2026/11/27 22:24:56 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
-2026/11/27 22:24:56 [DB] Connected to database 'tuneloop_test_local'
+2026/11/28 17:05:47 [DB] Configuration loaded: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local sslmode=disable
+2026/11/28 17:05:47 [DB] Connecting: host=127.0.0.1 port=15433 user=tuneloop_user dbname=tuneloop_test_local
+2026/11/28 17:05:47 [DB] Connected to database 'tuneloop_test_local'
 
-2026/11/27 22:24:57 [32m/home/coder/worktrees/tuneloop/wt-2455/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
-[0m[31;1m[613.277ms] [33m[rows:0][35m TRUNCATE TABLE "schema_migrations", "membership_levels", "coupons", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
-2026/11/27 22:24:57 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:43767, clientID=test-ns, namespace=test-ns
-2026/11/27 22:24:57 [IAMClient] Obtained client credentials token, expires in 3600s
-2026/11/27 22:24:57 [IAMClient] Created organization with user token: org_id=144b0e3d-50e7-433f-a1bf-c6c36fdf30b2, admin_id=
-2026/11/27 22:24:57 [CreateSite] skip role template assignment: no admin (site=卡丹萨乐器 org=144b0e3d-50e7-433f-a1bf-c6c36fdf30b2)
+2026/11/28 17:05:48 [32m/tmp/opencode/tuneloop/wt-2455/backend/handlers/testfixtures/db.go:240 [33mSLOW SQL >= 200ms
+[0m[31;1m[658.906ms] [33m[rows:0][35m TRUNCATE TABLE "coupons", "membership_levels", "schema_migrations", "instrument_levels", "gift_policies", "membership_gift_ratios", "merchant_pricing_configs", "pricing_templates", "properties", "rebate_config", "roles", "tenants", "membership_level_benefits", "_test_template_meta" RESTART IDENTITY CASCADE[0m
+2026/11/28 17:05:48 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:45481, clientID=test-ns, namespace=test-ns
+2026/11/28 17:05:48 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/28 17:05:48 [IAMClient] Created organization with user token: org_id=9b89f337-36c3-4410-b26e-7583784c0728, admin_id=
+2026/11/28 17:05:48 [CreateSite] skip role template assignment: no admin (site=卡丹萨乐器 org=9b89f337-36c3-4410-b26e-7583784c0728)
 
-2026/11/27 22:24:57 [31;1m/home/coder/worktrees/tuneloop/wt-2455/backend/handlers/site_name_unique_2455_test.go:395 [35;1mERROR: duplicate key value violates unique constraint "uq_sites_tenant_name" (SQLSTATE 23505)
-[0m[33m[0.887ms] [34;1m[rows:0][0m INSERT INTO "sites" ("tenant_id","org_id","organization_code","parent_id","manager_id","name","address","type","latitude","longitude","phone","contact_name","postal_code","business_hours","status","manager_pending","deleted_at","created_at","updated_at","id") VALUES ('ddba16da-4b9e-45dc-b8c7-6a86709ce7f7','e6e1a3e8-9d7f-4d4f-8ec0-6d1376ad43a4','',NULL,NULL,'卡丹萨乐器','','',0,0,'','','','','active',false,NULL,'2026-11-27 22:24:57.224','2026-11-27 22:24:57.224','6d94627a-7edf-4428-aad3-0873d6e856f8') RETURNING "id"
-2026/11/27 22:24:57 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:43767, clientID=test-ns, namespace=test-ns
-2026/11/27 22:24:57 [IAMClient] Obtained client credentials token, expires in 3600s
-2026/11/27 22:24:57 [IAMClient] Created organization with user token: org_id=3dfd790b-6eee-416c-95be-412f85fe6d56, admin_id=
-2026/11/27 22:24:57 [CreateSite] skip role template assignment: no admin (site=竞态网点-80f72900 org=3dfd790b-6eee-416c-95be-412f85fe6d56)
+2026/11/28 17:05:48 [31;1m/tmp/opencode/tuneloop/wt-2455/backend/handlers/site_name_unique_2455_test.go:395 [35;1mERROR: duplicate key value violates unique constraint "uq_sites_tenant_name" (SQLSTATE 23505)
+[0m[33m[1.341ms] [34;1m[rows:0][0m INSERT INTO "sites" ("tenant_id","org_id","organization_code","parent_id","manager_id","name","address","type","latitude","longitude","phone","contact_name","postal_code","business_hours","status","manager_pending","deleted_at","created_at","updated_at","id") VALUES ('03df82f5-beb6-4d9c-aefd-c84845592ac0','11eb4619-4566-4a7f-a215-8051903ce4b3','',NULL,NULL,'卡丹萨乐器','','',0,0,'','','','','active',false,NULL,'2026-11-28 17:05:48.568','2026-11-28 17:05:48.568','d86b8ec5-7512-429c-b574-c1427f593430') RETURNING "id"
+2026/11/28 17:05:48 [IAMClient] NewIAMClient: baseURL=http://127.0.0.1:45481, clientID=test-ns, namespace=test-ns
+2026/11/28 17:05:48 [IAMClient] Obtained client credentials token, expires in 3600s
+2026/11/28 17:05:48 [IAMClient] Created organization with user token: org_id=57870fea-6d45-45b2-9e8a-e46c0a952870, admin_id=
+2026/11/28 17:05:48 [CreateSite] skip role template assignment: no admin (site=竞态网点-d566946a org=57870fea-6d45-45b2-9e8a-e46c0a952870)
 
-2026/11/27 22:24:57 [31;1m/home/coder/worktrees/tuneloop/wt-2455/backend/handlers/site.go:516 [35;1mERROR: duplicate key value violates unique constraint "uq_sites_tenant_name" (SQLSTATE 23505)
-[0m[33m[0.797ms] [34;1m[rows:0][0m INSERT INTO "sites" ("tenant_id","org_id","organization_code","parent_id","manager_id","name","address","type","latitude","longitude","phone","contact_name","postal_code","business_hours","status","manager_pending","deleted_at","created_at","updated_at") VALUES ('ddba16da-4b9e-45dc-b8c7-6a86709ce7f7','3dfd790b-6eee-416c-95be-412f85fe6d56','',NULL,NULL,'竞态网点-80f72900','','',0,0,'','','','','active',false,NULL,'2026-11-27 22:24:57.229','2026-11-27 22:24:57.229') RETURNING "id"
+2026/11/28 17:05:48 [31;1m/tmp/opencode/tuneloop/wt-2455/backend/handlers/site.go:516 [35;1mERROR: duplicate key value violates unique constraint "uq_sites_tenant_name" (SQLSTATE 23505)
+[0m[33m[1.319ms] [34;1m[rows:0][0m INSERT INTO "sites" ("tenant_id","org_id","organization_code","parent_id","manager_id","name","address","type","latitude","longitude","phone","contact_name","postal_code","business_hours","status","manager_pending","deleted_at","created_at","updated_at") VALUES ('03df82f5-beb6-4d9c-aefd-c84845592ac0','57870fea-6d45-45b2-9e8a-e46c0a952870','',NULL,NULL,'竞态网点-d566946a','','',0,0,'','','','','active',false,NULL,'2026-11-28 17:05:48.572','2026-11-28 17:05:48.572') RETURNING "id"
     site_name_unique_2455_test.go:418: CROSS_TENANT_HTTP=200
     site_name_unique_2455_test.go:419: CROSS_TENANT_STATUS=201
     site_name_unique_2455_test.go:420: SAME_TENANT_DUP_REJECTED=1
     site_name_unique_2455_test.go:421: RACE_MAPPED=409
     site_name_unique_2455_test.go:422: RACE_CODE=40900
-    site_name_unique_2455_test.go:423: CROSS_TENANT_SITE=a4ea3c45-447e-47c3-8f67-3929ac6ea34c
---- PASS: TestCreateSite_CrossTenantSameNameAllowed_2455 (0.82s)
+    site_name_unique_2455_test.go:423: CROSS_TENANT_SITE=dec3140d-38f2-4270-bf52-9f28ace0a5e5
+--- PASS: TestCreateSite_CrossTenantSameNameAllowed_2455 (0.94s)
 PASS
-ok  	tuneloop-backend/handlers	1.366s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795818297446 hold_ms=7049
+ok  	tuneloop-backend/handlers	1.700s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795885548778 hold_ms=7961
 CROSS_TENANT_HTTP=200
 CROSS_TENANT_STATUS=201
 SAME_TENANT_DUP_REJECTED=1
 RACE_MAPPED=409
 RACE_CODE=40900
-CROSS_TENANT_SITE=a4ea3c45-447e-47c3-8f67-3929ac6ea34c
+CROSS_TENANT_SITE=dec3140d-38f2-4270-bf52-9f28ace0a5e5

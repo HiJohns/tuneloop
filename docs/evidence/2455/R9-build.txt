@@ -1,14 +1,14 @@
-# build=1.0.704c59e # commit=704c59e2da83920818b7be986521af168bdb3517 # dirty=false
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 at_ms=1795818315495 wait_ms=177
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 wait_ms=177
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795818329187 hold_ms=13692
+# build=1.0.f0cbd1c # commit=f0cbd1ca8d27ba4d04352d85bd911a799f88a3ab # dirty=false
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 at_ms=1795885569540 wait_ms=69
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 wait_ms=69
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795885581778 hold_ms=12238
 --- go build ./... exit=0
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 at_ms=1795818329326 wait_ms=193
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 wait_ms=193
-ok  	tuneloop-backend/handlers	10.878s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795818346568 hold_ms=17242
-[heavy-lock] lock_acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 at_ms=1795818346853 wait_ms=185
-[heavy-lock] acquired scope=host slot=0 node=node-ip-172-31-5--s206-p206-976cd1 wait_ms=185
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 at_ms=1795885581921 wait_ms=96
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 wait_ms=96
+ok  	tuneloop-backend/handlers	11.466s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795885601833 hold_ms=19912
+[heavy-lock] lock_acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 at_ms=1795885603056 wait_ms=86
+[heavy-lock] acquired scope=host slot=0 node=node-opencode-s114-p114-60ffd6 wait_ms=86
 
 > frontend-pc@1.0.0 build
 > vite build
@@ -29,8 +29,8 @@ dist/assets/index-BUcI4Tz-.js   2,626.72 kB │ gzip: 809.71 kB
 - Using dynamic import() to code-split the application
 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-✓ built in 37.38s
-[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795818387284 hold_ms=40431
+✓ built in 25.09s
+[heavy-lock] released scope=host slot=0 rc=0 at_ms=1795885629193 hold_ms=26137
 BUILD_EXIT=0
 TESTS_EXIT=0
 TESTS_FAIL=0
