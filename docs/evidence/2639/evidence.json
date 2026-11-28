@@ -18,7 +18,7 @@
       "assert": "exit 0 且含 BASELINE_400XX_HITS=34 BASELINE_MULTILINE_HIT=1 POSTFIX_400XX_HITS=1 POSTFIX_HIT_IS_OOS_2604=1 OOS_2604_LINE_UNCHANGED=1 UNDERSCORE_400XX_HITS=0 OOS_403_404_COUNT=16 FRONTEND_DIFF=0 SCAN_EXIT=0",
       "actual": "PASS：BASELINE_400XX_HITS=34（10 文件，多行感知扫描）、BASELINE_MULTILINE_HIT=1（gift_policies.go 拆分 gin.H：code=40002 在 157 行、message 在 158 行——Issue 的单行 grep 漏掉的正是这一处）、POSTFIX_400XX_HITS=1 且该唯一命中为 user_management.go:142 code=40002（#2604 Out of Scope 行，POSTFIX_HIT_IS_OOS_2604=1 / OOS_2604_LINE_UNCHANGED=1 逐字对照基线）、UNDERSCORE_400XX_HITS=0（修前 10 处含 JSON 字段名）、OOS_403_404_COUNT=16 未漂移、FRONTEND_DIFF=0",
       "expected": "PASS（9 项 token 全为期望值）",
-      "negative": "修后残留 in-scope 英文常量；基线计数 ≠34（说明扫描漏检多行 gin.H）；user_management.go:142 被改动；403/404 计数漂移；frontend-* 出现 diff → 任一即 FAIL",
+      "negative": "修后残留 in-scope 英文常量；基线计数≠34（多行 gin.H 漏检）；`user_management.go:142` 被改动；403/404 计数漂移；`frontend-*` 有 diff → FAIL",
       "negative_result": "修复前同命令的 postfix 分支即得到 POSTFIX_400XX_HITS=34 / UNDERSCORE_400XX_HITS=10（与 BASELINE 一致），说明 33 处未收口时 R1 必然 FAIL；扫描器把 code 与 message 的配对窗口设为同处≤3 行，gift_policies.go:157-158 是唯一的跨行样本，删掉窗口逻辑即 BASELINE_400XX_HITS=33 → FAIL",
       "pass": true
     },
@@ -32,7 +32,7 @@
       "assert": "exit 0 且含 GO_TEST_EXIT=0 MSG2639_CASES_TOTAL=35 MSG2639_CASES_FAIL=0 MSG2639_ASCII_LEAK=0 MSG2639_FIELDNAME_LEAK=0 MSG2639_HTTP_CODE_DRIFT=0 MSG2639_DISCOUNT_EXPIRED=优惠码已过期 MSG2639_REFERRAL_RANGE=推荐奖励比例必须在 0~1 之间 MSG2639_OVERRIDE_TYPE=推广类型必须是折扣、返利或租转售 MSG2639_BIND_CODE=参数不合法：优惠码不能为空 MSG2639_BIND_STATUS=参数不合法：状态类型不正确 MSG2639_WARNING_REASON=请求参数有误，请填写预警原因",
       "actual": "PASS：GO_TEST_EXIT=0、CASES_TOTAL=35（33 站点 + 2 绑定形态变体）、CASES_FAIL=0、ASCII_LEAK=0、FIELDNAME_LEAK=0、HTTP_CODE_DRIFT=0；代表站点逐字：优惠码已过期 / 推荐奖励比例必须在 0~1 之间 / 推广类型必须是折扣、返利或租转售 / 参数不合法：优惠码不能为空 / 参数不合法：状态类型不正确 / 请求参数有误，请填写预警原因",
       "expected": "PASS（12 项 token 全为期望值）",
-      "negative": "任一响应含 ASCII 字母或 `_` 字段名；含 invalid character/cannot unmarshal/Field validation/json:/unexpected end of JSON/EOF；HTTP 或 code 漂移；用例数<35 → FAIL",
+      "negative": "任一响应含 ASCII 字母或 `_` 字段名；含 `invalid character`/`cannot unmarshal`/`Field validation`/`json:`；HTTP 或 code 漂移；用例数<35 → FAIL",
       "negative_result": "红样实证：同一测试在 fix commit 之前（BASE 350689473 的 8 个 handler）运行结果为 MSG2639_CASES_FAIL=35 / ASCII_LEAK=35 / FIELDNAME_LEAK=10 / HTTP_CODE_DRIFT=0，且 DISCOUNT_EXPIRED=`discount code has expired`、BIND_CODE=`code is required`、WARNING_REASON=`reason is required` —— 即 Issue 正文的原始症状；替换 33 处文案后同一命令 35/35 PASS（见 Work Summary 红绿实证段）",
       "pass": true
     },
@@ -46,7 +46,7 @@
       "assert": "exit 0 且含 GO_BUILD_EXIT=0 GOFMT_DIFF=0 TEST_COMPILE_EXIT=0",
       "actual": "PASS：GO_BUILD_EXIT=0（cd backend && go build ./...）、GOFMT_DIFF=0（9 个改动 go 文件 gofmt -l 无输出）、TEST_COMPILE_EXIT=0（go test ./... -run '^$' 全包编译通过）",
       "expected": "PASS（3 项 token 全为期望值）",
-      "negative": "构建失败 / gofmt 有差异 / 测试包编译失败 → FAIL",
+      "negative": "构建失败 / gofmt 差异 / 全包编译失败 → FAIL",
       "negative_result": "编译面为硬失败：新增 bindmsg 导入或 message 表达式类型错误都会让 GO_BUILD_EXIT / TEST_COMPILE_EXIT 非 0；本单只替换 message 字面量与绑定失败出口，编译面不变即未触碰分支语义的必要条件",
       "pass": true
     },
@@ -60,7 +60,7 @@
       "assert": "exit 0 且含 API_400_RULE=1 API_400_NO_ASCII=1 API_400_BINDMSG_REF=1 API_2639_REF=1",
       "actual": "PASS：§1.3 新增「400 族服务校验文案（#2639）」段——API_400_RULE=1（写明 40001/40002/40003 必须是中文业务原因）、API_400_NO_ASCII=1（明确禁止英文常量与 JSON 字段名两种写法）、API_400_BINDMSG_REF=1（点名唯一出口 backend/bindmsg）、API_2639_REF=1（可回溯到本 Issue）",
       "expected": "PASS（4 项 token 全为期望值）",
-      "negative": "§1.3 缺 400 族中文业务文案规则 / 未禁英文常量与 JSON 字段名 / 未指向 backend/bindmsg → 任一即 FAIL",
+      "negative": "§1.3 缺 400 族中文业务文案规则 / 未禁英文常量与 JSON 字段名 / 未指向 `backend/bindmsg` → FAIL",
       "negative_result": "R4 直接对 docs/spec/api/api.md 的 §1.3 区段做结构断言（不匹配全文），因此把口径写到别处或只改代码不改文档都会 FAIL",
       "pass": true
     }
